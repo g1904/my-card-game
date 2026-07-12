@@ -1,0 +1,115 @@
+#!/usr/bin/env bash
+# session-manager — Claude Code 会话收藏/标签管理的易用封装
+#
+# 这是对同目录 session-manager-impl.ps1 的薄封装：复用其 JSONL 解析、UTF-8 处理
+# 与收藏文件读写逻辑，只把冗长的 PowerShell 命名参数换成简洁的子命令语法。
+#   底层: powershell -NoProfile -ExecutionPolicy Bypass -File .claude/scripts/session-manager-impl.ps1 -Save . -Tags 库存审查,待跟进
+#   封装: bash .claude/scripts/session-manager save . 库存审查 待跟进
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PS1_FILE="$SCRIPT_DIR/session-manager-impl.ps1"
+
+if [[ ! -f "$PS1_FILE" ]]; then
+  echo "找不到底层脚本: $PS1_FILE" >&2
+  exit 1
+fi
+
+# Git Bash / MSYS 下路径是 /d/... 形式，powershell.exe 需要 Windows 路径 D:\...
+to_win() {
+  if command -v cygpath >/dev/null 2>&1; then cygpath -w "$1"; else echo "$1"; fi
+}
+
+usage() {
+  cat <<'EOF'
+session-manager — Claude Code 会话收藏与标签管理（绕过 --resume 的 50 条上限）
+
+用法:
+  session-manager [list]                    列出全部会话
+  session-manager list -n N                 只看最近 N 条
+  session-manager save [id] [标签...]        收藏（id 省略或写 . 表示当前会话，可附带一个或多个标签）
+  session-manager unsave <id>               取消收藏
+  session-manager tag <id> <标签...>         给会话加标签（可多个，自动收藏）
+  session-manager untag <id> <标签...>       移除一个或多个标签
+  session-manager saved [标签...]            列出已收藏（给多个标签时须同时含全部标签）
+  session-manager grep <关键词>              在用户发言中搜索会话
+  session-manager -h | --help               显示本帮助
+
+说明:
+  - id 支持 UUID 前缀（如 ae6eb11d）；前缀不唯一会提示给更长前缀。
+  - 多标签用空格分隔，例如: save . 库存审查 待跟进
+  - 恢复会话:  claude --resume <Id>
+EOF
+}
+
+run_ps() {
+  powershell -NoProfile -ExecutionPolicy Bypass -File "$(to_win "$PS1_FILE")" "$@"
+}
+
+# 把多个标签合并成单个逗号分隔 token。powershell -File 下，array 参数不会贪婪吞并
+# 多个空格分隔实参（多余的会落到位置参数 -Project），而 "a,b" 单 token 会被 [string[]] 拆成数组。
+join_csv() {
+  local IFS=,
+  echo "$*"
+}
+
+cmd="${1:-list}"
+
+# 帮助标志先于归一化处理
+case "$cmd" in
+  -h|--help|help) usage; exit 0 ;;
+esac
+
+# 兼容 PowerShell 风格写法：去掉前导短横，使 -save 等价于 save、-grep 等价于 grep
+cmd="${cmd#-}"
+
+case "$cmd" in
+  list|ls)
+    shift || true
+    args=()
+    if [[ "${1:-}" == "-n" || "${1:-}" == "--top" ]]; then
+      args+=(-Top "${2:?-n 需要一个数字}")
+    fi
+    run_ps "${args[@]}"
+    ;;
+  save)
+    shift
+    id="${1:-.}"
+    [[ $# -gt 0 ]] && shift    # 消费 id，剩余参数即标签
+    args=(-Save "$id")
+    [[ $# -gt 0 ]] && args+=(-Tags "$(join_csv "$@")")
+    run_ps "${args[@]}"
+    ;;
+  unsave)
+    shift
+    run_ps -Unsave "${1:?unsave 需要会话 id}"
+    ;;
+  tag)
+    shift
+    id="${1:?tag 需要会话 id}"; shift
+    [[ $# -gt 0 ]] || { echo "tag 需要至少一个标签名" >&2; exit 1; }
+    run_ps -Tag "$id" -Tags "$(join_csv "$@")"
+    ;;
+  untag)
+    shift
+    id="${1:?untag 需要会话 id}"; shift
+    [[ $# -gt 0 ]] || { echo "untag 需要至少一个标签名" >&2; exit 1; }
+    run_ps -Untag "$id" -Tags "$(join_csv "$@")"
+    ;;
+  saved)
+    shift
+    args=(-Saved)
+    [[ $# -gt 0 ]] && args+=(-Tags "$(join_csv "$@")")
+    run_ps "${args[@]}"
+    ;;
+  grep|search)
+    shift
+    run_ps -Grep "${1:?grep 需要关键词}"
+    ;;
+  *)
+    echo "未知命令: $cmd" >&2
+    echo >&2
+    usage >&2
+    exit 1
+    ;;
+esac
