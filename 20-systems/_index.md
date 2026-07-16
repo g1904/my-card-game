@@ -1,17 +1,17 @@
-# Systems — Design Intent Index
+# 系统 —— 设计意图索引
 
-Living design docs per gameplay system. Filenames mirror `.claude/knowledge/systems/` 1:1, so each doc feeds exactly one knowledge note.
+各游戏系统的动态设计文档。文件名与 `.claude/knowledge/systems/` 一一对应,因此每份文档恰好对应一条 knowledge 笔记。
 
-| Doc | Purpose | Feeds (knowledge) |
+| 文档 | 用途 | 对应 knowledge |
 |-----|---------|-------------------|
-| [run-manager](run-manager.md) | Run lifecycle: start (seed), advance, win/loss, teardown. | `systems/run-manager.md` |
-| [map-progression](map-progression.md) | Branching node map per ante; position; routing. | `systems/map-progression.md` |
-| [encounter-combat](encounter-combat.md) | Turn structure, enemy intents/AI, resolution. | `systems/encounter-combat.md` |
-| [deck-hand](deck-hand.md) | Draw/hand/discard, seeded shuffle, deck mutations. | `systems/deck-hand.md` |
-| [card-resolution](card-resolution.md) | Cost, targeting, effect pipeline, triggers. | `systems/card-resolution.md` |
-| [energy-economy](energy-economy.md) | Per-turn energy; run currency (gold). | `systems/energy-economy.md` |
-| [relics-jokers](relics-jokers.md) | Passive modifiers via event triggers. | `systems/relics-jokers.md` |
-| [scoring](scoring.md) | Score model (chips×mult or folded into combat). | `systems/scoring.md` |
-| [shop-rewards](shop-rewards.md) | Shop stock, buying, upgrades, rewards. | `systems/shop-rewards.md` |
+| [run-manager](run-manager.md) | Run 生命周期:开始(seed)、推进、胜/负、清理。 | `systems/run-manager.md` |
+| [map-progression](map-progression.md) | 每个 ante 的分支节点 map;位置;路径导航。 | `systems/map-progression.md` |
+| [encounter-combat](encounter-combat.md) | 回合结构、敌人意图/AI、结算。 | `systems/encounter-combat.md` |
+| [deck-hand](deck-hand.md) | 抽牌/hand/弃牌、seeded 洗牌、deck 变更。 | `systems/deck-hand.md` |
+| [card-resolution](card-resolution.md) | 费用、目标选择、效果流水线、触发器。 | `systems/card-resolution.md` |
+| [energy-economy](energy-economy.md) | 每回合 energy;run 货币(gold)。 | `systems/energy-economy.md` |
+| [relics-jokers](relics-jokers.md) | 通过事件触发器实现的被动修正。 | `systems/relics-jokers.md` |
+| [scoring](scoring.md) | 计分模型(chips×mult 或并入战斗)。 | `systems/scoring.md` |
+| [shop-rewards](shop-rewards.md) | Shop 库存、购买、升级、奖励。 | `systems/shop-rewards.md` |
 
-> Add a new system doc here only when there's real design intent for it; keep names matching the knowledge index.
+> 只有在确有真实设计意图时,才在此新增系统文档;保持文件名与 knowledge 索引一致。

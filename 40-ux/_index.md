@@ -1,11 +1,11 @@
-# UX — Design Intent Index
+# UX — 设计意图索引
 
-Screen flows, interaction feel, and text wireframes. Portrait-first, touch-first (see `.claude/rules/ui-input-rules.md`). Feeds `.claude/knowledge/scenes/_index.md`.
+屏幕流程、交互手感与文本线框图。竖屏优先、触控优先(见 `.claude/rules/ui-input-rules.md`)。提供给 `.claude/knowledge/scenes/_index.md`。
 
-| Doc | Purpose |
+| 文档 | 用途 |
 |-----|---------|
-| [screen-flow](screen-flow.md) | Menu → run → map → combat → shop → settings navigation. |
-| [combat-ux](combat-ux.md) | Play/drag/target, intent telegraphing, pacing. |
-| [onboarding](onboarding.md) | First-run teaching order. |
+| [screen-flow](screen-flow.md) | 菜单 → run → 地图 → 战斗 → shop → 设置 的导航。 |
+| [combat-ux](combat-ux.md) | 出牌/拖拽/指定目标、intent 预告、节奏。 |
+| [onboarding](onboarding.md) | 首次游玩的教学顺序。 |
 
-> Wireframes are text/ASCII here; the actual `.tscn` composition lives in `game-feature-branch/` and is cataloged in `knowledge/scenes/`.
+> 此处的线框图为文本/ASCII;实际的 `.tscn` 组合位于 `game-feature-branch/`,并在 `knowledge/scenes/` 中编目。

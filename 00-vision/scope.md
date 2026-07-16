@@ -1,15 +1,54 @@
 # Vision — Scope
 
-## MVP (first playable)
-> _The smallest thing that is actually fun and shippable. Bullet the must-haves._
+## MVP（首个可玩版本）
+> _真正有趣且可交付的最小切片。_
 
-## Out of scope (for now)
-> _Explicitly deferred — parked here so it doesn't creep in._
+- **一个可玩篇章**——即炼气 → 筑基的攀登——从头到尾。
+- **encounter 循环：** 在可用的 encounter 中选择 → 结算改变玩家状态及后续走向的事件。
+- **至少两种 encounter 类型：** 战斗（回合制）与一个非战斗的事件/抉择，以印证“并非每个 encounter 都是一场战斗”。
+- **一层极简的卡牌构筑：** 一副起始 deck，外加通过 encounter 获得/移除卡牌。
+- **带 seed 的 run**（可复现）以及位于篇章边界的单一**存档/记录点**。
+- **竖屏、触控、离线可玩**——在手机上单手可玩；玩法不依赖网络。
+- **前置屏幕外壳：** 登录屏（T&S + 循环视频占位 + 账号登录 / **游客**）→ 主菜单（切换已解锁篇章、PlayerProfile / PlayerPower / Achievements / Settings 入口）。见 `40-ux/screen-flow.md`。
+- **混合存档：** 本地 `user://` 权威 + 登录后云同步；游客纯本地。见「平台与约束」。
 
-## Platforms & constraints
-- Primary: Android / iOS (portrait, touch, offline).
-- Secondary: desktop, web.
-- Offline only — `user://` persistence, no network.
+## 范围之外（暂时）
+> _明确推迟——先泊车，以免蔓延进来。_
 
-## Session shape
-> _Target run length, save/resume expectations, how a "session" feels on a phone._
+- 第 2、3 篇章（筑基→金丹、金丹→元婴）以及完整的**篇章衔接 / 延续**系统——先设计好衔接契约（见 2026-07-13 handoff 中的 open questions）。
+- 支撑“Reigns”式平衡张力的完整**属性模型**。
+- 超出足以奠定 grimdark 基调之外的深度叙事/剧情内容。
+- 元进程解锁、外观装饰、每日/seeded-run 分享。
+- 本地化打磨（让展示字符串与 id 分离，以免日后受阻）。
+
+## 平台与约束
+- 首要：Android / iOS（竖屏、触控、离线）。
+- 次要：桌面、网页。
+- **离线可玩 + 云同步（混合模型，已确认纳入 MVP）。** 游戏玩法离线运行，**本地 `user://` 是权威存档**；账号登录（微信 / QQ / 邮箱 / 手机号）后**联网时把进度同步至服务器**；**游客态纯本地、不联网**。取代了先前「仅离线，无网络」的绝对约束——网络仅用于账号进度同步，玩法本身不依赖网络。Source: `10-handoffs/2026-07-16-ux-flow-login-and-dev-order.md`（已由用户确认）。
+- 渲染器：GL Compatibility（将美术/特效控制在其限制之内）。
+
+> **决策已定 → ADR 候选。** 混合存档模型是一项方向性决策（引入服务器 / 账号系统组件），值得固化为 ADR（`50-decisions/`）。后端选型、账号系统、本地↔云端同步冲突解决、游客→登录迁移、合规均为其下的实现级待决项——见 `20-systems/run-manager.md` 与 `open-questions.md`。
+
+## 美术资源策略（延后但架构友好）
+- 音轨、卡面、动画等**几乎所有美术相关资源**在设计达 ~90% 前一律 **TBA**——此刻文件留空占位。
+- 架构中**始终为美术保留可轻松替换 / 定制的挂点**（呼应「展示资源与逻辑分离」原则）。
+- 待办：开发推进中找**通用 / 免费占位资源**作默认——优先现成 库 / package，或由用户从 Godot 社区资源中挑选。
+- Source: `10-handoffs/2026-07-16-ux-flow-login-and-dev-order.md`。
+
+## 开发顺序（已采纳的改良版）
+> _流程 / 路线意图，非游戏范围本身。用户已确认采纳下述改良版。_
+- **采纳的顺序：** **设计先行（自顶向下）→ 垂直切片先跑通端到端 → 贯穿式用占位数据做轻量平衡 → 美术挂点占位、末段替换**。Source: `10-handoffs/2026-07-16-ux-flow-login-and-dev-order.md`（已由用户确认）。
+- 具体落法：
+  - **垂直切片优先。** 先打通一条最细可玩链路 **登录 → 主菜单 → 炼气一场战斗 → 存档** 并端到端跑通，最早暴露架构风险，再横向铺开系统。
+  - **平衡贯穿而非押末段。** 系统落地即用**占位数值 + 数据驱动配置**（平衡值放 `.tres`，不硬编码，见 `data-resource-rules.md`），使后期平衡是「调数据」而非「改结构」。
+  - **测试 / 美术仍靠后。** 深度测试与正式美术押到可运行 demo 之后（美术挂点先占位、末段替换；测试用占位数据贯穿轻量验证）。
+  - 原提案（设计 → 系统全成型 → 末段一次性测试/平衡/美术）已被此改良版取代——理由是「平衡完全押末段会反噬系统 API 设计」「纯瀑布推迟端到端验证」。
+- 此为流程性方向决策，亦是 **ADR 候选**（若需固化到 `50-decisions/`）。
+
+## 时段形态
+> _目标 run 时长、存档/续玩、手机上一个“时段”的感觉。_
+
+- **一个篇章**是自然的时段单元——足够长以让人觉得是一次有意义的攀登，又足够短以便在移动端完成或存档。
+- **三个篇章边界**是持久的存档/记录点（角色档案的史册记录）；最后一个（元婴）是已完成 run 的奖杯展示。
+- 在 encounter 边界自动存档，使被终止的应用能在合理的位置续玩（见 `.claude/rules/state-save-rules.md`）。
+- run 带 seed 且可复现，便于复现 bug 与公平对比。

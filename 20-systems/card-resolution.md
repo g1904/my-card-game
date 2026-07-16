@@ -1,15 +1,15 @@
-﻿# card-resolution
+# card-resolution
 
-> Playing a card: cost, targeting, effect pipeline, triggers.
+> 打出一张 card:费用、目标选择、效果流水线、触发器。
 
-## Intent
-> _Design intent, distilled from handoffs. Keep it current._
+## 意图
+> _设计意图,从 handoffs 中提炼。保持更新。_
 
-## Decisions (-> ADR)
-> _Settled calls link to 50-decisions/ADR-####._
+## 决策(-> ADR)
+> _已定案的决定链接到 50-decisions/ADR-####。_
 
-## Open questions
-> _Unresolved, needs a handoff/decision._
+## 待决问题
+> _尚未解决,需要一次 handoff/决策。_
 
-## Feeds
-Distilled into: `.claude/knowledge/systems/card-resolution.md`
+## 对应
+提炼至:`.claude/knowledge/systems/card-resolution.md`

@@ -1,15 +1,15 @@
-﻿# balance
+# balance
 
-> Tunable global numbers: energy/turn, ante curves, drop weights.
+> 可调的全局数值:每回合 energy、ante 曲线、掉落权重。
 
-## Intent
-> _Design intent, distilled from handoffs. Keep it current._
+## 意图
+> _从 handoffs 中提炼的设计意图。保持更新。_
 
-## Decisions (-> ADR)
-> _Settled calls link to 50-decisions/ADR-####._
+## 决策(-> ADR)
+> _已敲定的决定链接到 50-decisions/ADR-####。_
 
-## Open questions
-> _Unresolved, needs a handoff/decision._
+## 待解问题
+> _尚未解决,需要一次 handoff/决策。_
 
-## Feeds
-Distilled into: `.claude/knowledge/data/_index.md`
+## 提供给
+提炼进:`.claude/knowledge/data/_index.md`

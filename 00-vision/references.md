@@ -1,14 +1,30 @@
 # Vision — References
 
-Touchstones and what to borrow vs. avoid. Be specific — "we want X's Y mechanic but not its Z."
-
-## Balatro
-- **Borrow:** _..._
-- **Avoid:** _..._
+参照标杆，以及哪些该借鉴、哪些该规避。要具体——“我们想要 X 的 Y 机制，但不要它的 Z。”
 
 ## Slay the Spire
-- **Borrow:** _..._
-- **Avoid:** _..._
+- **借鉴：** 节点地图式的 run 结构；以卡牌构筑为核心 build；回合制、意图预告（intent-telegraphed）的战斗。
+- **规避：** 每个节点都战斗的节奏。在本作中，**并非每个 encounter 都是一场战斗**——许多是事件/抉择。
 
-## Other references
-> _Anything else (games, apps, art) informing the design._
+## Balatro
+- **借鉴：** roguelite 卡牌构筑的手感；组装一次 run 的引擎所带来的乐趣；明快的移动端游玩时段。
+- **规避：** 它那种温馨、低风险的基调——本作是 grimdark，而非温馨。（战斗/计分模型仍未定——HP vs chips×mult 尚未拍板。）
+
+## Reigns（手游）
+- **借鉴：** **属性平衡求生张力**——玩家不断在相互竞争的压力之间权衡，而非优化单一数值；每次抉择会同时拨动多个仪表。
+- **规避：** 它那种纯粹左右滑动二选一、无 deck 的极简——我们仍想要一层真正的卡牌构筑。
+
+## 月圆之夜 (Night of the Full Moon)
+- **借鉴：** **encounter / 事件机制**——它是 encounter 如何呈现抉择并触发后果的范本。
+- **规避：** _(待定——待 encounter 系统设计好后，注明具体不该照搬什么。)_
+
+## Warhammer 40k
+- **借鉴：** **叙事氛围**——grimdark、阴郁、高风险的叙事。
+- **规避：** 它具体的设定/IP；我们是仙侠，不是科幻。只借基调。
+
+## 美术方向 — 三国杀 (Legends of the Three Kingdoms) & 弈仙牌
+- **借鉴：** 具有绘画感的中式卡牌游戏插画风格；竖版卡面构图。
+- **约束：** 必须在手机尺寸下清晰可读，并处于 **GL Compatibility** 渲染器的限制之内。
+
+## 其他参照
+> _遇到相关的游戏/应用/美术时随时补充。_

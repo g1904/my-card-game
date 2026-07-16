@@ -6,12 +6,12 @@
 - superseded-by:          # ADR-#### (filled if later replaced)
 
 ## Context
-> _The forces at play — what makes this a real decision (constraints, options considered)._
+> _博弈中的各方力量——是什么让这成为一个真正的决定（约束、考量过的选项）。_
 
 ## Decision
-> _The call we're making, stated plainly._
+> _我们所做的抉择，直白陈述。_
 
 ## Consequences
-> _What this enables, what it costs, what it locks out. Follow-ups._
+> _这带来了什么、代价是什么、排除了什么。后续待办。_
 
 <!-- Once Accepted, this ADR is immutable. To change the decision, add a new ADR that supersedes it. -->
