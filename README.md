@@ -1,29 +1,31 @@
-# MyCardGame — Branch Guide
+# MyCardGame —— 分支指南
 
-**MyCardGame** is a Godot 4.7 (.NET/C#) 2D roguelike deckbuilder (Balatro / Slay the Spire feel), mobile-first, portrait, offline.
+**MyCardGame** 是一款 Godot 4.7（.NET/C#）2D roguelike 卡牌构筑游戏（Balatro / Slay the Spire 的手感），移动优先、竖屏、离线。
 
-This `main` branch intentionally holds **only this guidance map**. All actual content lives in the branches below. Each working branch is checked out into its own sibling folder on the maintainer's machine.
+这个 `main` 分支有意只承载**这张指南地图**。所有实际内容都位于下面的分支中。每个工作分支在维护者的机器上被检出到各自的同级文件夹里。
 
-## Branches
+## 分支
 
-| Branch | Purpose | Local folder |
+| 分支 | 用途 | 本地文件夹 |
 |--------|---------|--------------|
-| `main` | This guidance map. No game code. | — |
-| `feature` | Active development. Where new work happens. | `game-feature-branch/` |
-| `testing` | QA / verification snapshot promoted from `feature`. | `game-testing-branch/` |
-| `production` | Release-stable snapshot promoted from `testing`. | `game-production-branch/` |
-| `claude-config` | The `.claude/` harness config (rules, knowledge, skills, settings). Not game code. | `.claude/` |
+| `main` | 这张指南地图。无游戏代码。 | — |
+| `feature` | 活跃开发。新工作在此进行。 | `game-feature-branch/` |
+| `testing` | 从 `feature` 提升而来的 QA / 验证快照。 | `game-testing-branch/` |
+| `production` | 从 `testing` 提升而来的发布稳定快照。 | `game-production-branch/` |
+| `design` | 设计意图与交接（仅文档，孤儿历史）。非游戏代码。 | `game-design-documents/` |
+| `claude-config` | `.claude/` 工具配置（规则、知识、技能、设置）。非游戏代码。 | `.claude/`（当前为本机上一份本地的、未跟踪的副本） |
 
-## Flow
+## 流程
 
 ```
 feature  →  testing  →  production
 (develop)   (verify)     (release)
 ```
 
-`feature`, `testing`, and `production` were all seeded from the same Godot 4.7 project scaffold.
-`claude-config` is independent and carries only the Claude Code harness configuration.
+`feature`、`testing` 和 `production` 全都从同一个 Godot 4.7 项目脚手架播种而来。
+`design` 和 `claude-config` **独立**于这条线 —— 孤儿历史、无游戏代码、从不合并进发布。
+`design` 携带设计文档（意图的事实来源）；`claude-config` 携带 Claude Code 工具配置。
 
-## Getting the game
+## 获取游戏
 
-Check out the branch you need — e.g. `git checkout feature` — then open the project in the Godot 4.7 editor (.NET build) and press Play. The game is fully offline; saves persist under `user://`.
+检出你需要的分支 —— 例如 `git checkout feature` —— 然后在 Godot 4.7 编辑器（.NET 构建）中打开项目并按 Play。游戏完全离线；存档持久化到 `user://`。
