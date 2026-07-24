@@ -4,13 +4,13 @@
 > _真正有趣且可交付的最小切片。_
 
 - **一个可玩篇章**——即炼气 → 筑基的攀登——从头到尾。
-- **encounter 循环：** 在可用的 encounter 中选择 → 结算改变玩家状态及后续走向的事件。
-- **至少两种 encounter 类型：** 战斗（回合制）与一个非战斗的事件/抉择，以印证“并非每个 encounter 都是一场战斗”。
-- **一层极简的卡牌构筑：** 一副起始 deck，外加通过 encounter 获得/移除卡牌。
+- **AdventureEvent 循环：** 在可用的 AdventureEvent 中选择 → 结算改变玩家状态及后续走向的事件。
+- **至少两种 AdventureEvent 类型：** 战斗（回合制）与一个非战斗的事件/抉择，以印证“并非每个 AdventureEvent 都是一场战斗”。
+- **一层极简的卡牌构筑：** 一副起始 deck，外加通过 AdventureEvent 获得/移除卡牌。
 - **带 seed 的 run**（可复现）以及位于篇章边界的单一**存档/记录点**。
-- **竖屏、触控、离线可玩**——在手机上单手可玩；玩法不依赖网络。
-- **前置屏幕外壳：** 登录屏（T&S + 循环视频占位 + 账号登录 / **游客**）→ 主菜单（切换已解锁篇章、PlayerProfile / PlayerPower / Achievements / Settings 入口）。见 `40-ux/screen-flow.md`。
-- **混合存档：** 本地 `user://` 权威 + 登录后云同步；游客纯本地。见「平台与约束」。
+- **竖屏、触控**——在手机上单手可玩。
+- **前置屏幕外壳：** 登录屏（T&S + 循环视频占位 + **强制账号登录**）→ 主菜单（切换已解锁篇章、PlayerProfile / PlayerPower / Achievements / Settings 入口）。**已移除游客态**——所有玩家必须登录账号后才能游玩。见 `40-ux/screen-flow.md`。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
+- **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。**取代**了先前的「混合存档（本地 `user://` 权威 + 云同步）」。见「平台与约束」。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 
 ## 范围之外（暂时）
 > _明确推迟——先泊车，以免蔓延进来。_
@@ -22,12 +22,15 @@
 - 本地化打磨（让展示字符串与 id 分离，以免日后受阻）。
 
 ## 平台与约束
-- 首要：Android / iOS（竖屏、触控、离线）。
+- 首要：Android / iOS（竖屏、触控）。
 - 次要：桌面、网页。
-- **离线可玩 + 云同步（混合模型，已确认纳入 MVP）。** 游戏玩法离线运行，**本地 `user://` 是权威存档**；账号登录（微信 / QQ / 邮箱 / 手机号）后**联网时把进度同步至服务器**；**游客态纯本地、不联网**。取代了先前「仅离线，无网络」的绝对约束——网络仅用于账号进度同步，玩法本身不依赖网络。Source: `10-handoffs/2026-07-16-ux-flow-login-and-dev-order.md`（已由用户确认）。
+- **平台 / 登录渠道优先级（已定）。** **移动端优先**（手机 / 邮箱）→ **微信 / QQ 登录其次** → **海外与跨平台最后**。**已移除游客登录**（强制账号登录）。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`；去游客 `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
+- **强制在线 · 云端权威（已定，取代先前的混合模型）。** **去除离线游玩**：必须在线，进度实时同步云端；**冲突时一切以云端为准**（同时裁定了先前的「同步冲突解决」待决项）。**取代**了 `2026-07-16` 确认的「离线可玩 + 云同步混合模型（本地 `user://` 权威）」。此反转已按用户授权同步进项目根约定（`.claude/CLAUDE.md`、`state-save-rules.md` 及知识笔记均已改为强制在线；并确立「决策可被推翻，含根约定」的治理原则）。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
+- **强制在线 vs 移动手感的张力（已裁定为体验层折中）。** 「必须在线」不是逐帧硬性：**允许短暂断线缓冲本地操作，恢复网络后再同步**，冲突仍以云端为最终权威。这缓解了强制在线与「移动端随时可玩」支柱之间的张力。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 - 渲染器：GL Compatibility（将美术/特效控制在其限制之内）。
 
-> **决策已定 → ADR 候选。** 混合存档模型是一项方向性决策（引入服务器 / 账号系统组件），值得固化为 ADR（`50-decisions/`）。后端选型、账号系统、本地↔云端同步冲突解决、游客→登录迁移、合规均为其下的实现级待决项——见 `20-systems/run-manager.md` 与 `open-questions.md`。
+- **后端 / 账号 = 重账号（已定，参考三国杀 Online）。** 为支撑**云端同步存档**，采用**重账号体系**（服务端权威账号 + 云存档），路线参考 **三国杀 Online**。相较 Balatro / StS 的「单机 + 平台云存档、无自有账号」，本作走「强后端 + 自有账号」路线。这也意味着须正面处理**实名 / 防沉迷 / PIPL / 渠道审核 / 账号注销 / 数据导出**等合规（删除游客态后门槛进一步抬高）。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
+> **决策已定 → ADR 已固化。** 「强制在线 · 云端权威（含重账号）」已固化为 **`50-decisions/ADR-0003`**（取代先前「混合存档」ADR 候选）。「境界存档 · 篇章重试模型」已固化为 **`50-decisions/ADR-0004`**。合规实现细节仍为其下待确认项——见 `20-systems/run-manager.md` 与 `open-questions.md`。
 
 ## 美术资源策略（延后但架构友好）
 - 音轨、卡面、动画等**几乎所有美术相关资源**在设计达 ~90% 前一律 **TBA**——此刻文件留空占位。
@@ -50,5 +53,5 @@
 
 - **一个篇章**是自然的时段单元——足够长以让人觉得是一次有意义的攀登，又足够短以便在移动端完成或存档。
 - **三个篇章边界**是持久的存档/记录点（角色档案的史册记录）；最后一个（元婴）是已完成 run 的奖杯展示。
-- 在 encounter 边界自动存档，使被终止的应用能在合理的位置续玩（见 `.claude/rules/state-save-rules.md`）。
+- 在 AdventureEvent 边界自动存档，使被终止的应用能在合理的位置续玩（见 `.claude/rules/state-save-rules.md`）。
 - run 带 seed 且可复现，便于复现 bug 与公平对比。

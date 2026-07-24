@@ -2,9 +2,9 @@
 
 - id: 2026-07-15-adventure-event-profiles
 - date: 2026-07-15
-- topic: terminology（新建）、systems/encounter-combat（分类法）、systems/run-manager（PlayerProfile/CharacterProfile 生命周期）、systems/map-progression（AdventureEvent 图结构）
+- topic: terminology（新建）、systems/adventure-event-combat（分类法）、systems/run-manager（PlayerProfile/CharacterProfile 生命周期）、systems/map-progression（AdventureEvent 图结构）
 - status: distilled
-- distilled-to: terminology.md, 20-systems/encounter-combat.md, 20-systems/run-manager.md, 20-systems/map-progression.md
+- distilled-to: terminology.md, 20-systems/adventure-event-combat.md, 20-systems/run-manager.md, 20-systems/map-progression.md
 
 ## Intent（你的原话，已提炼）
 
@@ -95,4 +95,4 @@
 - **元进程持久化范围。** `PlayerPower` / `PlayerItem` / `Achievements` / `GameSetting` / `AccountInfo` 各自的字段与解锁规则待定；账号级 meta 系统或许值得单独一份系统文档。
 
 ## Notes / triage
-大局骨架 handoff。术语重构 → 新建 `terminology.md`。六分类法 → 折进 `20-systems/encounter-combat.md` 的意图并回答其「分类法」待决项（作为 ADR 候选，待反馈确认）。数据模型：PlayerProfile/CharacterProfile 生命周期 → `20-systems/run-manager.md`；AdventureEvent 的 possibleFutureEvent/pastEvent 图结构 → `20-systems/map-progression.md`。全篇「大局，细节未定」，故落地的多为**结构与开放问题**，而非机制断言。
+大局骨架 handoff。术语重构 → 新建 `terminology.md`。六分类法 → 折进 `20-systems/adventure-event-combat.md` 的意图并回答其「分类法」待决项（作为 ADR 候选，待反馈确认）。数据模型：PlayerProfile/CharacterProfile 生命周期 → `20-systems/run-manager.md`；AdventureEvent 的 possibleFutureEvent/pastEvent 图结构 → `20-systems/map-progression.md`。全篇「大局，细节未定」，故落地的多为**结构与开放问题**，而非机制断言。

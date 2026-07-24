@@ -8,7 +8,7 @@
 ## Context
 核心循环可以倒向两个方向：**Balatro 式计分**（打出牌组以 chips × mult 计分、击败一个目标值），或
 **Slay the Spire 式 HP 战斗**（攻击/格挡、削减敌人 HP），又或是二者的混合。这个抉择会级联影响到
-`20-systems/encounter-combat.md`、`20-systems/scoring.md`、敌人设计与卡牌效果的形态。
+`20-systems/adventure-event-combat.md`、`20-systems/scoring.md`、敌人设计与卡牌效果的形态。
 `.claude/knowledge/dictionary.md` 已将其标记为待拍板的未决项。
 
 ## Decision

@@ -1,8 +1,8 @@
 # FR-<system>-<slug> — <short title>
 
-- id: FR-<system>-<slug>          # e.g. FR-encounter-combat-turn-loop
+- id: FR-<system>-<slug>          # e.g. FR-adventure-event-combat-turn-loop
 - date: <YYYY-MM-DD>
-- system: <systems/encounter-combat | content/cards | ux/screen-flow | ...>
+- system: <systems/adventure-event-combat | content/cards | ux/screen-flow | ...>
 - source-docs:                    # design docs this requirement is derived from
     - 20-systems/<doc>.md
     - 00-vision/<doc>.md          # (as applicable)

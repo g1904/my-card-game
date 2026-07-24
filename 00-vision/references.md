@@ -4,7 +4,7 @@
 
 ## Slay the Spire
 - **借鉴：** 节点地图式的 run 结构；以卡牌构筑为核心 build；回合制、意图预告（intent-telegraphed）的战斗。
-- **规避：** 每个节点都战斗的节奏。在本作中，**并非每个 encounter 都是一场战斗**——许多是事件/抉择。
+- **规避：** 每个节点都战斗的节奏。在本作中，**并非每个 AdventureEvent 都是一场战斗**——许多是事件/抉择。
 
 ## Balatro
 - **借鉴：** roguelite 卡牌构筑的手感；组装一次 run 的引擎所带来的乐趣；明快的移动端游玩时段。
@@ -15,8 +15,12 @@
 - **规避：** 它那种纯粹左右滑动二选一、无 deck 的极简——我们仍想要一层真正的卡牌构筑。
 
 ## 月圆之夜 (Night of the Full Moon)
-- **借鉴：** **encounter / 事件机制**——它是 encounter 如何呈现抉择并触发后果的范本。
-- **规避：** _(待定——待 encounter 系统设计好后，注明具体不该照搬什么。)_
+- **借鉴：** **事件 / 抉择机制**——它是 AdventureEvent 如何呈现抉择并触发后果的范本；**节点形态**亦参照它——精心策划的事件菜单，而非 StS 式完全分支地图。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
+- **规避：** _(待定——待 AdventureEvent 系统设计好后，注明具体不该照搬什么。)_
+
+## Magic: the Gathering & Hearthstone
+- **借鉴：** 战斗的 **life + mana 双资源模型**——以生命为血量、以 mana 为每回合出牌资源（对齐 `CharacterProfile.Status` 的 currentHealth / currentMana）。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
+- **规避：** _(待定——mana 曲线、卡池复杂度等具体取舍待战斗系统细化后注明。)_
 
 ## Warhammer 40k
 - **借鉴：** **叙事氛围**——grimdark、阴郁、高风险的叙事。

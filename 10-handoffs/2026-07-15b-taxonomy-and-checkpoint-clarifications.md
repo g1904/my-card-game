@@ -2,9 +2,9 @@
 
 - id: 2026-07-15b-taxonomy-and-checkpoint-clarifications
 - date: 2026-07-15
-- topic: 承接 2026-07-15-adventure-event-profiles 的 Open questions；feeds terminology, systems/encounter-combat, run-manager, map-progression, 50-decisions/ADR-0002
+- topic: 承接 2026-07-15-adventure-event-profiles 的 Open questions；feeds terminology, systems/adventure-event-combat, run-manager, map-progression, 50-decisions/ADR-0002
 - status: distilled
-- distilled-to: terminology.md, 20-systems/encounter-combat.md, 20-systems/run-manager.md, 20-systems/map-progression.md, 50-decisions/ADR-0002-adventure-event-taxonomy.md
+- distilled-to: terminology.md, 20-systems/adventure-event-combat.md, 20-systems/run-manager.md, 20-systems/map-progression.md, 50-decisions/ADR-0002-adventure-event-taxonomy.md
 
 ## Intent（你的原话，已提炼）
 
@@ -43,4 +43,4 @@
 - **篇章边界高潮事件。** 境界突破（渡劫 / boss）是作为一场 战斗/Combat 事件发生在篇章末，还是独立于分类法的存档转场？（此前 (b) 项）——倾向：突破即存档转场，若含战斗则复用 战斗/Combat 类型。请确认。
 
 ## Notes / triage
-承接式 handoff，裁定前一份的 Open questions。分类法 → `encounter-combat.md` + **ADR-0002**。存档/重试模型 → `run-manager.md`（状态机、多角色、重试）+ `map-progression.md`（篇章衔接 = 境界存档、死亡重试）。命名 → `terminology.md`（修行事件）。
+承接式 handoff，裁定前一份的 Open questions。分类法 → `adventure-event-combat.md` + **ADR-0002**。存档/重试模型 → `run-manager.md`（状态机、多角色、重试）+ `map-progression.md`（篇章衔接 = 境界存档、死亡重试）。命名 → `terminology.md`（修行事件）。

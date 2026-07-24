@@ -7,7 +7,7 @@
 | [cards](cards.md) | 卡牌 / `CardData` | `data/_index.md` |
 | [relics](relics.md) | Relic·Joker / `RelicData` | `data/_index.md` |
 | [enemies](enemies.md) | 敌人 / `EnemyData` | `data/_index.md` |
-| [encounters](encounters.md) | encounter / `EncounterData` | `data/_index.md` |
+| [adventure-events](adventure-events.md) | AdventureEvent / `AdventureEventData`（原 `EncounterData`；文件已由 `encounters.md` 更名为 `adventure-events.md`） | `data/_index.md` |
 | [events](events.md) | event / `EventData` | `data/_index.md` |
 | [blinds-antes](blinds-antes.md) | Blind·Ante / `BlindData` | `data/_index.md` |
 | [balance](balance.md) | 平衡配置 / `BalanceData` | `data/_index.md` |
