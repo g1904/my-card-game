@@ -17,7 +17,7 @@
 | `backend-testing` | 从 `backend-feature` 提升而来的 QA / 验证快照。 | `backend-testing-branch/` |
 | `backend-production` | 从 `backend-testing` 提升而来的发布稳定快照。 | `backend-production-branch/` |
 | `backend-design` | 后端设计意图（仅文档，孤儿历史）。 | `backend-design-documents/` |
-| `claude-config` | `.claude/` 工具配置（规则、知识、技能、设置）。非代码。 | `.claude/`（当前为本机上一份本地的、未跟踪的副本） |
+| `claude-config` | `.claude/` 工具配置（规则、知识、技能、脚本、设置）。非代码。 | `.claude/` |
 
 ## 流程
 
@@ -34,6 +34,8 @@ backend-feature  →  backend-testing  →  backend-production   (云端后端)
 
 `game-design`、`backend-design` 和 `claude-config` **独立**于这两条线 —— 孤儿历史、无产品代码、从不合并进发布。
 `game-design` 携带客户端设计文档（意图的事实来源）；`backend-design` 携带后端设计文档；`claude-config` 携带 Claude Code 工具配置。
+
+十个检出目录（含 `.claude/`）各自是同一个远程仓库的一份检出、各钉在一条分支上。`.\push-all.cmd` 一次性把它们全部提交并推送。
 
 ### 为什么客户端与后端分线
 
