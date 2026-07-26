@@ -10,7 +10,7 @@
 - **带 seed 的 run**（可复现）以及位于篇章边界的单一**存档/记录点**。
 - **竖屏、触控**——在手机上单手可玩。
 - **前置屏幕外壳：** 登录屏（T&S + 循环视频占位 + **强制账号登录**）→ 主菜单（切换已解锁篇章、PlayerProfile / PlayerPower / Achievements / Settings 入口）。**已移除游客态**——所有玩家必须登录账号后才能游玩。见 `40-ux/screen-flow.md`。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
-- **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。**取代**了先前的「混合存档（本地 `user://` 权威 + 云同步）」。见「平台与约束」。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
+- **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。见「平台与约束」。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 
 ## 范围之外（暂时）
 > _明确推迟——先泊车，以免蔓延进来。_
@@ -25,12 +25,12 @@
 - 首要：Android / iOS（竖屏、触控）。
 - 次要：桌面、网页。
 - **平台 / 登录渠道优先级（已定）。** **移动端优先**（手机 / 邮箱）→ **微信 / QQ 登录其次** → **海外与跨平台最后**。**已移除游客登录**（强制账号登录）。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`；去游客 `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
-- **强制在线 · 云端权威（已定，取代先前的混合模型）。** **去除离线游玩**：必须在线，进度实时同步云端；**冲突时一切以云端为准**（同时裁定了先前的「同步冲突解决」待决项）。**取代**了 `2026-07-16` 确认的「离线可玩 + 云同步混合模型（本地 `user://` 权威）」。此反转已按用户授权同步进项目根约定（`.claude/CLAUDE.md`、`state-save-rules.md` 及知识笔记均已改为强制在线；并确立「决策可被推翻，含根约定」的治理原则）。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
+- **强制在线 · 云端权威（已定）。** **去除离线游玩**：必须在线，进度实时同步云端；**冲突时一切以云端为准**。项目根约定（`.claude/CLAUDE.md`、`state-save-rules.md` 及知识笔记）均以强制在线为准，并确立「决策可被推翻，含根约定」的治理原则。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 - **强制在线 vs 移动手感的张力（已裁定为体验层折中）。** 「必须在线」不是逐帧硬性：**允许短暂断线缓冲本地操作，恢复网络后再同步**，冲突仍以云端为最终权威。这缓解了强制在线与「移动端随时可玩」支柱之间的张力。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 - 渲染器：GL Compatibility（将美术/特效控制在其限制之内）。
 
 - **后端 / 账号 = 重账号（已定，参考三国杀 Online）。** 为支撑**云端同步存档**，采用**重账号体系**（服务端权威账号 + 云存档），路线参考 **三国杀 Online**。相较 Balatro / StS 的「单机 + 平台云存档、无自有账号」，本作走「强后端 + 自有账号」路线。这也意味着须正面处理**实名 / 防沉迷 / PIPL / 渠道审核 / 账号注销 / 数据导出**等合规（删除游客态后门槛进一步抬高）。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
-> **决策已定 → ADR 已固化。** 「强制在线 · 云端权威（含重账号）」已固化为 **`50-decisions/ADR-0003`**（取代先前「混合存档」ADR 候选）。「境界存档 · 篇章重试模型」已固化为 **`50-decisions/ADR-0004`**。合规实现细节仍为其下待确认项——见 `20-systems/run-manager.md` 与 `open-questions.md`。
+> **决策已定 → ADR 已固化。** 「强制在线 · 云端权威（含重账号）」已固化为 **`50-decisions/ADR-0003`**。「境界存档 · 篇章重试模型」已固化为 **`50-decisions/ADR-0004`**。合规实现细节仍为其下待确认项——见 `20-systems/services/life-cycle-service.md` 与 `open-questions.md`。
 
 ## 美术资源策略（延后但架构友好）
 - 音轨、卡面、动画等**几乎所有美术相关资源**在设计达 ~90% 前一律 **TBA**——此刻文件留空占位。

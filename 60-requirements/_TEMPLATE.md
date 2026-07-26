@@ -2,7 +2,7 @@
 
 - id: FR-<system>-<slug>          # e.g. FR-adventure-event-combat-turn-loop
 - date: <YYYY-MM-DD>
-- system: <systems/adventure-event-combat | content/cards | ux/screen-flow | ...>
+- system: <20-systems/adventure-event/combat | 20-systems/character-profile/deck | 40-ux/screen-flow | ...>
 - source-docs:                    # design docs this requirement is derived from
     - 20-systems/<doc>.md
     - 00-vision/<doc>.md          # (as applicable)

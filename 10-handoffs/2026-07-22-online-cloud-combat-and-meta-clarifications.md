@@ -23,7 +23,7 @@
 - 节点 / 修行事件的呈现形态**参考《月圆之夜》风格**（精心策划的事件菜单，而非 StS 式完全分支地图）。
 - 重申重构：**把所有 `encounter` 重构为 `AdventureEvent`**——encounter 即 AdventureEvent（术语层已完成；此处将重构范围明确扩展到代码 / 知识笔记中残留的 `encounter` 命名）。
 
-### 4. 篇章继承（**回答关键 Open question，解锁 derive**）
+### 4. 篇章继承（**回答关键 Open question**）
 - **篇章继承上一篇章的所有信息。** 读档续章时角色带入下一篇章的是**全部**内容（deck、法宝、属性、叙事标记等），无逐项筛选。
 
 ### 5. 角色状态分类法（**回答 discarded vs defeated**）

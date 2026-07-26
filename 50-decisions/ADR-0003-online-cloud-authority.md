@@ -2,11 +2,11 @@
 
 - status: Accepted
 - date: 2026-07-23
-- supersedes: （先前「混合存档：本地 `user://` 权威 + 云同步」ADR 候选，从未固化为 ADR）
+- supersedes:
 - superseded-by:
 
 ## Context
-存档模型经历两次反转：最初「玩法完全离线、`user://` 权威、无网络」→ `2026-07-16`「离线可玩 + 云同步混合模型（本地权威）」→ `2026-07-22` 推翻为「强制在线 · 云端权威」。`2026-07-23` 进一步裁定**后端 / 账号体系走「重账号」路线**（为支撑云端同步存档），并给出行业参照。此决策强依赖服务器 / 账号系统，级联影响存档规则、登录 UX、合规，以及项目根约定（`.claude/CLAUDE.md`、`state-save-rules.md`），故固化为 ADR。参见 `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`、`10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
+存档 / 账号模型是一个强依赖服务器的基础决定，级联影响存档规则、登录 UX、合规，以及项目根约定（`.claude/CLAUDE.md`、`state-save-rules.md`）。核心张力：强制在线换取「云端权威、跨设备一致、防篡改」，代价是「无后端不可玩」与显著抬高的合规门槛；同时要兼顾「移动端随时可玩」的手感支柱。参见 `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`、`10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 
 ## Decision
 - **强制在线：去除离线游玩**——必须在线，进度**实时同步云端**。
@@ -19,4 +19,4 @@
 - **强依赖后端。** 由「可选云同步」升级为「无后端不可玩」；后端可用性直接决定可玩性。
 - **合规门槛抬高。** 重账号 + 删除游客态 + 国内渠道意味着须正面处理**实名 / 防沉迷 / PIPL / 渠道审核 / 账号注销 / 数据导出**。行业参照：Balatro / StS 为单机 + 平台云存档、无自有账号（不适用本路线）；三国杀 Online 为重账号 + 强实名（本路线范本）；月圆之夜为移动账号 + 云存档 + 保留游客（本作已弃游客）。
 - **根约定已同步。** `.claude/CLAUDE.md`、`.claude/rules/state-save-rules.md` 及知识笔记已改为「强制在线 · 云端权威」，并确立治理原则：任何决策（含根约定）可被后续更权威的用户意图推翻重构。
-- **待办（实现级）：** 后端 / 账号系统具体选型与实现、合规落地、断线缓冲的冲突合并细节。见 `20-systems/run-manager.md`、`open-questions.md`。
+- **待办（实现级）：** 后端 / 账号系统具体选型与实现、合规落地、断线缓冲的冲突合并细节。见 `20-systems/services/life-cycle-service.md`、`open-questions.md`。

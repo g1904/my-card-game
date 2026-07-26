@@ -14,4 +14,4 @@
 ## Consequences
 > _这带来了什么、代价是什么、排除了什么。后续待办。_
 
-<!-- Once Accepted, this ADR is immutable. To change the decision, add a new ADR that supersedes it. -->
+<!-- ADRs are editable. To change a decision, just edit this ADR directly (history lives in git); no need to open a superseding ADR. -->
