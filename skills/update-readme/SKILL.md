@@ -26,7 +26,7 @@ README 是**描述性**文档：它们不产生事实，只转述别处的事实
 
 | README | 描述的对象 |
 |---|---|
-| `.claude/README.md` | 工具配置：技能、规则、知识、脚本、settings |
+| `.claude/README.md` | 工具配置：技能、规则、知识、脚本、settings、`.gitignore` 忽略面 |
 | `main/README.md` | 仓库分支指南：两条提升线 + 设计 / 配置分支、文件夹映射 |
 | `game-design-documents/README.md` | 客户端设计库布局与设计→需求→代码流水线 |
 | `backend-design-documents/README.md` | 后端设计库布局、与 `game-design` 的分线理由 |
@@ -46,7 +46,8 @@ Glob 时同时排除 `.godot/`、`bin/`、`obj/`、`node_modules/`。
 | 规则文件清单及说明 | `.claude/rules/*.md` 的标题与首段 |
 | 知识区结构 | `.claude/knowledge/**` 实际布局 + 各 `_index.md` |
 | 根约定 / 工作流描述 | `.claude/rules/Context.md`（约定的权威） |
-| 工作区 / 分支布局 | 顶层实际文件夹 + `git ls-remote --heads origin` 实际分支 + `.claude/scripts/push-all-impl.ps1` 的 `$branchDirs` |
+| 工作区 / 分支布局 | 顶层实际文件夹 + `git ls-remote --heads origin` 实际分支 + `.claude/scripts/push-all-impl.ps1` 的 `$branchDirs`（含 `.claude` 自身）|
+| 哪些文件不入库 | 各检出的 `.gitignore`（`.claude/.gitignore` 决定工具配置的忽略面）|
 | 客户端设计库文件夹图例、流水线 | `game-design-documents/` 实际文件夹 + 根级关键文件 |
 | 后端设计库布局、后端状态 | `backend-design-documents/` 实际文件夹 + `backend-feature-branch/` 实际内容 |
 | 客户端 ↔ 后端边界的描述 | `game-design-documents/system-overview.md`、`20-systems/services/_index.md` |

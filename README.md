@@ -19,7 +19,7 @@
 
 ```
 D:\MyCardGame\
-├── .claude/                     — this harness
+├── .claude/                     — this harness (git: claude-config)
 ├── main/                        — branch guidance map only (git: main)
 ├── game-feature-branch/         — the Godot project; EDIT HERE (git: game-feature)
 ├── game-testing-branch/         — read-only reference snapshot (git: game-testing)
@@ -37,6 +37,7 @@ D:\MyCardGame\
 - **只在两个 feature 文件夹中编辑。** 四个 testing/production 文件夹是并行快照，用于把一个稳定构建与进行中的工作交叉对比（在不切换分支的情况下映射 dev/test/prod 分支模型）。
 - `settings.json` 的 permission **deny 规则**会拦截对这四个快照目录的 Edit/Write（无需钩子、不依赖 python）。Bash 写入不在拦截范围内——那部分仍是 `Context.md` 约束的约定。
 - 后端目前**尚未开工**：`backend-feature-branch/` 只有一份 README，技术栈待定。客户端的边界服务先以离线 stub 实现。
+- **`.claude/` 自身也是一份检出**（分支 `claude-config`，分支根 = 本文件夹根）。它与其余九个目录一样受 `push-all.cmd` 覆盖。`.gitignore` 排除 `.idea/`、`blueprints/`、`plans/`、`session-tags.json`。
 
 ### 设计意图
 `game-design-documents/`（`game-design` 分支 —— 仅文档，孤儿历史）承载**客户端**的人工设计交接：游戏*应该*是什么样的事实来源。这里的 `knowledge/*` 是它的**提炼后**、面向 Claude 的视图。规划一个功能时，先阅读相关的设计文档。

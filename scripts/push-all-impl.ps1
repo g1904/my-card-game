@@ -2,7 +2,7 @@
 <#
     push-all-impl.ps1 - 批量提交并推送 MyCardGame 下的所有分支检出目录。
 
-    每个 game-* / backend-* / main 目录都是同一个远程仓库
+    每个 .claude / game-* / backend-* / main 目录都是同一个远程仓库
     (g1904/my-card-game) 的一份检出，各自处于不同分支。本脚本对每个目录执行
     git add -A -> 若有改动则 commit -> push origin <当前分支>。
 
@@ -38,6 +38,7 @@ $root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 
 # 需要处理的检出目录（各自是一份带 .git 的独立分支检出）。
 $branchDirs = @(
+    '.claude',
     'game-design-documents',
     'game-feature-branch',
     'game-production-branch',
