@@ -65,7 +65,7 @@ D:\MyCardGame\
 │   ├── csharp-godot-rules.md    — C#↔Godot interop conventions
 │   ├── scene-rules.md           — scene / node composition & instancing
 │   ├── data-resource-rules.md   — Resource-driven data (.tres)
-│   ├── state-save-rules.md      — run state, seeded RNG, save atomicity
+│   ├── state-save-rules.md      — cycle state, seeded RNG, save atomicity
 │   ├── ui-input-rules.md        — mobile portrait layout + touch input
 │   └── null-check-rules.md      — validate GetNode / ResourceLoad / lookups
 ├── knowledge/
@@ -82,6 +82,7 @@ D:\MyCardGame\
 │   └── push-all-impl.ps1        — 批量 commit/push 全部分支检出目录（经根级 push-all.cmd 调用）
 └── skills/
     ├── analyze-new-ideas/     — raw idea → clean handoff → distill into design docs
+    ├── provide-solution-draft/ — one open question → proposed solution → 90-inbox/solution-draft-<slug>.md (human review)
     ├── summarize-open-questions/ — rebuild open-questions.md; answered items → answer-logs/log-<draftSuffix>.md
     ├── assess-derive-readiness/ — full sweep: is any design doc ready to derive? (manual)
     ├── derive-requirements/   — detailed design → buildable feature requirements (FR-*)
@@ -102,12 +103,13 @@ D:\MyCardGame\
 设计 → 需求 → 代码：
 
 1. `/analyze-new-ideas <raw>` —— 把原始意图捕获为整洁的 handoff，并提炼进 `game-design-documents/`（`20-systems/`、`40-ux/`）。无参数运行则扫描 `90-inbox/` 列出待处理草稿。
-2. `/assess-derive-readiness` —— **由用户手动调用**。全量扫描全部主题文档，逐份判定 ready / partial / blocked，并整体重写 `open-questions.md` 的「derive 就绪度」小节（它是该小节的**唯一写入者**）。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不评估就绪度**。**当前：全库尚未进入可 derive 的阶段。**
-3. `/derive-requirements <doc>` —— 一旦某份设计文档已充分详尽（真实意图、无遗留问题），就把可构建的功能规格产出到 `game-design-documents/60-requirements/FR-*`。用户签署确认（`draft → ready`）。
-4. `/blueprint FR-<id>` —— 探查知识 + 代码、澄清、把一份实现蓝图保存到 `blueprints/`（其验收标准驱动设计）。自由文本 `/blueprint <feature>` 仍然可用。
-5. `/implement [blueprint]` —— 在 `game-feature-branch/` 中构建它。
-6. `/review-local-changes` 或 `/review-feature` —— 在提交前捕获 bug。
-7. `/investigate <symptom>` —— 把一个 bug 追溯到按可能性排序的根因 + 诊断步骤。
+2. `/provide-solution-draft <问题>` —— 取 `open-questions.md` 的**一个**待答项，基于既有决策推演 + 行业通行做法给出**提案式**方案，写到 `90-inbox/solution-draft-<slug>.md`。**人类评审后**再喂回 `/analyze-new-ideas` 提炼（human-in-the-loop）。它只写这一个草稿文件，不裁决问题、不动主题文档。
+3. `/assess-derive-readiness` —— **由用户手动调用**。全量扫描全部主题文档，逐份判定 ready / partial / blocked，并整体重写 `open-questions.md` 的「derive 就绪度」小节（它是该小节的**唯一写入者**）。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不评估就绪度**。**当前：全库尚未进入可 derive 的阶段。**
+4. `/derive-requirements <doc>` —— 一旦某份设计文档已充分详尽（真实意图、无遗留问题），就把可构建的功能规格产出到 `game-design-documents/60-requirements/FR-*`。用户签署确认（`draft → ready`）。
+5. `/blueprint FR-<id>` —— 探查知识 + 代码、澄清、把一份实现蓝图保存到 `blueprints/`（其验收标准驱动设计）。自由文本 `/blueprint <feature>` 仍然可用。
+6. `/implement [blueprint]` —— 在 `game-feature-branch/` 中构建它。
+7. `/review-local-changes` 或 `/review-feature` —— 在提交前捕获 bug。
+8. `/investigate <symptom>` —— 把一个 bug 追溯到按可能性排序的根因 + 诊断步骤。
 
 `knowledge/` 下的知识是设计文档的提炼后、面向 Claude 的视图 —— `/implement` 会在构建时就地更新相关的 `systems/`、`scenes/`、`data/`、`autoloads/` 笔记；怀疑知识与代码/设计脱节时运行 `/sync-knowledge` 做整体对账。术语的权威在 `game-design-documents/terminology.md`（提炼至 `knowledge/dictionary.md`）。
 

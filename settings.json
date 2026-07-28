@@ -14,13 +14,9 @@
     ],
     "deny": [
       "Edit(./game-testing-branch/**)",
-      "Write(./game-testing-branch/**)",
       "Edit(./game-production-branch/**)",
-      "Write(./game-production-branch/**)",
       "Edit(./backend-testing-branch/**)",
-      "Write(./backend-testing-branch/**)",
-      "Edit(./backend-production-branch/**)",
-      "Write(./backend-production-branch/**)"
+      "Edit(./backend-production-branch/**)"
     ],
     "defaultMode": "bypassPermissions"
   },

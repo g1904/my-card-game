@@ -14,10 +14,10 @@
 
 ## 实例化
 - 可复用元素编写一次（`Card.tscn`），运行时实例化：`_cardScene.Instantiate<Card>()`。
-- 实例化的父级拥有生命周期；run/遭遇结束时 `QueueFree` 实例。别让旧卡牌/敌人跨 run 残留。
+- 实例化的父级拥有生命周期；轮回/遭遇结束时 `QueueFree` 实例。别让旧卡牌/敌人跨轮回残留。
 
 ## 数据绑定
 - 场景是**视图**。一个 `Card` node 绑定到某个 `CardData` 资源（通过 `Initialize(CardData)` 方法设置）并渲染它。`.tscn` 中不存放任何游戏数值。
 
 ## 主场景
-- 一旦主场景存在，就在 `project.godot` 中设置引导/主场景（目前未设置）。一个专门的引导场景先初始化 autoload/加载，然后移交给 `MainMenu`，是一种干净的模式。
+- **本作已定案采用引导场景模式：`main` = `BootstrapScreen.tscn`**，它按序驱动边界服务的 `InitializeAsync`（autoload 的 `_Ready` 不能 `await`），再移交 `LoginScreen` → `MainMenu`。目前 `project.godot` 尚未设置主场景——`BootstrapScreen.tscn` 一旦存在就设它。→ `.claude/knowledge/scenes/_index.md`。

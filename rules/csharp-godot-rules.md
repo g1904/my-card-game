@@ -15,11 +15,11 @@
 
 ## 生命周期与性能
 - 在 `_Process` / `_PhysicsProcess` 热路径中不做分配、不用 LINQ、不做 `string` 拼接。预先计算并复用缓冲区/集合。
-- 有意识地断开信号并释放自己拥有的节点（`QueueFree`）；不要在多个 run 之间泄漏实例化的卡牌/敌人。
+- 有意识地断开信号并释放自己拥有的节点（`QueueFree`）；不要在多个轮回之间泄漏实例化的卡牌/敌人。
 - 避免 `async void`（除了确实需要它的顶层事件处理器）。对 Godot 流程的异步优先使用信号/`await ToSignal(...)`。
 - 在物理/信号回调期间改动场景树时使用 `CallDeferred`。
 
 ## 信号 vs 直接调用
 - 场景内父→子：直接方法调用没问题。
-- 跨系统 / 解耦的事件（run 事件、遭遇战结果、货币变动）：走 **EventBus** 自动加载，而非直接引用。参见 `.claude/knowledge/standards/signal-eventbus.md`。
+- 跨系统 / 解耦的事件（轮回事件、遭遇战结果、货币变动）：走 **EventBus** 自动加载，而非直接引用。参见 `.claude/knowledge/standards/signal-eventbus.md`。
 - **一致地**连接信号 —— 每个场景选定代码连接或编辑器连接，不要任意混用。

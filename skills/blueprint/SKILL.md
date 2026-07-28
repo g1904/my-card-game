@@ -20,14 +20,14 @@ argument-hint: <FR-<id> | 功能描述>
 
 然后对请求本身做合理性检查：
 - 它是否自洽（无矛盾或循环依赖）？
-- 对于一次 roguelike run，数据流与状态转换是否合理？
-- 是否有明显遗漏的边界情况（空牌堆、遭遇中途恢复 run、种子可复现性、save/version）？
+- 对于一次 roguelike 轮回，数据流与状态转换是否合理？
+- 是否有明显遗漏的边界情况（空牌堆、遭遇中途恢复轮回、种子可复现性、save/version）？
 - 若逻辑上有问题，现在就向用户提出——不要继续。
 
 ### 2. 知识探查（搜代码之前先读）
 1. 读 `.claude/knowledge/architecture.md` 了解宏观地图。
 2. 读 `.claude/knowledge/systems/_index.md`；打开相关的 `systems/<name>.md` 笔记（如果已存在）。
-3. 读相关的 `.claude/knowledge/data/_index.md` 架构，以及 `.claude/knowledge/autoloads/_index.md`（RunState、EventBus、DataRegistry、SaveManager 等）。
+3. 读相关的 `.claude/knowledge/data/_index.md` 架构，以及 `.claude/knowledge/autoloads/_index.md`（CycleState、EventBus、DataRegistry、SaveManager 等）。
 4. 略读适用的规则文件（scene、data-resource、state-save、ui-input、null-check）。
 
 目标：在动笔前理解预期架构与既有约定。
@@ -38,7 +38,7 @@ argument-hint: <FR-<id> | 功能描述>
 派出至多 3 个 Explore 智能体**并行**执行，每个都限定在 `game-feature-branch/`：
 - **Agent 1 — core**：找出描述中点名的确切场景/脚本/节点；读取它们以了解当前状态。
 - **Agent 2 — reusable pieces**：既有的 autoload、系统、数据资源、控件场景，以及可被接线复用而无需重建的 EventBus 信号。
-- **Agent 3 — cross-system flow**（仅当功能跨系统时）：该功能所交互的信号、RunState 字段、save 触点，以及数据资源。
+- **Agent 3 — cross-system flow**（仅当功能跨系统时）：该功能所交互的信号、CycleState 字段、save 触点，以及数据资源。
 
 综合各方发现；把描述与现有内容交叉核对。记住这个项目是一份全新的脚手架——很多东西可能尚不存在，这没问题；标出必须创建的部分。
 
@@ -52,11 +52,11 @@ argument-hint: <FR-<id> | 功能描述>
 ### 5. 设计蓝图
 产出并保存到 `.claude/blueprints/<slug>.md`。文件顶部带 frontmatter：`source-fr: FR-<id>`（自由文本请求则为 `source-fr: -`）与 `date`，供 `/implement` 闭环 FR 台账使用。正文包含：
 - 要创建/修改的文件（完整路径）：场景（`.tscn`）、脚本（`.cs`）、数据（`.tres`）、autoload 注册。
-- 流程：**input/UI → system → RunState → EventBus → 响应的系统/UI**，标注哪些部分已存在、哪些必须构建。
+- 流程：**input/UI → system → CycleState → EventBus → 响应的系统/UI**，标注哪些部分已存在、哪些必须构建。
 - 类形态：字段、`[Export]`、方法、信号；数据资源字段与 id。
 - **信号/事件接线**：发出/消费哪些 EventBus 信号（载荷为 id/原语）。
 - **RNG 触点**：哪个 seeded 子流驱动任何随机性（依据 `rng-determinism`）。
-- **Save 触点**：持久化哪些 run 状态、autosave 点、版本影响。
+- **Save 触点**：持久化哪些轮回状态、autosave 点、版本影响。
 - **Null/校验计划**（强制）：对每次节点查找、资源加载、registry/字典查找、save 读取——说明它是必需的（带上下文报错）还是可选的（warn + 默认值）。见 `null-check-rules.md`。
 - **移动端/触摸 UI 说明**：竖屏布局、容器，以及任何新 UI 的触摸目标。
 - **实现顺序**（通常自底向上：数据资源 → 系统逻辑 → 场景/UI → 接线）。

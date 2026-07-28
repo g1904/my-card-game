@@ -36,18 +36,18 @@ allowed-tools: Read, Grep, Glob, Bash
 留意本游戏常见的这些变换点：
 
 - **数据解析**：`DataRegistry` 的 get-by-id——id 对不对？是否检查了 null 结果（`null-check-rules.md`）？
-- **RunState 变更**：哪个系统写了该字段？之后是否被另一个系统/EventBus 处理器覆盖？
+- **CycleState 变更**：哪个系统写了该字段？之后是否被另一个系统/EventBus 处理器覆盖？
 - **EventBus 流**：信号发出了吗？所有预期订阅者都连上了吗？有无顺序/重入问题（某处理器再次发信、relic 响应 relic）？
 - **Seeded RNG**（`rng-determinism.md`）：结果是否从正确的 seeded 子流抽取？某个无关的抽取是否让流失步？加载时 RNG 状态是否恢复？
 - **Save/load**（`save-format.md`）：版本不匹配、缺少迁移、未知/悬空的内容 id、非原子写入损坏文件、RNG 状态未持久化。
 - **信号载荷**：跨总线传递的是 id/原语，还是一个丢失了数据的富对象？
-- **节点生命周期**：一个已释放的节点仍被引用、一个实例化的 card/enemy 跨 run 泄漏、在尚未就绪的树上 `GetNode`。
+- **节点生命周期**：一个已释放的节点仍被引用、一个实例化的 card/enemy 跨轮回泄漏、在尚未就绪的树上 `GetNode`。
 - **被吞的错误**：一个空 `catch`，或一个既未 `PushError` 也未 `PushWarning` 的 null，掩盖了真正的失败。
 
 ### 4. 标注每一跳的状态
 逐跳展示目标字段的值流动，标出它在哪里发散：
 ```
-[start] save: run.seed=12345, deck=[strike,strike,bash]
+[start] save: cycle.seed=12345, deck=[strike,strike,bash]
   ↓ DeckSystem.Draw() (map RNG vs combat RNG?)
 [hand] expected 5 cards, actual 4  ← divergence
   ↓ EventBus.CardDrawn subscribers

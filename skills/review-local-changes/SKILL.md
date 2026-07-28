@@ -39,7 +39,7 @@ git -C game-feature-branch diff --cached
 
 #### 状态 / RNG / 存档（`state-save-rules.md`）
 - 随机性从 **seeded** 子流抽取，而非 `GD.Randi`/`Random`？
-- run 数据通过 RunState 变更（无游离全局变量、run 间无残留状态）？
+- 轮回数据通过 CycleState 变更（无游离全局变量、轮回间无残留状态）？
 - save 写入是原子的（temp + rename）且感知版本的？内容按 id 引用并在加载时校验？
 
 #### UI / 输入（`ui-input-rules.md`）

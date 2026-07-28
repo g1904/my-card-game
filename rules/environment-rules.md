@@ -28,4 +28,4 @@
 
 ## 钩子
 
-- **没有 PreToolUse/SessionStart/Notification 钩子。** `settings.json` 没有 `hooks` 键。分支文件夹纪律主要由 `Context.md` 约束；此外 `settings.json` 的 permission **deny 规则**会拦截对四个只读快照目录（`game-testing-branch/`、`game-production-branch/`、`backend-testing-branch/`、`backend-production-branch/`）的 Edit/Write（Bash 写入不在拦截范围内）。
+- **没有 PreToolUse/SessionStart/Notification 钩子。** `settings.json` 没有 `hooks` 键。分支文件夹纪律主要由 `Context.md` 约束；此外 `settings.json` 的 permission **deny 规则**会拦截对四个只读快照目录（`game-testing-branch/`、`game-production-branch/`、`backend-testing-branch/`、`backend-production-branch/`）的文件写入。规则一律写成 `Edit(<路径>)` —— 它覆盖所有文件编辑工具（Edit / Write / NotebookEdit）；`Write(<路径>)` 形式在文件权限检查中不被匹配，是无效规则，不要添加。（Bash 写入不在拦截范围内。）

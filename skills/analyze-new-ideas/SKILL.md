@@ -21,6 +21,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - 一个**文件路径**（如 `game-design-documents/10-handoffs/2026-07-13.md` 或 `90-inbox/draft.md`）→ 读取它。
 - **粘贴的文本** → 把该消息当作原始记录；你将为它创建一个新的 handoff 文件。
 - 仅有一个**主题提示** → 询问用户原始内容在哪里。
+- **一份 `90-inbox/solution-draft-<slug>.md`**（`/provide-solution-draft` 的产物，用户已评审 / 修改过）→ 当作原始意图读取。注意其中标注 `[取向选择]` 或列在 `## 仍需用户决定` 的项：**用户已在评审中定下的按定下的处理，未定的仍按 Open question 搁置**，不要把提案当成已定案提炼。
 - **空（无参数）→ 扫描收件箱**：列出 `game-design-documents/90-inbox/` 的全部文件，并与 `10-handoffs/_index.md` 交叉核对哪些已被处理（已有对应 handoff / 已 distilled）。呈现待处理清单（文件名 + 一行内容摘要），询问处理哪个（或按用户指示批量逐个处理）。这可以防止草稿在收件箱中悄悄积压。
 
 先逐字读完输入。此时先不要润色——理解写下的意图本身，包括那些尚未成形的想法。
@@ -73,7 +74,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - **不要碰「derive 就绪度」小节（强制）。** 该小节由 `/assess-derive-readiness` 独占写入——见下方第 8 步。
 
 **6b. answer-logs/log-\<draftSuffix\>.md（每次运行新建一个文件）**
-- **`draftSuffix` 取值：** 本次处理的输入是 `90-inbox/draft-<suffix>.md` → 用该 `<suffix>`（例：`draft-0725_2.md` → `log-0725_2.md`）；输入是粘贴文本或已在 `10-handoffs/` 的文件 → 用当天 `MMDD`；若同名文件已存在，追加 `_2`、`_3`。
+- **`draftSuffix` 取值：** 本次处理的输入是 `90-inbox/draft-<suffix>.md` → 用该 `<suffix>`（例：`draft-0725_2.md` → `log-0725_2.md`）；输入是 `90-inbox/solution-draft-<slug>.md`（`/provide-solution-draft` 的产物）→ 用该 `<slug>`（例：`solution-draft-rng-persistence.md` → `log-rng-persistence.md`）；输入是粘贴文本或已在 `10-handoffs/` 的文件 → 用当天 `MMDD`；若同名文件已存在，追加 `_2`、`_3`。
 - **每次移出新建一个文件，绝不追加进旧 log。** 本次若一个问题都没答定，则**不建文件**。
 - 文件内容：标题 `# Answer log <draftSuffix>`，然后 `日期` / `来源`（handoff 或草稿路径）/ `移出条数`，再逐条 `**<问题>** → <结论>（<归档去向文档>）`。若某问题只答定了一部分，写明剩余部分仍留在待答清单。
 - 在 `answer-logs/_index.md` 的台账表追加一行：`log 文件 | 日期 | 来源 | 移出条数`。

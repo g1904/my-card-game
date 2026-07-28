@@ -1,19 +1,29 @@
-# 标准 —— 信号与 EventBus（深入）
+# 标准 —— 信号与 EventBus（引用层）
 
-`.claude/rules/csharp-godot-rules.md`（信号章节）的配套文档。
+`.claude/rules/csharp-godot-rules.md`（信号章节）的配套。**权威：`game-design-documents/20-systems/architecture.md`**「总则 5」与「EventBus 负载契约」——**14 个事件的负载 schema、`Emit` 代码形状去那边看**，此处不复制。
 
 ## 何时用什么
-- **直接方法调用** —— 父级驱动其自身子级，或单个场景内紧耦合的 node。最简单；场景内部默认使用它。
-- **局部 `[Signal]`** —— 子级在不知道谁在监听的情况下通知其父级/所有者（例如某个 `Card` 发射 `Played`），限于场景边界内。
-- **EventBus autoload** —— 跨系统、跨场景、解耦的事件，其中发射方与监听方不应互相引用（run 生命周期、gold 变化、能力触发、事件结算）。**这是服务之间唯一的间接通路**：服务之间不互相读写字段，只经编排顶点（game-progression）调用，或经 EventBus **广播既成事实**。
 
-## EventBus 设计
-- 单个 autoload，为全局事件暴露 `[Signal]` 声明。各系统在 `_Ready` 中 `Connect`，并适当地 `Disconnect`/释放。
-- **保持载荷 Variant 简单：** 传递 id 与基本类型（`string cardId`、`int newGold`），而非富 C# 对象——编组更安全、耦合更松。监听方通过 `ContentRegistry`（静态内容）/ `CharacterProfile`（运行时状态）解析富数据。
-- 将事件命名为**过去时的事实**：`RunStarted`、`EventResolved`、`CardPlayed`、`GoldChanged`、`CapabilitiesChanged`。命名为事实而非指令，正是「广播既成事实」纪律的体现。
-- **呈现决策经 EventBus 下发到呈现层：** `CapabilityManager` 聚合后广播 `CapabilitiesChanged`，**各 UI 组件自行订阅并自查** flag 决定可见性——业务逻辑层不写 `if (hasPowerX)`。
+| 场合 | 用什么 |
+|------|--------|
+| 父级驱动自身子级、场景内紧耦合 node | **直接方法调用**（默认） |
+| 跨服务、需要返回值 | **直接方法调用** `Xxx.Instance.Method(...)` |
+| 子级通知其父 / 所有者，不知道谁在听（`Card` 发 `Played`） | **局部 `[Signal]`**，限场景边界内 |
+| 跨系统、跨场景的**既成事实**广播 | **EventBus autoload** |
+
+## 承重纪律
+
+1. **EventBus 用 C# 泛型 `event` + `readonly record struct` 负载，不用 Godot `[Signal]`。** `[Signal]` 的自定义负载须继承 `GodotObject` → 每次广播分配一个引用对象 + `Variant` 装箱，直接撞上「不做隐式装箱」与「热路径不分配」；而核心循环每步广播 `EventResolved`、战斗内每张牌广播 `CardResolved`。EventBus 本身仍是 autoload `Node`（留在场景树里、可做泄漏检查）。
+2. **负载只带 `Id` + 值类型** ——绝不带 `CharacterProfile` / `Resource` / `EventOption` 引用。传引用等于给每个订阅者开一条绕过唯一写入入口的旁路，也让定稿实例有被下游改写的可能。需要完整实例的订阅者按 `InstanceId` 去 future-event-service 取。
+3. **`_Ready` 订阅、`_ExitTree` 退订。** C# 事件上漏退订**不会报错**，直接变成泄漏（且让已释放的 node 被回调）。
+4. **广播 = 既成事实，不可否决。** EventBus 不承载「请求 / 询问」；需要返回值的一律是直接方法调用。
+5. **事件命名为过去时的事实**：`CycleStarted`、`EventResolved`、`CardResolved`、`CapabilitiesChanged`。命名为事实而非指令，正是这条纪律的体现。
+6. **`CapabilitiesChanged` 空负载** ——订阅者收到后自行 `ProfileService.Instance.Has(flag)` 重查。把生效集塞进负载会制造第二份真值。
+
+**代价（已接受）：** GDScript 与编辑器信号面板订阅不了 EventBus——本项目纯 C#，不构成损失。若日后确需编辑器可视化连接，可为少数低频事件**额外**挂 `[Signal]`，但不作为主通道。
 
 ## 陷阱
-- **泄漏：** 指向一个已被释放的场景 node 的连接会悬空。优先从生命周期更长的一方连接，或在 `_ExitTree` 中断开。
-- **顺序：** 不要假设监听方的执行顺序。若顺序重要（relic 触发优先级），就显式建模（由一个系统解析出的优先级列表），而不是依赖连接顺序。
-- **反馈回路：** 一个发射同一事件的事件处理器会递归。在效果可链式触发处（relic 响应 relic）防范重入。
+
+- **顺序：** 不要假设订阅者的执行顺序。若顺序重要（PlayerPower 触发优先级），显式建模成一份解析出的优先级列表，而不是依赖订阅顺序。
+- **反馈回路：** 一个发射同一事件的处理器会递归。在效果可链式触发处（power 响应 power）防范重入。
+- **泄漏：** 见纪律 3。订阅计数 / 调试期泄漏检查是否要做，仍是待决问题 → `20-systems/architecture.md`「待决问题」。

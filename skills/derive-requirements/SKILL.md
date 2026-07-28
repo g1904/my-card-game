@@ -40,7 +40,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - 一个 FR = 一个带自身验收标准的可构建切片——而非整个系统。拆分大型系统（按子行为拆分），并用 `depends-on` 串起构建顺序。
 - 优先做**薄的纵向切片**（可在 Godot 编辑器中运行/验证的东西），而非宽的横向层。
 - 每条验收标准都必须**可通过运行游戏来观察**（依据 `environment-rules.md`——验证靠游玩，而非 CLI 测试）。使用 Given/When/Then。
-- 在意图层面填好 **Data & state touchpoints**（RunState 字段、EventBus 信号、`.tres` id、save 点）——足够让 `/blueprint` 据以设计，而不臆造类形态。
+- 在意图层面填好 **Data & state touchpoints**（CycleState 字段、EventBus 信号、`.tres` id、save 点）——足够让 `/blueprint` 据以设计，而不臆造类形态。
 
 ### 5. 写 FR 文件 + 台账
 - 为每个 FR，从 `_TEMPLATE.md` 创建 `game-design-documents/60-requirements/FR-<system>-<slug>.md`。复用文档/知识的命名，使 `<system>` 与主题笔记匹配。

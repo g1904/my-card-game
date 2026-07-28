@@ -25,7 +25,7 @@ argument-hint: [蓝图名或功能描述]
 - **C#/Godot 约定**（`csharp-godot-rules.md`）：`partial` 类、用 `[Export]` 暴露可调项、在 `_Ready` 中缓存 `GetNode`、`_Process` 中不做分配/LINQ、`QueueFree` 归属、避免 `async void`。
 - **场景**（`scene-rules.md`）：每个场景单一职责、`PackedScene` 实例化、稳定引用（`%Unique`/组/导出）、数据不放进场景。
 - **数据**（`data-resource-rules.md`）：内容作为 `Resource`/`.tres` 且有稳定字符串 `Id`，经 DataRegistry 加载、加载时校验；平衡数值放在数据里，而非代码里。
-- **状态/RNG/存档**（`state-save-rules.md`）：通过 RunState 变更；随机性由 seeded 子流驱动；原子且带版本地持久化。
+- **状态/RNG/存档**（`state-save-rules.md`）：通过 CycleState 变更；随机性由 seeded 子流驱动；原子且带版本地持久化。
 - **UI/输入**（`ui-input-rules.md`）：竖屏、容器 + 锚点、触摸目标、无仅悬停的可用性提示。
 - **Null/校验为强制**（`null-check-rules.md`）：在每次节点查找、资源加载、registry/字典查找、save 读取之后——必需却缺失 → `GD.PushError`/抛出并带定位上下文；可选却缺失 → `GD.PushWarning` + 安全默认值。不允许静默透传 null。
 - **日志**：在关键转换点周围写 `GD.Print($"[System-Method] ... {value}")`。
@@ -37,7 +37,7 @@ argument-hint: [蓝图名或功能描述]
 ```
 ## Changed files
 - [new]  game-feature-branch/systems/DeckSystem.cs
-- [edit] game-feature-branch/autoload/RunState.cs
+- [edit] game-feature-branch/autoload/CycleState.cs
 - [new]  game-feature-branch/data/cards/strike.tres
 ```
 
@@ -46,7 +46,7 @@ argument-hint: [蓝图名或功能描述]
 
 ### 5. 知识更新（直接执行，不只是建议）
 `knowledge/*` 是面向 Claude 的提炼视图，由 Claude 负责维护。若本次引入或改动了某个系统/场景/数据类型/autoload，**就地更新**对应笔记，保持增量、如实反映代码现状：
-- 新增/改动系统 → 创建或更新 `.claude/knowledge/systems/<name>.md`（入口场景/脚本、涉及的类、RunState 读写、EventBus 信号、RNG 子流、存档触点），并翻转 `systems/_index.md` 中该行状态。
+- 新增/改动系统 → 创建或更新 `.claude/knowledge/systems/<name>.md`（入口场景/脚本、涉及的类、CycleState 读写、EventBus 信号、RNG 子流、存档触点），并翻转 `systems/_index.md` 中该行状态。
 - 新增/改动场景 → 更新 `.claude/knowledge/scenes/_index.md`。
 - 新增/改动数据类型 → 更新 `.claude/knowledge/data/_index.md`。
 - 新增 autoload → 更新 `.claude/knowledge/autoloads/_index.md`（含注册顺序）。
