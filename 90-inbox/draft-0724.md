@@ -7,7 +7,7 @@
   - other types of adventure events are quite complex that requires a dedicated folder to hold each variation of the design detail in the future.
   - explore is a new type of adventure event, keyword as '探索秘境'.
   - travel(前往某处地点) is a new type of adventure event that function as a map routing choice (refresh the location of the character)
-  - '地域' location is a new abstract concept that decides the possibleFutureEvent
+  - '地域' location is a new abstract concept that frames the eventOptions (which event pool is open at the current place)
 - remove shop-rewards.md and relics-jokers.md, replace them with 'player-profile' folder (-> 'player-item', 'player-power', etc. each with dedicated folder with detail index structure. In the future, each player-power design will have an individual Markdown file to describe it.)
 - replace map-progression.md with game-progression.md
 - replace card-resolution.md and deck-hand.md into 'character-profile' folder with similar structure as 'player-profile', deck, item and etc each with a folder.

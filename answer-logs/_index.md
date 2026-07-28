@@ -18,4 +18,8 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-0728.md` | 2026-07-28 | 直接对话（无草稿来源）：`.claude/knowledge` 引用层形态 → 薄引用，固化为 ADR-0005 | 1 |
+| `log-service-api-contracts.md` | 2026-07-27 | `90-inbox/solution-draft-service-api-contracts.md`（七服务 API 契约总则 / 结算阶段名 / CombatResult 归属 / 跨服务调用措辞 / eventOptions 持久化形态） | 5 |
+| `log-0727.md` | 2026-07-27 | `90-inbox/draft-0727.md`（内容放量开关 / 双 contentVersion / 增量下载与签名 / 断线韧性 / RNG 持久化 / 存档点频率） | 9 |
+| `log-0726b.md` | 2026-07-26 | `90-inbox/draft-0726b.md`（事件优先级 / 跳过语义 / 热更范围 / player-profile 落位） | 8 |
 | `log-0725c.md` | 2026-07-25 | 历史累积（07-16 ~ 07-25c 全部批次的一次性迁移） | 35 |

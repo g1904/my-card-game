@@ -8,25 +8,36 @@
 
 | 中文 | 英文 / 代码 | 含义 | 来源 |
 |------|------------|------|------|
-| 修行事件 | AdventureEvent | 逐时逐刻的游玩单元；玩家从当前可用项中择一以推进 run。 | `10-handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` |
-| 修行历程 | （集合，`List<AdventureEvent>`） | 一个角色走过 / 可走的整段修行旅程（修行事件的序列 / 图）。 | 同上 |
-| 玩家信息 | PlayerProfile | 账号级主档，跨 run 持久，持有一组 CharacterProfile 及账号级元数据。 | `10-handoffs/2026-07-15-adventure-event-profiles.md` |
-| 角色信息 | CharacterProfile | 单次 run / 单个角色的状态与历史（对齐 RunState 概念）。 | 同上 |
+| 轮回 | cycle | 从开局到胜 / 负的一次完整游玩历程（roguelike 体裁通称 *run*，本作定名为**轮回**）。由 seed 驱动，含三个篇章，状态与历史落在一个 CharacterProfile 上；生命周期归 life-cycle-service。 | 全库术语重构 2026-07-27（`run` → `cycle`，与 life-cycle-service 同词根） |
+| 修行事件 | AdventureEvent | 逐时逐刻的游玩单元；玩家从当前可用项中择一以推进轮回。 | `10-handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` |
+| 修行历程 | `pastEvent`（集合，`List<AdventureEvent>`） | 一个角色**已走过**的整段修行旅程——一条扁平的时序轨迹（含已结算与已跳过的事件）。**向前的走向不在此结构中**，由 future-event-service 每步现算的 eventOptions 决定。 | 同上 |
+| 可选事件 | `EventOption`（集合，`List<EventOption> eventOptions`） | future-event-service 由 `AdventureEventData` 模板**物化**出的**定稿实例**（`sealed record`，immutable，落存档）：按 `EventId` 溯源模板、按 `InstanceId` 被引用，携带物化时置位的全部属性（含 `ifMandatory` / `eventPriority`）。**产出即定稿**，下游只读消费。 | `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` + `10-handoffs/2026-07-27b-service-api-contracts.md` |
+| 物化 | materialize | future-event-service 把 `AdventureEventData`（模板 / 参数空间）**依情境代入**（CharacterProfile + location + PlotManager 调制 + map 子流）产出定稿 `EventOption` 的过程。**唯一物化点 = future-event-service；产出 eventOptions ≡ 物化 AdventureEvent；产出即定稿、不可改写、不回查模板重算。** | `10-handoffs/2026-07-27b-service-api-contracts.md` |
+| 实例标识 | `InstanceId` | 一次物化实例的稳定标识。同一模板（`EventId`）可在一次轮回里被物化多次，故 `pastEvent`、事件负载、跳过补位一律按 `InstanceId` 定位，**不可用 `EventId` 替代**。 | 同上 |
+| 卡牌实例 | `CardInstance` | `CardData` 模板的运行时实例（手牌中的临时增益等）。与 `EventOption` 同属「内容定义 + 轮回内状态」的第二类型，区别在于它**运行态可变**；共享纪律「服务签名里传实例，不传 `Resource`」。 | 同上 |
+| 操作结果 | `OpResult` / `OpResult<T>` | 统一的**业务失败**返回类型（`readonly record struct`，零堆分配）：`Success` + `OpError`（`Network` / `Auth` / `Compliance` / `Validation` / `NotFound` / `Conflict` / `Cancelled` / `Migration`）+ `Detail`。**业务失败绝不抛异常**；必需缺失才 `PushError` + `throw`。 | 同上 |
+| 档案变更规格 | `ProfileChangeSpec` | 施加给 `ProfileManager.TryApply` 的声明式变更规格：`IReadOnlyList<ChangeElement>`，`ChangeElement.BaseValue` **带符号**（负 = 消耗，正 = 产出）。**取代先前的 `CostSpec` / `RewardSpec` 两个类型**——成本与产出必须落在同一事务内。`selectCost` / `skipCost` / `CombatResult.Spoils` 均为它。 | 同上 |
+| 存档点原因 | `SavePointReason` | `sync-service.PushAsync` 的枚举参数（`CycleStarted` / `EventResolved` / `ChapterBoundary` / `CycleEnded` / `MetaChanged`）：驱动日志、重试策略与合并窗口。与 `PushPolicy { Debounced \| Immediate }` 配合。 | 同上 |
+| RNG 子流 | `RngStream` | 具名 RNG 子流的枚举（`Map` / `Combat` / `Shop` / `Reward`）。`life-cycle-service.Stream(RngStream)` 返回 Godot 的 `RandomNumberGenerator`（自带可序列化的 `Seed` / `State`），而非 `int Next()`。 | 同上 |
+| 玩家信息 | PlayerProfile | 账号级主档，跨轮回持久，持有一组 CharacterProfile 及账号级元数据。 | `10-handoffs/2026-07-15-adventure-event-profiles.md` |
+| 角色信息 | CharacterProfile | 单次轮回 / 单个角色的状态与历史（对齐 CycleState 概念）。 | 同上 |
 | 玩家能力 | PlayerPower | 账号级 always-available 能力，带开关（默认开启）；QoL 或影响公平性的全局加强，不与角色绑定，可获取 / 失去。 | `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` |
 | 玩家道具 | PlayerItem | 账号级、有使用次数限制的道具。 | 同上 |
 | 生命 · 法力 | life + mana | 战斗双资源模型（参考 MTG / Hearthstone）：生命为血量，mana 为每回合出牌资源。**无 mana 曲线**，采用「上限 + 逐步恢复」；炼气基线 life=10/10、mana=5/5。对齐 `Status.currentHealth / currentMana`。 | 同上 + `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` |
+| 灵玉 | jade | **轮回级软通货**（官方货币名）：随轮回存在、随轮回清理，归 CharacterProfile；主要花销在 Exchange（交易 / 商店）。区别于每回合出牌资源 mana。 | `20-systems/character-profile/currency.md` |
 | 道心 | faith | **隐藏数值属性**（原 `faith` / 信仰即时属性，现归为隐藏）；与 煞气 / 寿元 同属驱动 AdventurePlot 的隐藏属性。 | `10-handoffs/2026-07-15-adventure-event-profiles.md` + 归隐藏 `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` |
 | 煞气（点数） | malefic qi | **隐藏属性**：积累到阈值触发「煞气反噬」剧情线。 | `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` |
 | 寿元 | lifeSpan | **隐藏属性**：角色寿命预算（**非血量 life**）——炼气起始 100、抵达筑基 +100、抵达金丹 +300、抵达元婴 +500（累计 1000；元婴为终点，该增量无玩法影响）；初始隐藏、低于 10% 时显示；每完成一个 AdventureEvent 按其 `lifeSpanCost`（默认 -1）扣减，**递减到 0 → 「大限将至」→ 角色 defeated**。 | 同上 + `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` + `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` |
 | 寿元消耗 | lifeSpanCost | **成本类型 `selectCost` 的一个 element**：完成该事件对角色寿元的扣减，**基准 -1**；可按事件覆写。 | `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` + `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` |
 | 事件类型 | eventType | AdventureEvent 的共有字段：该事件归属九类子类型中的哪一类。 | `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` |
-| 选择成本 | selectCost | AdventureEvent 的共有字段，且是一个**定制的复合成本类型**：由若干成本 element 组成（`lifeSpanCost` 为其中之一），表示选中该事件以推进 run 所需付出的代价。 | 同上 |
+| 选择成本 | selectCost | AdventureEvent 的共有字段，且是一个**定制的复合成本类型**：由若干成本 element 组成（`lifeSpanCost` 为其中之一），表示选中该事件以推进轮回所需付出的代价。**代码形态 = `ProfileChangeSpec`，在物化时组装。** | 同上 + `10-handoffs/2026-07-27b-service-api-contracts.md` |
 | 跳过成本 | skipCost | AdventureEvent 的共有字段：**跳过**该事件所需付出的代价；**与 `selectCost` 同为上述复合成本类型**（同一套 element 体系，数值取向不同）。 | 同上 |
-| 是否强制 | ifMandatory | AdventureEvent 的共有字段：为真则该事件**不可跳过**（必须面对）。 | 同上 |
+| 是否强制 | ifMandatory | AdventureEvent 的共有字段：为真则该事件**不可跳过**（必须面对）。由 future-event-service 在产出 eventOptions 时**动态置位**；一批可以全部为真。 | 同上 + `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` |
+| 事件优先级 | eventPriority | AdventureEvent 的共有字段：**通常为 0**（本批中可自由择一）；本批一旦出现更高优先级的事件，玩家**必须从最高优先级档中择一**，其余档次本轮被封锁。与 `ifMandatory` 分属两条约束轴（前者封锁其他选项，后者封锁跳过通道）。 | `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` |
 | 能力标记 | capability flag | PlayerPower 授予的具名布尔标记（如「显示隐藏属性」），由中心聚合面按 `status` 汇总为**生效能力集**，消费侧单点查询。 | 同上 |
 | 修正管线 | modifier pipeline | PlayerPower 注册的**具名数值修正**（`lifeSpanCost`、商店价格等）的统一施加入口 `Apply(key, baseValue)`，取代各消费层的散落条件。 | 同上 |
 | 展示模型 | ViewModel | 呈现期由 `Data + 运行时状态` 组装的展示对象；**不落存档、不进云端负载**，是「服务 → 屏幕」的数据形态契约。 | 同上 |
-| 可选事件集 | eventOptions | 一组当前可选的 `AdventureEvent`，玩家从中择一以推进 run；由 future-event-service 依当前 CharacterProfile 产出、每个事件后重算。 | `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` |
+| 可选事件集 | eventOptions | 一组当前可选的 `AdventureEvent`，玩家从中择一以推进轮回；由 future-event-service 依当前 CharacterProfile 产出、每个事件后重算。 | `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` |
 | 境界突破 · 高潮 | AdventureEvent-Finale | 篇章边界的境界突破事件；分类法**第七类，独立于 Combat**（ADR-0002 07-23 修订）。 | 同上 |
 | 修行剧情（体系） | AdventurePlot | 隐藏剧本层的总称：由分支可能性构成、在背景中运行、**调制 future-event-service 产出的 eventOptions**；可像 DnD 那样让玩家选分支。下含 Story / Chapter / SideChapter / SideStory 四级。由 PlotManager 提供 API。 | 同上 |
 | 主线剧本 | AdventurePlot-Story | 贯穿**三大篇章**相连的**大剧本**（一条角色的完整主线故事）。 | 同上 |
@@ -43,14 +54,18 @@
 | 内容服务 | content-service | 服务：`res://` 基线 + `user://overlay/` 热更的合并与按 `Id` 索引；**唯一内容读取入口**（ContentRegistry、ContentUpdateManager）。 | 同上 |
 | 同步服务 | sync-service | 服务：档案 Pull / Push、本地原子写、schema 迁移（ProfileSyncManager、LocalCacheManager、MigrationManager）。 | 同上 |
 | 档案服务 | profile-service | 服务：`PlayerProfile` 与 `CharacterProfile` 的**唯一写入面**；capability 聚合；成就（ProfileManager、CapabilityManager、AchievementManager）。 | 同上 |
-| 生命周期服务 | life-cycle-service | 服务：run 生命周期（开始 seed、推进、胜/负、清理、篇章继承、状态机、重试）。（RunStateManager、ChapterManager、SeedManager） | `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` |
+| 生命周期服务 | life-cycle-service | 服务：轮回生命周期（开始 seed、推进、胜/负、清理、篇章继承、状态机、重试）。（CycleStateManager、ChapterManager、SeedManager） | `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` |
 | 未来事件服务 | future-event-service | 服务：依当前 CharacterProfile 产出 eventOptions，每个事件后重算；**eventOptions 唯一出口**。（EventOptionManager、PlotManager） | 同上 |
 | 隐藏剧本管理器 | PlotManager | **管理器，隶属 future-event-service**：隐藏属性驱动、key points ↔ 云端剧本服务、eventOptions 调制、DnD 式选分支。 | `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` |
 | 战斗服务 | combat-service | 服务：回合循环、抽/弃/洗、敌人意图；**Finale 复用其状态机**。（TurnManager、DeckManager、IntentManager） | 同上 |
 | 内容注册表 | ContentRegistry | content-service 的管理器：合并后按 `Id` 索引，暴露泛型仓储接口 `Get` / `TryGet` / `All` / `Where`。 | 同上 |
 | 档案管理器 | ProfileManager | profile-service 的管理器：`TryApply(spec)` 原子施加成本 / 产出（**全有或全无**）；modifier pipeline 的生效点。 | 同上 |
 | 内容覆盖层 | content overlay | `user://overlay/` 下由云端下发、按 `Id` 覆盖 `res://` 基线的热更内容增量。 | 同上 |
-| 内容版本 | contentVersion | `manifest.json` 携带的内容版本号；启动时与云端比对以决定是否下载增量。 | 同上 |
+| 内容版本 | contentVersion | `manifest.json` 携带的内容版本号；启动时与云端比对以决定是否下载增量。存档记两个：`StartContentVersion`（轮回开始，不变）/ `LastContentVersion`（每个存档点更新）。 | 同上 |
+| 内容启用开关 | ContentEnabled | 内容共有字段（`bool`，默认 `true`）：线上放量开关。**只在产出侧过滤**（抽取走 `AllEnabled()`），读取侧 `Get(id)` 不过滤。 | `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` |
+| 待发队列 | pending queue | `user://cache/pending/`：断线期间未上行的变更，原子写、跨启动保留，恢复后 `FlushPending()` 补提交（先 pull，云端 `revision` 领先则丢弃）。 | 同上 |
+| 修订号 | revision | push 信封携带的档案修订标识；本地基线 vs 云端的比较依据，决定离线缓冲是否被云端覆盖。 | 同上 |
+| 轮回种子 | CycleSeed | `CharacterProfile.Rng` 上的 u64 根种子；具名子流按 `Hash64(CycleSeed, streamName)` 派生。 | 同上 |
 | 地域 | location | **抽象概念**：角色当前所在地点，**框定 eventOptions**（决定下一批可能出现的修行事件池）；由 Travel 事件刷新。归属 `20-systems/game-progression.md`。 | `10-handoffs/2026-07-24-docs-restructure-class-model.md` |
 
 ## 修行事件分类（九类 · 07-24 加入 Explore / Travel；原七类见 ADR-0002）
@@ -79,6 +94,6 @@
 | 筑基 | Foundation Establishment | 第二境 |
 | 金丹 | Golden Core | 第三境 |
 | 元婴 | Nascent Soul | 第四境（终点 / 奖杯） |
-| 篇章 | Chapter | 相邻两境之间的一段攀登；一次 run 含三个篇章。 |
+| 篇章 | Chapter | 相邻两境之间的一段攀登；一次轮回含三个篇章。 |
 
 > 来源：`10-handoffs/2026-07-13.md`。

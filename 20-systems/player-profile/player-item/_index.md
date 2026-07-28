@@ -5,7 +5,7 @@
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-- **PlayerItem = 账号级、有使用次数限制的道具。** 独立于任何单次 run，由 PlayerProfile 持有（`List<PlayerItem>`）；跨 run 持久。与角色级的 CharacterItems（`../../character-profile/item/`）区分开。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
+- **PlayerItem = 账号级、有使用次数限制的道具。** 独立于任何单次轮回，由 PlayerProfile 持有（`List<PlayerItem>`）；跨轮回持久。与角色级的 CharacterItems（`../../character-profile/item/`）区分开。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 - **可购道具定义。** 道具的**定义 / 可购语义**归入本处；**交易机制**本身（作为一种 AdventureEvent）归 `20-systems/adventure-event/exchange/`（Exchange / 交易）。即：道具**是什么**在这里，**如何买到**在 exchange。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
 
 > 具体的使用次数模型、可购字段等共有属性见 `common-properties.md`。

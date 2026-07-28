@@ -1,4 +1,4 @@
-﻿# adventure-event / social（AdventureEvent-Social）
+# adventure-event / social（AdventureEvent-Social）
 
 > 社交：与 NPC / 势力的社交互动。
 
@@ -16,7 +16,7 @@
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **NPC / 势力模型：** NPC / 势力如何定义（数据资源？）、好感 / 关系度是否有持久数值、跨 run 是否留存未定。
+- **NPC / 势力模型：** NPC / 势力如何定义（数据资源？）、好感 / 关系度是否有持久数值、跨轮回是否留存未定。
 - **社交结果：** 产出（道具 / 卡牌 / 剧情分支 / 隐藏属性推拉）、是否触发 AdventurePlot 分支未定。→ `20-systems/services/plot-manager.md`。
 
 ## 对应

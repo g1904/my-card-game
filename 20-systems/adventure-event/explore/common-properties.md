@@ -5,7 +5,7 @@
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-- 类型为占位：机制未定，故子类型专有字段尚不能定义。仅确定它是 AdventureEvent 的一个子类型，继承顶层共有属性（图编码、类型标签、Id）。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
+- 类型为占位：机制未定，故子类型专有字段尚不能定义。仅确定它是 AdventureEvent 的一个子类型，继承顶层共有属性（类型标签、成本字段、Id）。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 50-decisions/ADR-####。_

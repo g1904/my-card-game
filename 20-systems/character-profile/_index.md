@@ -1,13 +1,37 @@
-﻿# character-profile
+# character-profile
 
-> 角色信息 / **CharacterProfile** —— 单次 run / 单个角色的状态与历史（对齐 RunState 概念）。
+> 角色信息 / **CharacterProfile** —— 单次轮回 / 单个角色的状态与历史（对齐 CycleState 概念）。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-- **CharacterProfile = 单次 run / 单个角色的状态与历史。** 每个 CharacterProfile 对齐 **RunState** 概念：一次 run、一个角色所走过 / 可走的整段修行历程与当前状态。它由账号级的 **PlayerProfile** 持有（`List<CharacterProfile>`）。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`（+ `20-systems/services/life-cycle-service.md`、`terminology.md`）。
-- **CharacterProfile 的字段（大局骨架，细节未定）。** `status`（**ongoing | defeated | completed**）、`chapter`（当前篇章）、`Status`（`currentHealth / healthLimit`、`currentMana / manaLimit`，以及**隐藏属性** 道心 / faith、煞气 / malefic qi、寿元 / lifeSpan）、`List<AdventureEvent>`（修行历程）、角色级道具（见 `item/`）、run 货币 gold（见 `currency.md`），以及 **AdventurePlot key points**（剧情进度锚点；完整剧本内容不落存档，存于云端剧本服务）。Source: `20-systems/services/life-cycle-service.md`。
-- **角色状态是终态收敛的状态机。** `status` 收敛为 `ongoing | defeated | completed`（`defeated` 内含 discarded、寿元归 0 等原因子类型）；`defeated` 与 `completed` 数据都会在 run 结束时被清理。→ 见 `20-systems/services/life-cycle-service.md` 与 `50-decisions/ADR-0004-realm-checkpoint-retry-model.md`。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
+- **CharacterProfile = 单次轮回 / 单个角色的状态与历史。** 每个 CharacterProfile 对齐 **CycleState** 概念：一次轮回、一个角色所走过 / 可走的整段修行历程与当前状态。它由账号级的 **PlayerProfile** 持有（`List<CharacterProfile>`）。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`（+ `20-systems/services/life-cycle-service.md`、`terminology.md`）。
+- **CharacterProfile 的字段（大局骨架，细节未定）。** `status`（**ongoing | defeated | completed**）、`chapter`（当前篇章）、`Status`（`currentHealth / healthLimit`、`currentMana / manaLimit`，以及**隐藏属性** 道心 / faith、煞气 / malefic qi、寿元 / lifeSpan）、`List<AdventureEvent>`（修行历程）、角色级道具（见 `item/`）、轮回货币 jade（见 `currency.md`），以及 **AdventurePlot key points**（剧情进度锚点；完整剧本内容不落存档，存于云端剧本服务）。Source: `20-systems/services/life-cycle-service.md`。
+- **RNG 状态与内容版本落在 CharacterProfile 上（已定案）。** 新增三组字段，随本次存档 **schema bump**（当前无线上存档 → 空迁移，但迁移骨架就此立起）：
+
+  | 字段 | 类型 | 语义 |
+  |------|------|------|
+  | `StartContentVersion` | `string` | 轮回开始时生效的内容版本，**写一次不再变** |
+  | `LastContentVersion` | `string` | **每个自动存档点**更新为当时生效的版本；与上一字段不等 = 该轮回跨过内容更新（数值突变类反馈的第一判据） |
+  | `Rng.CycleSeed` | `ulong` | 轮回开始时生成，不变 |
+  | `Rng.Streams[]` | `Name` / `Seed` / `State` / `DrawCount`（`string` / `ulong` / `ulong` / `int`） | 具名子流状态；`State` 为恢复权威字段，`DrawCount` 为诊断与迁移保险 |
+
+  schema 形态：
+
+  ```jsonc
+  "rng": {
+    "CycleSeed": 12345678901234567890,        // u64，轮回开始时生成，不变
+    "streams": [
+      { "name": "map",    "seed": 0, "state": 0, "drawCount": 0 },
+      { "name": "combat", "seed": 0, "state": 0, "drawCount": 0 },
+      { "name": "shop",   "seed": 0, "state": 0, "drawCount": 0 },
+      { "name": "reward", "seed": 0, "state": 0, "drawCount": 0 }
+    ]
+  }
+  ```
+
+  派生规则与恢复语义见 `20-systems/common-properties.md`；双 `contentVersion` 的诊断用途见 `20-systems/services/content-service.md`。Source: `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
+- **角色状态是终态收敛的状态机。** `status` 收敛为 `ongoing | defeated | completed`（`defeated` 内含 discarded、寿元归 0 等原因子类型）；`defeated` 与 `completed` 数据都会在轮回结束时被清理。→ 见 `20-systems/services/life-cycle-service.md` 与 `50-decisions/ADR-0004-realm-checkpoint-retry-model.md`。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
 
 ## 子系统导航
 
@@ -15,7 +39,7 @@
 |--------|------|------|
 | 卡组 deck | `deck/_index.md`、`deck/common-properties.md` | 抽牌堆 / hand / 弃牌堆、seeded 洗牌、deck 变更；卡牌 / CardData 定义（费用、目标、效果流水线、触发器）；起始卡组等内容设计。 |
 | 角色道具 item | `item/_index.md`、`item/common-properties.md` | 角色级道具（含道具设计内容；细节待定）。 |
-| run 货币 currency | `currency.md` | run 货币 gold 的获取 / 消耗。 |
+| 轮回货币 currency | `currency.md` | 轮回货币 jade 的获取 / 消耗。 |
 | 生命 life | `life.md` | 战斗血量；炼气基线 10/10；无曲线。 |
 | 法力 mana | `mana.md` | 每回合出牌资源；上限 + 逐步恢复；炼气基线 5/5。 |
 

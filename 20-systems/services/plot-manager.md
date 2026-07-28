@@ -27,22 +27,35 @@
 
   这也是**本地 / 云端内容分界**的云端一侧：剧本文本**按进度动态请求、一次性呈现、不被存档引用**，因此**不进 ContentRegistry、不落存档**；而 `AdventureEventData` 等有稳定 `Id` 且被存档引用的定义属**本地内容层**。判据见 `content-service.md`。
 
+- **剧本的离线降级：事务前置 + 预取缓存（已定案）。**
+  - **事务前置：** 剧本内容**取得之前**不施加任何成本、不推进 key point。取不到 → 该事件呈现「内容加载失败 · 重试」，**CharacterProfile 零变更**。这把网络失败挡在事务边界之外，避免「扣了成本却没剧情」这类不可回滚的半状态。
+  - **预取缓存：** PlotManager 按 key points **预取下一批**剧本文本（深度 = 下一批 eventOptions 对应的 key points），**LRU 缓存于 `user://cache/plot/`**。该缓存是**纯缓存**：可随时丢弃、**不落存档**、不参与冲突裁决。有缓存直接用，无缓存才走上面的失败路径。
+  - 与 push / pull 通道的完整降级表见 `sync-service.md`。Source: `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
+
 ### event / EventData（剧本内容侧）
 - **event = 剧本内容单元。** 承载**提示文本以及分支式的选择 / 结果**；AdventurePlot 负责结构模型，event 内容侧负责具体剧本文本与分支。event 内容存于云端剧本服务，按 key points 请求。
 - **隐藏属性驱动剧情线（示例）：**
   - **煞气 / malefic qi** —— 累积到阈值 → 触发 **「煞气反噬」** 剧情线。
   - **寿元 / lifeSpan** —— 递减到 0 → 触发 **「大限将至」**（角色 defeated）。
 
-## 管理器角色 / API 面
-> _意图层草图；具体协议待细化。_
+## 管理器角色 / API 面（契约）
+> _总则与共享类型见 `20-systems/architecture.md`「API 契约总则」。PlotManager 是本项目中**唯一跨进程边界的 manager**（其余三处跨边界者都是服务本身）。Source: `10-handoffs/2026-07-27b-service-api-contracts.md`。_
 
 - **定位。** PlotManager 是**云端剧本服务的客户端接口** + **eventOptions 的调制源**。它**不直接写 eventOptions**、也不向 game-progression / UI 暴露 eventOptions——对外呈现 eventOptions 的**唯一出口是宿主服务 future-event-service**。
-- **方法面（意图草图 · 签名待定）：**
-  - `ResolvePlot(character.keyPoints)` → 向云端剧本服务请求当前应生效的剧本 / 分支内容。
-  - `ModulateEventOptions(character, eventOptions)` → 依隐藏属性 / 剧本进度调制宿主服务产出的 eventOptions。
-  - `OnHiddenStatThreshold(character, stat)` → 隐藏属性达阈值时驱动对应剧情线（煞气反噬 / 大限将至 等）。
-  - `ChooseBranch(character, branchChoice)` → DnD 式显式选分支时提交玩家选择，推进 key points（经 ProfileManager 写入）。
-- **事件面：** 剧情线触发、分支揭示 / 选择、key point 推进等，由**宿主服务**经 EventBus 广播给 game-progression / UI。
+- **类型声明为 `internal sealed`**（总则 3）：跨服务代码里根本写不出本 manager 的类型名。
+
+| 方法 | 形态 | 完整签名 | 失败语义 |
+|------|------|----------|----------|
+| 请求剧本 | B | `Task<OpResult<PlotSegment>> ResolvePlotAsync(PlotRequest req, CancellationToken ct)` | 业务失败 → `OpResult`；**事务前置**：取不到则不施加任何成本、不推进 key point |
+| 调制 | A | `EventOptionBatch ModulateEventOptions(CharacterProfile c, EventOptionBatch batch)` | 无调制 = 原批返回 |
+| 阈值驱动 | A | `void OnHiddenStatThreshold(CharacterProfile c, HiddenStat stat)` | — |
+| 选分支 | B | `Task<OpResult> ChooseBranchAsync(string branchId, CancellationToken ct)` | 业务失败 → `OpResult`；经 ProfileManager 推进 key points |
+
+**只有 `ChooseBranch` 投影到服务门面上。** 前三个方法是宿主服务 `ComputeEventOptions` 物化链条**内部**的一环，不被跨服务调用（manager 纪律）；`ChooseBranchAsync` 因需要玩家输入，故由 future-event-service 以同名方法转发。
+
+**后端接口（总则 7）：** 本 manager 持有 `IPlotBackend { Task<OpResult<PlotSegment>> ResolveAsync(PlotRequest req, CancellationToken ct); }`，两份实现 `HttpPlotBackend` / `OfflinePlotBackend`（读 `res://` 假剧本）。`PlotRequest` / `PlotSegment` 的**字段** ⟨待定⟩——依赖「剧本服务契约」，见待决问题。
+
+**事件面：** 剧情线触发经宿主服务广播 `PlotThresholdReached(string CharacterId, HiddenStat Stat, int Threshold)`；分支揭示 / 选择、key point 推进同样由**宿主服务**代为广播（manager 不直接持有 EventBus 通道）。
 - **数据契约：** CharacterProfile 存 key points（轻量锚点）；剧本内容由云端下发（不落存档）；隐藏属性阈值触发映射待定。
 
 ## 决策(-> ADR)
@@ -53,7 +66,8 @@
 ## 待决问题
 
 - **数据编码与耦合：** AdventurePlot 树如何用数据表达？它是**调制** eventOptions，还是并行结构？key points 的粒度与 schema？Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
-- **剧本服务契约：** 请求 / 下发协议、缓存策略、**离线缓冲（断线时剧情如何降级）**、版本化未定。→ 与 `sync-service.md` 的断线降级策略耦合。
+- **剧本服务契约：** 离线降级已定（事务前置 + `user://cache/plot/` LRU 预取，见「意图」）；仍待定：**请求 / 下发协议**与**版本化**。→ 协议契约的另一侧归 `backend-design-documents/`。
+- **预取与事务前置的边界。** 预取降低失败率但不消除它；**LRU 容量上限**、以及**预取失败是否静默**（不打扰玩家、留待实际请求时再报）未定。Source: `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
 - **DnD 式选分支：** 触发点、UI、以及玩家可见 / 不可见分支的边界未定。
 - **隐藏属性清单与阈值：** 已定 **道心 / 煞气 / 寿元** 三项且均隐藏；仍待定：是否还有其他隐藏属性、各自阈值、增减触发（哪些 AdventureEvent 推拉）、剧情线目录。（寿元消耗已定；仅剩「是否有非境界突破的寿元增长途径」待定。）→ 亦见 `life-cycle-service.md`。
 

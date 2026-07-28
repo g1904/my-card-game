@@ -10,7 +10,7 @@
 - art assets are left blank for now, but as development cycle progress, it's a todo to use or find some generic or free assets just to use for default. Either use existing library/package or ask me to find some from online godot community resources.
 - user either login or continue as a guest (游客账号)
 - after login, there's the main screen where the first timers should only be able to start from chapter one (炼气), while other chapter options are hidden (to be unlocked later).
-- In the main screen, other than being able to switch chapters to start a run, there're following buttons: one for PlayerProfile (status and account info), one for PlayerPower (special powers that be turned on or off), one for achievements (with groups that once a group of achievements reaches 90% auto awards the player), one for settings (audio on/off, etc). 
+- In the main screen, other than being able to switch chapters to start a cycle, there're following buttons: one for PlayerProfile (status and account info), one for PlayerPower (special powers that be turned on or off), one for achievements (with groups that once a group of achievements reaches 90% auto awards the player), one for settings (audio on/off, etc). 
 - I have left the open questions from last session in ./game-design-documents/open-questions.md, it's a new file that needs to be integrated.
 - I want open questions that unanswered after each session to be saved in open-questions.md file so that I can pick-up in the next session. Therefore, update the ./.claude content to keep the file in the loop.
 - also scan the project, refactor all 'scratch' into 'draft'.

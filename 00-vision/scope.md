@@ -7,7 +7,7 @@
 - **AdventureEvent 循环：** 在可用的 AdventureEvent 中选择 → 结算改变玩家状态及后续走向的事件。
 - **至少两种 AdventureEvent 类型：** 战斗（回合制）与一个非战斗的事件/抉择，以印证“并非每个 AdventureEvent 都是一场战斗”。
 - **一层极简的卡牌构筑：** 一副起始 deck，外加通过 AdventureEvent 获得/移除卡牌。
-- **带 seed 的 run**（可复现）以及位于篇章边界的单一**存档/记录点**。
+- **带 seed 的轮回**（**同一 `contentVersion` 内**可复现）以及位于篇章边界的单一**存档/记录点**。
 - **竖屏、触控**——在手机上单手可玩。
 - **前置屏幕外壳：** 登录屏（T&S + 循环视频占位 + **强制账号登录**）→ 主菜单（切换已解锁篇章、PlayerProfile / PlayerPower / Achievements / Settings 入口）。**已移除游客态**——所有玩家必须登录账号后才能游玩。见 `40-ux/screen-flow.md`。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 - **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。见「平台与约束」。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
@@ -18,7 +18,7 @@
 - 第 2、3 篇章（筑基→金丹、金丹→元婴）以及完整的**篇章衔接 / 延续**系统——先设计好衔接契约（见 2026-07-13 handoff 中的 open questions）。
 - 支撑“Reigns”式平衡张力的完整**属性模型**。
 - 超出足以奠定 grimdark 基调之外的深度叙事/剧情内容。
-- 元进程解锁、外观装饰、每日/seeded-run 分享。
+- 元进程解锁、外观装饰、每日/seeded-轮回分享。
 - 本地化打磨（让展示字符串与 id 分离，以免日后受阻）。
 
 ## 平台与约束
@@ -40,7 +40,20 @@
 
 ## 开发顺序（已采纳的改良版）
 > _流程 / 路线意图，非游戏范围本身。用户已确认采纳下述改良版。_
+
+### 路线阶段（按系统层次 · 已定案 · ADR 候选）
+**框架 → 内容 → 平衡与体验 → 社交及其他。**
+
+1. **先做游戏框架**——服务骨架、核心循环、存档 / 同步、内容管线；
+2. **再横向填充内容**——九类 AdventureEvent、卡牌、敌人、剧本；
+3. **然后打磨平衡与体验**；
+4. **最后才考虑社交与其他功能**——**每日种子、排行挑战归于此阶段**，因此**当前不为其预留任何结构**（例如不预留 `contentVersion` 冻结机制；若将来引入，正确做法是让该模式内的轮回绑定一份冻结快照，把例外局部化——见 `20-systems/services/content-service.md`）。
+
+Source: `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
+
+### 工程方法（横切各阶段）
 - **采纳的顺序：** **设计先行（自顶向下）→ 垂直切片先跑通端到端 → 贯穿式用占位数据做轻量平衡 → 美术挂点占位、末段替换**。Source: `10-handoffs/2026-07-16-ux-flow-login-and-dev-order.md`（已由用户确认）。
+- 二者是**同一路线的两个视角**——上节按**系统层次**排序，本节按**工程方法**排序，互不冲突：框架阶段内部同样走「垂直切片优先」。
 - 具体落法：
   - **垂直切片优先。** 先打通一条最细可玩链路 **登录 → 主菜单 → 炼气一场战斗 → 存档** 并端到端跑通，最早暴露架构风险，再横向铺开系统。
   - **平衡贯穿而非押末段。** 系统落地即用**占位数值 + 数据驱动配置**（平衡值放 `.tres`，不硬编码，见 `data-resource-rules.md`），使后期平衡是「调数据」而非「改结构」。
@@ -49,9 +62,9 @@
 - 此为流程性方向决策，亦是 **ADR 候选**（若需固化到 `50-decisions/`）。
 
 ## 时段形态
-> _目标 run 时长、存档/续玩、手机上一个“时段”的感觉。_
+> _目标轮回时长、存档/续玩、手机上一个“时段”的感觉。_
 
 - **一个篇章**是自然的时段单元——足够长以让人觉得是一次有意义的攀登，又足够短以便在移动端完成或存档。
-- **三个篇章边界**是持久的存档/记录点（角色档案的史册记录）；最后一个（元婴）是已完成 run 的奖杯展示。
+- **三个篇章边界**是持久的存档/记录点（角色档案的史册记录）；最后一个（元婴）是已完成轮回的奖杯展示。
 - 在 AdventureEvent 边界自动存档，使被终止的应用能在合理的位置续玩（见 `.claude/rules/state-save-rules.md`）。
-- run 带 seed 且可复现，便于复现 bug 与公平对比。
+- 轮回带 seed，**在同一 `contentVersion` 内可复现**。内容热更以 overlay 为准、不冻结轮回的 `contentVersion`，故**不承诺跨内容版本复现**；bug 复现与「数值突变」类反馈改以**存档记录的 `StartContentVersion` / `LastContentVersion` 归因**（二者不等 = 该轮回跨过内容更新）。见 `20-systems/services/content-service.md`、`20-systems/common-properties.md`。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` + `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。

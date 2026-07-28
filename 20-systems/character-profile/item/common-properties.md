@@ -5,7 +5,7 @@
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-- **角色道具是 CharacterProfile 的 `List<CharacterItems>`。** 唯一已确认的共有属性是它作为角色级、随 run 存在的集合被 CharacterProfile 持有。Source: `20-systems/services/life-cycle-service.md`（`CharacterProfile` 字段）+ `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
+- **角色道具是 CharacterProfile 的 `List<CharacterItems>`。** 唯一已确认的共有属性是它作为角色级、随轮回存在的集合被 CharacterProfile 持有。Source: `20-systems/services/life-cycle-service.md`（`CharacterProfile` 字段）+ `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 50-decisions/ADR-####。_

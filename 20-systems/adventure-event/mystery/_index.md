@@ -6,7 +6,7 @@
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
 - **Mystery = 元类型（meta-type）。** 未知（Mystery）本身不是一种独立玩法，而是**遮罩其余某一类 AdventureEvent**；玩家进入后才揭示其真实类型。Source: `20-systems/adventure-event/_index.md`、`terminology.md`。
-- **遮罩的是一个固定的 AdventureEvent（已明确）。** Mystery 揭示的是一个**预先确定的、固定的** AdventureEvent，而**非在点击时临时生成**——即遮罩层只隐藏类型，被遮罩的具体事件在事件图中已确定。Source: `terminology.md`、`10-handoffs/2026-07-24-docs-restructure-class-model.md`。
+- **遮罩的是一个固定的 AdventureEvent（已明确）。** Mystery 揭示的是一个**预先确定的、固定的** AdventureEvent，而**非在点击时临时生成**——即遮罩层只隐藏类型，被遮罩的具体事件在该 Mystery 内容条目上已固定指定。Source: `terminology.md`、`10-handoffs/2026-07-24-docs-restructure-class-model.md`。
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 50-decisions/ADR-####。_

@@ -5,7 +5,7 @@
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-- **抽牌 / hand / 弃牌循环（共有机制）。** 卡从抽牌堆抽入 hand，打出或回合结束后进弃牌堆，抽牌堆空时由弃牌堆重洗补充。洗牌由 run seed 驱动（确定性可复现，见 `state-save-rules.md`）。
+- **抽牌 / hand / 弃牌循环（共有机制）。** 卡从抽牌堆抽入 hand，打出或回合结束后进弃牌堆，抽牌堆空时由弃牌堆重洗补充。洗牌由 cycle seed 驱动（确定性可复现，见 `state-save-rules.md`）。
 - **CardData 共有字段（数据即资源）。** 每张卡是一个 `CardData : Resource`（`.tres`），共有字段预期含：稳定唯一 `Id`、显示名 / 描述（与 `Id` 分离、可本地化）、**费用（mana cost）**、**目标（target）**、**效果流水线（effect pipeline）**、**触发器（trigger）**。数值读自资源，不硬编码。Source: `data-resource-rules.md`。
 - **打出一张卡的结算（共有流程）。** 费用支付（mana）→ 目标选择 → 效果流水线依序执行 → 触发器响应事件。（具体阶段待设计。）
 

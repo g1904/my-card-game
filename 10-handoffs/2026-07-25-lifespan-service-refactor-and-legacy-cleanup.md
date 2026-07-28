@@ -22,11 +22,11 @@
 | 旧名 | 新名 | 职责 |
 |------|------|------|
 | adventurePlot / `services/adventure-plot.md` | **adventure-plot-service** / `services/adventure-plot-service.md` | 隐藏剧本层 API |
-| possibleFutureEvent（原 AdventureEvent 上的图字段/概念） | **future-event-service**（新）/ `services/future-event-service.md` | 依据当前 characterProfile **产出 eventOptions**（可选事件集） |
-| run-manager / `services/run-manager.md` | **life-cycle-service** / `services/life-cycle-service.md` | Run 生命周期 API |
+| （无对应旧服务；「下一步能去哪」此前无归属） | **future-event-service**（新）/ `services/future-event-service.md` | 依据当前 characterProfile **产出 eventOptions**（可选事件集） |
+| run-manager / `services/run-manager.md` | **life-cycle-service** / `services/life-cycle-service.md` | 轮回生命周期 API |
 
 - **future-event-service = 依当前 characterProfile 计算 eventOptions 的服务。** `eventOptions` = 一组当前可选的 `AdventureEvent`，玩家从中择一以推进游戏。
-- **eventOptions 循环：** 每完成一个事件后，future-event-service 依据更新后的 characterProfile **重新计算**一批新的 eventOptions 供玩家再次选择。这把先前「possibleFutureEvent 图字段」正式提升为一个**服务化的生成面**（生成/加权机制仍为 Open question，但架构侧已定为服务）。
+- **eventOptions 循环：** 每完成一个事件后，future-event-service 依据更新后的 characterProfile **重新计算**一批新的 eventOptions 供玩家再次选择。「下一步能去哪」由此确立为一个**服务化的生成面**：事件之间不存在预先编好的连边，走向每步现算（生成/加权机制仍为 Open question，但架构侧已定为服务）。
 
 ### 3. character-profile 结构定案（解一个 Open question）
 - **deck 与 item 为文件夹**——因为除规则外，未来还要容纳**内容设计**（起始卡组 starter decks、道具设计 item designs）。
@@ -37,14 +37,13 @@
 - **一切皆可改：取消全部「仅追加 / 不可变」根约定。** 软件开发尚未开始，本库**没有任何文档是仅追加或一旦定案即不可变的**——`10-handoffs/`、`90-inbox/`、`50-decisions/` ADR 均可自由编辑 / 重写 / 重构。**要改一份 ADR 的决定，就直接改这份 ADR，不必新开一个 ADR 去取代它。** 历史 / 回溯归 git。
 - **活文档只保留最新设计与决策；不再保留/提及过时、被替换、legacy 内容，一律重写替换。** 理由：项目由 GitHub 版本控制，legacy 需要时可手动取回，留在文件里只会臃肿。
 - **移除的旧约定：** `Context.md` 治理原则里「留溯源（Source / 取代说明）」子句、`README.md` 与 `50-decisions/_index.md` 的「10-handoffs 仅追加」「ADR 一旦 Accepted 即不可变」、ADR `_TEMPLATE.md` 的 immutable 注释——均已删除 / 改写为「可编辑」。
-- **ADR 重构（本 session 已执行）：** ADR-0002 从「七类 + 两处 Amendment 追加」重写为**干净的九类枚举**（删除修订历史考古、possibleFutureEvent→eventOptions）；ADR-0003 删除「离线→混合→强制在线」反转叙事，只留当前决定 + 张力；ADR-0004 状态机补入「寿元归 0」为 defeated 原因。
+- **ADR 重构（本 session 已执行）：** ADR-0002 从「七类 + 两处 Amendment 追加」重写为**干净的九类枚举**（删除修订历史考古、统一到 eventOptions 表述）；ADR-0003 删除「离线→混合→强制在线」反转叙事，只留当前决定 + 张力；ADR-0004 状态机补入「寿元归 0」为 defeated 原因。
 - **落地边界（本 session 已按用户确认执行全库清理）：** 活文档（`20-systems/**`、`40-ux/**`、`00-vision/**`、`50-decisions/` ADR、`terminology.md`、`open-questions.md`、`README.md`、各 `_index.md`）删除考古（「取代 X / 并入 Y / 由 Z 拆出 / 迁入自 / 原 encounter / 重构说明 / 原始文件占位 / 旧文件保留待清理」）与对已删除文件的引用，只留最新设计；保留指向当前 `10-handoffs/*` 的简短 `Source:` 溯源。`10-handoffs/` 与 `90-inbox/` 作为时间线保留（但不再是「仅追加」，可编辑修正）。
 
 ## Open questions
 - **寿元 `lifeSpanCost` 分档 / 增长途径：** 消耗机制已定（按 AdventureEvent 的 `lifeSpanCost` 扣减，基准 -1）；仍待定：哪些事件应覆写基准、是否有非境界突破的寿元增长途径、元婴阶段是否再加预算。→ `20-systems/adventure-event/`、`20-systems/balance.md`。
 - **寿元 <10% 显示的 UX 形态：** 低于 10% 时「在屏上显示」的具体呈现（常驻条？告警？）未定。→ `40-ux/`（combat-ux / screen-flow）。
 - **future-event-service 生成/加权：** 服务化已定，但从 characterProfile 生成 eventOptions 的**具体加权/策划规则**、与 location（地域）框定、与 adventure-plot-service 调制的叠加顺序仍未定。→ `20-systems/game-progression.md`、`20-systems/services/future-event-service.md`。
-- **eventOptions vs possibleFutureEvent 图：** 服务产出 `eventOptions` 后，`AdventureEvent` 上原 `List<possibleFutureEvent>` / `List<pastEvent>` 的图字段是保留（服务读写它）还是被服务态取代？两者关系待厘清。→ `20-systems/game-progression.md`。
 
 ## Notes / triage
 - 服务文件重命名：`services/run-manager.md` → `services/life-cycle-service.md`、`services/adventure-plot.md` → `services/adventure-plot-service.md`；新增 `services/future-event-service.md`。全库对旧服务路径的交叉引用已同步更新。

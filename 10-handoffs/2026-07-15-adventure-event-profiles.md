@@ -32,9 +32,9 @@
 
 ### 3. 数据模型骨架：PlayerProfile → CharacterProfile → AdventureEvent
 
-一个三层的持有关系。**PlayerProfile** 是账号级主档，追踪该玩家的全部历史与数据；其下挂着一组 **CharacterProfile**，各自追踪一次可用或进行中的修行 run；每个 CharacterProfile 又持有一串 **AdventureEvent**。
+一个三层的持有关系。**PlayerProfile** 是账号级主档，追踪该玩家的全部历史与数据；其下挂着一组 **CharacterProfile**，各自追踪一次可用或进行中的修行轮回；每个 CharacterProfile 又持有一串 **AdventureEvent**。
 
-- **PlayerProfile（账号级 · 跨 run 持久）**
+- **PlayerProfile（账号级 · 跨轮回持久）**
   ```
   PlayerProfile {
     List<CharacterProfile>
@@ -46,7 +46,7 @@
     // etc.
   }
   ```
-- **CharacterProfile（单次 run / 单个角色）**
+- **CharacterProfile（单次轮回 / 单个角色）**
   ```
   CharacterProfile {
     status            // defeated | ongoing | discarded | completed
@@ -62,19 +62,19 @@
     // etc.
   }
   ```
-- **AdventureEvent（修行历程节点）**
+- **AdventureEvent（修行事件）**
   ```
   AdventureEvent {
-    List<possibleFutureEvent>   // 后续可走向的历程
-    List<pastEvent>             // 已经历的历程
+    // 自足的内容条目：不持有指向其他事件的引用
     // etc.
   }
   ```
+- **走向 = 服务现算，不是内容连边。** 「下一步能去哪」由 future-event-service 依当前 CharacterProfile 产出的 `List<EventOption> eventOptions` 决定；已走过的轨迹由 CharacterProfile 侧的 `pastEvent` 扁平时序列表承载。
 
 **隐含结构（从上述推演，非新增机制）：**
-- **PlayerProfile 是元进程（meta-progression）层**，跨 run 持久；`PlayerPower` / `PlayerItem` / `Achievements` 是账号级的解锁 / 成就，独立于任何单次 run。
-- **CharacterProfile 对应一次 run 的 run 状态**（对齐既有的 RunState 概念）。一个 PlayerProfile 持有**多个** CharacterProfile，且状态含 `ongoing`——意味着可能存在**多个并存的角色存档 / 进行中的 run**（类多存档槽）。
-- **AdventureEvent 的 `possibleFutureEvent` / `pastEvent` 即分支 map 的图编码**：向前是分叉的可选历程，向后是已走过的历史轨迹。这正是 `map-progression` 里「分支 map 形态待定」的一种数据表达。
+- **PlayerProfile 是元进程（meta-progression）层**，跨轮回持久；`PlayerPower` / `PlayerItem` / `Achievements` 是账号级的解锁 / 成就，独立于任何单次轮回。
+- **CharacterProfile 对应一次轮回的轮回状态**（对齐既有的 CycleState 概念）。一个 PlayerProfile 持有**多个** CharacterProfile，且状态含 `ongoing`——意味着可能存在**多个并存的角色存档 / 进行中的轮回**（类多存档槽）。
+- **进程是逐批择一的线性推进，不是分支地图**：向前的可选集每步现算（`eventOptions`），向后的 `pastEvent` 是一条扁平轨迹。事件之间不存在预先编好的连边。
 - `faith`（信仰）是一个**新的角色属性**，落在既有「类 Reigns 属性平衡」的待决属性模型之内。
 
 ## Design pillars（承接）
@@ -90,9 +90,9 @@
   - **`未知/Mystery` 的层级。** 它是与其它并列的一类，还是一个**元类型**（进入后才揭示为其它某类）？语义需澄清。
   - **`修炼/Practice` 与 `闭关/Research` 的边界。** 二者都是自我精进，区分标准是什么（前者主动练功、后者闭关突破？），避免玩家认知重叠。
 - **CharacterProfile 状态机。** `ongoing → defeated / completed / discarded` 的转移规则？`discarded`（主动弃置）与 `defeated`（战败）在元进程后果上有何不同？
-- **多角色并存。** 是否真的支持多个 `ongoing` 的 CharacterProfile 同时存在（多存档槽），还是同一时刻至多一个 run？这影响存档架构与 run-manager 的清理边界。
+- **多角色并存。** 是否真的支持多个 `ongoing` 的 CharacterProfile 同时存在（多存档槽），还是同一时刻至多一个轮回？这影响存档架构与 run-manager 的清理边界。
 - **属性模型。** `faith` 之外，`Status` 里还要平衡哪些属性，修行历程又如何推拉它们？（沿用 vision 中「类 Reigns 属性平衡」的待决项。）
 - **元进程持久化范围。** `PlayerPower` / `PlayerItem` / `Achievements` / `GameSetting` / `AccountInfo` 各自的字段与解锁规则待定；账号级 meta 系统或许值得单独一份系统文档。
 
 ## Notes / triage
-大局骨架 handoff。术语重构 → 新建 `terminology.md`。六分类法 → 折进 `20-systems/adventure-event-combat.md` 的意图并回答其「分类法」待决项（作为 ADR 候选，待反馈确认）。数据模型：PlayerProfile/CharacterProfile 生命周期 → `20-systems/run-manager.md`；AdventureEvent 的 possibleFutureEvent/pastEvent 图结构 → `20-systems/map-progression.md`。全篇「大局，细节未定」，故落地的多为**结构与开放问题**，而非机制断言。
+大局骨架 handoff。术语重构 → 新建 `terminology.md`。六分类法 → 折进 `20-systems/adventure-event-combat.md` 的意图并回答其「分类法」待决项（作为 ADR 候选，待反馈确认）。数据模型：PlayerProfile/CharacterProfile 生命周期 → `20-systems/run-manager.md`；走向的服务化生成（eventOptions）与 `pastEvent` 轨迹 → `20-systems/game-progression.md`、`20-systems/services/future-event-service.md`。全篇「大局，细节未定」，故落地的多为**结构与开放问题**，而非机制断言。

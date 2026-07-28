@@ -4,7 +4,7 @@
 
 | 文档 | 用途 |
 |-----|---------|
-| [screen-flow](screen-flow.md) | 菜单 → run → 地图 → 战斗 → shop → 设置 的导航。 |
+| [screen-flow](screen-flow.md) | 菜单 → 轮回 → 地图 → 战斗 → shop → 设置 的导航。 |
 | [combat-ux](combat-ux.md) | 出牌/拖拽/指定目标、intent 预告、节奏。 |
 | [onboarding](onboarding.md) | 首次游玩的教学顺序。 |
 

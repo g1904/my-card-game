@@ -1,11 +1,11 @@
-﻿# adventure-event（AdventureEvent 系统）
+# adventure-event（AdventureEvent 系统）
 
 > 修行事件（AdventureEvent）系统总览：逐时逐刻的游玩单元、九类子类型、进入 / 结算通用流程。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-- **AdventureEvent = 逐时逐刻的游玩单元。** 玩家从当前可用项（eventOptions，由 future-event-service 产出）中择一以推进 run。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
+- **AdventureEvent = 逐时逐刻的游玩单元。** 玩家从当前可用项（eventOptions，由 future-event-service 产出）中择一以推进轮回。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
 - **并非每个 AdventureEvent 都是一场战斗。** 战斗存在，但这是对 Slay the Spire「每个节点都战斗」节奏的有意背离——仅 战斗（Combat）及其变体 修炼（Practice）走战斗结算、境界突破（Finale）走独立结算，其余子类型是非战斗事件。Source: `10-handoffs/2026-07-13.md`。
 - **事件 / 抉择机制参照《月圆之夜》（Night of the Full Moon）建模。** AdventureEvent 呈现事件 / 选择，其后果影响玩家及未来状态；节点呈现形态为精心策划的事件菜单（已定案）。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 - **底层压力遵循一种类 Reigns 的属性平衡手感**——选择在相互竞争的仪表间摆动，而非优化单一数值；但本作属性**隐藏**（见 `20-systems/services/plot-manager.md`）。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。

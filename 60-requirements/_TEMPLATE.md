@@ -27,7 +27,7 @@
 - [ ] ...
 
 ## Data & state touchpoints
-> _本功能读/写哪些 RunState 字段、EventBus 信号、数据资源（.tres id）与存档点。保持在意图层面——/blueprint 会把它们转成具体的类/场景形态。_
+> _本功能读/写哪些 CycleState 字段、EventBus 信号、数据资源（.tres id）与存档点。保持在意图层面——/blueprint 会把它们转成具体的类/场景形态。_
 
 ## Open questions
 > _源设计文档尚未回答的任何事项。若非空，则本 FR 不是 `ready`——它需要先有一个 handoff/决定。绝不在此凭空杜撰答案。_

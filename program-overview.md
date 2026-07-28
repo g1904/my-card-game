@@ -1,6 +1,6 @@
 # program-overview —— 程序运行总览
 
-> **这份文档回答「代码跑起来是什么样」。** 从进程启动到 run 结束的端到端调用链、服务 / 管理器职责矩阵、内容与存档的加载路径。
+> **这份文档回答「代码跑起来是什么样」。** 从进程启动到轮回结束的端到端调用链、服务 / 管理器职责矩阵、内容与存档的加载路径。
 >
 > 结构与边界的**权威**在 `20-systems/architecture.md`；本文件是它的**运行时视角**对照面。工程落地形态（进程边界、文件夹布局、autoload 注册、代码形态）见 `system-overview.md`。术语权威在 `terminology.md`。
 >
@@ -29,7 +29,7 @@
 
 ### 拆分轴：生命周期层 + 行为边界，**不是数据类型**
 
-不按 `power` / `item` / `card` / `resource` 各开一个服务——那会撕碎事务（一次结算典型要同时改多种资源）、横切生命周期层（账号级 vs run 级的持久化与清理规则完全不同），且退化为无规则的贫血 CRUD。同理不为九类 AdventureEvent 各开一个服务：只有 Combat 真有状态机，其余差异在**数据**而非**代码**。
+不按 `power` / `item` / `card` / `resource` 各开一个服务——那会撕碎事务（一次结算典型要同时改多种资源）、横切生命周期层（账号级 vs 轮回级的持久化与清理规则完全不同），且退化为无规则的贫血 CRUD。同理不为九类 AdventureEvent 各开一个服务：只有 Combat 真有状态机，其余差异在**数据**而非**代码**。
 
 「同类内容的统一入口与标准操作接口」这个诉求由 **content-service 的 ContentRegistry + 泛型仓储接口**满足（见第四节），而不是按类型开服务。
 
@@ -49,9 +49,9 @@
 | **profile-service** | ② | **ProfileManager** | **两个 Profile 的唯一写入面**；`TryApply(spec)` 原子施加成本 / 产出 |
 | | | **CapabilityManager** | capability flag 聚合 + modifier pipeline |
 | | | AchievementManager | 成就进度累计与奖励发放 |
-| **life-cycle-service** | ① | RunStateManager | `status` 状态机：`ongoing → completed \| defeated` |
+| **life-cycle-service** | ① | CycleStateManager | `status` 状态机：`ongoing → completed \| defeated` |
 | | | ChapterManager | 篇章边界、境界存档点、重试上限（∞ / 3 / 1） |
-| | | SeedManager | run seed 与具名 RNG 子流派生 |
+| | | SeedManager | cycle seed 与具名 RNG 子流派生 |
 | **future-event-service** | ① | EventOptionManager | 依 CharacterProfile 产出 eventOptions；**唯一出口** |
 | | | **PlotManager** | 隐藏剧本：key points ↔ 云端剧本服务、隐藏属性阈值 → 调制 |
 | **combat-service** | ① | TurnManager | 回合循环 |
@@ -125,17 +125,17 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
              └─▶ sync-service.Push()
 ```
 
-### 阶段 3 —— 开始一次 run
+### 阶段 3 —— 开始一次轮回
 
 ```
 玩家选「炼气 · 新角色」或「筑基存档角色 · 续章」
-   └─▶ life-cycle-service.StartRun(seed, chapter, characterSource)
+   └─▶ life-cycle-service.StartCycle(seed, chapter, characterSource)
           ├─ ChapterManager：校验「该篇章至多一个 ongoing」、检查重试次数
           ├─ 新建或读档 CharacterProfile，status = ongoing
           │    （续章 = 上一篇章全部继承）
-          ├─ SeedManager：从 run seed 派生具名 RNG 子流
+          ├─ SeedManager：从 cycle seed 派生具名 RNG 子流
           │    （map / combat / shop / reward 互不干扰）
-          └─ EventBus.Emit(RunStarted) ─▶ sync-service 自动存档点
+          └─ EventBus.Emit(CycleStarted) ─▶ sync-service 自动存档点
 ```
 
 ### 阶段 4 —— 核心循环（由 game-progression 编排）
@@ -180,7 +180,7 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      ├─ ProfileManager.TryApply(产出 + lifeSpanCost(默认 -1)         │
 │      │                          + 隐藏属性推拉)                     │
 │      ├─ 记入 CharacterProfile.List<AdventureEvent> 修行历程          │
-│      └─ RunStateManager 判定：                                       │
+│      └─ CycleStateManager 判定：                                       │
 │           寿元 ≤ 0 或 life ≤ 0 ─▶ DefeatCharacter()  ─▶ 阶段 5      │
 │           Finale 通关          ─▶ CompleteChapter() ─▶ 阶段 5      │
 │           否则 ─▶ EventBus.Emit(EventResolved)                      │
@@ -191,7 +191,7 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 └────────────────────────────────────────────────────────────────────┘
 ```
 
-### 阶段 5 —— run 结束
+### 阶段 5 —— 轮回结束
 
 ```
 completed ─▶ ChapterManager：在所达境界落存档点
@@ -199,9 +199,9 @@ completed ─▶ ChapterManager：在所达境界落存档点
 defeated  ─▶ 清理该角色数据；扣减该篇章重试次数（ch1 ∞ / ch2 3 / ch3 1）
               无可挑战角色时该篇章重新锁定（隐藏）
    │
-   ├─▶ life-cycle-service.TeardownRun()
+   ├─▶ life-cycle-service.TeardownCycle()
    │      断开信号、QueueFree 实例化节点、清空集合
-   │      （防跨 run 残留：静态字段、未清集合、遗留卡牌 / 敌人节点）
+   │      （防跨轮回残留：静态字段、未清集合、遗留卡牌 / 敌人节点）
    ├─▶ profile-service.AchievementManager：结算成就进度
    └─▶ sync-service.Push() ─▶ 回主界面（阶段 2）
 ```
@@ -261,7 +261,7 @@ IContentRepository<T> where T : Resource
    user://cache/     仅缓存 / 断线临时态，非权威
 ```
 
-- **`PlayerProfile` 持有 `List<CharacterProfile>`** —— 因此由**单一 profile-service** 作为两层的唯一写入面。一次结算里「扣账号级 PlayerItem 次数 + 扣 run 级金币」天然落在同一事务内，存档提交点唯一。
+- **`PlayerProfile` 持有 `List<CharacterProfile>`** —— 因此由**单一 profile-service** 作为两层的唯一写入面。一次结算里「扣账号级 PlayerItem 次数 + 扣轮回级灵玉」天然落在同一事务内，存档提交点唯一。
 - **冲突一律以云端为准**（ADR-0003）。
 - **原子写**：先序列化到临时文件，再 rename 覆盖 —— 写入中途崩溃不损坏缓存。
 - **schema 版本 + 迁移路径**：读取时校验版本、内容 `Id`、必需字段；不匹配则迁移或清晰拒绝，绝不静默 null。
@@ -271,7 +271,7 @@ IContentRepository<T> where T : Resource
 
 ## 六、贯穿全程的三条纪律
 
-1. **确定性。** 一切玩法随机性经 SeedManager 从 run seed 派生的**具名子流**取得（map / combat / shop / reward 互不干扰）；同一 seed 必须复现同一 run。不用未加种子的 `GD.Randi()`。
+1. **确定性。** 一切玩法随机性经 SeedManager 从 cycle seed 派生的**具名子流**取得（map / combat / shop / reward 互不干扰）；同一 seed 必须复现同一轮回。不用未加种子的 `GD.Randi()`。
 2. **写入唯一入口。** 两个 Profile 的一切变更经 `ProfileManager.TryApply(spec)`：全量校验 → 全有或全无 → 单点提交。这同时是 modifier pipeline 的生效点。
 3. **呈现决策归呈现层。** capability flag 由 CapabilityManager 聚合，**由受影响的 UI 组件自己订阅并查询**。业务逻辑层不知道任何 PlayerPower 的存在 —— 散落条件分支的根因是把呈现决策写进了业务层。
 

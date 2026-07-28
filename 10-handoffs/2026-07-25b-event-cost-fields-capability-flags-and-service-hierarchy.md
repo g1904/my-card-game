@@ -13,7 +13,7 @@
 ### 1. 寿元阶梯闭合：元婴 +500（无玩法影响）
 
 - **抵达元婴 lifeSpan +500**，寿元预算阶梯自此闭合：炼气起始 **100** → 筑基 **+100**（累计 200）→ 金丹 **+300**（累计 500）→ 元婴 **+500**（累计 **1000**）。
-- **但元婴 = 游戏终点。** 抵达元婴即第三篇章通关（四境三篇章，见 `20-systems/game-progression.md`），run 到此结束——因此 **+500 不产生任何可消耗的寿元预算**，它只是**最后一次数值更新并存档**。
+- **但元婴 = 游戏终点。** 抵达元婴即第三篇章通关（四境三篇章，见 `20-systems/game-progression.md`），轮回到此结束——因此 **+500 不产生任何可消耗的寿元预算**，它只是**最后一次数值更新并存档**。
 - 推论（由上述直接得出）：元婴 +500 是**形式上的阶梯完整性**，不是平衡杠杆；调整它不改变任何一局的可玩长度。它在数值上唯一可能的用途是终局结算 / 成就展示所读取的最终寿元值（用途未定，见 Open questions）。
 - 这解掉了 Open question「**元婴阶段是否再加预算**」 → **加，+500，但无玩法影响**。
 
@@ -95,11 +95,11 @@
 
 **尚未闭环的缺口（按严重度排序，均登记为 Open questions）：**
 
-1. **PlayerProfile 侧没有任何服务（最大缺口）。** 现有三个服务全部围绕 CharacterProfile（run 内）。账号级的行为——PlayerPower 的获取 / 失去、`status` 开关持久化、PlayerItem 使用次数扣减、成就进度累计与奖励发放、登录 / 云端同步——**没有任何服务归属**，目前只能散落到调用方。第 6 节的 capability 聚合面也需要一个宿主。→ 缺一个 **player-profile-service（账号级服务）**。
+1. **PlayerProfile 侧没有任何服务（最大缺口）。** 现有三个服务全部围绕 CharacterProfile（轮回内）。账号级的行为——PlayerPower 的获取 / 失去、`status` 开关持久化、PlayerItem 使用次数扣减、成就进度累计与奖励发放、登录 / 云端同步——**没有任何服务归属**，目前只能散落到调用方。第 6 节的 capability 聚合面也需要一个宿主。→ 缺一个 **player-profile-service（账号级服务）**。
 2. **战斗内部没有归属。** `AdventureEvent-Combat` 被选中之后，回合循环、出牌结算、deck 抽 / 弃 / 洗、敌人意图——由谁驱动**未定**。life-cycle-service 只到 `AdvanceEvent` 这一粒度，`eventStart` / `eventEnd` 也只是事件自身的钩子。→ 缺一个 **combat-service（或明确由事件自持）**。
 3. **存档 / 云同步没有归属。** 架构数据流图里出现了 `SaveManager` 与云端，但它既不是核心类也不是服务，无文档。强制在线 · 云端权威（ADR-0003）下，**同步时机、冲突以云端为准的落地、断线缓冲、原子写 + schema 版本迁移**都无归属。→ 缺一个 **save/sync 服务**。
 4. **本地内容与云端内容的分界未定。** DataRegistry 在启动时加载本地 `.tres`；剧本服务在云端下发剧本内容。**AdventureEvent 的定义本身属于哪一侧？**（本地 `.tres` 还是云端下发？）若在本地，云端剧本服务只下发文本；若在云端，DataRegistry 的启动期校验模型（缺失 / 悬空 id 立即失败）就不成立。这条分界不定，两套加载路径都无法定稿。
-5. **skip 通道没有结算归属。** 本次新引入的「跳过事件」是玩家推进 run 的一条新路径，但它走哪个 API 未定：是 life-cycle-service 新增 `SkipEvent(character, event)`，还是复用 `AdvanceEvent` 的一个分支？跳过后是否也触发 eventOptions 重算（大概率是）？跳过是否计入 `List<AdventureEvent>` 修行历程？均未闭环。
+5. **skip 通道没有结算归属。** 本次新引入的「跳过事件」是玩家推进轮回的一条新路径，但它走哪个 API 未定：是 life-cycle-service 新增 `SkipEvent(character, event)`，还是复用 `AdvanceEvent` 的一个分支？跳过后是否也触发 eventOptions 重算（大概率是）？跳过是否计入 `List<AdventureEvent>` 修行历程？均未闭环。
 6. **`selectCost` / `lifeSpanCost` 疑似语义重叠（见下方矛盾）。**
 7. **life-cycle-service 与 future-event-service 的调用方向未定。** 事件结算完成后，是 life-cycle-service 主动调 future-event-service 重算，还是 game-progression 编排两者，还是走 EventBus 通知？三者的编排顶点缺失。
 8. **UI 与服务之间没有契约层。** 第 5 节的 ViewModel 一旦确认，架构图里需要显式的呈现层，否则「服务 → 屏幕」之间的数据形态无定义。
@@ -113,7 +113,7 @@
 
 ## Open questions
 
-- **成本类型的 element 清单是什么？**（`selectCost` = 定制复合成本类型、`lifeSpanCost` 为其一个 element 已确认。）其余有哪些 element（gold？mana？道具？隐藏属性推拉？）、各 element 的数据形态（固定值 / 区间 / 公式）、付不起某个 element 时的判定（整体不可选？部分抵扣？）均未定。→ `20-systems/adventure-event/common-properties.md`、`20-systems/character-profile/currency.md`、`20-systems/balance.md`。
+- **成本类型的 element 清单是什么？**（`selectCost` = 定制复合成本类型、`lifeSpanCost` 为其一个 element 已确认。）其余有哪些 element（jade？mana？道具？隐藏属性推拉？）、各 element 的数据形态（固定值 / 区间 / 公式）、付不起某个 element 时的判定（整体不可选？部分抵扣？）均未定。→ `20-systems/adventure-event/common-properties.md`、`20-systems/character-profile/currency.md`、`20-systems/balance.md`。
 - **跳过是否也扣 `lifeSpanCost` element？**（`skipCost` 与 `selectCost` 同类型已确认，故寿元在结构上可以是跳过的代价之一。）但「跳过一个事件时时间是否照样流逝」属玩法取向，未定。→ `20-systems/adventure-event/common-properties.md`。
 - **跳过机制的完整语义未定。** 付出 `skipCost` 后：被跳过的事件是从本批 eventOptions 移除、还是整批刷新？是否计入修行历程 `List<AdventureEvent>` / `pastEvent`？能否跳过整批（全部跳过）？跳过是否也扣 `lifeSpanCost`（时间照样流逝？）？付不起 `skipCost` 时的表现？→ `20-systems/adventure-event/common-properties.md`、`20-systems/services/future-event-service.md`。
 - **`ifMandatory` 的产出侧规则。** 强制事件由谁标记——是内容作者在 `.tres` 上写死，还是 future-event-service / adventure-plot-service 在产出 eventOptions 时动态置位（例如剧情线关键节点强制）？一批 eventOptions 里能否**全部**为 mandatory（等于取消选择权）？→ `20-systems/services/future-event-service.md`。

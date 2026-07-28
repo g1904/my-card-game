@@ -48,7 +48,7 @@
     player-item/  _index.md（+ common-properties.md）（并入 shop-rewards 的可购道具语义）
     player-power/ _index.md（+ common-properties.md）（并入 relics-jokers.md）
   services/                    ← 新增：微服务层
-    run-manager.md             ← 迁入并重述为「提供 run 生命周期 API」
+    run-manager.md             ← 迁入并重述为「提供轮回生命周期 API」
     adventure-plot.md          ← 迁入并重述为「提供隐藏剧本 API」（并入 30-content/events.md）
   scoring.md                   ← 保留（draft 未提及；见 Open questions）
 ```
@@ -67,7 +67,7 @@
 ### 新概念
 - **explore / 探索秘境（AdventureEvent-Explore）：** adventure-event 的新子类型（第八类）。语义：探索一处秘境。
 - **travel / 前往某处地点（AdventureEvent-Travel）：** adventure-event 的新子类型（第九类），**功能上是一次地图路由选择**——刷新角色所在的 location（地点）。
-- **地域 / location：** 新的抽象概念，**决定 `possibleFutureEvent`**（角色当前地点框定了下一批可能出现的修行事件）。归属 `game-progression.md`（travel 通过它换图）。
+- **地域 / location：** 新的抽象概念，**框定 `eventOptions`**（角色当前地点决定了下一批可能出现的修行事件池）。归属 `game-progression.md`（travel 通过它换地点）。
 
 ### 引用与工具链影响
 - **大量引用重构：** 所有跨文档链接（`20-systems/*`、`30-content/*`、`10-handoffs/*` 的 distilled-to、`_index.md`、`terminology.md`、`open-questions.md`、各 ADR）指向被移动 / 删除文件之处，都要重写到新路径。
