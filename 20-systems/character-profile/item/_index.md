@@ -7,6 +7,8 @@
 
 - **角色级道具随轮回存在。** CharacterProfile 持有 `List<CharacterItems>`（角色物品），与账号级的 **PlayerItem**（`player-profile/player-item/`）区分开：CharacterItems 属单次轮回 / 单角色，随轮回清理；PlayerItem 跨轮回持久、有使用次数限制。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
 
+- **见过的角色道具会进 CharacterItemCodex。** 图鉴族（见 `../../player-profile/codex/`）为角色道具单列一本——**图鉴是账号级、跨轮回持久的**，而 `List<CharacterItems>` 随轮回清理：轮回结束后道具没了，但「见过它」这条知识留下。解锁触发（获得即记？见到即记？）未定，见图鉴族的待决问题。Source: `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
+
 > 本文件夹为「每类角色道具 / 每份道具设计一个 Markdown」预留结构；具体语义见 `common-properties.md` 与待决问题。
 
 ## 决策(-> ADR)

@@ -23,7 +23,17 @@
 - **登录渠道优先级。** 移动端优先(手机 / 邮箱)→ 微信 / QQ 其次 → 海外 / 跨平台最后。**已移除游客**入口。Source: `10-handoffs/2026-07-22-...`;去游客 `10-handoffs/2026-07-23-...`。
 - **登录屏循环视频 = `VideoStreamPlayer`(已定)。** 用 `VideoStreamPlayer` 实现循环视频背景。Source: 同上。
 - **元婴界面 = 终局展示面(通关证书)(已定案)。** 抵达元婴 = 第三篇章通关 = 游戏终点;此时呈现一块**类似「通关证书」的终局界面**。它正是**寿元 +500 这次最终数值更新的读者**——该界面需读到最终寿元值并正确显示,因此终点处的寿元更新不是死写入(见 `20-systems/balance.md`)。界面的具体字段与形态待定,见待解问题。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
-- **寿元告警 = 标红的数值倒数(已定案)。** 寿元(lifeSpan)初始隐藏;**低于 10% 时转为在屏显示**,呈现形态是**倒数中的红色数值**(red count-down numeral)——用标红的递减数字传达紧迫感,**而非常驻进度条**。Source: 同上。
+- **寿元告警 = 两段式(已定案 · 取代「只有 10% 红字」)。** 寿元(lifeSpan)初始隐藏,随余量下降分两段升级告警:
+
+  | 余量 | 呈现 | 给玩家什么 |
+  |------|------|-----------|
+  | 100% ~ 30% | 无 | 数值完全隐藏 |
+  | **进入 30%** | **一条定性的叙事提示**(不给数字),例:「鬓角新添的白发,你已数不清是第几根。」 | **可行动的提前量**,不破坏数值隐藏 |
+  | **进入 10%** | **标红的数值倒数**(red count-down numeral)——递减的红色数字传达紧迫感,**而非常驻进度条** | 精确余量,最后阶段的硬告警 |
+
+  **为何加 30% 这一段:** 对第一篇章 100 点的预算而言,10% 才告警**太晚,来不及做战略调整**。30% 的定性提示复用隐藏属性的**跨档叙事**机制(见 `20-systems/services/plot-manager.md`),寿元只是其中一个属性。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` + `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+- **两段告警的呈现细节 = 静态标注于 EventOption 选择界面(已定案)。** 形态是**静态标注**(static annotation):数值 / 文案随事件结算而变,**平时静止**,不做持续跳动 / 计时器感的动画。位置**只在 EventOption 选择界面**——即玩家做抉择、也正是寿元被消耗的那个界面;**不做全局 HUD、不进战斗内**(见 `40-ux/combat-ux.md`)。Source: `10-handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md`。
+- **隐藏属性跨档时给一条定性叙事(已定案)。** 道心 / 煞气 / 寿元的**数值继续完全隐藏**,但**跨过一个隐藏档位时**在事件收口处给一条定性描述(「你于静室枯坐三日,心念澄明。」「你的指节泛起一层洗不去的暗红。」)。**只在跨档时触发**,不是每次结算都播——稀缺才有分量。玩家学到**方向与因果**,学不到精确数值,因而无法做电子表格式优化。规则与档位归 `20-systems/services/plot-manager.md`;它复用既有的 `eventEnd` 阶段,无新结构。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 - **美术挂点占位。** 循环视频、图标、卡面等 TBA;组合场景时为其保留可轻松替换的挂点,先用占位 / 免费资源。Source: `10-handoffs/2026-07-16-ux-flow-login-and-dev-order.md`。
 
 ## 决策(-> ADR)
@@ -32,7 +42,8 @@
 ## 待解问题
 
 - **元婴界面(通关证书)的具体形态:** 展示哪些字段(最终寿元、用时、修行历程摘要、成就?)、何时弹出、是否可回看 / 分享——均未定。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
-- **寿元红字倒数的呈现细节:** 「倒数」是随每次事件结算逐格递减的数字,还是持续跳动的计时感?它常驻哪些屏幕(事件选择区 / 战斗内 / 全局 HUD)?是否伴随音效 / 震动?→ 亦见 `40-ux/combat-ux.md`。Source: 同上。
+- **寿元告警是否伴随音效 / 震动:** 视觉形态已定(两段式 · 静态标注于 EventOption 选择界面);**是否附加听觉 / 触觉反馈**未陈述——「静态标注」的措辞倾向于「无强调反馈」,但未明确排除。Source: `10-handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md`。
+- **跨档叙事的呈现位置与形态:** 已定「跨档才播、复用 `eventEnd`」;仍待定**播在哪里**(事件结算面板内的一行?独立的小弹层?)、**同一次结算多个属性同时跨档**如何呈现(逐条?合并?)、以及**寿元 30% 提示与其他属性跨档提示是否同一形态**。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 - **成就发放的奖励内容:** 阈值(60% / 90%)、一次性、80/20 可见比例**已定**(见「意图」);仅剩**两档各发放何种奖励**(PlayerPower / PlayerItem / 账号级)待定。
 - **PlayerPower 细化:** 语义已定(全局、可开关、可获取 / 失去);但**获取 / 失去的具体触发**、是否影响 cycle seed / 计分公平性、平衡边界仍待定。→ `20-systems/player-profile/player-power/`。
 - Source(未决项):`10-handoffs/2026-07-16-...`;语义裁定 `10-handoffs/2026-07-22-...`。

@@ -21,7 +21,22 @@
 
 - **隐藏属性驱动。** 属性模型借鉴 **Reigns** 但**反其道：属性隐藏、不作可见仪表**。隐藏属性（**道心 / faith**、**煞气 / malefic qi**、**寿元 / lifeSpan**）达**阈值**时触发对应剧情线。隐藏属性落在 `CharacterProfile.Status`（见 `life-cycle-service.md` 与 `20-systems/character-profile/`）；由 AdventureEvent 推拉，一切写入经 `profile-service.ProfileManager`。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 
-- **寿元 / lifeSpan = 递减的寿命预算。** 炼气起始 **100**、抵达筑基 **+100**、抵达金丹 **+300**、抵达元婴 **+500**（累计 1000；但元婴即游戏终点，该增量**不产生可消耗预算**，只是最后一次数值更新并存档——见 `20-systems/balance.md`）；**初始隐藏**，**低于 10% 时在屏上显示**。**每完成一个 AdventureEvent 按其 `lifeSpanCost`（默认 -1）扣减寿元**（`lifeSpanCost` 是 `selectCost` 复合成本类型的一个 element，见 `20-systems/adventure-event/common-properties.md`）；**递减到 0 → 触发「大限将至」→ 角色 defeated**。寿元是**独立于血量 `life`** 的寿命数值。Source: `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md`。
+- **跨档给定性叙事反馈（已定案 · 数值仍隐藏）。** 数值继续隐藏，但**当某个隐藏属性跨过一个隐藏档位时，给一条定性的叙事描述**——**给方向与因果，不给数字**：
+
+  ```
+  道心 ↑ 跨档：  「你于静室枯坐三日，心念澄明。」
+  煞气 ↑ 跨档：  「你的指节泛起一层洗不去的暗红。」
+  寿元 进入 30%：「鬓角新添的白发，你已数不清是第几根。」
+  ```
+
+  - **只在跨档时触发**（每个隐藏属性分若干**隐藏档位**），**不是每次结算都播**——稀缺才有分量。
+  - **落点 = 已有的 `ResolveOutcome` → `eventEnd` 阶段，无新结构**（见 `20-systems/adventure-event/common-properties.md`）。
+  - **设计意图：** 玩家学到**方向与因果**（做这类事会推高煞气），学不到**精确数值**，因此**无法做电子表格式优化**。这正是本作对 Reigns 张力的替代路径——Reigns 靠**可见**仪表制造权衡，本作靠**可感知但不可测量**。
+  - **档位划分（分几档、阈值在哪）未定**，见待决问题——它是本条能否落地的前置。
+  Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+
+- **寿元 / lifeSpan = 递减的寿命预算。** 炼气起始 **100**、抵达筑基 **+100**、抵达金丹 **+300**、抵达元婴 **+500**（累计 1000；但元婴即游戏终点，该增量**不产生可消耗预算**，只是最后一次数值更新并存档——见 `20-systems/balance.md`）；**剩余寿元跨篇章结转**（下一篇章预算 = 该章增量 + 上一章剩余，见 `life-cycle-service.md`）。**每完成一个 AdventureEvent 按其 `lifeSpanCost` 扣减寿元**（内容侧为正数量值、物化时取负；`lifeSpanCost` 是 `selectCost` 复合成本类型的一个 element，见 `20-systems/adventure-event/common-properties.md`）；**递减到 0 → 触发「大限将至」→ 角色 defeated**。寿元是**独立于 `life`** 的寿命数值。Source: `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` + `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+- **寿元告警两段式（已定案 · 取代「只有 10% 红字」）。** **初始隐藏 → 进入 30% 给一条定性叙事提示 → 进入 10% 转为红字数值倒数。** 原因：对 100 点的第一篇章预算而言，10% 才告警**太晚，来不及做战略调整**；30% 的定性提示给出一个可行动的提前量，同时不破坏「数值隐藏」。呈现位置仍是 **EventOption 选择界面的静态标注**，见 `40-ux/screen-flow.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 
 - **CharacterProfile 只存 key points；内容在云端剧本服务。** `CharacterProfile` 上记录 AdventurePlot 的 **key points（关键节点 / 进度锚点）**；**完整的剧本与分支内容不落存档**，而是存于（云端）**剧本服务（script service）**——本 manager 按 key points 向其请求完整剧本 / 分支。
 
@@ -61,7 +76,7 @@
 ## 决策(-> ADR)
 
 - 内容云端下发依赖 **强制在线 · 云端权威** → `50-decisions/ADR-0003-online-cloud-authority.md`（Accepted）。
-- **降为 future-event-service 内部的 manager** → 已定案（两级层次 service ⊃ manager），**ADR 候选**。Source: `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
+- **降为 future-event-service 内部的 manager** → 已定案（层级词表见 `20-systems/architecture.md`），**ADR 候选**。Source: `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
 
 ## 待决问题
 
@@ -69,6 +84,8 @@
 - **剧本服务契约：** 离线降级已定（事务前置 + `user://cache/plot/` LRU 预取，见「意图」）；仍待定：**请求 / 下发协议**与**版本化**。→ 协议契约的另一侧归 `backend-design-documents/`。
 - **预取与事务前置的边界。** 预取降低失败率但不消除它；**LRU 容量上限**、以及**预取失败是否静默**（不打扰玩家、留待实际请求时再报）未定。Source: `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
 - **DnD 式选分支：** 触发点、UI、以及玩家可见 / 不可见分支的边界未定。
+- **隐藏属性的档位划分（08-01 新增 · 承重）。** 「跨档给定性叙事」已定案，但**每个隐藏属性分几档、阈值在哪**未定——**定性反馈的触发完全依赖它**，不定则本条无法落地。寿元已给两档（30% / 10%）；道心 / 煞气的档位未给。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+- **跨档叙事文案的归属与形态。** 文案是挂在隐藏属性的档位定义上（每档一条固定文案），还是随触发它的事件而变（同一跨档在不同事件下措辞不同）？是否也走内容层（可热更）？未定。→ `20-systems/adventure-event/`、`40-ux/`。Source: 同上。
 - **隐藏属性清单与阈值：** 已定 **道心 / 煞气 / 寿元** 三项且均隐藏；仍待定：是否还有其他隐藏属性、各自阈值、增减触发（哪些 AdventureEvent 推拉）、剧情线目录。（寿元消耗已定；仅剩「是否有非境界突破的寿元增长途径」待定。）→ 亦见 `life-cycle-service.md`。
 
 ## 对应

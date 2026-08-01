@@ -36,7 +36,15 @@
 - **产出侧的两条选择约束由本服务置位（已定案）。** 它们是上述物化模型的两个特例——**不是内容作者在 `.tres` 写死的**，而是本服务在物化这一批时**动态置位**：
   - **`ifMandatory`（封锁跳过通道）：** 由本服务 / PlotManager 依剧情线关键节点等条件置位；**一批 eventOptions 可以全部为 mandatory**（等同本轮取消跳过权）。
   - **`eventPriority`（封锁同批其他选项）：** 通常为 0，玩家可任选；本批一旦出现更高优先级的事件，**有效可选集收窄为最高优先级档**。语义详见 `20-systems/adventure-event/common-properties.md`。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
-- **跳过 = 单项补位（已定案）。** 玩家跳过一个事件后，本服务**生成一个新事件顶替它的位置**——**不是整批刷新**，本批其余选项保持不动。**补位可能落空**：若产不出新事件，本批就少一个选项（不回填、不阻塞）。Source: 同上。
+- **跳过 = 单项补位（已定案）。** 玩家跳过一个事件后，本服务**生成一个新事件顶替它的位置**——**不是整批刷新**，本批其余选项保持不动。**补位可能落空**：若产不出新事件，本批就少一个选项（不回填、不阻塞）。**跳过通道只对可选事件开放**（`ifMandatory` 封死其余），故**不设每批跳过配额、不设递增 `skipCost`**。Source: 同上 + `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+- **成本量值取负发生在本服务的物化组装阶段（已定案）。** 内容作者在 `AdventureEventData` 上以**正数量值**标注 `lifeSpanCost` 等成本（「耗 3 点寿元」写 `3`）；**本服务在组装 `SelectCost` / `SkipCost` 时取负**填入 `ChangeElement.BaseValue`，从而满足既定的带符号约定（负 = 消耗，正 = 产出）。这条转换**只在此处发生一次**——下游（life-cycle-service / ProfileManager）拿到的一律是带符号 spec，不再做任何符号推断。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+- **战斗类事件在物化时精确标注敌人等级（已定案）。** Combat / Practice / Finale 的 `EventOption` 需向玩家**精确展示敌人的等级**（否决模糊的危险度档位）——玩家据此与自身等级比对，理解意图为何被遮蔽，并把「越级挑战」当作可主动选择的风险 / 回报。Source: 同上。
+- **敌人也由本服务物化：`EnemyTemplate` → 充实 / 改写 → 指派给事件（已定案）。** 敌人的**静态数据**集中在 **`EnemyTemplate`** 集合（稳定 `Id` + 图鉴文案 + 基准数值 + **样本卡组**；玩家侧的那一面即 EnemyCodex）。本服务在物化一个战斗类事件时：**取出一份模板 → 依情境充实 / 改写（enrich / modify）→ 把结果指派给该事件**。Source: `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
+
+  - **敌人等级由此答定：它不是模板上的死值，而是物化产物。** 同一个敌人模板可在不同篇章、不同情境下以不同等级出场——这正是「多数属性由物化决定」在敌人上的应用。
+  - **连带答定「等级标注的承载字段」的一半：** 既然等级在物化时确定，它就**随物化产物一同定稿并落存档**，而不是由 ViewModel 现查模板算出来。
+  - **它是「模板 ↔ 实例」通则的第三个实例**（前两个是 `AdventureEventData ↔ EventOption`、`CardData ↔ CardInstance`，见 `20-systems/architecture.md` 总则 6）：模板是 ContentRegistry 里的共享只读单例，**本服务不得写回它**；改写只发生在物化产出上。
+  - **样本卡组同理**：模板给基线卡组，物化时可改写（Finale 的天劫即极端情形——定制卡组的 Enemy）。
 
 ## 管理器
 
@@ -63,7 +71,7 @@ public sealed record EventOption(                 // 定稿实例：immutable �
     EventType          EventType,                 // Mystery 时 = 遮罩类型；真身见 RevealedEventId
     int                Priority,                  // 物化时置位
     bool               IsMandatory,               // 物化时置位
-    ProfileChangeSpec  SelectCost,                // 物化时组装（modifier pipeline 尚未施加）
+    ProfileChangeSpec  SelectCost,                // 物化时组装：内容侧正数量值 → 取负填入 BaseValue（modifier pipeline 尚未施加）
     ProfileChangeSpec  SkipCost,
     bool               IsRevealed,                // Mystery：是否已揭示
     string             RevealedEventId            // Mystery 遮罩的固定事件（物化时即已确定）
@@ -80,7 +88,7 @@ public sealed record EventOptionBatch(
 
 四点推演：
 
-- **`ComputeEventOptions` 的语义就是「物化」：** 取 `AllEnabled()` 候选 → location 框定 → PlotManager 调制 → map 子流抽取 → 组装定稿实例。**物化完成后本服务不再改这批实例**；`TryRefill` 是**新增一个实例**顶替被跳过的那一个，不是改旧的。
+- **`ComputeEventOptions` 的语义就是「物化」：** 取 `AllEnabled()` 候选 → location 框定 → PlotManager 调制 → map 子流抽取 → 组装定稿实例（**成本量值在此取负**）。**物化完成后本服务不再改这批实例**；`TryRefill` 是**新增一个实例**顶替被跳过的那一个，不是改旧的。
 - **`TryRefill` 用 `bool` + `out`**（「可选缺失」形态），因为「补位可能落空」是已定案的正常语义，不是错误。
 - **`EffectivePriority` 由本服务算好放进 batch**，而不是让 UI 自己去 `Max(o.Priority)`。呈现层只做呈现，「哪些可选」是产出侧的语义。
 - **PlotManager 的四个方法不出现在服务门面上**（manager 不被跨服务调用）：`ResolvePlot` / `ModulateEventOptions` / `OnHiddenStatThreshold` 是 `ComputeEventOptions` 物化链条内部的一环；只有 `ChooseBranch` 需要玩家输入，故投影为服务门面上的 `ChooseBranchAsync`。
@@ -102,6 +110,8 @@ public sealed record EventOptionBatch(
 
 - **生成 / 加权规则未定。** 服务化架构已定，但从 characterProfile **生成 / 加权抽取** eventOptions 的具体规则（月圆之夜式策划 vs 随机权重、每批数量、node 类型配比）未定。→ `20-systems/game-progression.md`。Source: `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md`。
 - **`EventOption` 的完整物化字段清单未定（07-27b 收窄）。** 骨架九字段已定（`InstanceId` / `EventId` / `EventType` / `Priority` / `IsMandatory` / `SelectCost` / `SkipCost` / `IsRevealed` / `RevealedEventId`）；但「**多数**属性由物化决定」意味着还有一批未列出的字段：哪些数值可被情境改写？风味文案是否也物化？outcome 权重是否在物化时固化？这需要一次**内容侧** handoff 才能定稿。→ `20-systems/adventure-event/common-properties.md`。Source: `10-handoffs/2026-07-27b-service-api-contracts.md`。
+- **物化后的敌人实例的类型形态未定（08-01b 收窄）。** **来源已答定**（`EnemyTemplate` + 物化时充实赋级）；仍待定：该实例叫什么（`EnemyInstance`？）、它是**嵌在 `EventOption` 上**随批次落存档，还是只记引用、待战斗开始时由 combat-service 展开；一个事件带多个敌人时如何组织；以及 **`EnemyTemplate` 与既有 `EnemyData` 是否同一个东西**（若是则需统一定名）。→ `20-systems/adventure-event/combat/`、`combat-service.md`。Source: `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
+- **物化时「充实 / 改写」的规则未定。** 依什么决定这次给几级、卡组怎么改（角色等级？篇章？location？剧本调制？）——它与 eventOptions 的加权规则同属一套物化策略，但敌人侧的规则尚未陈述。→ `20-systems/balance.md`。Source: 同上。
 - **定稿实例快照的存档字段形态未定（07-27b 收窄）。** 持久化**方式**已定案（落物化后的定稿实例快照，不重算——见「意图」）；仍待定的是快照的**字段形态 / schema**：`pastEvent` 如何区分「进入并结算」与「跳过」两种痕迹、快照存哪些字段、以及**快照体积对增量 push 粒度的影响**。→ `20-systems/adventure-event/common-properties.md`、`sync-service.md`。Source: 同上。
 - **框定叠加顺序。** location 框定、PlotManager 调制、seeded RNG 三者的叠加顺序与优先级未定。→ `20-systems/game-progression.md`、`20-systems/services/plot-manager.md`。
 - **补位落空的判定规则未定。** 「也可能没有新的」——在什么条件下本服务补不出事件（事件池耗尽？优先级 / 剧本约束不允许？）？eventOptions 是否允许被跳到只剩 0 个？若剩 0 个，玩家如何推进（死局兜底）？Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。

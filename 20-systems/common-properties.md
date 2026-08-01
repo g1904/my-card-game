@@ -35,7 +35,7 @@
   - **`State`（u64）是恢复用的权威字段**：重建子流后回填 `RandomNumberGenerator.State`，**O(1)**，不必重放。
   - **`DrawCount`（int）是诊断与迁移保险**：`State` 是引擎实现细节，Godot 升级可能改变其语义；届时用 **`seed + drawCount` fast-forward 重放**恢复（一次轮回抽取数千次，重放成本可忽略）。冗余成本每流 4 字节。
   - **子流清单是 `SeedManager` 内的常量**（map / combat / shop / reward）。读档遇存档中没有的**新子流** → `GD.PushWarning` + 按 `Hash64(CycleSeed, name)` 全新初始化；遇清单里已不存在的**旧子流** → 警告并丢弃。**增删子流不 bump schema 版本。**
-  - **防 re-roll：** 战斗内随机**不直接用 `combat` 子流**，而是每场再派生 **`Hash64(combatStreamSeed, eventId, attemptIndex)`**；否则「退出重进」会重掷战斗随机——强制在线 + 云端权威下这是最易被发现的漏洞。
+  - **防 re-roll：** 原方案是战斗内随机**不直接用 `combat` 子流**，而是每场再派生 **`Hash64(combatStreamSeed, eventId, attemptIndex)`**。**该防护的动机已被「决策点存档」消解**——事件过程中（含战斗内）在决策点落存档、RNG `State` 一并持久化，退出重进恢复的是同一局面与同一份随机流，重掷窗口从根上关闭。**剩余问题：** 篇章重试（ADR-0004）重开同一篇章时，同名事件是否应换一套战斗随机——若应则保留该派生层并令 `attemptIndex` = 篇章重试次数，若不应则整层可去掉。见 `20-systems/services/life-cycle-service.md` 待决问题。Source: `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
   - 存档 schema 见 `20-systems/character-profile/_index.md`；派生方是 `life-cycle-service.SeedManager`。Source: `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
 - **确定性的边界：同一 `contentVersion` 内（已定案）。** 内容热更**以 overlay 更新为准**——轮回进行中 overlay 更新时新数值立即生效，**不冻结该轮回的 `contentVersion`**。因此本项目**不承诺「同一 seed 跨内容版本复现同一轮回」**：seeded RNG 的目的是消除未加种子的随机、保证存档恢复后能正确继续，而非提供跨版本的绝对可复现性。数值可随时线上修正的价值高于跨版本复现。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`、`20-systems/services/content-service.md`。
 
@@ -50,7 +50,7 @@
 ### 日志约定
 - 用 `GD.Print` / `GD.PushWarning` / `GD.PushError`，带 `[System-Method]` 标签（例：`[Combat-PlayCard]`）；在关键状态转换（轮回开始 / 结束、遭遇战、卡牌结算、存档 / 读档）做有意义日志。Source: `.claude/rules/Context.md`。
 
-### 服务协作约定（两级层次 service ⊃ manager）
+### 服务协作约定（层级 service ⊃ manager ⊃ module ⊃ processor ⊃ handler）
 - **service = 进程内模块单例，不是微服务。** 全部服务在同一 Godot 项目 / 同一二进制 / 同一进程内，以 **autoload** 形式存在，彼此为直接 C# 方法调用；manager 是服务持有的普通 C# 对象（非 `Node`）。唯一真实的进程边界是客户端 ↔ 后端。工程落地形态见根级 `system-overview.md`。
 - **service = 边界单元**（判据三选一：① 自有状态机 / 长流程；② 事务性跨字段一致写；③ 外部 I/O 边界）；**manager = 服务内部的职能组件**，共享宿主服务的事务边界与生命周期，**不被跨服务直接调用**。服务清单与拆分轴见 `20-systems/services/_index.md`。Source: `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
 - **拆分轴 = 生命周期层 + 行为边界，不是数据类型。** 不按 power / item / card / resource 各开服务（撕碎事务、横切生命周期层、退化为贫血 CRUD）；不为九类 AdventureEvent 各开服务（只有 Combat 有状态机，其余差异在数据而非代码）。
@@ -78,16 +78,23 @@
 - **`XxxData : Resource` 是 ContentRegistry 里的共享只读单例，任何服务都不得在运行时写它**——写回会污染注册表，被同一轮回的后续批次与其他角色看到。
 - 这与上方「展示字段的归属」三层切分同构：它把**第二层（运行时 / 存档态）的类型形态**明确了。物化模型的完整论证见 `20-systems/architecture.md`「总则 6」。Source: `10-handoffs/2026-07-27b-service-api-contracts.md`。
 
+### 与 `.claude` 的主从关系（已定案）
+
+- **`.claude` 是工程层，只承载两类东西：** ① 工程相关的配置与规则（harness 配置、C#/Godot 互操作与场景 / 数据 / 存档 / UI / null 校验纪律）；② 可复用的技能。**一切设计相关的知识与细节归本库**，在 `.claude` 内只被**引用与轻描述**（指路 + 一句话承重纪律）。
+- **冲突裁决：** 设计性内容（机制、数值、字段、契约、流程）冲突 → **以本库为准**，`.claude` 跟着改；工程性约束（命名、生命周期、热路径、工具 / PATH、目录纪律）冲突 → **以 `.claude/rules/*` 为准**（本库对此无权威）。判据即「这句话的权威在哪一侧」：讲**游戏是什么** → 本库；讲**代码怎么写** → `.claude`。
+- 因此本文件各条目中的 `Source: .claude/rules/*` 指向的是**工程纪律的权威**；凡属设计结论者，权威在本库、规则文件只留摘要。完整论证见 `50-decisions/ADR-0005-knowledge-thin-reference-layer.md`。Source: `10-handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md`。
+
 ## 决策(-> ADR)
 > _已定案的决定链接到 50-decisions/ADR-####。_
 
 - **强制在线 · 云端权威** → `50-decisions/ADR-0003-online-cloud-authority.md`（Accepted）。
+- **`.claude` 是工程层、对设计只做薄引用；设计内容以本库为准 / 工程约束以 `.claude/rules` 为准** → `50-decisions/ADR-0005-knowledge-thin-reference-layer.md`（Accepted，07-30 把范围从 `knowledge/` 扩到整个 `.claude`）。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
 - **共有属性提炼粒度：** 本文件为顶层共有层；哪些字段应下沉到子树各自的 `common-properties.md`、哪些应留在顶层，边界待随子树填充而细化。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
-- **`.claude/rules/*` 与本库的主从关系：** 知识笔记的形态已定（`50-decisions/ADR-0005`：薄引用），但 **ADR-0005 只覆盖 `.claude/knowledge/*`，未涉及 `.claude/rules/*`**——本文件所引的规则文件与本库主题文档谁主谁从（规则是本库的强制执行摘要，还是独立于本库的工程约束？冲突时以谁为准？）仍待定。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
+- **`.claude/rules/*` 中夹带的设计性表述如何处理：** 主从关系已定（见「与 `.claude` 的主从关系」），但现存规则文件里确实嵌着设计结论（例：`state-save-rules.md` 的确定性边界、`data-resource-rules.md` 的 `AllEnabled()` 语义）。这些是「一句话承重纪律 + 回链」的合法形态，还是应进一步瘦身？边界判据待一次核对。Source: `10-handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/standards/`（ADR-0005：设计投影的三份 `signal-eventbus` / `rng-determinism` / `save-format` 为**薄引用**，回链本库；`csharp-conventions` / `godot-scene-conventions` / `mobile-portrait-ui` 讲 C#/Godot 引擎实践，在本库无权威，**保留实质**）。

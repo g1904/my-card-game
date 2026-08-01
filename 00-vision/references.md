@@ -8,19 +8,20 @@
 
 ## Balatro
 - **借鉴：** roguelite 卡牌构筑的手感；组装一次轮回的引擎所带来的乐趣；明快的移动端游玩时段。
-- **规避：** 它那种温馨、低风险的基调——本作是 grimdark，而非温馨。（战斗/计分模型仍未定——HP vs chips×mult 尚未拍板。）
+- **规避：** 它那种温馨、低风险的基调——本作是 grimdark，而非温馨。（计分模型已定为**道念 / momentum**，既非 HP 消耗战也非 chips × mult，见 `20-systems/scoring.md`。）
 
 ## Reigns（手游）
 - **借鉴：** **属性平衡求生张力**——玩家不断在相互竞争的压力之间权衡，而非优化单一数值；每次抉择会同时拨动多个仪表。
 - **规避：** 它那种纯粹左右滑动二选一、无 deck 的极简——我们仍想要一层真正的卡牌构筑。
+- **有意背离并给出替代：** Reigns 的张力来自**可见**仪表；本作**属性全隐藏**，改以「**跨档时给一条定性叙事**」制造**可感知但不可测量**的张力——玩家学到方向与因果，学不到精确数值，因而**无法做电子表格式优化**。见 `20-systems/services/plot-manager.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 
 ## 月圆之夜 (Night of the Full Moon)
 - **借鉴：** **事件 / 抉择机制**——它是 AdventureEvent 如何呈现抉择并触发后果的范本；**节点形态**亦参照它——精心策划的事件菜单，而非 StS 式完全分支地图。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 - **规避：** _(待定——待 AdventureEvent 系统设计好后，注明具体不该照搬什么。)_
 
 ## Magic: the Gathering & Hearthstone
-- **借鉴：** 战斗的 **life + mana 双资源模型**——以生命为血量、以 mana 为每回合出牌资源（对齐 `CharacterProfile.Status` 的 currentHealth / currentMana）。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
-- **规避：** _(待定——mana 曲线、卡池复杂度等具体取舍待战斗系统细化后注明。)_
+- **借鉴：** **mana 作为每回合出牌资源**的形态（对齐 `CharacterProfile.Status` 的 currentMana / manaLimit）。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
+- **规避：** **「打到对方血量归零」的胜负模型**——本作胜负由**道念（momentum）高者胜**判定，life 退到战斗外承接失败惩罚（见 `20-systems/scoring.md`）。同样规避 **mana 曲线**（无爬升，每回合刷满）。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 
 ## Warhammer 40k
 - **借鉴：** **叙事氛围**——grimdark、阴郁、高风险的叙事。

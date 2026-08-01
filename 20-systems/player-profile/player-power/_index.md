@@ -11,6 +11,14 @@
 - **RelicData 定义。** relic / joker 的**设计意图、触发条件与效果**及其数据定义（RelicData）归入本处。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
 
 - **开关落为 `status` 字段（启用 / 禁用）。** 「带开关」不只是 UX 描述，而是 PlayerPower 类上的持久字段；它与「拥有 / 失去」是**两个正交维度**（失去 = 移出 `List<PlayerPower>`，而非置禁用）。Source: `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
+- **道统残卷 = 失败累积的 PlayerPower 掉落概率（已定案 · 元进程的失败侧产出）。** 失败不再是零推进：
+  - **不发放账号级货币。** 失败累积的是**一个递增的概率**——「**下一次轮回获得新 PlayerPower**」的掉落概率；**一旦获得新 PlayerPower，该概率即重置**。
+  - **为何不是货币：** 可支配的货币会引入**第二套账号级经济**（获取 → 囤积 → 兑换 → 定价），而本作的元进程只想要「失败也在推进」这一条效果。递增概率给了同样的推进感，却不新增任何经济系统。
+  - 因此「道统残卷」是一个**账号级的隐含状态**（一个概率值 + 重置规则），不是玩家可查看余额、可花费的资源。
+  - **累积规则与上限未定**，见待决问题。
+  Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+- **第二条获取渠道 = premium bundle（已定案）。** 付费礼包一次性给予**随机 1 个 PlayerPower**（外加随机 2 个 PlayerItem）。它与「道统残卷」（失败累积的掉落概率）是**同一个获取面上的两条渠道**——一条靠打，一条靠买；二者是否互相影响（礼包给的 power 是否重置残卷概率）未陈述，见待决问题。礼包全貌见 `20-systems/monetization.md`。Source: `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
+- **已获得的 PlayerPower 会进 PlayerPowerCodex。** 图鉴族（见 `../codex/`）为 PlayerPower 单列一本——它记录「见过 / 得到过哪些能力」的静态文案，与当前**持有**的 `List<PlayerPower>` 是两回事（失去某个 power 不会从图鉴中抹去它）。Source: 同上。
 - **全局设定类效果 = capability flag + modifier pipeline（已定案）。** 「让玩家看见隐藏属性」这类改变全局设定的 power，以 **capability flag（布尔）+ modifier pipeline（数值）** 两条通道实现——数据声明 → 中心聚合 → 单点查询，避免在每个受影响层加条件。模型见 `common-properties.md`。Source: 同上。
 
 > 具体的触发器体系、`status` 开关模型、capability flag 提案、RelicData 字段等共有属性见 `common-properties.md`。
@@ -21,8 +29,9 @@
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
+- **道统残卷概率的累积规则与上限（08-01 新增）。** 方向已定（失败累积概率、获得即重置）；仍待定：**累积粒度**（每次失败 +X%？按抵达的篇章 / 等级深度加权？）、**上限**（是否封顶，封在哪）、**与 seed 公平性的关系**（掉落掷骰走哪条 RNG 子流、是否影响轮回可复现性）、以及概率状态**落在 PlayerProfile 的哪个字段**。→ `20-systems/services/life-cycle-service.md`、`20-systems/common-properties.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 - **PlayerPower 平衡边界待定。** 是否影响 cycle seed / 计分公平、防 pay/grind-to-win 的边界均待定。→ 见 `20-systems/services/life-cycle-service.md`。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
-- **获取 / 失去触发未设计。** 「AdventureEvent 过程中也可能失去」的具体触发、获取渠道、开关 UI 均未细化。→ 见 `20-systems/services/life-cycle-service.md`。
+- **获取 / 失去触发未设计。** 「AdventureEvent 过程中也可能失去」的具体触发、开关 UI 均未细化。**已有两条获取渠道**：道统残卷（轮回开始时的概率掉落）与 premium bundle（付费随机 1 个）；**二者的交互未定**——礼包给的 power 是否重置残卷概率？两条渠道的「随机」是否共用同一个候选池与排重规则？走哪条 RNG（**不应污染轮回 seed 的确定性**）？→ `20-systems/monetization.md`、`20-systems/services/life-cycle-service.md`。Source: `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
 - **relic / joker 内容为占位。** 触发条件、效果关键字、RelicData 字段清单均尚未设计，需一次 handoff。
 
 ## 对应

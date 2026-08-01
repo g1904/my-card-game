@@ -11,9 +11,16 @@
 - **`pastEvent`（历程轨迹 · CharacterProfile 侧）。** 与向前的走向相对，向后的**已经历轨迹**仍需持久化：`pastEvent` 是一条**扁平的时序列表**（不是图的反向边），记录角色走过 / 跳过了哪些事件。它归属 CharacterProfile 的轮回状态，不挂在 AdventureEvent 上。痕迹语义见下方「跳过通道的玩法语义」。
 - **`eventType`（类型标签 · 子类型枚举）。** 每个 AdventureEvent 带一个 `eventType` 字段，归属九类之一（Combat / Finale / Mystery / Practice / Exchange / Research / Explore / Social / Travel）。Mystery 为元类型，遮罩一个固定的其余某类事件——被遮罩事件的真实 `eventType` 在揭示前对玩家不可见。Source: `terminology.md` + `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
 - **`selectCost`（选择成本 · 共有字段）= 一个定制的复合成本类型（已定案）。** 选中该 AdventureEvent 以推进轮回所需付出的代价。`selectCost` **不是单一数值，而是一个定制类**——它由**若干成本 element 组成**，**`lifeSpanCost` 是其中一个 element**。因此一个事件的选择代价可以同时涉及多种资源（寿元 + 其他），由该成本类型统一承载，而非在 AdventureEvent 上平铺一堆并列的成本字段。与 `skipCost` 一起，把「从 eventOptions 中推进」建模为一次**双向付费的取舍**，而非单纯的菜单点选——契合月圆之夜式事件菜单的策划取向。Source: `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
-  - **`lifeSpanCost`（成本 element）：** 完成该事件对角色**寿元 / lifeSpan** 的扣减，**基准 -1**；见下方独立条目。
+  - **`lifeSpanCost`（成本 element）：** 完成该事件对角色**寿元 / lifeSpan** 的扣减，由内容作者以**正数量值**标注；见下方独立条目。
   - **`skipCost` 同为该成本类型（已确认）。** 跳过与选择付的是**同一套资源体系**，只是数值取向不同——因此 `selectCost` / `skipCost` 是同一成本类型的两个实例，`lifeSpanCost` 等 element 对二者同样适用。其余 element 的清单待定，见待决问题。
   - **代码形态 = `ProfileChangeSpec`（已定案）。** 该复合成本类型即 `ProfileChangeSpec`（`IReadOnlyList<ChangeElement>`，`ChangeElement.BaseValue` **带符号**：负 = 消耗，正 = 产出）——**成本与产出共用一个类型**，因为「全有或全无、单点提交」本就要求二者落在同一事务内。`selectCost` / `skipCost` 在**物化时组装**（modifier pipeline 尚未施加，它在 `ProfileManager.TryApply` 那一刻才生效）。Source: `10-handoffs/2026-07-27b-service-api-contracts.md`。
+  - **内容侧写正数量值，spec 里仍是负数（已定案 · 两条约定各自成立）。** 带符号约定**不变**；但**内容作者标注的成本一律是正数量值（magnitude）**——「这个事件耗 3 点寿元」写 `3`，不写 `-3`。**取负发生在 future-event-service 物化组装 `selectCost` / `skipCost` 的那一刻**（见 `20-systems/services/future-event-service.md`）。二者互不推翻：作者面对的是「花多少」，`TryApply` 面对的是带符号 element。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+
+    | 层 | 形态 |
+    |----|------|
+    | `AdventureEventData.tres` / 平衡分档表 | **正数量值** |
+    | `EventOption.SelectCost` / `SkipCost` 内的 `ChangeElement.BaseValue` | **取负**（`-magnitude`） |
+    | `ProfileManager.TryApply` | 照常按带符号 element 施加 |
 - **`skipCost`（跳过成本 · 共有字段）+ `ifMandatory`（是否强制 · 共有字段）。** 二者共同定义一条**「跳过事件」通道**：面对一批 eventOptions，玩家除择一进入外，还可**付出 `skipCost` 跳过**某个事件；`ifMandatory = true` 的事件封死该通道（必须面对，不可跳过）。**`ifMandatory` 由 future-event-service 在产出 eventOptions 时动态置位**（而非内容作者在 `.tres` 写死），且**一批 eventOptions 可以全部为 mandatory**（等同本轮取消跳过权）。跳过后的完整玩法语义见下方「跳过通道的玩法语义」条目。Source: 同上 + `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
 - **`eventPriority`（事件优先级 · 共有字段 · 已定案）。** AdventureEvent 的又一条重要共有属性，约束的是**同批 eventOptions 内的可选范围**：
   - **通常优先级为 0**——玩家可从本批中**任选所有优先级为 0 的事件**。
@@ -21,11 +28,15 @@
   - **有效可选集 = 本批中最高优先级档的全部事件**，同档内玩家仍自由择一（推演解读，待确认）。
   - 与 `ifMandatory` 是**两条不同的约束轴**：`ifMandatory` 封锁**跳过通道**（必须面对这一个），`eventPriority` 封锁**同批的其他选项**（必须先做这一类）。二者的叠加规则见待决问题。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
 - **跳过通道的玩法语义（已定案）。**
+  - **跳过只对「可选」事件开放（已定案 · 前提澄清）。** 能被跳过的是**可选的**事件——可选的剧情事件、可选的增益事件等；**并非所有事件都能跳过**，这正是 `ifMandatory` 承担的约束。由此「跳过 = 可无限 reroll 刷事件」的担忧**前提不成立**：**不设每批跳过配额，也不设递增 `skipCost`**。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+  - **跳过留痕影响剧本与隐藏属性 = 内容设计范畴。** 「跳过什么类型的事件反向影响 AdventurePlot / 隐藏属性」方向可取，且 `pastEvent` 已跟踪跳过痕迹；但它属**内容设计而非系统设计**，留待将来的剧情与卡牌设计阶段。Source: 同上。
   - **单项补位，不是整批刷新。** 一个事件被跳过后，由 **future-event-service 生成一个新事件顶替它的位置**；本批其余选项不动。
   - **补位可能落空。** 也可能没有新事件产出——此时本批 eventOptions 就**少了一个选项**（不回填、不阻塞）。
   - **通常不扣 `lifeSpanCost`（时间通常不流逝）。** 少部分事件可以带 `skipCost`，此时按其 element 扣减，寿元也可以是其中之一。
   - **跳过计入 `pastEvent`。** 被跳过的事件仍记入修行历程，作为一条**行为轨迹（类似 action-trace）**——记录「玩家做过什么决定」，而不仅是「玩家经历过什么事件」。因此 `pastEvent` 需能区分「已进入并结算」与「已跳过」两种痕迹。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
-- **寿元消耗 `lifeSpanCost`（`selectCost` 成本类型的一个 element）。** 表示完成该事件对角色**寿元 / lifeSpan** 的扣减；它不是 AdventureEvent 上的独立平铺字段，而是**成本类型 `selectCost` 的组成 element 之一**（见上）。**默认（基准）为 -1**——即推进一个修行事件通常消耗 1 点寿元。个别事件可设更大 / 更小 / 正值（回寿）以体现代价差异。寿元由 life-cycle-service 在事件结算时按 `lifeSpanCost` 扣减，归 0 → `defeated`（大限将至）。`lifeSpanCost` 的基准值为可调平衡数值（见 `20-systems/balance.md`）。Source: `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md`。
+- **寿元消耗 `lifeSpanCost`（`selectCost` 成本类型的一个 element）。** 表示完成该事件对角色**寿元 / lifeSpan** 的扣减；它不是 AdventureEvent 上的独立平铺字段，而是**成本类型 `selectCost` 的组成 element 之一**（见上）。**内容侧以正数量值书写**（`1` = 消耗 1 点寿元），物化时取负。寿元由 life-cycle-service 在事件结算时按 `lifeSpanCost` 扣减，归 0 → `defeated`（大限将至）。
+  - **定价是时长旋钮，不是固定基准（已定案）。** 先前记载的「基准 1」**只是占位值，不是设计意图**。真正的设计判据是**目标游玩时长**：第一 / 第二篇章各 **15–30 分钟**、第三篇章 **20–40 分钟**——**寿元预算不变，靠调 `lifeSpanCost` 把时长压回区间**（第三篇章预算 +300 远多于前两章，故定价相应**大幅上调**）。事件之间定价有差异（如**闭关 Research 比常规事件耗时更长**）。**具体分档表待定**，见 `20-systems/balance.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+  - 个别事件可设更小或**产出向**（回寿）的数值以体现代价差异——产出向的写法遵循同一约定（内容侧写量值，语义由字段方向承载）。
 - **稳定 Id。** 作为数据资源，每个 AdventureEvent 内容条目有稳定唯一的字符串 `Id`（供 eventOptions 引用、`pastEvent` 轨迹、存档 key points、注册表查找）。Source: `data-resource-rules.md`。
 
 ### 物化（materialize）：模板 `AdventureEventData` → 定稿实例 `EventOption`（已定案）
@@ -75,12 +86,14 @@ internal interface IEventResolver          // 按 eventType 注册
 
 由此职责边界完全明确：**扣成本、推拉隐藏属性、写 CharacterProfile 全部由 life-cycle-service 经 `profile-service.ProfileManager` 完成**（一个事件 = 一次事务 = 一个存档点）；resolver 只**描述**结果（`ResolveOutcome`），不自行写档。
 
+**隐藏属性的跨档定性反馈挂在 `eventEnd`（已定案 · 无新结构）。** 隐藏属性推拉在 `eventEnd` 阶段合并施加；**当某个隐藏属性因本次推拉而跨过一个隐藏档位时，附带一条定性的叙事描述**（不给数字）。它**复用已有的 `ResolveOutcome` → `eventEnd` 链路**，不引入新的结构或阶段。触发规则与档位归 `20-systems/services/plot-manager.md`，呈现归 `40-ux/screen-flow.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+
 ### 通用流程
 
 - **呈现 = 月圆之夜风格（已定案）。** 修行事件以精心策划的**事件菜单**形态呈现，参考《月圆之夜》。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 - **选择 = 横向滑动选择区（已定案）。** 「从可用修行事件（eventOptions）中选择」用一个**可横向滑动的选择区**（horizontal scrolling area），滑动选中目标 AdventureEvent。详见 `20-systems/game-progression.md`。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 - **进入。** 玩家在选择区选中一个可用 AdventureEvent 后进入该事件；Mystery 在进入时揭示其被遮罩的固定事件。Source: `terminology.md`。
-- **结算与后果。** 事件结束后其后果影响玩家及未来状态（隐藏属性推拉、eventOptions 重算、location 刷新等）；结算规则因子类型而异——Combat/Practice 走战斗结算、Finale 走独立结算、其余为事件式结算。
+- **结算与后果。** 事件结束后其后果影响玩家及未来状态（隐藏属性推拉、eventOptions 重算、location 刷新等）；结算规则因子类型而异——**Combat / Practice / Finale 走战斗结算**（同一回合循环与参战方结构，独立的胜负条件与奖惩），其余六类为事件式结算。
 - **自动存档边界。** 事件为合理的自动存档点之一（每场遭遇战 / 地图节点之后）。Source: `state-save-rules.md`。
 
 ## 决策(-> ADR)
@@ -97,7 +110,8 @@ internal interface IEventResolver          // 按 eventType 注册
 - **成本类型的 element 清单未定。** `selectCost` 为定制复合成本类型、`lifeSpanCost` 为其一个 element 已定案；**其余有哪些 element**（jade？mana？道具？隐藏属性推拉？）、每个 element 的数据形态（固定值 / 区间 / 公式）、以及**付不起某个 element 时的判定规则**（整体不可选？部分抵扣？）均未定。→ `20-systems/character-profile/currency.md`、`20-systems/balance.md`。Source: `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
 - **`eventPriority` 与 `ifMandatory` 的叠加规则未定：** 一个高优先级事件**能否被跳过**？若可跳过且被跳过，本轮是否解除对低优先级事件的封锁？二者都限制玩家选择权，是否存在语义重叠（高优先级是否应蕴含 mandatory）？→ `20-systems/services/future-event-service.md`。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
 - **`eventPriority` 的取值域与置位方未定：** 优先级是两档（0 / 1）还是任意整数档位？是否与 `ifMandatory` 一样由 future-event-service / PlotManager 在产出时动态置位（用户仅明确了 `ifMandatory`）？Source: 同上。
-- **跳过语义的残留细节：** 主干已定（单项补位 / 通常不扣寿元 / 计入 `pastEvent`）；仍待定：**能否整批全跳**、**付不起 `skipCost` 时如何表现**。→ `20-systems/services/future-event-service.md`。Source: 同上。
+- **跳过语义的残留细节：** 主干已定（单项补位 / 通常不扣寿元 / 计入 `pastEvent` / **只对可选事件开放、不设配额与递增成本**）；仍待定：**能否整批全跳**、**付不起 `skipCost` 时如何表现**。→ `20-systems/services/future-event-service.md`。Source: 同上 + `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+- **各篇章 `lifeSpanCost` 的具体分档表：** 定价方向已定（目标时长驱动、逐篇章上调、闭关更耗）；仍待定**哪些事件类型多耗、单次幅度各是多少**——需以 15–30 / 15–30 / 20–40 分钟反推。→ `20-systems/balance.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 - **全部 mandatory + 付不起 `selectCost` 的死锁：** 一批可以全部 mandatory，且高优先级会封锁其余选项；若玩家付不起唯一可选事件的 `selectCost`，轮回将无法推进。是否需要产出侧「至少一个可负担选项」的保证，或一条兜底降级？→ `20-systems/services/future-event-service.md`。Source: 同上。
 
 ## 对应

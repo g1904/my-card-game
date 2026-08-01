@@ -15,12 +15,22 @@
 
 ### 核心「类」：character-profile / player-profile
 - **PlayerProfile / 玩家信息（账号级主档，元进程层）：** 跨轮回持久，持有 `List<CharacterProfile>`、`GameSetting`、`List<PlayerPower>`、`List<PlayerItem>`、`List<Achievements>`、`AccountInfo` 等。结构权威见 `20-systems/player-profile/`。
-- **CharacterProfile / 角色信息（单次轮回）：** 一次轮回 / 一个角色的状态与历史（对齐 CycleState 概念）：`status`（ongoing | defeated | completed）、`chapter`、`Status`（life / mana + 隐藏属性 道心 / 煞气 / 寿元）、`List<AdventureEvent>`、`List<CharacterItems>`、AdventurePlot key points 等。结构权威见 `20-systems/character-profile/`。
+- **CharacterProfile / 角色信息（单次轮回）：** 一次轮回 / 一个角色的状态与历史（对齐 CycleState 概念）：`status`（ongoing | defeated | completed）、`chapter`、`Status`（lifeTotal / mana + 隐藏属性 道心 / 煞气 / 寿元）、`List<AdventureEvent>`、`List<CharacterItems>`、AdventurePlot key points 等。结构权威见 `20-systems/character-profile/`。
 - 这两者是被服务操作的**数据核心**；它们不自己驱动轮回生命周期、事件生成或剧本下发，而是被服务读写。
 
-### 服务层：两级层次 service ⊃ manager（**已定案**）
+### 服务层：五级层次 service ⊃ manager ⊃ module ⊃ processor ⊃ handler（**已定案**）
 
-代码里只有两级职能层次，判据明确、不设第三级。完整清单见 `services/_index.md`；运行时端到端链路见根级 `program-overview.md`。Source: `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
+**抽象层次不封顶在两级**，但每一级都有**固定的层级词**——名字的后缀即宣告它在第几层。完整清单见 `services/_index.md`；运行时端到端链路见根级 `program-overview.md`。Source: `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
+
+| 层级 | 名称 | 说明 | 现有实例 |
+|------|------|------|---------|
+| 第一级 | **service** | 边界单元，autoload；三判据（见下） | 七个服务 |
+| 第二级 | **manager** | 服务内部的职能组件 | TurnManager、ProfileManager…… |
+| 第三级 | **module** | manager 内部的组件 | **`DeckModule`**（CharacterManager / EnemyManager 各持一份） |
+| 第四级 | **processor** | 预留 | — |
+| 第五级 | **handler** | 预留 | — |
+
+> **纪律不随层数放宽：** 边界仍是「服务之间不读写对方字段、不伸手进对方 manager」；同理**不得跨层直呼**——外部只看得见宿主服务的 API 面，module 及以下一律是宿主 manager 的内部实现。第四 / 第五级目前没有实例，名字先定下来以免各处自造词；**module 以下暂无下沉判据**，见待决问题。
 
 - **service（服务）= 边界单元。** 值得成为服务当且仅当命中**三条判据之一**：① 拥有**自己的状态机或跨多帧的长流程**；② 需要**事务性地跨多个字段一致写入**（全有或全无）；③ 坐在**外部 I/O 边界**上（网络、存档、平台 SDK）。服务以 autoload 形式存在，**不持有独立数据**，只操作核心「类」。**边界纪律（已定案的准确措辞）：服务之间不读写对方字段、不伸手进对方 manager；跨服务的方法调用（经对方的服务门面 `Xxx.Instance.Method(...)`）允许。** 编排顶点 game-progression 负责「谁在什么时机调谁」的屏幕流程串联，但**不是**一切跨服务调用的必经中转；既成事实经 EventBus 广播。Source: `10-handoffs/2026-07-27b-service-api-contracts.md`。
 - **manager（管理器）= 服务内部的职能组件。** 多个 manager 生活在同一服务里，**共享宿主服务的事务边界与生命周期**；**不被跨服务直接调用**——外部只看得见宿主服务的 API 面。
@@ -33,7 +43,9 @@
 | **profile-service** | ② | ProfileManager、CapabilityManager、AchievementManager |
 | **life-cycle-service** | ① | CycleStateManager、ChapterManager、SeedManager |
 | **future-event-service** | ① | EventOptionManager、PlotManager |
-| **combat-service** | ① | TurnManager、DeckManager、IntentManager |
+| **combat-service** | ① | TurnManager、CharacterManager、EnemyManager |
+
+> **combat-service 的卡组 = `DeckModule`（第三级）。** 抽 / 弃 / 洗与 seeded 洗牌由 CharacterManager 与 EnemyManager 各自持有的 `DeckModule` 承担，**每个 character / enemy 一份**（敌人也出牌）。它不是平级 manager，而是 manager 内部的 module。Source: `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
 
 #### 拆分轴：生命周期层 + 行为边界，**不是数据类型**（已定案）
 
@@ -179,7 +191,7 @@ public sealed record EventOption(                 // 定稿实例：immutable �
 
 1. **定稿实例必须落存档，不能只存 `EventId` 事后重算。** 物化用了 seeded RNG、当时的角色状态、以及可被 overlay 热更的模板；确定性只在同一 `contentVersion` 内成立。因此**当前批 eventOptions 与 `pastEvent` 痕迹都要存物化后的快照**。
 2. **`InstanceId` 与 `EventId` 并存且不可互相替代。** 同一模板可在一次轮回里被物化多次；`pastEvent`、`EventResolved` 负载、`TryRefill` 的「被跳过的那一个」都按 `InstanceId` 定位。
-3. **通则：** 凡「内容定义 + 情境 / 轮回内状态」的组合都是两个类型——`AdventureEventData` ↔ `EventOption`（**定稿不可变**）；`CardData` ↔ `CardInstance`（运行态**可变**）。共享纪律：**服务签名里传实例，不传 `Resource`**；差别只在实例是否可变。这与展示层三层切分同构，把第二层的类型形态明确了。
+3. **通则：** 凡「内容定义 + 情境 / 轮回内状态」的组合都是两个类型——`AdventureEventData` ↔ `EventOption`（**定稿不可变**）；`CardData` ↔ `CardInstance`（运行态**可变**）；**`EnemyTemplate` ↔ 物化后的敌人实例**（future-event-service 取模板 → 充实 / 改写 → 指派给事件，**敌人等级即物化产物**，见 `services/future-event-service.md`）。共享纪律：**服务签名里传实例，不传 `Resource`**；差别只在实例是否可变。这与展示层三层切分同构，把第二层的类型形态明确了。
 
 #### 总则 7 —— 后端接口化：四个边界服务各持一个可替换后端
 
@@ -232,7 +244,7 @@ public readonly record struct ChangeElement(CostKey Key, int BaseValue);   // �
 public enum CostKey        { LifeSpan, Jade, /* ⟨待定：其余 element 清单⟩ */ }
 public enum AdvanceMode    { Select, Skip }
 public enum CycleStatus    { Ongoing, Defeated, Completed }
-public enum DefeatReason   { Discarded, LifeSpanExhausted, CombatLost }
+public enum DefeatReason   { Discarded, LifeSpanExhausted, LifeTotalExhausted }   // 战斗失败本身不终结角色，只扣 lifeTotal
 public enum CapabilityFlag { RevealHiddenStats, ShowMysteryType, ShowSkipCost }
 public enum HiddenStat     { Faith, MaleficQi, LifeSpan }
 public enum RngStream      { Map, Combat, Shop, Reward }
@@ -255,7 +267,7 @@ public enum EventType      { Practice, Combat, Research, Exchange, Social, Myste
 | `AchievementTierReached` | `(string GroupId, int TierPercent)` | profile |
 | `CombatTurnStarted` / `CombatTurnEnded` | `(int TurnIndex)` | combat |
 | `CardResolved` | `(string CardInstanceId, string CardId)` | combat |
-| `CombatFinished` | `(CombatOutcome Outcome, int RemainingHealth)` | combat |
+| `CombatFinished` | `(CombatOutcome Outcome, int CharacterMomentum, int EnemyMomentum, int RemainingLifeTotal)` | combat |
 | `SyncStateChanged` | `(SyncState State, OpError LastError)` | sync |
 | `ContentUpdateFinished` | `(ContentUpdateInfo Info, bool Success)` | content |
 | `SessionChanged` | `(bool SignedIn, OpError Reason)` | account |
@@ -304,7 +316,7 @@ Input (touch, 横向滑动选择)
 - **强制在线 · 云端权威** → `50-decisions/ADR-0003-online-cloud-authority.md`（Accepted）。
 - **`.claude/knowledge` 降为引用层（本库成为内容 + 技术结构双重事实来源）；引用层形态 = 薄引用（副本判据：设计库里已是代码形态的东西只留链接）** → `50-decisions/ADR-0005-knowledge-thin-reference-layer.md`（Accepted）。
 - **展示层三层切分（Data / 运行时·存档 / ViewModel）** → 已定案，**ADR 候选**（待固化）。Source: `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
-- **两级层次 service ⊃ manager；拆分轴 = 生命周期层 + 行为边界（非数据类型）** → 已定案，**ADR 候选**（待固化）。Source: `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
+- **五级层次 service ⊃ manager ⊃ module ⊃ processor ⊃ handler；拆分轴 = 生命周期层 + 行为边界（非数据类型）** → 已定案，**ADR 候选**（待固化）。Source: `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
 - **单一 profile-service 拥有两层 profile（ProfileManager 唯一写入面）；ContentRegistry 唯一内容读取入口；game-progression 为编排顶点** → 已定案，**ADR 候选**（待固化）。Source: 同上。
 - **内容载体形态（随包基线 + `user://overlay/` 热更 + 云端版本校验）与本地 / 云端内容分界** → 已定案，**ADR 候选**（待固化）。Source: 同上。
 - **PlotManager 隶属 future-event-service，eventOptions 唯一出口** → 已定案，**ADR 候选**（待固化）。
@@ -337,8 +349,9 @@ Input (touch, 横向滑动选择)
 - **热更「只改不增」的连带项：** 范围边界已定（overlay 只改既有条目的数值 / 文案，不得新增 `Id`）、确定性张力已裁决（以 overlay 更新为准，不冻结 `contentVersion`，放弃跨版本 seed 可复现）；残留：是否需「预埋占位 `Id`」策略绕开审核周期、是否在存档中记录 `contentVersion` 以便诊断。→ `services/content-service.md`。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
 - **断线降级的具体行为：** push / pull / 剧本请求失败时阻塞玩家、本地缓冲重试、还是回退存档点？→ `services/sync-service.md`、`services/account-service.md`。
 - **ViewModel 层是否需要单独一份文档：** 三层切分已定案并在本文件显式化；是否为 ViewModel 层单列文档（或归 `40-ux/`）待定。Source: `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
-- **scoring.md 去向：** 是否并入某系统或在 life+mana 模型下废弃待确认。Source: 同上。
-- **enemies 归属：** 当前归 `adventure-event/combat/`；若 Practice 等也用敌人，是否升为共享内容层待确认。Source: 同上。
+- **道念差 → lifeTotal 损失 / 奖励厚度的计算归属。** 「失败按道念差扣 lifeTotal、胜利按道念差决定奖励厚度」均已定案（见 `20-systems/scoring.md`）；但**由谁计算**未定：combat-service 算好写进 `CombatResult.Spoils`，还是 life-cycle-service 依 `CombatResult` 的双方道念在 `eventEnd` 算？前者让战斗服务持有平衡公式，后者让编排层多懂一层战斗语义。→ `services/combat-service.md`、`services/life-cycle-service.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
+- **enemies 归属：** 当前归 `adventure-event/combat/`；**Practice 与 Finale 均已确认使用敌人**（天劫即一个带定制卡组的 Enemy），是否升为共享内容层待确认。Source: 同上 + `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
+- **module 以下的下沉判据未给。** service 与 manager 各有明确判据，但「什么时候一个 module 该再拆出 processor」没有判据——第四 / 第五级目前只有名字。Source: `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/architecture.md`（**薄引用层**，ADR-0005：导航 + 代码现状 + 承重一句话，代码形态内容只回链本文件，不留副本）。

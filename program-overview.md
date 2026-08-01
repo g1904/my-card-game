@@ -9,9 +9,9 @@
 
 ---
 
-## 一、两级层次：service ⊃ manager
+## 一、层级：service ⊃ manager ⊃ module ⊃ processor ⊃ handler
 
-代码里只有两级职能层次，判据明确、不再增设第三级。
+代码的职能层次不封顶在两级，但每一级都有固定的层级词——**名字的后缀即宣告它在第几层**（现有实例止于第三级 `DeckModule`；processor / handler 为预留名）。
 
 ### service（服务）—— 边界单元
 
@@ -54,9 +54,11 @@
 | | | SeedManager | cycle seed 与具名 RNG 子流派生 |
 | **future-event-service** | ① | EventOptionManager | 依 CharacterProfile 产出 eventOptions；**唯一出口** |
 | | | **PlotManager** | 隐藏剧本：key points ↔ 云端剧本服务、隐藏属性阈值 → 调制 |
-| **combat-service** | ① | TurnManager | 回合循环 |
-| | | DeckManager | 抽 / 弃 / 洗（seeded） |
-| | | IntentManager | 敌人意图与 AI |
+| **combat-service** | ① | TurnManager | **定长 10 回合**循环（双方各 5；回合开始 mana 恢复至 `manaLimit`） |
+| | | CharacterManager | 玩家侧参战方：角色对战状态、其卡组、出牌通道；**监听玩家操作** |
+| | | EnemyManager | 敌人侧参战方：敌人实例与状态、其卡组、AI 行为选择与意图生成；**代理操作** |
+
+> **卡组 = `DeckModule`（第三级），不是平级 manager**：抽 / 弃 / 洗（seeded）归参战方内部的 module，CharacterManager 与 EnemyManager 各自持有，**每个 character / enemy 一份**（敌人也出牌）。Source: `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
 
 **非服务的横切件：**
 
@@ -165,23 +167,28 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      │                                                              │
 │      ├─ event.eventStart()  ──────────────────┐                     │
 │      │                                         │ 事件自身内部流程    │
-│      │   ┌── eventType == Combat / Finale ────┤                     │
-│      │   │   combat-service.RunCombat(character, encounter)         │
-│      │   │     TurnManager  ↺ 抽牌 → 出牌结算 → 敌人意图 → 回合结束 │
-│      │   │     DeckManager   用 combat RNG 子流洗牌                 │
-│      │   │     IntentManager 敌人 AI                                │
+│      │   ┌── eventType == Combat / Practice / Finale ──┤            │
+│      │   │   combat-service.RunCombatAsync(encounter, ct)          │
+│      │   │     TurnManager       ↺ mana 恢复至上限 → 抽牌 → 出牌    │
+│      │   │                         → 结算 → 换手（共 10 回合）      │
+│      │   │     CharacterManager  玩家侧参战方（卡组 / 监听玩家操作）│
+│      │   │     EnemyManager      敌人侧参战方（卡组 / AI / 意图）    │
+│      │   │       意图三档：越阶即黑箱 + 同阶差值（完整/仅类别/无）  │
 │      │   │     战斗内所有写入 ─▶ ProfileManager                     │
-│      │   │     └─▶ CombatResult（胜 / 负 / 剩余 life）              │
-│      │   └── 其余七类 ────────────────────────┤                     │
+│      │   │     决策点 ─▶ 存档（退出重进恢复同一局面 + RNG 状态）    │
+│      │   │     胜负判据：道念（momentum）高者胜，lifeTotal 不参与过程│
+│      │   │     └─▶ CombatResult（胜负 / 双方道念 / 剩余 lifeTotal） │
+│      │   └── 其余六类 ────────────────────────┤                     │
 │      │       通用结算器：数据驱动的 outcome / effect 定义            │
 │      │       （DnD 式选分支时回查 PlotManager.ChooseBranch）         │
 │      ├─ event.eventEnd() ─────────────────────┘                     │
 │      │                                                              │
-│      ├─ ProfileManager.TryApply(产出 + lifeSpanCost(默认 -1)         │
-│      │                          + 隐藏属性推拉)                     │
+│      ├─ ProfileManager.TryApply(产出 + lifeSpanCost(物化时已取负)    │
+│      │            + 失败时按道念差扣 lifeTotal + 等级产出 + 隐藏属性推拉)│
+│      │            隐藏属性跨档 ─▶ 附一条定性叙事（不给数字）         │
 │      ├─ 记入 CharacterProfile.List<AdventureEvent> 修行历程          │
-│      └─ CycleStateManager 判定：                                       │
-│           寿元 ≤ 0 或 life ≤ 0 ─▶ DefeatCharacter()  ─▶ 阶段 5      │
+│      └─ CycleStateManager 判定：                                     │
+│           寿元 ≤ 0 或 lifeTotal ≤ 0 ─▶ DefeatCharacter()  ─▶ 阶段 5 │
 │           Finale 通关          ─▶ CompleteChapter() ─▶ 阶段 5      │
 │           否则 ─▶ EventBus.Emit(EventResolved)                      │
 │                          ↓                                          │

@@ -19,6 +19,7 @@
 - 支撑“Reigns”式平衡张力的完整**属性模型**。
 - 超出足以奠定 grimdark 基调之外的深度叙事/剧情内容。
 - 元进程解锁、外观装饰、每日/seeded-轮回分享。
+- **商业化的落地**（支付接入、商店 UI、地区定价）——形态已给出方向（**premium bundle**，见 `20-systems/monetization.md`），但不属 MVP 切片。
 - 本地化打磨（让展示字符串与 id 分离，以免日后受阻）。
 
 ## 平台与约束
@@ -65,6 +66,7 @@ Source: `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persis
 > _目标轮回时长、存档/续玩、手机上一个“时段”的感觉。_
 
 - **一个篇章**是自然的时段单元——足够长以让人觉得是一次有意义的攀登，又足够短以便在移动端完成或存档。
+- **目标时长已量化（已定案 · 08-01b 上调）：** 第一篇章（炼气→筑基）**30–40 分钟**、第二篇章（筑基→金丹）**35–45 分钟**、第三篇章（金丹→元婴）**45–55 分钟**——**口径为已掌握策略的熟练玩家**，新手更长。**寿元预算不变，靠调 `lifeSpanCost` 的分档把时长压进区间**——预算增量（100 / +100 / +300）是叙事阶梯的形式量，**事件定价才是时长旋钮**。**剩余寿元跨篇章结转**，故「省着花」有跨篇章回报。分档表见 `20-systems/balance.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
 - **三个篇章边界**是持久的存档/记录点（角色档案的史册记录）；最后一个（元婴）是已完成轮回的奖杯展示。
 - 在 AdventureEvent 边界自动存档，使被终止的应用能在合理的位置续玩（见 `.claude/rules/state-save-rules.md`）。
 - 轮回带 seed，**在同一 `contentVersion` 内可复现**。内容热更以 overlay 为准、不冻结轮回的 `contentVersion`，故**不承诺跨内容版本复现**；bug 复现与「数值突变」类反馈改以**存档记录的 `StartContentVersion` / `LastContentVersion` 归因**（二者不等 = 该轮回跨过内容更新）。见 `20-systems/services/content-service.md`、`20-systems/common-properties.md`。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` + `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。

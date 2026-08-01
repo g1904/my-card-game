@@ -21,14 +21,26 @@
 | RNG 子流 | `RngStream` | 具名 RNG 子流的枚举（`Map` / `Combat` / `Shop` / `Reward`）。`life-cycle-service.Stream(RngStream)` 返回 Godot 的 `RandomNumberGenerator`（自带可序列化的 `Seed` / `State`），而非 `int Next()`。 | 同上 |
 | 玩家信息 | PlayerProfile | 账号级主档，跨轮回持久，持有一组 CharacterProfile 及账号级元数据。 | `10-handoffs/2026-07-15-adventure-event-profiles.md` |
 | 角色信息 | CharacterProfile | 单次轮回 / 单个角色的状态与历史（对齐 CycleState 概念）。 | 同上 |
-| 玩家能力 | PlayerPower | 账号级 always-available 能力，带开关（默认开启）；QoL 或影响公平性的全局加强，不与角色绑定，可获取 / 失去。 | `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` |
+| 玩家能力 | PlayerPower | 账号级 always-available 能力，带开关（默认开启）；QoL 或影响公平性的全局加强，不与角色绑定，可获取 / 失去。**`power` 的中文定名 = 能力。** | `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` + `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` |
 | 玩家道具 | PlayerItem | 账号级、有使用次数限制的道具。 | 同上 |
-| 生命 · 法力 | life + mana | 战斗双资源模型（参考 MTG / Hearthstone）：生命为血量，mana 为每回合出牌资源。**无 mana 曲线**，采用「上限 + 逐步恢复」；炼气基线 life=10/10、mana=5/5。对齐 `Status.currentHealth / currentMana`。 | 同上 + `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` |
+| 角色能力 | CharacterPower | **轮回级**的角色能力，**对标账号级的 PlayerPower**（同一套「能力」概念的两层，分界是生命周期）：由 CharacterProfile 持有，随轮回清理；沿用 `status` 开关、事件触发器被动修正、capability flag + modifier pipeline 两条生效通道。归 `20-systems/character-profile/power/`。 | `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` |
+| 道念 | momentum | **计分（scoring）用的胜利点数**，双方各持一份：**战斗胜负 = 道念高者胜**。**由卡牌产出、可互相削减、下限为 0**；**战斗开始时双方各有一个由自身等级决定的起始道念 `baseMomentum`**。一场战斗**固定 10 个回合**（双方各 5 个）后比大小；**相等 = 平局，只发基础奖励、不扣 lifeTotal**。道念差在胜负两侧各驱动一件事：**胜 → 奖励厚度**，**负 → 按差值扣 lifeTotal**。道念是战斗内运行态，战斗结束即消失，不落 CharacterProfile。归 `20-systems/scoring.md`。 | `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` |
+| 起始道念 | baseMomentum | 每个**全局等级**对应的战斗起始道念（炼气 1–13 → 1..12, 15；筑基 20 / 24 / 28 / 32；金丹 45 / 55 / 65 / 75；元婴 100）。**境界鸿沟由它承载**（全局等级序基数本身连续无跳变），故等级差直接变成开局的起跑线差。可调数值，归 `20-systems/balance.md`。 | `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` |
+| 生命总量 | lifeTotal | **角色的生命值** —— 战斗外的耐久 / 失败惩罚承受量（**不是战斗内血量**）：战斗过程中既不消耗也不读取，只在战斗 / 修炼失败的**结算时刻**按道念差被扣减，**通过 AdventureEvent 恢复**。**归 0 → 角色 `defeated`**（与寿元归 0 并列的第二条终结路径）。对齐 `Status.lifeTotal / lifeTotalLimit`（代码字段一并改名，`currentHealth / healthLimit` 作废）。炼气基线 10/10，无曲线。区别于寿元 lifeSpan（按事件流逝的寿命预算）。 | 同上 + `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` |
+| 法力 | mana | **战斗内的出牌资源**（战斗内另一半是道念）。**无 mana 曲线**：战斗中**每回合开始恢复至 `manaLimit`**，而 `manaLimit` 由事件的 cost / reward 推拉（可升可降），不随境界自动成长，**不设下界护栏**。炼气基线 5/5。对齐 `Status.currentMana / manaLimit`。 | `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` + `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` + `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` |
+| 道统残卷 | —（标识符待定） | 元进程的**失败侧产出**：失败累积的**不是账号级货币**，而是「下一次轮回获得新 PlayerPower」的**递增掉落概率**；**一旦获得新 PlayerPower 即重置**该概率。避免引入第二套账号级经济。归 `20-systems/player-profile/player-power/`。 | `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` |
+| 等级 | level | **境界内的层级**：炼气 1 层~13 层；筑基 / 金丹 各为 初期 / 中期 / 后期 / 巅峰；元婴仅初期。篇章结束突破后**一律归位为新境界的初期**（元婴亦然）。归 `20-systems/game-progression.md`。 | `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` |
+| 全局等级序 | global level | 跨境界连续的等级序 **1–22**（炼气 1–13 / 筑基 14–17 / 金丹 18–21 / 元婴 22），由「境界基数 + 境界内 level」合成，**境界之间不留跳变**（鸿沟由 `baseMomentum` 承载）。枚举值自带描述（`level=1` → 炼气一层，`level=14` → 筑基初期，…）。等级差比较在此序上做，不拿两个境界内的层号直接相减。 | 同上 + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` |
+| 意图 | intent | 敌人下一步行动的表达（EnemyManager 内部生成）。**呈现三档**，判据 = **同阶等级差 + 越阶硬门**：**越阶（敌人境界更高）一律完全无信息**；同阶时 —— 第一篇章 `diff ≤ 0` 完整意图 / `diff 1–2` 仅类别 / `diff ≥ 3` 完全无信息；第二 · 第三篇章 `diff ≤ 0` 完整意图 / `diff = 1` 仅类别 / `diff ≥ 2` 完全无信息。第三档不给任何替代线索。 | 同上 + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` |
+| 探查 | `probe`（标识符暂定） | 玩家**主动付出代价换取当回合敌人意图**的效果——与被动的意图档位相对，是第二条信息通道。「能力 / 道具授予窥视意图」即其授予形式。**具体形态归卡牌 / 技能内容的横向扩展阶段，现阶段搁置。** | 同上 |
+| 图鉴（族） | Codex | **账号级的知识收集面**，共**五个**：`EnemyCodex` / `CharacterPowerCodex` / `PlayerPowerCodex` / `CharacterItemCodex` / `PlayerItemCodex`。跨轮回持久、归 PlayerProfile、条目按内容 `Id` 索引、内容为**静态文案**（挂在对应 `Resource` 上），存档只记解锁状态。归 `20-systems/player-profile/codex/`。 | `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` |
+| 敌人图鉴 | EnemyCodex | 图鉴族之一（类 Pokédex）。只记录**静态知识**（这个敌人会做哪些事），**不记录动态意图**（它这回合做什么），故不架空越级黑箱。**遭遇即记录，不必击败**；**一次遭遇即全文案解锁**，词条含 人物背景 · 功法简介 · 运作方式 · 特点与弱点 · `EnemyTemplate` 样本卡组的关键卡牌。 | 同上 + `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` |
+| 敌人模板 | EnemyTemplate | 敌人的**静态内容数据**集合（稳定 `Id` + 图鉴文案 + 基准数值 + **样本卡组**）。**敌人等级不在模板上定死**：future-event-service 取一份模板 → 充实 / 改写 → 指派给该事件，等级是**物化产物**。与 `AdventureEventData ↔ EventOption`、`CardData ↔ CardInstance` 同属「模板 ↔ 实例」通则。 | `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` |
 | 灵玉 | jade | **轮回级软通货**（官方货币名）：随轮回存在、随轮回清理，归 CharacterProfile；主要花销在 Exchange（交易 / 商店）。区别于每回合出牌资源 mana。 | `20-systems/character-profile/currency.md` |
 | 道心 | faith | **隐藏数值属性**（原 `faith` / 信仰即时属性，现归为隐藏）；与 煞气 / 寿元 同属驱动 AdventurePlot 的隐藏属性。 | `10-handoffs/2026-07-15-adventure-event-profiles.md` + 归隐藏 `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` |
 | 煞气（点数） | malefic qi | **隐藏属性**：积累到阈值触发「煞气反噬」剧情线。 | `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` |
-| 寿元 | lifeSpan | **隐藏属性**：角色寿命预算（**非血量 life**）——炼气起始 100、抵达筑基 +100、抵达金丹 +300、抵达元婴 +500（累计 1000；元婴为终点，该增量无玩法影响）；初始隐藏、低于 10% 时显示；每完成一个 AdventureEvent 按其 `lifeSpanCost`（默认 -1）扣减，**递减到 0 → 「大限将至」→ 角色 defeated**。 | 同上 + `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` + `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` |
-| 寿元消耗 | lifeSpanCost | **成本类型 `selectCost` 的一个 element**：完成该事件对角色寿元的扣减，**基准 -1**；可按事件覆写。 | `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` + `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` |
+| 寿元 | lifeSpan | **隐藏属性**：角色寿命预算（**非 life**）——炼气起始 100、抵达筑基 +100、抵达金丹 +300、抵达元婴 +500（元婴为终点，该增量无玩法影响）；**剩余寿元跨篇章结转**。初始隐藏，**30% 起给定性叙事提示、10% 起给红字数值倒数**；每完成一个 AdventureEvent 按其 `lifeSpanCost` 扣减，**递减到 0 → 「大限将至」→ 角色 defeated**。 | 同上 + `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` + `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` |
+| 寿元消耗 | lifeSpanCost | **成本类型 `selectCost` 的一个 element**：完成该事件对角色寿元的扣减。**内容侧以正数量值书写**（「耗 3 点」写 `3`），由 future-event-service 在**物化组装 spec 时取负**填入带符号的 `ChangeElement.BaseValue`。它是**控制篇章时长的主旋钮**（目标：**30–40 / 35–45 / 45–55 分钟**，熟练玩家口径），分档表待定。 | `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` + `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` |
 | 事件类型 | eventType | AdventureEvent 的共有字段：该事件归属九类子类型中的哪一类。 | `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` |
 | 选择成本 | selectCost | AdventureEvent 的共有字段，且是一个**定制的复合成本类型**：由若干成本 element 组成（`lifeSpanCost` 为其中之一），表示选中该事件以推进轮回所需付出的代价。**代码形态 = `ProfileChangeSpec`，在物化时组装。** | 同上 + `10-handoffs/2026-07-27b-service-api-contracts.md` |
 | 跳过成本 | skipCost | AdventureEvent 的共有字段：**跳过**该事件所需付出的代价；**与 `selectCost` 同为上述复合成本类型**（同一套 element 体系，数值取向不同）。 | 同上 |
@@ -47,7 +59,10 @@
 | 剧情节点 | AdventurePlot key points | Character 上记录的 AdventurePlot **关键节点 / 进度锚点**（完整剧本与分支内容不落在存档，见「剧本服务」）。 | 同上 |
 | 剧本服务 | script service | 存储**全部 AdventurePlot 剧本与分支内容**的（云端）服务；客户端按 key points 向其请求完整剧本 / 分支。 | 同上 |
 | 服务 | service | **进程内模块单例**（**不是**微服务：同一二进制、同一进程、直接方法调用）。**边界单元**，判据三选一：① 自有状态机 / 长流程 ② 事务性跨字段一致写 ③ 外部 I/O 边界。以 autoload 存在，彼此不互相读写字段。 | `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` |
-| 管理器 | manager | **服务内部的职能组件**（普通 C# 对象，非 `Node`）；共享宿主服务的事务边界与生命周期，**不被跨服务直接调用**。 | 同上 |
+| 管理器 | manager | **第二级抽象**：服务内部的职能组件（普通 C# 对象，非 `Node`）；共享宿主服务的事务边界与生命周期，**不被跨服务直接调用**。 | 同上 |
+| 模块 | module | **第三级抽象**：manager 内部的组件。命名后缀即层级声明（例：`DeckModule` —— 卡组由 `CharacterManager` / `EnemyManager` 各自持有、每参战方一份）。 | `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` |
+| 处理器 | processor | **第四级抽象**（名字先定，目前无实例）。 | 同上 |
+| 处理器件 | handler | **第五级抽象**（名字先定，目前无实例）。 | 同上 |
 | 后端 | backend | 客户端之外的**唯一真实进程边界**：账号鉴权 · 档案存储 · 剧本下发 · 内容分发。另一套代码库，不在本项目内。 | 同上 |
 | 编排顶点 | game-progression | 屏幕流程编排层（**不是服务**）：串联核心循环 `ComputeEventOptions → 呈现 → 选择 → AdvanceEvent → 重算`。 | 同上 |
 | 账号服务 | account-service | 服务：登录渠道、token / 会话、合规（AuthManager、ComplianceManager）。 | 同上 |
@@ -57,7 +72,8 @@
 | 生命周期服务 | life-cycle-service | 服务：轮回生命周期（开始 seed、推进、胜/负、清理、篇章继承、状态机、重试）。（CycleStateManager、ChapterManager、SeedManager） | `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` |
 | 未来事件服务 | future-event-service | 服务：依当前 CharacterProfile 产出 eventOptions，每个事件后重算；**eventOptions 唯一出口**。（EventOptionManager、PlotManager） | 同上 |
 | 隐藏剧本管理器 | PlotManager | **管理器，隶属 future-event-service**：隐藏属性驱动、key points ↔ 云端剧本服务、eventOptions 调制、DnD 式选分支。 | `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` |
-| 战斗服务 | combat-service | 服务：回合循环、抽/弃/洗、敌人意图；**Finale 复用其状态机**。（TurnManager、DeckManager、IntentManager） | 同上 |
+| 战斗服务 | combat-service | 服务：**固定 10 回合**的回合循环、抽/弃/洗、**双方道念与「道念高者胜」的判定**、敌人 AI 与意图（**意图按三档揭示**）；**Practice / Finale 为其变体**。（TurnManager、CharacterManager、EnemyManager；`DeckModule` 为第三级组件，每个 character / enemy 一份） | 同上 + `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` + `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` |
+| 付费礼包 | premium bundle | 唯一已陈述的付费点：购买后给予**随机 1 个 PlayerPower + 随机 2 个 PlayerItem**，并把**第二篇章重试上限 3 → 9、第三篇章 1 → 3**（第一篇章本就无限）。使 ADR-0004 的重试上限从常量变为**基线值**。归 `20-systems/monetization.md`。 | `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` |
 | 内容注册表 | ContentRegistry | content-service 的管理器：合并后按 `Id` 索引，暴露泛型仓储接口 `Get` / `TryGet` / `All` / `Where`。 | 同上 |
 | 档案管理器 | ProfileManager | profile-service 的管理器：`TryApply(spec)` 原子施加成本 / 产出（**全有或全无**）；modifier pipeline 的生效点。 | 同上 |
 | 内容覆盖层 | content overlay | `user://overlay/` 下由云端下发、按 `Id` 覆盖 `res://` 基线的热更内容增量。 | 同上 |
@@ -90,10 +106,10 @@
 
 | 中文 | 英文 / 代码 | 说明 |
 |------|------------|------|
-| 炼气 | Qi Refining | 第一境 |
-| 筑基 | Foundation Establishment | 第二境 |
-| 金丹 | Golden Core | 第三境 |
-| 元婴 | Nascent Soul | 第四境（终点 / 奖杯） |
-| 篇章 | Chapter | 相邻两境之间的一段攀登；一次轮回含三个篇章。 |
+| 炼气 | Qi Refining | 第一境；境内 **1 层 ~ 13 层**（全局 1–13） |
+| 筑基 | Foundation Establishment | 第二境；境内 **初期 / 中期 / 后期 / 巅峰**（全局 14–17） |
+| 金丹 | Golden Core | 第三境；境内 **初期 / 中期 / 后期 / 巅峰**（全局 18–21） |
+| 元婴 | Nascent Soul | 第四境（终点 / 奖杯）；**仅初期**（全局 22） |
+| 篇章 | Chapter | 相邻两境之间的一段攀登；一次轮回含三个篇章。篇章跨度 = 该境界的等级跨度（1→13 / 1→4 / 1→4）；**突破后等级归位为新境界的初期**。 |
 
-> 来源：`10-handoffs/2026-07-13.md`。
+> 来源：`10-handoffs/2026-07-13.md` + `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`（境界内等级与全局等级序）。

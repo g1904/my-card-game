@@ -8,6 +8,9 @@
 - **PlayerItem = 账号级、有使用次数限制的道具。** 独立于任何单次轮回，由 PlayerProfile 持有（`List<PlayerItem>`）；跨轮回持久。与角色级的 CharacterItems（`../../character-profile/item/`）区分开。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 - **可购道具定义。** 道具的**定义 / 可购语义**归入本处；**交易机制**本身（作为一种 AdventureEvent）归 `20-systems/adventure-event/exchange/`（Exchange / 交易）。即：道具**是什么**在这里，**如何买到**在 exchange。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
 
+- **一条已定的获取渠道 = premium bundle（已定案）。** 付费礼包一次性给予**随机 2 个 PlayerItem**（外加随机 1 个 PlayerPower）。这是目前唯一明确写下的 PlayerItem 获取途径——其余（Exchange 购买、事件产出）仍是方向而非定案。礼包全貌见 `20-systems/monetization.md`。Source: `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
+- **已获得的 PlayerItem 会进 PlayerItemCodex。** 图鉴族（见 `../codex/`）为 PlayerItem 单列一本，记录静态文案；与当前**持有**的 `List<PlayerItem>`（含剩余使用次数）是两回事。Source: 同上。
+
 > 具体的使用次数模型、可购字段等共有属性见 `common-properties.md`。
 
 ## 决策(-> ADR)

@@ -11,7 +11,7 @@
 | [balance](balance.md) | 平衡表：花费、伤害、掉落权重、ante 缩放。 |
 | [game-progression](game-progression.md) | 每个 ante 的进程推进（eventOptions 循环）、location（地域）、Travel 路由、blind/ante 缩放。 |
 | [adventure-event/](adventure-event/_index.md) | 修行事件顶层：9 个子类型 + 顶层共有属性。 |
-| &nbsp;&nbsp;├ [combat/](adventure-event/combat/_index.md) | 战斗事件；回合结构、敌人意图/AI、结算。 |
+| &nbsp;&nbsp;├ [combat/](adventure-event/combat/_index.md) | 战斗事件；**固定 10 回合**结构、mana + 道念模型、敌人 AI 与意图（**三档揭示：越阶硬门 + 同阶差值**）、结算。 |
 | &nbsp;&nbsp;├ [finale/](adventure-event/finale/_index.md) | 境界突破 / 收尾战。 |
 | &nbsp;&nbsp;├ [mystery/](adventure-event/mystery/_index.md) | 神秘事件。 |
 | &nbsp;&nbsp;├ [practice/](adventure-event/practice/_index.md) | 修行 / 练习事件。 |
@@ -23,16 +23,18 @@
 | [character-profile/](character-profile/_index.md) | 角色档案（单次轮回 / 单角色的状态与历史）。 |
 | &nbsp;&nbsp;├ [deck/](character-profile/deck/_index.md) | 卡组、抽牌/hand/弃牌、seeded 洗牌、卡牌定义、起始卡组。 |
 | &nbsp;&nbsp;├ [item/](character-profile/item/_index.md) | 角色持有的道具。 |
+| &nbsp;&nbsp;├ [power/](character-profile/power/_index.md) | **角色能力 CharacterPower**（轮回级，对标账号级 PlayerPower）。 |
 | &nbsp;&nbsp;├ [currency](character-profile/currency.md) | 轮回货币 jade。 |
-| &nbsp;&nbsp;├ [life](character-profile/life.md) | 生命 / 战斗血量。 |
+| &nbsp;&nbsp;├ [lifeTotal](character-profile/life-total.md) | 生命总量 / **战斗外的耐久与失败惩罚承受量**（战斗内不参与；归 0 → defeated；经 event 恢复）。 |
 | &nbsp;&nbsp;└ [mana](character-profile/mana.md) | 法力 / 每回合出牌资源。 |
 | [player-profile/](player-profile/_index.md) | 玩家档案（跨轮回的元进程）。 |
 | &nbsp;&nbsp;├ [player-item/](player-profile/player-item/_index.md) | 可购道具定义。 |
 | &nbsp;&nbsp;├ [player-power/](player-profile/player-power/_index.md) | 被动修正 / relic-joker。 |
 | &nbsp;&nbsp;├ [achievements/](player-profile/achievements/_index.md) | 分组成就与两档（60% / 90%）一次性奖励。 |
+| &nbsp;&nbsp;├ [codex/](player-profile/codex/_index.md) | **图鉴族（五个）**：Enemy / CharacterPower / PlayerPower / CharacterItem / PlayerItem —— 账号级静态文案知识，不含动态情报。 |
 | &nbsp;&nbsp;├ [account-info](player-profile/account-info.md) | 账号身份与状态元数据。 |
 | &nbsp;&nbsp;└ [game-setting](player-profile/game-setting.md) | 账号级常规系统设置。 |
-| [services/](services/_index.md) | 服务层索引：**两级层次 service ⊃ manager**、拆分轴原则、七个服务清单。 |
+| [services/](services/_index.md) | 服务层索引：**层级 service ⊃ manager ⊃ module ⊃ processor ⊃ handler**、拆分轴原则、七个服务清单。 |
 | &nbsp;&nbsp;├ [account-service](services/account-service.md) | 登录渠道、token / 会话、合规。（AuthManager、ComplianceManager） |
 | &nbsp;&nbsp;├ [content-service](services/content-service.md) | 内容资产：`res://` 基线 + `user://overlay/` 热更、按 Id 索引、统一仓储接口。**唯一内容读取入口。** |
 | &nbsp;&nbsp;├ [sync-service](services/sync-service.md) | 存档与云同步：Pull / Push、原子写、schema 迁移。 |
@@ -40,7 +42,8 @@
 | &nbsp;&nbsp;├ [life-cycle-service](services/life-cycle-service.md) | 轮回生命周期：开始(seed)、推进、胜/负、清理。（CycleStateManager、ChapterManager、SeedManager） |
 | &nbsp;&nbsp;├ [future-event-service](services/future-event-service.md) | 依 characterProfile 产出 eventOptions；**eventOptions 的唯一出口**。 |
 | &nbsp;&nbsp;│&nbsp;&nbsp;└ [plot-manager](services/plot-manager.md) | **manager，隶属 future-event-service**：隐藏剧本（剧本层级、隐藏属性驱动、key points、eventOptions 调制）。 |
-| &nbsp;&nbsp;└ [combat-service](services/combat-service.md) | 战斗驱动：回合循环、抽/弃/洗、敌人意图。（TurnManager、DeckManager、IntentManager） |
-| [scoring](scoring.md) | 计分模型。去向待确认，见 open-questions。 |
+| &nbsp;&nbsp;└ [combat-service](services/combat-service.md) | 战斗驱动：**固定 10 回合**循环、抽/弃/洗、敌人 AI 与意图（**三档揭示**）；**Practice / Finale 为其变体**。（TurnManager、CharacterManager、EnemyManager；`DeckModule` 为参战方内部第三级组件） |
+| [scoring](scoring.md) | **计分模型 = 道念（momentum）**：胜利点数，且**就是战斗的胜负判据**（**固定 10 回合**后道念高者胜；起始道念 = `baseMomentum`）。 |
+| [monetization](monetization.md) | 商业化：**premium bundle**（随机 1 PlayerPower + 2 PlayerItem + 篇章重试上限 3→9 / 1→3）。 |
 
 > 只有在确有真实设计意图时，才在此新增系统文档 / 文件夹；保持文件名与 knowledge 索引一致。复杂主题新增时下沉为文件夹（`_index.md` + `common-properties.md`）。

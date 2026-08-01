@@ -86,7 +86,8 @@ game-feature-branch/
 │   │   │   └── IPlotBackend.cs  HttpPlotBackend.cs  OfflinePlotBackend.cs
 │   │   └── Combat/
 │   │       ├── CombatService.cs
-│   │       ├── TurnManager.cs  DeckManager.cs  IntentManager.cs
+│   │       ├── TurnManager.cs  CharacterManager.cs  EnemyManager.cs
+│   │       └── CombatantDeck.cs      ← 参战方内部组件，每 character / enemy 一份
 │   ├── Progression/
 │   │   └── GameProgression.cs        ← 编排顶点
 │   └── UI/

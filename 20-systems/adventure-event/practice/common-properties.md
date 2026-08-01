@@ -5,7 +5,7 @@
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-- **对手 / 切磋对象引用。** Practice 事件引用一个（组）对手；沿用 Combat 的回合制战斗结构与 life + mana 模型。Source: `20-systems/adventure-event/_index.md`。
+- **对手 / 切磋对象引用。** Practice 事件引用一个（组）对手；沿用 Combat 的回合制战斗结构与 **mana + 道念**模型（胜负 = 道念高者胜，见 `20-systems/scoring.md`）。对手等级同样在 eventOptions 上**精确标注**。Source: `20-systems/adventure-event/_index.md` + `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 - **低风险标记。** Practice 与 Combat 的关键区别是风险等级（具体机制待定，见 `_index.md`）。Source: `20-systems/adventure-event/_index.md`。
 
 ## 决策(-> ADR)

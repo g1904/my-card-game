@@ -17,10 +17,12 @@
           └─▶ distilled into 20-systems / 40-ux living docs                  (status: distilled)
                  └─▶ settled choice?  record 50-decisions/ADR-####
                         └─▶ once a doc is fully detailed:  /derive-requirements
-                               └─▶ 60-requirements/FR-*.md   buildable feature specs + acceptance criteria
-                                      └─▶ Claude reads knowledge + FR → /blueprint → /implement
+                               └─▶ 60-requirements/FR-*.md   片区级 feature specs + acceptance criteria
+                                      └─▶ /breakdown-requirements
+                                             └─▶ 60-requirements/FR-*/   可执行子需求（一个 = 一次 blueprint）
+                                                    └─▶ knowledge + FR → /blueprint → /implement
 ```
-`90-inbox → 10-handoffs → 20-systems / 40-ux` 由 `/analyze-new-ideas` 承接。内容即系统的字段 / 内嵌类型，故**没有独立的内容文件夹**——内容写在 `20-systems/` 内。从详细设计到代码的**桥梁**是 `/derive-requirements`，它产出 `60-requirements/FR-*`——即 `/blueprint` 的输入。
+`90-inbox → 10-handoffs → 20-systems / 40-ux` 由 `/analyze-new-ideas` 承接。内容即系统的字段 / 内嵌类型，故**没有独立的内容文件夹**——内容写在 `20-systems/` 内。从详细设计到代码的**桥梁是两步**：`/derive-requirements` 产出片区级的 `60-requirements/FR-*`，`/breakdown-requirements` 再把**一份** FR 拆成同名文件夹内的**可执行子需求**——后者才是 `/blueprint` 的直接输入。两层结构、id 形态与签核语义见 `60-requirements/_index.md`。
 
 **derive 就绪度由 `/assess-derive-readiness` 单独评估**（全量扫描全部主题文档，写入 `open-questions.md` 的「derive 就绪度」小节），**由用户在时机成熟时手动调用**；它是该小节的**唯一写入者**。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不**顺带评估或更新就绪度——逐次 handoff 顺带的判定会迅速过时且互相矛盾。**当前状态：全库尚未进入可 derive 的阶段。**
 
@@ -28,7 +30,7 @@
 | 文件 | 内容 |
 |------|------|
 | `terminology.md` | **术语事实来源**：中文领域词 ↔ 英文/代码标识符。横跨所有主题文档，故置于根级。提炼至 `.claude/knowledge/dictionary.md`。 |
-| `program-overview.md` | **程序运行总览**：两级层次（service ⊃ manager）、服务 / 管理器职责矩阵、启动→登录→核心循环→轮回结束的端到端调用链、内容与档案的加载路径。横跨所有系统，故置于根级。结构与边界权威在 `20-systems/architecture.md`。 |
+| `program-overview.md` | **程序运行总览**：层级词表（service ⊃ manager ⊃ module ⊃ processor ⊃ handler）、服务 / 管理器职责矩阵、启动→登录→核心循环→轮回结束的端到端调用链、内容与档案的加载路径。横跨所有系统，故置于根级。结构与边界权威在 `20-systems/architecture.md`。 |
 | `system-overview.md` | **项目结构与落地形态**：进程边界（service = 进程内模块单例，**非**微服务）、Godot 工程文件夹布局、autoload 注册、service / manager 的代码形态。 |
 | `open-questions.md` | 跨 session 的待答清单，**只跟踪仍待答的问题**（无「已解决」区）；主题文档的 `## Open questions` 是权威归属，此处是导航。答定即移出到 `answer-logs/`。 |
 
@@ -40,7 +42,7 @@
 | `20-systems/` | 各玩法系统的设计意图，以**类概念**组织（每个系统一个「类」，其内容为字段/内嵌类型）。文件名与 `.claude/knowledge/systems/` 对应。 | 持续更新；**只保留最新设计**（重写替换，见下）。 |
 | `40-ux/` | 屏幕、流程、手感（文本线框图）。 | 持续更新；**只保留最新设计**。 |
 | `50-decisions/` | ADR 风格的已定决策。 | 可修改（软件开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
-| `60-requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往 `/blueprint` 的桥梁。由 `/derive-requirements` 生成；用户签核（`draft → ready`）。 | 持续更新；随设计深化而重新生成/扩展。 |
+| `60-requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往 `/blueprint` 的桥梁。由 `/derive-requirements` 生成、用户签核（`draft → ready`），再由 `/breakdown-requirements` 拆成同名文件夹内的可执行子需求（`FR-*/`）。 | 持续更新；随设计深化而重新生成/扩展。 |
 | `90-inbox/` | 未整理的草稿，待分流到 handoff/主题中。两类：手写的 `draft-<suffix>.md`；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。 | 自由发挥。 |
 | `answer-logs/` | 已答定问题从 `open-questions.md` 移出的归档台账，一次移出一份 `log-<draftSuffix>.md`（`draftSuffix` = 对应 `90-inbox/draft-<suffix>.md` 的后缀 或 `solution-draft-<slug>.md` 的 `<slug>`，无草稿来源则用当天 `MMDD`）。由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。 | 历史台账，一次移出新建一份；与本库其余文档一样可编辑修正，非仅追加。 |
 

@@ -18,6 +18,10 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-0801b.md` | 2026-08-01 | `90-inbox/draft-0801b.md`（战斗定长 10 回合 / 道念产出途径与起始 `baseMomentum` / 胜利侧读道念差 / `life` → `lifeTotal` 归 0 = defeated / 意图分界值 = 越阶硬门 + 同阶差值 / 敌人等级 = `EnemyTemplate` 物化产物 / 全局等级序基数无跳变 / 图鉴五项文案一次全解锁 / 抽象层级五级定名；追加：ch1 分档 1–2 / ≥3、`baseMomentum` 补齐、CharacterPower 定性、平局只发基础奖励、付费口径确认、`lifeTotal` 字段改名） | 15 |
+| `log-0801.md` | 2026-08-01 | `90-inbox/draft-0801.md`（玩法循环整体评审后的逐条裁决：道念 = 计分 = 胜负判据 / 寿元定价按目标时长分档 + 跨篇章结转 / 跳过限可选事件 / `manaLimit` 不设护栏 / 隐藏属性跨档定性反馈 / 等级成长 = 事件产出 + 敌人等级精确标注 / 失败侧产出） | 6（另 3 条部分答定） |
+| `log-0730b.md` | 2026-07-30 | `90-inbox/draft-0730b.md`（意图三档揭示取代「通常不揭示」/ 例外条件反转 / EnemyManager 不再细分 + CharacterManager 平级 / mana 每回合恢复至上限 / 决策点存档与 `selectCost` 不回滚 / Finale 为战斗变体） | 6 |
+| `log-0730.md` | 2026-07-30 | `90-inbox/draft-0730.md`（`.claude` 工程层定位与主从关系 / 寿元红字倒数呈现细节 / IntentManager 并入 EnemyManager） | 3 |
 | `log-0728.md` | 2026-07-28 | 直接对话（无草稿来源）：`.claude/knowledge` 引用层形态 → 薄引用，固化为 ADR-0005 | 1 |
 | `log-service-api-contracts.md` | 2026-07-27 | `90-inbox/solution-draft-service-api-contracts.md`（七服务 API 契约总则 / 结算阶段名 / CombatResult 归属 / 跨服务调用措辞 / eventOptions 持久化形态） | 5 |
 | `log-0727.md` | 2026-07-27 | `90-inbox/draft-0727.md`（内容放量开关 / 双 contentVersion / 增量下载与签名 / 断线韧性 / RNG 持久化 / 存档点频率） | 9 |

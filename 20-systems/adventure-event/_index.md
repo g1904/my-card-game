@@ -6,7 +6,7 @@
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
 - **AdventureEvent = 逐时逐刻的游玩单元。** 玩家从当前可用项（eventOptions，由 future-event-service 产出）中择一以推进轮回。Source: `10-handoffs/2026-07-24-docs-restructure-class-model.md`。
-- **并非每个 AdventureEvent 都是一场战斗。** 战斗存在，但这是对 Slay the Spire「每个节点都战斗」节奏的有意背离——仅 战斗（Combat）及其变体 修炼（Practice）走战斗结算、境界突破（Finale）走独立结算，其余子类型是非战斗事件。Source: `10-handoffs/2026-07-13.md`。
+- **并非每个 AdventureEvent 都是一场战斗。** 战斗存在，但这是对 Slay the Spire「每个节点都战斗」节奏的有意背离——**仅 战斗（Combat）及其两个变体 修炼（Practice）、境界突破（Finale）走战斗结算**（三者共用 combat-service 的回合循环与参战方结构，差异在胜负条件与奖惩），其余六类是非战斗事件。（少部分 Finale 为非战斗形态，待日后定制。）Source: `10-handoffs/2026-07-13.md` + `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
 - **事件 / 抉择机制参照《月圆之夜》（Night of the Full Moon）建模。** AdventureEvent 呈现事件 / 选择，其后果影响玩家及未来状态；节点呈现形态为精心策划的事件菜单（已定案）。Source: `10-handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 - **底层压力遵循一种类 Reigns 的属性平衡手感**——选择在相互竞争的仪表间摆动，而非优化单一数值；但本作属性**隐藏**（见 `20-systems/services/plot-manager.md`）。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 - **九类子类型。** 见下表；顶层共有属性见 `common-properties.md`。Source: `terminology.md`、`10-handoffs/2026-07-24-docs-restructure-class-model.md`。
@@ -26,6 +26,8 @@
 | 前往某处地点 | Travel | 地图路由选择：刷新角色所在的 location（地域）（第九类） | `travel/_index.md` |
 
 > 休养 / Rest 不单列，并入 战斗 或 闭关。Source: `terminology.md`。
+
+- **逐类型各开一次专门 session（流程意图，已定案）。** 九类子类型的机制细化**不在一次 handoff 里做完**：后续将**为每一类各开一次专门的 session**（Combat、Practice、Mystery、Exchange、Research、Explore、Social、Travel、Finale），逐类填充其 `<type>/` 子文档。因此这些子文档目前仍是空占位——它们在**等各自的专场**，而非被遗漏；不要在通用文档里替它们臆造机制。Source: `10-handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md`。
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 50-decisions/ADR-####。_
