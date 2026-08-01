@@ -1,6 +1,6 @@
 # Autoload（服务）索引（引用层）
 
-> **权威：`game-design-documents/20-systems/services/`**（`_index.md` 两级层次 + 七服务；各服务文档带「API 面（契约）」四列表：方法 | 形态(A/B/C) | 完整签名 | 失败语义）与根级 `program-overview.md`（启动顺序 / 职责矩阵）、`system-overview.md`（代码形态）。**签名、接口、代码块一律去那边看**——此处只留导航与代码现状。
+> **权威：`game-design-documents/20-systems/services/`**（`_index.md` 层级词表 + 七服务；各服务文档带「API 面（契约）」四列表：方法 | 形态(A/B/C) | 完整签名 | 失败语义）与根级 `program-overview.md`（启动顺序 / 职责矩阵）、`system-overview.md`（代码形态）。**签名、接口、代码块一律去那边看**——此处只留导航与代码现状。
 
 ## 代码现状
 
@@ -16,7 +16,7 @@
 | **profile-service** | ② | ProfileManager、CapabilityManager、AchievementManager | **两个 Profile 的唯一写入面**；capability 聚合；成就。 |
 | **life-cycle-service** | ① | CycleStateManager、ChapterManager、SeedManager | 轮回生命周期、篇章边界与重试、具名 RNG 子流。 |
 | **future-event-service** | ① | EventOptionManager、PlotManager | 物化 AdventureEvent → eventOptions（**唯一物化点 / 唯一出口**）。 |
-| **combat-service** | ① | TurnManager、DeckManager、IntentManager | 回合循环、抽/弃/洗、敌人意图。**Finale 复用。** |
+| **combat-service** | ① | TurnManager、CharacterManager、EnemyManager（+ 各持一个 `DeckModule`） | **固定 10 回合**循环、抽/弃/洗、双方道念、敌人 AI 与意图（**三档揭示**）。**Finale 复用。** |
 
 判据（三选一才够格成为服务）：① 自有状态机 / 跨多帧长流程；② 事务性跨多字段一致写；③ 外部 I/O 边界。
 

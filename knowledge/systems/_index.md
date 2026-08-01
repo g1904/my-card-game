@@ -26,7 +26,7 @@
 | ├ Deck | `character-profile/deck/` | TODO | draw/hand/discard 牌堆、seeded 洗牌、卡牌定义与结算。 |
 | ├ 道具 | `character-profile/item/` | TODO | 角色持有的道具。 |
 | ├ 货币 | `character-profile/currency.md` | TODO | 轮回货币（灵玉 jade）的获取 / 花费。 |
-| ├ 生命 | `character-profile/life.md` | TODO | 生命 / HP。 |
+| ├ 生命 | `character-profile/life-total.md` | TODO | 生命 / HP。 |
 | └ 法力 | `character-profile/mana.md` | TODO | 每回合出牌资源。 |
 | 玩家档案 | `player-profile/_index.md` | TODO | 账号级元进程主档（跨轮回持久）。 |
 | ├ 玩家道具 | `player-profile/player-item/` | TODO | 账号级、有次数限制的道具。 |
@@ -34,7 +34,7 @@
 | ├ 成就 | `player-profile/achievements/` | TODO | 成就分组与档位进度。归 AchievementManager。 |
 | ├ 账号信息 | `player-profile/account-info.md` | TODO | 账号级元数据。 |
 | └ 游戏设置 | `player-profile/game-setting.md` | TODO | 音频 / 显示 / 辅助功能等玩家设置。 |
-| 服务层 | `services/_index.md` | TODO | 两级层次 + 七服务；各服务文档带 API 契约表。**服务清单见 `autoloads/_index.md`。** |
+| 服务层 | `services/_index.md` | TODO | 层级词表 + 七服务；各服务文档带 API 契约表。**服务清单见 `autoloads/_index.md`。** |
 | 计分 | `scoring.md` | TODO | 计分模型去向待确认，见 `open-questions.md`。 |
 
 ## 承重纪律

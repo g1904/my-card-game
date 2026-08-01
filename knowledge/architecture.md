@@ -14,7 +14,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 | `systems/*` | `20-systems/`（类模型化结构） |
 | `data/*` | `20-systems/`（内容即各系统的字段 / 内嵌类型） |
 | `scenes/*` | `40-ux/`（screen-flow、combat-ux、onboarding） |
-| `autoloads/*` | `20-systems/services/`（七服务 + 两级层次 + 各服务 API 契约表） |
+| `autoloads/*` | `20-systems/services/`（七服务 + 层级词表 + 各服务 API 契约表） |
 | 已定案决策 | `50-decisions/ADR-*` |
 | 待答问题 | `open-questions.md` |
 | 可构建规格 | `60-requirements/FR-*` |
@@ -32,7 +32,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 
 ## 结构骨架（一句话版，细节见权威）
 
-- **两级层次：service ⊃ manager。** 七个服务以 autoload 存在，各自命中「①自有状态机 / ②事务性跨字段写 / ③外部 I/O 边界」三判据之一；manager 是服务内部的普通 C# 对象。清单见 `autoloads/_index.md`。
+- **层级：service ⊃ manager ⊃ module ⊃ processor ⊃ handler**（现有实例止于第三级 `DeckModule`）。 七个服务以 autoload 存在，各自命中「①自有状态机 / ②事务性跨字段写 / ③外部 I/O 边界」三判据之一；manager 是服务内部的普通 C# 对象。清单见 `autoloads/_index.md`。
 - **拆分轴 = 生命周期层 + 行为边界，不是数据类型。** 不按 power / item / card 各开服务，也不为九类 AdventureEvent 各开服务——只有 Combat 真有状态机，其余差异在**数据**而非代码。
 - **两条唯一入口 + 一个编排顶点：** 内容读取 = `content-service.ContentRegistry`；档案写入 = `profile-service.ProfileManager.TryApply(spec)`；编排顶点 = game-progression（非服务，串联核心循环）。
 - **展示层三层：** 静态文案留在 `XxxData : Resource` → 运行时 / 存档态只带 `Id` + 可变状态 → 呈现期 ViewModel 组装（不落存档、不进云端负载）。
