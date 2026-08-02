@@ -1,6 +1,7 @@
 # player-item
 
-> 玩家道具 / **PlayerItem** —— 账号级、有使用次数限制的道具，含可购道具定义。
+> **古宝 / PlayerItem** —— 账号级、有使用次数限制的道具，含可购道具定义。
+> **中文定名 = 古宝**（08-03 定，取代「玩家道具」）；轮回级的对应物是 **法宝 / CharacterItem**（`../../character-profile/item/`）。**中文名不表达层级**。Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_

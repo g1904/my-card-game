@@ -45,9 +45,11 @@
 | **profile-service** | ② | ProfileManager、CapabilityManager、AchievementManager | [profile-service](profile-service.md) |
 | **life-cycle-service** | ① | CycleStateManager、ChapterManager、SeedManager | [life-cycle-service](life-cycle-service.md) |
 | **future-event-service** | ① | EventOptionManager、PlotManager | [future-event-service](future-event-service.md) ⊃ [plot-manager](plot-manager.md) |
-| **combat-service** | ① | TurnManager、CharacterManager、EnemyManager | [combat-service](combat-service.md) |
+| **combat-service** | ① | TurnManager、CharacterManager、EnemyManager、BattlefieldManager、StackManager | [combat-service](combat-service.md) |
 
 > **combat-service 的卡组 = `DeckModule`（第三级）。** 抽 / 弃 / 洗与 seeded 洗牌归**参战方内部的 module**，由 CharacterManager 与 EnemyManager 各自持有，**每个 character / enemy 一份**（敌人也出牌，可带定制卡组）。CharacterManager 与 EnemyManager 共享大量参战方接口，差异只在驱动方式——前者监听玩家操作，后者代理 AI 行为选择与意图生成。Source: `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
+>
+> **战场与栈各自一个 manager（08-03）。** **BattlefieldManager** 持有 **battlefield（战场）**——场上正在生效的卡牌 / 持续状态 / 触发器注册面；**StackManager** 持有**栈**——压栈、LIFO 结算、连锁触发的解决顺序。**二者是两个区**：栈 = 等待结算的队列，战场 = 已结算并正在生效的东西。**属于某一方的 mana / 道念 / 手牌 / 卡组仍归两个参战方 manager。** Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
 
 **编排顶点 = game-progression**（不是服务，是屏幕流程编排层）。核心循环 `ComputeEventOptions → 呈现 → 玩家选择 → AdvanceEventAsync → 重算` 由它串联。见 `20-systems/game-progression.md`。
 

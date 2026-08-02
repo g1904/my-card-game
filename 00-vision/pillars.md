@@ -39,6 +39,6 @@
 ## 反目标
 > _本作刻意*不*成为的东西。_
 
-- **不是**像 *Magic: The Gathering* 那样规则繁重的系统（不搞深度的堆栈/优先权复杂度）。
+- **不是**像 *Magic: The Gathering* 那样规则繁重的系统（不搞深度的堆栈/优先权复杂度）。**08-02b 明确落实：** stack 作为**结算模型**保留（打出 / 结算两时刻、LIFO），但**交互（instant、栈非空时出牌）与优先权传递整体移除**——它们拉长时长、决策点过多、复杂度高而深度收益小。见 `20-systems/services/combat-service.md`。Source: `10-handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md`。
 - **不是**被动观看的、把某场 D&D 冒险改编成的视觉小说——你要*玩*它，而不是*看*它。
 - **不是**像 *StarCraft* 或 *Civilization* 那样基于反应/高 APM 或庞杂的 4X 体验。

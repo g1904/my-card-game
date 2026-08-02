@@ -46,6 +46,14 @@
   - **它是「模板 ↔ 实例」通则的第三个实例**（前两个是 `AdventureEventData ↔ EventOption`、`CardData ↔ CardInstance`，见 `20-systems/architecture.md` 总则 6）：模板是 ContentRegistry 里的共享只读单例，**本服务不得写回它**；改写只发生在物化产出上。
   - **样本卡组同理**：模板给基线卡组，物化时可改写（Finale 的天劫即极端情形——定制卡组的 Enemy）。
 
+- **赋级的上界 = 高一个大境界的初期（已定案 · 08-03 · 内容侧硬约束）。** 物化赋级的天花板是**比角色当前境界高一个大境界的初期**——例：**炼气期的角色，最高遇到筑基初期**。
+  - **上界按境界给，不按等级差给。** 它是一条**绝对天花板**（由角色所处**境界**决定），不是一条 `diff` 上限。
+  - **推论 ①：上界档的敌人必然是越阶 ⇒ 必然完全黑箱。** 按既定的意图规则（越阶 = 硬门），「本篇章可能遇到的最强敌人」天然没有任何意图信息——**最难的遭遇即最不可读**，这是规则的必然结果而非另加的设计。
+  - **推论 ②：元婴（全局 22）无更高境界**，上界退化为同境界；且抵达元婴即轮回终点，实际不产生遭遇。
+  - **推论 ③：上界只约束「最高能出到几级」，不约束分布。** 多久出现一次上界档、以什么权重出现，仍归本服务的加权规则（待定）。
+  - **⚠ 与「一次惨败不打穿耐久」的初衷存在算术冲突**（境界内低层角色面对的最坏差距远大于高层角色），见待决问题。
+  Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
+
 ## 管理器
 
 | manager | 职责 |
@@ -111,7 +119,9 @@ public sealed record EventOptionBatch(
 - **生成 / 加权规则未定。** 服务化架构已定，但从 characterProfile **生成 / 加权抽取** eventOptions 的具体规则（月圆之夜式策划 vs 随机权重、每批数量、node 类型配比）未定。→ `20-systems/game-progression.md`。Source: `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md`。
 - **`EventOption` 的完整物化字段清单未定（07-27b 收窄）。** 骨架九字段已定（`InstanceId` / `EventId` / `EventType` / `Priority` / `IsMandatory` / `SelectCost` / `SkipCost` / `IsRevealed` / `RevealedEventId`）；但「**多数**属性由物化决定」意味着还有一批未列出的字段：哪些数值可被情境改写？风味文案是否也物化？outcome 权重是否在物化时固化？这需要一次**内容侧** handoff 才能定稿。→ `20-systems/adventure-event/common-properties.md`。Source: `10-handoffs/2026-07-27b-service-api-contracts.md`。
 - **物化后的敌人实例的类型形态未定（08-01b 收窄）。** **来源已答定**（`EnemyTemplate` + 物化时充实赋级）；仍待定：该实例叫什么（`EnemyInstance`？）、它是**嵌在 `EventOption` 上**随批次落存档，还是只记引用、待战斗开始时由 combat-service 展开；一个事件带多个敌人时如何组织；以及 **`EnemyTemplate` 与既有 `EnemyData` 是否同一个东西**（若是则需统一定名）。→ `20-systems/adventure-event/combat/`、`combat-service.md`。Source: `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
-- **物化时「充实 / 改写」的规则未定。** 依什么决定这次给几级、卡组怎么改（角色等级？篇章？location？剧本调制？）——它与 eventOptions 的加权规则同属一套物化策略，但敌人侧的规则尚未陈述。→ `20-systems/balance.md`。Source: 同上。
+- **物化时「充实 / 改写」的规则未定。** 依什么决定这次给几级、卡组怎么改（角色等级？篇章？location？剧本调制？）——它与 eventOptions 的加权规则同属一套物化策略，但敌人侧的规则尚未陈述。**上界已于 08-03 答定**（高一个大境界的初期，见「意图」）；**分布未定**。→ `20-systems/balance.md`。Source: 同上 + `10-handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
+- **⚠ 赋级上界与 lifeTotal 的算术冲突（08-03 新增 · 承重 · 需裁决）。** 上界按境界给，故**境界内低层角色面对的最坏差距远大于高层角色**：炼气一层（`baseMomentum` 1）对筑基初期（20）= 开局落后 19，而炼气 `lifeTotal` 只有 10/10 —— 一次惨败直接打穿耐久，**恰是这条上界原本要规避的情形**。可能的收口：① 再叠一条相对 `diff` 上界；② 只在境界后期才允许出到上界档（把上界与角色在境界内的进度挂钩）；③ 抬 `lifeTotalLimit` 的境界基线。→ `20-systems/balance.md`、`20-systems/character-profile/life-total.md`。Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
+- **Finale 的天劫是否同受赋级上界约束（08-03 新增）。** 若受约束则**天劫 = 下一境界的初期**——与「渡劫即突破到该境界」的叙事恰好吻合；若不受则天劫可任意越阶。→ `20-systems/adventure-event/finale/`。Source: 同上。
 - **定稿实例快照的存档字段形态未定（07-27b 收窄）。** 持久化**方式**已定案（落物化后的定稿实例快照，不重算——见「意图」）；仍待定的是快照的**字段形态 / schema**：`pastEvent` 如何区分「进入并结算」与「跳过」两种痕迹、快照存哪些字段、以及**快照体积对增量 push 粒度的影响**。→ `20-systems/adventure-event/common-properties.md`、`sync-service.md`。Source: 同上。
 - **框定叠加顺序。** location 框定、PlotManager 调制、seeded RNG 三者的叠加顺序与优先级未定。→ `20-systems/game-progression.md`、`20-systems/services/plot-manager.md`。
 - **补位落空的判定规则未定。** 「也可能没有新的」——在什么条件下本服务补不出事件（事件池耗尽？优先级 / 剧本约束不允许？）？eventOptions 是否允许被跳到只剩 0 个？若剩 0 个，玩家如何推进（死局兜底）？Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。

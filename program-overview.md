@@ -57,8 +57,11 @@
 | **combat-service** | ① | TurnManager | **定长 10 回合**循环（双方各 5；回合开始 mana 恢复至 `manaLimit`） |
 | | | CharacterManager | 玩家侧参战方：角色对战状态、其卡组、出牌通道；**监听玩家操作** |
 | | | EnemyManager | 敌人侧参战方：敌人实例与状态、其卡组、AI 行为选择与意图生成；**代理操作** |
+| | | BattlefieldManager | **战场（battlefield）**：场上生效中的卡牌 / 持续状态 / **触发器注册面**，及回合内 / 跨回合的生命周期标记与清理 |
+| | | StackManager | **栈（stack）**：压栈、**LIFO 结算**、连锁触发的解决顺序 |
 
 > **卡组 = `DeckModule`（第三级），不是平级 manager**：抽 / 弃 / 洗（seeded）归参战方内部的 module，CharacterManager 与 EnemyManager 各自持有，**每个 character / enemy 一份**（敌人也出牌）。Source: `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
+> **栈与战场是两个区**：栈 = 等待结算的队列，战场 = 已结算并正在生效的东西；结算路径 = 打出 → 入栈 → LIFO 弹出结算 → 效果施加 →（若持续）落到战场。属于某一方的 mana / 道念 / 手牌 / 卡组仍归两个参战方 manager。Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
 
 **非服务的横切件：**
 
@@ -173,6 +176,8 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      │   │                         → 结算 → 换手（共 10 回合）      │
 │      │   │     CharacterManager  玩家侧参战方（卡组 / 监听玩家操作）│
 │      │   │     EnemyManager      敌人侧参战方（卡组 / AI / 意图）    │
+│      │   │     StackManager      压栈 → LIFO 结算 → 连锁触发         │
+│      │   │     BattlefieldManager 场上生效中的牌 / 持续状态 / 触发器 │
 │      │   │       意图三档：越阶即黑箱 + 同阶差值（完整/仅类别/无）  │
 │      │   │     战斗内所有写入 ─▶ ProfileManager                     │
 │      │   │     决策点 ─▶ 存档（退出重进恢复同一局面 + RNG 状态）    │

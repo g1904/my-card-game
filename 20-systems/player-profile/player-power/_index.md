@@ -1,6 +1,7 @@
 # player-power
 
-> 玩家能力 / **PlayerPower** —— 账号级 always-available 能力，带开关（默认开启）；通过事件触发器的被动修正 / relic-joker，含 RelicData 定义。
+> **法则 / PlayerPower** —— 账号级 always-available 能力，带开关（默认开启）；通过事件触发器的被动修正 / relic-joker，含 RelicData 定义。
+> **中文定名 = 法则**（08-03 定，取代「玩家能力」）；轮回级的对应物是 **神通 / CharacterPower**（`../../character-profile/power/`）。**中文名不表达层级** —— 账号级 ↔ 轮回级的对称只在英文标识符上成立。Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
@@ -32,6 +33,7 @@
 - **道统残卷概率的累积规则与上限（08-01 新增）。** 方向已定（失败累积概率、获得即重置）；仍待定：**累积粒度**（每次失败 +X%？按抵达的篇章 / 等级深度加权？）、**上限**（是否封顶，封在哪）、**与 seed 公平性的关系**（掉落掷骰走哪条 RNG 子流、是否影响轮回可复现性）、以及概率状态**落在 PlayerProfile 的哪个字段**。→ `20-systems/services/life-cycle-service.md`、`20-systems/common-properties.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 - **PlayerPower 平衡边界待定。** 是否影响 cycle seed / 计分公平、防 pay/grind-to-win 的边界均待定。→ 见 `20-systems/services/life-cycle-service.md`。Source: `10-handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 - **获取 / 失去触发未设计。** 「AdventureEvent 过程中也可能失去」的具体触发、开关 UI 均未细化。**已有两条获取渠道**：道统残卷（轮回开始时的概率掉落）与 premium bundle（付费随机 1 个）；**二者的交互未定**——礼包给的 power 是否重置残卷概率？两条渠道的「随机」是否共用同一个候选池与排重规则？走哪条 RNG（**不应污染轮回 seed 的确定性**）？→ `20-systems/monetization.md`、`20-systems/services/life-cycle-service.md`。Source: `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
+- **法则能否承载战斗内触发（08-03 新增）。** 轮回级的**神通（CharacterPower）已确认可承载**战斗内的触发式效果（与牌上触发器、场上持续状态并列）；账号级的法则能否也承载未陈述。若可，则 combat-service 组装参战方时还要读 PlayerProfile 一侧的持有列表。→ `20-systems/services/combat-service.md`。Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
 - **relic / joker 内容为占位。** 触发条件、效果关键字、RelicData 字段清单均尚未设计，需一次 handoff。
 
 ## 对应

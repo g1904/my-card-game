@@ -16,8 +16,8 @@
 
 | 子系统 | 文件 | 内容 |
 |--------|------|------|
-| 玩家道具 player-item | `player-item/_index.md`、`player-item/common-properties.md` | 账号级、有使用次数限制的道具（PlayerItem），含可购道具定义。 |
-| 玩家能力 player-power | `player-power/_index.md`、`player-power/common-properties.md` | 账号级 always-available 能力（PlayerPower，带开关）；通过事件触发器的被动修正 / relic-joker，含 RelicData 定义。 |
+| 古宝 player-item | `player-item/_index.md`、`player-item/common-properties.md` | 账号级、有使用次数限制的道具（PlayerItem），含可购道具定义。 |
+| 法则 player-power | `player-power/_index.md`、`player-power/common-properties.md` | 账号级 always-available 能力（PlayerPower，带开关）；通过事件触发器的被动修正 / relic-joker，含 RelicData 定义。 |
 | 成就 achievements | `achievements/_index.md`、`achievements/common-properties.md` | 账号级分组成就与两档（60% / 90%）一次性奖励；80/20 可见比例。 |
 | 图鉴族 codex | `codex/_index.md`、`codex/common-properties.md`、`codex/enemy-codex.md` | **五个账号级图鉴**（Enemy / CharacterPower / PlayerPower / CharacterItem / PlayerItem）：记录已遭遇 / 已获得对象的**静态文案知识**，不记录动态情报。 |
 | 账号信息 account-info | `account-info.md` | 账号身份与状态元数据（AccountInfo）；强制账号登录，无游客态。 |

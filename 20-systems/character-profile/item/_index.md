@@ -1,6 +1,7 @@
 # item
 
-> 角色级道具 —— CharacterProfile 持有的、随单次轮回存在的道具（`List<CharacterItems>`），含道具设计内容。占位结构，细节待定。
+> **法宝 / CharacterItem** —— CharacterProfile 持有的、随单次轮回存在的道具（现有写法 `List<CharacterItems>`），含道具设计内容。占位结构，细节待定。
+> **中文定名 = 法宝**（08-03 定，取代「角色道具 / 角色物品」）；账号级的对应物是 **古宝 / PlayerItem**。**中文名不表达层级**。**标识符的单复数待统一**（`CharacterItem` vs `CharacterItems`），见待决问题。Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
@@ -17,6 +18,7 @@
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
+- **`CharacterItem` 的标识符单复数不一致（08-03 新增）。** 中文定名「法宝」对应 `CharacterItem`（单数），但全库既有写法是 `List<CharacterItems>`（复数）。是否统一为 `CharacterItem` 未定。→ `terminology.md`。Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
 - **角色级道具语义未设计。** 除「CharacterProfile 持有 `List<CharacterItems>`」这一持有关系外，道具的种类、获取 / 消耗 / 效果、与卡牌 / PlayerPower / PlayerItem 的边界均未设计，需一次 handoff。
 
 ## 对应

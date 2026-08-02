@@ -37,12 +37,13 @@
   ```
 
   **境界之间不留跳变（已定案）：** 全局序就是连续的 1–22，枚举值自带描述（`level=1` → 炼气一层，`level=14` → 筑基初期，…）。**境界鸿沟改由 `baseMomentum` 承载**——每个等级对应一个战斗起始道念，筑基以上每级跨度持续放大（表见 `20-systems/balance.md`）。这条分工让等级序保持为一把简单的直尺，而把「跨境界有多难」放进战斗数值里。Source: 同上 + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
-- **等级成长 = 事件产出（已定案）。** 境界内等级由 **AdventureEvent 的 reward 给予**：
-  - **不只绑定 Combat / Practice** —— 任何类型的修行事件都可能给等级产出（闭关、探索、社交皆可）。
-  - **不只有胜利才给** —— **失败同样可能有等级产出**（挫折亦是修行）。这与「失败侧应有产出」的取向一致（见 `20-systems/player-profile/codex/`、`player-power/`）。
-  - 它与 `manaLimit` 同属一套「由事件 cost / reward 推拉」的成长体系，走同一条 `ProfileChangeSpec` → `TryApply` 链路（见 `20-systems/services/life-cycle-service.md`）。
+- **等级成长 = 事件产出经验值（已定案）。** 境界内等级由 **AdventureEvent 的 reward 给予**，但**给的是经验值而非等级本身**：
+  - **`experiencePoint`（经验值）是 CharacterProfile 上的一个字段（已定案 · 08-02）。** **每个等级各有一个升级所需的经验阈值**；事件奖励**发放经验值**，累积达到阈值才升一级。**推论：「事件直接给等级」的先前表述作废**——等级成长多了一层累积量，产出因此可以做得**细碎而连续**（一次事件给几点经验），而不必每次都是一次跳级。**阈值曲线待定**，见待决问题。Source: `10-handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
+  - **不只绑定 Combat / Practice** —— 任何类型的修行事件都可能给经验产出（闭关、探索、社交皆可）。
+  - **不只有胜利才给** —— **失败同样可能有经验产出**（挫折亦是修行）。这与「失败侧应有产出」的取向一致（见 `20-systems/player-profile/codex/`、`player-power/`）。**推论：经验值让「失败给的比胜利少」有了自然的表达**——同一个量的不同数值，不需要「给不给等级」这种全有全无的判断。
+  - 它与 `manaLimit` 同属一套「由事件 cost / reward 推拉」的成长体系，走同一条 `ProfileChangeSpec` → `TryApply` 链路（见 `20-systems/services/life-cycle-service.md`）。**经验值是战斗奖励中「强制自动计入」的那一类**（见 `20-systems/services/combat-service.md`）。
   - **产出的频次与分布未定**，见待决问题——它与寿元预算的花法互相约束。
-  Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+  Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` + `10-handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
 
 ### 进程形态与节点呈现
 - **eventOptions 的服务化生成。** 「从当前可用的 AdventureEvent 中选择」由 **future-event-service** 依当前 characterProfile 产出一批 `List<EventOption> eventOptions`（见 `20-systems/services/future-event-service.md`）。**进程是逐批择一的线性推进，不是可俯瞰的分支地图**：事件之间没有预先连好的边，每一步的可选集都是当场算出来的；CharacterProfile 向后以 `pastEvent` 持有已走过的历程轨迹。Source: `10-handoffs/2026-07-15-adventure-event-profiles.md` + `10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md`。
@@ -67,7 +68,8 @@
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **等级产出的频次与分布（途径已定，分布未定）。** 「等级成长 = event reward、不只战斗类、失败也可能给」已定案；仍待定：一章内需要多少个「升级型产出」才能从 1 爬到 13（炼气）/ 1 到 4（筑基 · 金丹）、它们在事件池中如何分布、失败给的产出是否弱于胜利。**这会反向约束该章的事件总数与寿元预算的花法。** → `20-systems/balance.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+- **`experiencePoint` 的升级阈值曲线（08-02 新增 · 承重）。** 载体已定案（每级一个经验阈值、事件奖励发经验、累积达阈值升级）；**曲线未定**：炼气 13 级 / 筑基 · 金丹各 4 级各需多少经验，是线性、递增还是每境界重置量纲。它与单次事件的经验给予量互为倒数，两者须一同确定。→ `20-systems/balance.md`。Source: `10-handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
+- **经验产出的频次与分布（途径已定，分布未定）。** 「等级成长 = event reward 发经验、不只战斗类、失败也可能给」已定案；仍待定：一章内的经验总供给要够从 1 爬到 13（炼气）/ 1 到 4（筑基 · 金丹）、如何分布在事件池中、失败给的经验比胜利少多少。**这会反向约束该章的事件总数与寿元预算的花法。** → `20-systems/balance.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` + 同上。
 - **中长期规划感的来源（08-01 提出，未裁决）。** 进程是**逐批择一的线性推进**，既无俯瞰地图也无前方预告——玩家看不到「还有几步到 Finale」、也无法为几步之后布局。中长期规划感由什么承担（可见的篇章进度条？eventOptions 的前瞻提示？还是有意不给），本次评审提出但**未讨论**。→ 亦见 `40-ux/`。Source: 同上。
 - **「可用结束点」已明确**：到达下一境界所落的**存档点**即结束点，可读档开始下一 chapter。**chapter 途中死亡 → 从该 chapter 起始存档重试**；炼气（第 1 chapter）近乎无限重试，后续 chapter 有限重试（数值见 `20-systems/services/life-cycle-service.md`）。Source: `10-handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md`。
 - **选择区的呈现与导航手感**：月圆之夜式菜单 + 横向滑动选择已定案，但**每批 eventOptions 的选项数量 / 排布 / 滑动手感**尚未落定。注意进程形态是**逐批择一的线性推进**（每次从当前 eventOptions 中选一个，选完重算下一批），**不是可俯瞰、可回溯的分支地图**。Source: `10-handoffs/2026-07-13.md`。

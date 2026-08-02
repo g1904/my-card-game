@@ -32,7 +32,7 @@
 | `terminology.md` | **术语事实来源**：中文领域词 ↔ 英文/代码标识符。横跨所有主题文档，故置于根级。提炼至 `.claude/knowledge/dictionary.md`。 |
 | `program-overview.md` | **程序运行总览**：层级词表（service ⊃ manager ⊃ module ⊃ processor ⊃ handler）、服务 / 管理器职责矩阵、启动→登录→核心循环→轮回结束的端到端调用链、内容与档案的加载路径。横跨所有系统，故置于根级。结构与边界权威在 `20-systems/architecture.md`。 |
 | `system-overview.md` | **项目结构与落地形态**：进程边界（service = 进程内模块单例，**非**微服务）、Godot 工程文件夹布局、autoload 注册、service / manager 的代码形态。 |
-| `open-questions.md` | 跨 session 的待答清单，**只跟踪仍待答的问题**（无「已解决」区）；主题文档的 `## Open questions` 是权威归属，此处是导航。答定即移出到 `answer-logs/`。 |
+| `open-questions.md` | 跨 session 待答清单的**索引**：说明、分片导航表、焦点判据、`## derive 就绪度`、`## 下一阶段`。问题条目本身在 `open-questions/` 分片中。 |
 
 ## 文件夹图例
 | 文件夹 | 内容 | 可变性 |
@@ -44,7 +44,8 @@
 | `50-decisions/` | ADR 风格的已定决策。 | 可修改（软件开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
 | `60-requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往 `/blueprint` 的桥梁。由 `/derive-requirements` 生成、用户签核（`draft → ready`），再由 `/breakdown-requirements` 拆成同名文件夹内的可执行子需求（`FR-*/`）。 | 持续更新；随设计深化而重新生成/扩展。 |
 | `90-inbox/` | 未整理的草稿，待分流到 handoff/主题中。两类：手写的 `draft-<suffix>.md`；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。 | 自由发挥。 |
-| `answer-logs/` | 已答定问题从 `open-questions.md` 移出的归档台账，一次移出一份 `log-<draftSuffix>.md`（`draftSuffix` = 对应 `90-inbox/draft-<suffix>.md` 的后缀 或 `solution-draft-<slug>.md` 的 `<slug>`，无草稿来源则用当天 `MMDD`）。由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。 | 历史台账，一次移出新建一份；与本库其余文档一样可编辑修正，非仅追加。 |
+| `open-questions/` | 跨 session 待答清单的**分片**：`01-combat.md` … `07-codex-monetization.md`（焦点区，编号即优先级）、`deferred-content.md`（已搁置的内容充实）、`update-log.md`（逐次更新摘要）。**只跟踪仍待答的问题**（无「已解决」区）；主题文档的 `## Open questions` 是权威归属，此处是导航。答定即移出到 `answer-logs/`。 | 持续更新；由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。分片过长可再拆、过短可并回，同步更新索引导航表。 |
+| `answer-logs/` | 已答定问题从待答清单移出的归档台账，一次移出一份 `log-<draftSuffix>.md`（`draftSuffix` = 对应 `90-inbox/draft-<suffix>.md` 的后缀 或 `solution-draft-<slug>.md` 的 `<slug>`，无草稿来源则用当天 `MMDD`）。由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。 | 历史台账，一次移出新建一份；与本库其余文档一样可编辑修正，非仅追加。 |
 
 ## 维护约定：一切皆可改，只保留最新设计
 软件开发尚未开始——本库**没有任何文档是「仅追加」或「一旦定案即不可变」的**（`10-handoffs/`、`90-inbox/`、`50-decisions/` ADR 均可自由编辑 / 重写 / 重构）。要改一份 ADR 的决定，就**直接改这份 ADR**，不必新开一个 ADR 去取代它。

@@ -13,7 +13,7 @@
   | 按钮 | 内容 | 对应 PlayerProfile 字段 |
   |------|------|------------------------|
   | PlayerProfile(玩家档案) | 状态与账号信息(`AccountInfo`) | `AccountInfo` |
-  | PlayerPower(玩家能力) | always-available 能力,带**开关(默认开启)**;QoL 或影响公平性的全局加强,不与角色绑定 | `List<PlayerPower>` |
+  | PlayerPower(法则) | always-available 能力,带**开关(默认开启)**;QoL 或影响公平性的全局加强,不与角色绑定 | `List<PlayerPower>` |
   | Achievements(成就) | 分组成就;玩家**只能查看进度 / 领取奖励**;奖励按**组内加权进度**发放,分 **60% / 90% 两档一次性奖励**(见下) | `List<Achievements>` |
   | Settings(设置) | 音量等常规系统设置 | `GameSetting` |
 

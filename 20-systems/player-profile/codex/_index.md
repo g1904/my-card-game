@@ -1,6 +1,6 @@
 # codex（图鉴族）
 
-> **图鉴 = 账号级的知识收集面**，共**五个**：敌人 / 角色能力 / 玩家能力 / 角色道具 / 玩家道具。跨轮回持久，归 PlayerProfile。它是元进程的**第三条积累线**（与 PlayerPower 的「能力」、Achievements 的「成就」并列）。
+> **图鉴 = 账号级的知识收集面**，共**五个**：敌人 / **神通**（CharacterPower）/ **法则**（PlayerPower）/ **法宝**（CharacterItem）/ **古宝**（PlayerItem）。跨轮回持久，归 PlayerProfile。它是元进程的**第三条积累线**（与法则、Achievements 的「成就」并列）。中文定名见 `terminology.md`（08-03 改写）。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_

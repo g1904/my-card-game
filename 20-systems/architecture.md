@@ -43,7 +43,9 @@
 | **profile-service** | ② | ProfileManager、CapabilityManager、AchievementManager |
 | **life-cycle-service** | ① | CycleStateManager、ChapterManager、SeedManager |
 | **future-event-service** | ① | EventOptionManager、PlotManager |
-| **combat-service** | ① | TurnManager、CharacterManager、EnemyManager |
+| **combat-service** | ① | TurnManager、CharacterManager、EnemyManager、BattlefieldManager、StackManager |
+
+> **combat-service 的战场与栈各自一个 manager（08-03）。** **BattlefieldManager** 持有 **battlefield（战场）**——场上正在生效的卡牌 / 持续状态 / **触发器注册面**；**StackManager** 持有栈（压栈、LIFO 结算、连锁触发顺序）。**栈 = 等待结算的队列，战场 = 已结算并正在生效的东西**，是两个区；TurnManager 因此回落为纯粹的回合状态机。Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
 
 > **combat-service 的卡组 = `DeckModule`（第三级）。** 抽 / 弃 / 洗与 seeded 洗牌由 CharacterManager 与 EnemyManager 各自持有的 `DeckModule` 承担，**每个 character / enemy 一份**（敌人也出牌）。它不是平级 manager，而是 manager 内部的 module。Source: `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
 
@@ -349,7 +351,6 @@ Input (touch, 横向滑动选择)
 - **热更「只改不增」的连带项：** 范围边界已定（overlay 只改既有条目的数值 / 文案，不得新增 `Id`）、确定性张力已裁决（以 overlay 更新为准，不冻结 `contentVersion`，放弃跨版本 seed 可复现）；残留：是否需「预埋占位 `Id`」策略绕开审核周期、是否在存档中记录 `contentVersion` 以便诊断。→ `services/content-service.md`。Source: `10-handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
 - **断线降级的具体行为：** push / pull / 剧本请求失败时阻塞玩家、本地缓冲重试、还是回退存档点？→ `services/sync-service.md`、`services/account-service.md`。
 - **ViewModel 层是否需要单独一份文档：** 三层切分已定案并在本文件显式化；是否为 ViewModel 层单列文档（或归 `40-ux/`）待定。Source: `10-handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
-- **道念差 → lifeTotal 损失 / 奖励厚度的计算归属。** 「失败按道念差扣 lifeTotal、胜利按道念差决定奖励厚度」均已定案（见 `20-systems/scoring.md`）；但**由谁计算**未定：combat-service 算好写进 `CombatResult.Spoils`，还是 life-cycle-service 依 `CombatResult` 的双方道念在 `eventEnd` 算？前者让战斗服务持有平衡公式，后者让编排层多懂一层战斗语义。→ `services/combat-service.md`、`services/life-cycle-service.md`。Source: `10-handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` + `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
 - **enemies 归属：** 当前归 `adventure-event/combat/`；**Practice 与 Finale 均已确认使用敌人**（天劫即一个带定制卡组的 Enemy），是否升为共享内容层待确认。Source: 同上 + `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
 - **module 以下的下沉判据未给。** service 与 manager 各有明确判据，但「什么时候一个 module 该再拆出 processor」没有判据——第四 / 第五级目前只有名字。Source: `10-handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
 

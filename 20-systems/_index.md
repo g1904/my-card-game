@@ -23,7 +23,7 @@
 | [character-profile/](character-profile/_index.md) | 角色档案（单次轮回 / 单角色的状态与历史）。 |
 | &nbsp;&nbsp;├ [deck/](character-profile/deck/_index.md) | 卡组、抽牌/hand/弃牌、seeded 洗牌、卡牌定义、起始卡组。 |
 | &nbsp;&nbsp;├ [item/](character-profile/item/_index.md) | 角色持有的道具。 |
-| &nbsp;&nbsp;├ [power/](character-profile/power/_index.md) | **角色能力 CharacterPower**（轮回级，对标账号级 PlayerPower）。 |
+| &nbsp;&nbsp;├ [power/](character-profile/power/_index.md) | **神通 CharacterPower**（轮回级，对标账号级 PlayerPower / 法则）。 |
 | &nbsp;&nbsp;├ [currency](character-profile/currency.md) | 轮回货币 jade。 |
 | &nbsp;&nbsp;├ [lifeTotal](character-profile/life-total.md) | 生命总量 / **战斗外的耐久与失败惩罚承受量**（战斗内不参与；归 0 → defeated；经 event 恢复）。 |
 | &nbsp;&nbsp;└ [mana](character-profile/mana.md) | 法力 / 每回合出牌资源。 |
