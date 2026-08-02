@@ -19,22 +19,22 @@ open-questions.md 中的待答项
   → /analyze-new-ideas 90-inbox/solution-draft-<slug>.md   （提炼进主题文档 + 移出待答项）
 ```
 
-**范围守则（强制）：** 只写 `game-design-documents/90-inbox/solution-draft-<slug>.md` 这一个文件。**不**改 `open-questions.md`（移出待答项归 `/analyze-new-ideas` / `/summarize-open-questions`）、**不**改任何 `20-systems/` / `40-ux/` / `00-vision/` 主题文档、**不**写 ADR、**不**碰 `10-handoffs/`、**不**碰代码。**不评估 derive 就绪度**（归 `/assess-derive-readiness`）。
+**范围守则（强制）：** 只写 `game-design-documents/90-inbox/solution-draft-<slug>.md` 这一个文件。**不**改 `open-questions.md` 与 `open-questions/`（移出待答项归 `/analyze-new-ideas` / `/summarize-open-questions`）、**不**改任何 `20-systems/` / `40-ux/` / `00-vision/` 主题文档、**不**写 ADR、**不**碰 `10-handoffs/`、**不**碰代码。**不评估 derive 就绪度**（归 `/assess-derive-readiness`）。
 
 ## 步骤
 
 ### 1. 锁定问题
 解析 `$ARGUMENTS`：
-- **粘贴的问题文本** → 直接采用；同时在 `open-questions.md` 中检索是否已有对应条目（有则以清单里的措辞为准，并记下其主题分组与 `→` 指向的权威文档）。
-- **关键词 / 条目片段** → 在 `open-questions.md` 与各主题文档的 `## 待决问题` / `## Open questions` 中 `Grep`，定位唯一匹配；多个匹配 → 列出让用户选。
+- **粘贴的问题文本** → 直接采用；同时在 `open-questions/` 的各分片中检索是否已有对应条目（有则以清单里的措辞为准，并记下其所在分片与 `→` 指向的权威文档）。
+- **关键词 / 条目片段** → 在 `open-questions/` 分片与各主题文档的 `## 待决问题` / `## Open questions` 中 `Grep`，定位唯一匹配；多个匹配 → 列出让用户选。
 - **主题文档路径** → 读该文档的待决问题小节，列出其条目让用户选（一次一个问题，不要一口气批处理多个不相关问题）。
-- **空（无参数）** → 读 `open-questions.md`，按主题列出待答条目，并**标注哪些适合本技能**（可由通行做法 / 既有约定推演）vs **哪些必须由用户取向决定**（纯玩法手感、美术基调、商业化取舍）。询问处理哪一个。
+- **空（无参数）** → 读 `open-questions.md` 的分片导航表并逐份读取分片，按主题列出待答条目，并**标注哪些适合本技能**（可由通行做法 / 既有约定推演）vs **哪些必须由用户取向决定**（纯玩法手感、美术基调、商业化取舍）。询问处理哪一个。
 
 一次运行处理**一个问题**（或一组紧密耦合、必须一起答的子问题）。范围过宽的草稿无法评审。
 
 ### 2. 读全上下文（写之前先读）
 在推演之前，必须读到：
-- `open-questions.md` 中该条目及其所在主题分组（相邻问题往往互相约束）。
+- `open-questions/` 中该条目所在的整份分片（相邻问题往往互相约束）。
 - 该条目 `→` 指向的**每一份**权威文档：既有的 `## 意图` / `## 决策`，以及它的待决问题。
 - `game-design-documents/00-vision/scope.md`（范围 / 强制在线 / 移动优先等硬约束）、`program-overview.md` + `system-overview.md`（运行时 + 工程视角的结构约束）、`terminology.md`（该问题涉及的领域词与代码标识符）。
 - 相关 `50-decisions/ADR-*`——**已固化的决策是硬边界**，方案不得与之冲突（若确有冲突，见第 5 步）。
@@ -71,7 +71,7 @@ open-questions.md 中的待答项
 type: solution-draft
 date: <YYYY-MM-DD>
 question: <一行问题陈述>
-source: open-questions.md → <主题分组>   # 或 20-systems/xxx.md#待决问题
+source: open-questions/<分片>.md → <主题小节>   # 或 20-systems/xxx.md#待决问题
 targets: <本方案若被采纳应提炼进的文档路径清单>
 status: awaiting-review
 ---

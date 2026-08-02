@@ -87,7 +87,7 @@ D:\MyCardGame\
 └── skills/
     ├── analyze-new-ideas/     — raw idea → clean handoff → distill into design docs
     ├── provide-solution-draft/ — one open question → proposed solution → 90-inbox/solution-draft-<slug>.md (human review)
-    ├── summarize-open-questions/ — rebuild open-questions.md; answered items → answer-logs/log-<draftSuffix>.md
+    ├── summarize-open-questions/ — rebuild open-questions.md (index) + open-questions/ shards; answered items → answer-logs/log-<draftSuffix>.md
     ├── assess-derive-readiness/ — full sweep: is any design doc ready to derive? (manual)
     ├── derive-requirements/   — detailed design → 片区级 feature requirements (FR-*)
     ├── breakdown-requirements/ — one FR → a folder of executable sub-requirements (one = one blueprint)

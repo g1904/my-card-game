@@ -27,7 +27,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ### 2. 建立判定所需的上下文（写之前先读）
 1. `game-design-documents/README.md` — 流水线与状态词汇。
-2. `game-design-documents/open-questions.md` — 当前的跨 session 待答清单与既有就绪度小节。
+2. `game-design-documents/open-questions.md` — 索引（含既有「derive 就绪度」小节，本技能的唯一写入目标）；待答问题条目本身在 `game-design-documents/open-questions/` 的各分片中，按需读取。
 3. `game-design-documents/10-handoffs/_index.md` — 最近的意图流向（哪些文档刚被改动 = 结论最易过时）。
 4. `game-design-documents/50-decisions/` — 哪些方向已固化为 ADR。
 5. `game-design-documents/60-requirements/_index.md` — 哪些已经 derive 过（避免重复判定；已 derive 的部分标注为「已覆盖」）。

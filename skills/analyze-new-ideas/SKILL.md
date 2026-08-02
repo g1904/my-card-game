@@ -63,13 +63,15 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - **不要臆造**用户未陈述的机制、数字或决策。任何无法从输入推导出的内容都放入 **`## Open questions`**，以问题的形式表述——绝不断言为意图。
 - **标出矛盾**：把原始输入中的矛盾（如"说是三个，却列了四个"）在 Open questions 中明确指出，附上你解读后的结论，并向用户点明以待确认。
 
-### 6. 维护 open-questions.md + answer-logs（跨 session 循环，强制）
-`game-design-documents/open-questions.md` 是跨 session 的**待答清单**——让未拍板的问题不丢失、下次能拾起。它**只跟踪仍待答的问题**：不含「已解决」区，已答定的问题一律移入 `game-design-documents/answer-logs/`。**每次运行本技能，在收尾时都要刷新两者：**
+### 6. 维护 open-questions 清单 + answer-logs（跨 session 循环，强制）
+`game-design-documents/open-questions.md`（索引）+ `open-questions/`（按主题分片）是跨 session 的**待答清单**——让未拍板的问题不丢失、下次能拾起。它**只跟踪仍待答的问题**：不含「已解决」区，已答定的问题一律移入 `game-design-documents/answer-logs/`。**每次运行本技能，在收尾时都要刷新两者：**
 
-**6a. open-questions.md**
-- **移出已答：** 本 session 被用户拍板/回答的问题，从清单删除，并确认已归档进对应主题文档（`## 决策` 或 `## 意图`）。**移出的条目写进本次的 answer log（见 6b），不要在本文件里留「已解决」区。**
-- **并入新增：** 本 session 新产生、仍未决的 Open questions 汇总进来，按主题归拢，并指向其所属文档。
-- 顶部记一句"最近更新：<日期>"；保持它与各主题文档 `## Open questions` 一致（此文件是导航/拾取清单，主题文档是权威归属）。
+**6a. open-questions 清单（索引 + 分片）**
+- **结构：** 索引 `open-questions.md` 只承载说明、`## 分片导航`、`## 当前焦点`（判据）、`## derive 就绪度`、`## 下一阶段`；**问题条目一律落在 `open-questions/<分片>.md` 中**（`01-combat.md` … `07-codex-monetization.md`、`deferred-content.md`），逐次更新摘要落在 `open-questions/update-log.md`。**不要把问题条目写回索引。**
+- **移出已答：** 本 session 被用户拍板/回答的问题，从所在分片删除，并确认已归档进对应主题文档（`## 决策` 或 `## 意图`）。**移出的条目写进本次的 answer log（见 6b），不要在分片里留「已解决」区。**
+- **并入新增：** 本 session 新产生、仍未决的 Open questions 汇总进对应主题的分片（没有合适分片时新建一份并在索引导航表中登记），并指向其所属文档。
+- 索引顶部记一句"最近更新：<日期>"，并在 `open-questions/update-log.md` **顶部**追加本次摘要（答结 / 推翻 / 新增落点 / 对应 answer log）。保持清单与各主题文档 `## Open questions` 一致（清单是导航/拾取用，主题文档是权威归属）。
+- **分片过长时再拆**：某分片膨胀到难以通读，就按其内部小节拆成两份并更新索引导航表。
 - 若正文里有指向已移出条目的引用（如「见上方已解决」），改为指向对应的 `answer-logs/log-<draftSuffix>.md`。
 - **不要碰「derive 就绪度」小节（强制）。** 该小节由 `/assess-derive-readiness` 独占写入——见下方第 8 步。
 
