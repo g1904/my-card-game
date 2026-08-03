@@ -1,6 +1,6 @@
 # 标准 —— 存档格式（引用层）
 
-`.claude/rules/state-save-rules.md`（存档 / 读档章节）的配套。**权威：`game-design-documents/20-systems/services/sync-service.md`**（API 契约、`PushPolicy` / `SavePointReason`、断线降级完整表）与 `10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`（§2 / §4 / §6）——**字段清单、枚举、数值旋钮去那边看**。
+`.claude/rules/state-save-rules.md`（存档 / 读档章节）的配套。**权威：`game-design-documents/systems/services/sync-service.md`**（API 契约、`PushPolicy` / `SavePointReason`、断线降级完整表）与 `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`（§2 / §4 / §6）——**字段清单、枚举、数值旋钮去那边看**。
 
 由 **sync-service** 拥有：ProfileSyncManager（上下行与冲突）、LocalCacheManager（`user://` 原子写）、MigrationManager（schema 迁移）。
 
@@ -32,4 +32,4 @@
 
 JSON（`System.Text.Json` 或 Godot `JSON`）可读且便于迁移；Godot 资源序列化是另一选项。**选定其一后记录于此**，并把序列化集中在 sync-service 内。
 
-> 篇章边界另有**境界存档点**语义（通关后在所达境界落点；失败清理角色并扣减重试次数 ch1 ∞ / ch2 3 / ch3 1）——归 ChapterManager，权威见 `50-decisions/ADR-0004`。
+> 篇章边界另有**境界存档点**语义（通关后在所达境界落点；失败清理角色并扣减重试次数 ch1 ∞ / ch2 3 / ch3 1）——归 ChapterManager，权威见 `decisions/ADR-0004`。

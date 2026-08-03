@@ -11,7 +11,7 @@
 
 **`.claude` 是工程层。** 它只承载两类东西：**① 工程相关的配置与规则**（harness 配置、C#/Godot 互操作与场景 / 数据 / 存档 / UI / null 校验纪律）与 **② 可复用的技能**（推进项目的流程封装）。**一切设计相关的知识与细节归设计分支**，在此只被**引用与轻描述**。它的目的是**帮助实现设计意图**；愿景的内核活在 `game-design-documents/`。
 
-**主从关系：** 设计性内容（机制、数值、字段、契约、流程）冲突 → **以设计库为准**，`.claude` 跟着改；工程性约束（命名、生命周期、热路径、工具 / PATH、目录纪律）冲突 → **以 `rules/*` 为准**（设计库对此无权威）。权威：`game-design-documents/50-decisions/ADR-0005-knowledge-thin-reference-layer.md`。
+**主从关系：** 设计性内容（机制、数值、字段、契约、流程）冲突 → **以设计库为准**，`.claude` 跟着改；工程性约束（命名、生命周期、热路径、工具 / PATH、目录纪律）冲突 → **以 `rules/*` 为准**（设计库对此无权威）。权威：`game-design-documents/decisions/ADR-0005-knowledge-thin-reference-layer.md`。
 
 `CLAUDE.md` 每个会话只加载一个文件：`rules/Context.md`。该文件承载常态约定以及一张**知识导航**表。深入细节位于 `knowledge/*` 并按需加载 —— 让每个会话的上下文保持精简。
 
@@ -76,7 +76,7 @@ D:\MyCardGame\
 │   ├── architecture.md          — scene tree, autoloads, render/resolution
 │   ├── dictionary.md            — game glossary
 │   ├── systems/     (_index.md; per-system notes appear as systems land)
-│   ├── data/        (_index.md — 引用层；内容权威在设计库 20-systems/)
+│   ├── data/        (_index.md — 引用层；内容权威在设计库 systems/)
 │   ├── scenes/      (_index.md; per-scene notes appear as scenes land)
 │   ├── autoloads/   (_index.md; per-singleton notes appear as autoloads land)
 │   └── standards/   (csharp-conventions, godot-scene-conventions,
@@ -86,7 +86,7 @@ D:\MyCardGame\
 │   └── push-all-impl.ps1        — 批量 commit/push 全部分支检出目录（经根级 push-all.cmd 调用）
 └── skills/
     ├── analyze-new-ideas/     — raw idea → clean handoff → distill into design docs
-    ├── provide-solution-draft/ — one open question → proposed solution → 90-inbox/solution-draft-<slug>.md (human review)
+    ├── provide-solution-draft/ — one open question → proposed solution → inbox/solution-draft-<slug>.md (human review)
     ├── summarize-open-questions/ — rebuild open-questions.md (index) + open-questions/ shards; answered items → answer-logs/log-<draftSuffix>.md
     ├── assess-derive-readiness/ — full sweep: is any design doc ready to derive? (manual)
     ├── derive-requirements/   — detailed design → 片区级 feature requirements (FR-*)
@@ -107,11 +107,11 @@ D:\MyCardGame\
 
 设计 → 需求 → 代码：
 
-1. `/analyze-new-ideas <raw>` —— 把原始意图捕获为整洁的 handoff，并提炼进 `game-design-documents/`（`20-systems/`、`40-ux/`）。无参数运行则扫描 `90-inbox/` 列出待处理草稿。
-2. `/provide-solution-draft <问题>` —— 取 `open-questions.md` 的**一个**待答项，基于既有决策推演 + 行业通行做法给出**提案式**方案，写到 `90-inbox/solution-draft-<slug>.md`。**人类评审后**再喂回 `/analyze-new-ideas` 提炼（human-in-the-loop）。它只写这一个草稿文件，不裁决问题、不动主题文档。
+1. `/analyze-new-ideas <raw>` —— 把原始意图捕获为整洁的 handoff，并提炼进 `game-design-documents/`（`systems/`、`ux/`）。无参数运行则扫描 `inbox/` 列出待处理草稿。
+2. `/provide-solution-draft <问题>` —— 取 `open-questions.md` 的**一个**待答项，基于既有决策推演 + 行业通行做法给出**提案式**方案，写到 `inbox/solution-draft-<slug>.md`。**人类评审后**再喂回 `/analyze-new-ideas` 提炼（human-in-the-loop）。它只写这一个草稿文件，不裁决问题、不动主题文档。
 3. `/assess-derive-readiness` —— **由用户手动调用**。全量扫描全部主题文档，逐份判定 ready / partial / blocked，并整体重写 `open-questions.md` 的「derive 就绪度」小节（它是该小节的**唯一写入者**）。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不评估就绪度**。**当前：全库尚未进入可 derive 的阶段。**
-4. `/derive-requirements <doc>` —— 一旦某份设计文档已充分详尽（真实意图、无遗留问题），就把**片区级**功能规格产出到 `game-design-documents/60-requirements/FR-*`。用户签署确认（`draft → ready`）。
-5. `/breakdown-requirements FR-<id>` —— 把**一份** FR 拆成同名文件夹 `60-requirements/FR-<id>/` 内的若干**可执行子需求**（每个小到能被 `/blueprint` 一次吃下），带**父验收标准 → 子需求覆盖映射表**。父 FR 翻为 `broken-down`；**父 FR 的签核即覆盖其子需求**。
+4. `/derive-requirements <doc>` —— 一旦某份设计文档已充分详尽（真实意图、无遗留问题），就把**片区级**功能规格产出到 `game-design-documents/requirements/FR-*`。用户签署确认（`draft → ready`）。
+5. `/breakdown-requirements FR-<id>` —— 把**一份** FR 拆成同名文件夹 `requirements/FR-<id>/` 内的若干**可执行子需求**（每个小到能被 `/blueprint` 一次吃下），带**父验收标准 → 子需求覆盖映射表**。父 FR 翻为 `broken-down`；**父 FR 的签核即覆盖其子需求**。
 6. `/blueprint FR-<id>` —— 探查知识 + 代码、澄清、把一份实现蓝图保存到 `blueprints/`（其验收标准驱动设计）。首选输入是**子需求 id**；自由文本 `/blueprint <feature>` 仍然可用。
 7. `/implement [blueprint]` —— 在 `game-feature-branch/` 中构建它。
 8. `/review-local-changes` 或 `/review-feature` —— 在提交前捕获 bug。

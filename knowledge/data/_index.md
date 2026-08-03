@@ -1,6 +1,6 @@
 # 数据索引（引用层）
 
-> **内容即系统的字段 / 内嵌类型**——不单列内容层。**权威在 `game-design-documents/20-systems/`**（各内容类型的字段、schema、平衡数值）与 `20-systems/services/content-service.md`（管线、仓储接口、增量下载与签名的完整形状）。此处只留导航与承重纪律。规则：`.claude/rules/data-resource-rules.md`。
+> **内容即系统的字段 / 内嵌类型**——不单列内容层。**权威在 `game-design-documents/systems/`**（各内容类型的字段、schema、平衡数值）与 `systems/services/content-service.md`（管线、仓储接口、增量下载与签名的完整形状）。此处只留导航与承重纪律。规则：`.claude/rules/data-resource-rules.md`。
 
 ## 代码现状
 
@@ -8,7 +8,7 @@
 
 ## 内容类型 → 权威位置
 
-| 类型 | Resource 类（规划） | 权威设计位置（`20-systems/`） |
+| 类型 | Resource 类（规划） | 权威设计位置（`systems/`） |
 |------|--------------------|------------------------------|
 | Card（卡牌） | `CardData` | `character-profile/deck/` |
 | Relic / Joker（玩家能力） | `PlayerPowerData` | `player-profile/player-power/` |

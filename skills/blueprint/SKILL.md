@@ -11,7 +11,7 @@ argument-hint: <FR-<id> | 功能描述>
 ## 步骤
 
 ### 1. 解析并校验请求
-若 `$ARGUMENTS` 是一个 **`FR-<id>`**（首选输入——来自设计的桥梁），读取 `game-design-documents/60-requirements/FR-<id>.md` 并以它为规格：
+若 `$ARGUMENTS` 是一个 **`FR-<id>`**（首选输入——来自设计的桥梁），读取 `game-design-documents/requirements/FR-<id>.md` 并以它为规格：
 - 把它的 **Acceptance criteria** 当作蓝图的成功条件（蓝图必须使它们可达成、且可在 Godot 编辑器中验证）。
 - 遵循它的 **Scope**（in/out）、**Data & state touchpoints**，以及 `depends-on` 顺序。
 - 若该 FR 仍为 `status: draft` 或有非空的 `## Open questions`，则标出它：它尚未签署——在设计前与用户确认，或把他们送回去解决它（`/analyze-new-ideas` → `/derive-requirements`）。
@@ -63,6 +63,6 @@ argument-hint: <FR-<id> | 功能描述>
 
 ### 6. 闭环
 - 在 `.claude/blueprints/_index.md` 中新增/更新对应行（最新的置顶）：`blueprint | source-fr | date | status`，status 置为 `designed`。
-- 若本蓝图源自某个 `FR-<id>`，更新 `game-design-documents/60-requirements/`：把该 FR 的 `blueprint:` 设为保存路径，把它的 `status` 翻为 `blueprinted`，并更新 `_index.md` 中的对应行。（这让需求台账如实反映哪些已设计、哪些仍待处理。）
+- 若本蓝图源自某个 `FR-<id>`，更新 `game-design-documents/requirements/`：把该 FR 的 `blueprint:` 设为保存路径，把它的 `status` 翻为 `blueprinted`，并更新 `_index.md` 中的对应行。（这让需求台账如实反映哪些已设计、哪些仍待处理。）
 
 最后建议：运行 `/implement` 来构建该蓝图。

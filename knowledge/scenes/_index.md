@@ -1,6 +1,6 @@
 # 场景索引（引用层）
 
-> **权威：`game-design-documents/40-ux/`**（screen-flow、combat-ux、onboarding）；端到端运行链路见根级 `program-overview.md`。此处只留代码现状、场景目录与接线纪律。
+> **权威：`game-design-documents/ux/`**（screen-flow、combat-ux、onboarding）；端到端运行链路见根级 `program-overview.md`。此处只留代码现状、场景目录与接线纪律。
 
 ## 代码现状
 
@@ -12,7 +12,7 @@
 
 - **`main` 场景是 `BootstrapScreen.tscn`，不是 `LoginScreen.tscn`。** autoload 的 `_Ready` 不能 `await`，故由它按序驱动四个边界服务的 `InitializeAsync` 并把进度喂给启动画面。→ `autoloads/_index.md`。
 - **强制账号登录，无游客（Guest）入口。** 渠道优先级：手机 / 邮箱 → 微信 / QQ → 海外 / 跨平台。
-- **主菜单**核心操作是**切换篇章以开始一次轮回**（仅已解锁者可见；首玩者只能从炼气开始）。门禁细节 → `40-ux/onboarding.md`。
+- **主菜单**核心操作是**切换篇章以开始一次轮回**（仅已解锁者可见；首玩者只能从炼气开始）。门禁细节 → `ux/onboarding.md`。
 - **轮回内主导航是月圆之夜式的 eventOptions 横向滑动菜单**，不是传统地图屏。
 - **美术挂点占位。** 循环视频、图标、卡面等 TBA；组合场景时保留可轻松替换的挂点。
 

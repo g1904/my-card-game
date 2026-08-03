@@ -50,8 +50,8 @@ Glob 时同时排除 `.godot/`、`bin/`、`obj/`、`node_modules/`。
 | 哪些文件不入库 | 各检出的 `.gitignore`（`.claude/.gitignore` 决定工具配置的忽略面）|
 | 客户端设计库文件夹图例、流水线 | `game-design-documents/` 实际文件夹 + 根级关键文件 |
 | 后端设计库布局、后端状态 | `backend-design-documents/` 实际文件夹 + `backend-feature-branch/` 实际内容 |
-| 客户端 ↔ 后端边界的描述 | `game-design-documents/system-overview.md`、`20-systems/services/_index.md` |
-| 游戏定位（平台、朝向、在线性、引擎版本） | `rules/Context.md` 的「项目」段 + `game-design-documents/00-vision/scope.md` |
+| 客户端 ↔ 后端边界的描述 | `game-design-documents/system-overview.md`、`systems/services/_index.md` |
+| 游戏定位（平台、朝向、在线性、引擎版本） | `rules/Context.md` 的「项目」段 + `game-design-documents/vision/scope.md` |
 | 引擎 / 渲染 / autoload 等技术参数 | `game-feature-branch/project.godot` |
 | 工具链、可用命令 | `.claude/rules/environment-rules.md` |
 

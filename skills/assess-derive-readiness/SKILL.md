@@ -14,7 +14,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ## 范围守则（强制）
 
 - **唯一写入目标：`game-design-documents/open-questions.md` 的「derive 就绪度」小节**——整体重写该小节（不是追加），它是就绪度的唯一权威落点。
-- **只读一切其他文档。** 不改主题文档、不改 handoff、不改 ADR、不改 `60-requirements/`、不碰游戏代码。发现设计缺口时**只报告**，不顺手补设计——那是 `/analyze-new-ideas`。
+- **只读一切其他文档。** 不改主题文档、不改 handoff、不改 ADR、不改 `requirements/`、不碰游戏代码。发现设计缺口时**只报告**，不顺手补设计——那是 `/analyze-new-ideas`。
 - **不生成 FR。** 产出 FR 是 `/derive-requirements` 的事；本技能只回答「能不能 derive、被什么卡住」。
 - 唯一例外：若在扫描中发现主题文档 / handoff 里**遗留的旧就绪度断言**（「可 derive」「暂缓 derive」「解锁 derive」等），可就地删除或中性化——保持全库只有一处就绪度结论。
 
@@ -22,22 +22,22 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ### 1. 解析目标
 解析 `$ARGUMENTS`：
-- **空（默认）→ 全量扫描**：`00-vision/`、`20-systems/**`（含子文件夹的 `_index.md` / `common-properties.md` / 各具体设计）、`40-ux/`、`50-decisions/`。
+- **空（默认）→ 全量扫描**：`vision/`、`systems/**`（含子文件夹的 `_index.md` / `common-properties.md` / 各具体设计）、`ux/`、`decisions/`。
 - **单个文档路径** → 只评估并**报告**该文档；**仍然不写入** `open-questions.md`（避免用局部结论污染全量台账）。明确告知用户这是一次局部预览。
 
 ### 2. 建立判定所需的上下文（写之前先读）
 1. `game-design-documents/README.md` — 流水线与状态词汇。
 2. `game-design-documents/open-questions.md` — 索引（含既有「derive 就绪度」小节，本技能的唯一写入目标）；待答问题条目本身在 `game-design-documents/open-questions/` 的各分片中，按需读取。
-3. `game-design-documents/10-handoffs/_index.md` — 最近的意图流向（哪些文档刚被改动 = 结论最易过时）。
-4. `game-design-documents/50-decisions/` — 哪些方向已固化为 ADR。
-5. `game-design-documents/60-requirements/_index.md` — 哪些已经 derive 过（避免重复判定；已 derive 的部分标注为「已覆盖」）。
+3. `game-design-documents/handoffs/_index.md` — 最近的意图流向（哪些文档刚被改动 = 结论最易过时）。
+4. `game-design-documents/decisions/` — 哪些方向已固化为 ADR。
+5. `game-design-documents/requirements/_index.md` — 哪些已经 derive 过（避免重复判定；已 derive 的部分标注为「已覆盖」）。
 6. 逐份读取待评估的主题文档。
 
 ### 3. 逐份判定（判定标准）
 一份文档 **ready**，当且仅当**三条全部**成立（与 `/derive-requirements` 的就绪性门一致）：
 1. 它的 `## 意图` / `## Intent` 有**真实内容**，不只是模板占位符（`> _..._`）。
 2. 它的 `## 待决问题` / `## Open questions` **为空，或每一条都已有决策 / ADR 覆盖**。
-3. 它所挂靠的 `00-vision/` 意图在该点上**没有未决问题**，且约束它的 ADR 均为 Accepted。
+3. 它所挂靠的 `vision/` 意图在该点上**没有未决问题**，且约束它的 ADR 均为 Accepted。
 
 **再叠加两条横切检查**（这是全量扫描相对逐份评估的价值所在）：
 4. **依赖闭合：** 它显式依赖的其他系统 / 服务，在被依赖的那个点上也已落定。一份文档不能因为把关键机制"甩给"另一份仍空白的文档而显得就绪。

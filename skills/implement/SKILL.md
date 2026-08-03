@@ -56,6 +56,6 @@ argument-hint: [蓝图名或功能描述]
 ### 6. FR 闭环
 若本次实现源自一份由 `FR-<id>` 推导的蓝图（蓝图中记有 `source-fr:`，或 FR 台账的 `blueprint:` 指向它）：
 - 提醒用户在 Godot 编辑器中按验收标准验证。
-- **验证通过后**（用户在本 session 内确认，或明确要求直接翻转），把 `game-design-documents/60-requirements/FR-<id>.md` 的 `status` 翻为 `built`，并同步 `_index.md` 中对应行。
+- **验证通过后**（用户在本 session 内确认，或明确要求直接翻转），把 `game-design-documents/requirements/FR-<id>.md` 的 `status` 翻为 `built`，并同步 `_index.md` 中对应行。
 - 若 session 在验证前结束，把 FR 留在 `blueprinted`，并在摘要中注明"验证通过后请把 FR-<id> 翻为 built"——台账绝不领先于事实。
 - 同时更新 `.claude/blueprints/_index.md` 中该蓝图的状态。

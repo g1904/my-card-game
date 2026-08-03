@@ -9,14 +9,14 @@
 | **Cycle（轮回）** | 从开局到胜/负的一次完整游玩。可从存储的 **seed** 复现。体裁通称 *run*，本作定名为**轮回 / cycle**，与 life-cycle-service 同词根；权威见 `terminology.md`。 |
 | **Seed** | 确定性地驱动整局轮回所有随机性的数字（本作 `CycleSeed`，u64）。**可复现性只在同一 `contentVersion` 内成立**——已明确放弃跨内容版本复现（overlay 热更即时生效，不冻结版本）。见 `standards/rng-determinism.md`。 |
 | **Ante / Floor** | 轮回内部的一个进程层级（Balatro 称 *ante*；StS 称 *act/floor*）。难度随之提升。本作对应概念见 `terminology.md` 的「篇章 / Chapter」与境界阶梯。 |
-| **Map / Node** | 轮回的分支路径；每个 **node** 是一次事件节点。本作的节点单元已定名为 **修行事件 / AdventureEvent**（原 encounter），见 `terminology.md`。地图路由与地域（**location**）切换由 **Travel** 修行事件驱动，归 `20-systems/game-progression.md`。 |
+| **Map / Node** | 轮回的分支路径；每个 **node** 是一次事件节点。本作的节点单元已定名为 **修行事件 / AdventureEvent**（原 encounter），见 `terminology.md`。地图路由与地域（**location**）切换由 **Travel** 修行事件驱动，归 `systems/game-progression.md`。 |
 | **Blind** | 一场战斗的胜利条件 / 关卡门槛（Balatro 风格的 small/big/boss blind，或 StS 风格的 boss）。 |
 | **Deck** | 玩家本局轮回拥有的全部卡牌。 |
 | **Draw pile / Hand / Discard pile** | 运行时的卡牌区域。卡牌在 draw → hand → discard →（重洗）→ draw 之间流转。 |
 | **Hand** | 本回合当前可打出的卡牌。 |
 | **Energy / Mana** | 每回合用于打出卡牌的资源。 |
 | **Jade（灵玉） / Currency** | **轮回级**货币，用于交易（Exchange）事件中购买。归 `character-profile/currency.md`，随轮回结束而清；跨轮回的账号级资产另归 player-profile。 |
-| **Checkpoint / 重试** | 篇章通关后在所达**境界**落存档点；失败（`defeated`）清理该角色并扣减该篇章重试次数，耗尽则该篇章重新锁定。归 ChapterManager；**次数与规则的权威见 `50-decisions/ADR-0004`**。 |
+| **Checkpoint / 重试** | 篇章通关后在所达**境界**落存档点；失败（`defeated`）清理该角色并扣减该篇章重试次数，耗尽则该篇章重新锁定。归 ChapterManager；**次数与规则的权威见 `decisions/ADR-0004`**。 |
 | **Relic / Joker** | 一种持久的被动修饰器，通过触发式效果改变规则（Balatro 称 *joker*；StS 称 *relic*）。 |
 | **Scoring (chips × mult)** | Balatro 风格的计分模型：一次打出的价值 = chips × 倍率。（若游戏偏 Balatro 风格则采用；偏 StS 风格的游戏改用伤害/HP 计分。） |
 | **Upgrade / Remove** | 提升某张卡牌，或将其从 deck 中删除（通常在商店/事件处进行）。 |
@@ -27,4 +27,4 @@
 | **ContentRegistry** | 启动时合并 `res://content/` 基线与 `user://overlay/` 热更、以 `Id` 为键的全部内容资源索引。隶属 content-service，是**全游戏唯一内容读取入口**。读取侧 `Get(id)` **不**按 `ContentEnabled` 过滤；**一切抽取走 `AllEnabled()`**。 |
 | **Materialize（物化）** | `AdventureEventData` 模板 → future-event-service 依情境代入 → 定稿 `EventOption`。体裁无对应通称；**产出即定稿、不可改写、落存档**。权威见 `terminology.md`。 |
 
-> 当设计确定采用 Balatro 风格计分还是 StS 风格 HP 战斗（或混合方案）时，在此处以及权威文档 `20-systems/scoring.md` / `20-systems/adventure-event/combat/` 中记录该决定。
+> 当设计确定采用 Balatro 风格计分还是 StS 风格 HP 战斗（或混合方案）时，在此处以及权威文档 `systems/scoring.md` / `systems/adventure-event/combat/` 中记录该决定。

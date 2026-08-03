@@ -1,12 +1,12 @@
 # 系统索引（引用层）
 
-> **权威：`game-design-documents/20-systems/`**（类模型化结构；内容即系统的字段 / 内嵌类型，不单列内容层）。已定案决策见 `50-decisions/ADR-*`。本索引是**导航表 + 代码现状**——设计内容不在此复述。
+> **权威：`game-design-documents/systems/`**（类模型化结构；内容即系统的字段 / 内嵌类型，不单列内容层）。已定案决策见 `decisions/ADR-*`。本索引是**导航表 + 代码现状**——设计内容不在此复述。
 
 ## 代码现状
 
 **尚未实现任何系统**（全新脚手架，无 `.cs` / `.tscn` / `.tres`）。下表 `状态` 列如实反映这一点；每个系统**一旦在代码中存在**，才为它建独立的 `systems/<name>.md`——**不要预先创建空占位**。
 
-| 系统 | 权威文档（`20-systems/`） | 状态 | 职责 |
+| 系统 | 权威文档（`systems/`） | 状态 | 职责 |
 |--------|------|--------|----------------|
 | 架构总览 | `architecture.md` | 参考 | 结构与边界的权威：API 契约总则、物化模型、EventBus 负载契约、共享核心类型。 |
 | 系统层共有属性 | `common-properties.md` | 参考 | 所有系统共享的字段 / 约定。 |
@@ -43,8 +43,8 @@
 - **物化模型**（贯穿 adventure-event 与 future-event-service）：`AdventureEventData` 是模板，**future-event-service 是唯一物化点**，产出的 `EventOption` **即定稿、不可改写、落存档**；下游只读消费，不回查模板重算。
 - **新增一个事件 = 新增一个 `.tres`**，不是新增一段代码。可加性是这套拆分的验收标准。
 
-> 横切的引擎层关注（存档 / 读档、UI / 屏幕、输入 / 触摸、音频）不在 `20-systems/` 内单列——代码承载形式见 `autoloads/_index.md`、`scenes/_index.md` 与 `standards/*`。
+> 横切的引擎层关注（存档 / 读档、UI / 屏幕、输入 / 触摸、音频）不在 `systems/` 内单列——代码承载形式见 `autoloads/_index.md`、`scenes/_index.md` 与 `standards/*`。
 
 ## 如何添加一条系统说明
 
-系统落地后创建 `systems/<name>.md`，写**代码侧**事实：入口点（场景 / 脚本）、涉及的类与文件路径、经 ProfileManager 读写哪些字段、发射 / 消费哪些 EventBus 事件、用哪条 RNG 子流、存档触点、已知的坑。回链到 `20-systems/` 的权威文档，并把此处状态改为一句摘要。**设计意图与字段 schema 写在设计库，不在这里复制。**
+系统落地后创建 `systems/<name>.md`，写**代码侧**事实：入口点（场景 / 脚本）、涉及的类与文件路径、经 ProfileManager 读写哪些字段、发射 / 消费哪些 EventBus 事件、用哪条 RNG 子流、存档触点、已知的坑。回链到 `systems/` 的权威文档，并把此处状态改为一句摘要。**设计意图与字段 schema 写在设计库，不在这里复制。**

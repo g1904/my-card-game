@@ -1,6 +1,6 @@
 # 标准 —— RNG 与确定性（引用层）
 
-`.claude/rules/state-save-rules.md`（RNG 章节）的配套。**权威：`game-design-documents/10-handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` 第 5 节**与 `20-systems/services/life-cycle-service.md`——**`rng` 的 JSON schema、字段类型去那边看**，此处不复制。
+`.claude/rules/state-save-rules.md`（RNG 章节）的配套。**权威：`game-design-documents/handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` 第 5 节**与 `systems/services/life-cycle-service.md`——**`rng` 的 JSON schema、字段类型去那边看**，此处不复制。
 
 ## 确定性的边界（已定案）
 

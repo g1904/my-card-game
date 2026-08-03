@@ -1,6 +1,6 @@
 # Autoload（服务）索引（引用层）
 
-> **权威：`game-design-documents/20-systems/services/`**（`_index.md` 层级词表 + 七服务；各服务文档带「API 面（契约）」四列表：方法 | 形态(A/B/C) | 完整签名 | 失败语义）与根级 `program-overview.md`（启动顺序 / 职责矩阵）、`system-overview.md`（代码形态）。**签名、接口、代码块一律去那边看**——此处只留导航与代码现状。
+> **权威：`game-design-documents/systems/services/`**（`_index.md` 层级词表 + 七服务；各服务文档带「API 面（契约）」四列表：方法 | 形态(A/B/C) | 完整签名 | 失败语义）与根级 `program-overview.md`（启动顺序 / 职责矩阵）、`system-overview.md`（代码形态）。**签名、接口、代码块一律去那边看**——此处只留导航与代码现状。
 
 ## 代码现状
 
@@ -30,7 +30,7 @@
 - **服务不返回内部可变集合** —— 一律 `IReadOnlyList<T>` / `IReadOnlyDictionary<,>`。
 - **`_Ready` 只装配，`InitializeAsync` 才做 I/O。** autoload 的 `_Ready` 不能 `await`；异步初始化经 `IBootstrappable`，由 `BootstrapScreen` 按序驱动（content → 登录 → account → sync → profile hydrate → 主菜单）。三个纯本地服务（profile / life-cycle / combat）**不实现**该接口。**不要在 `_Ready` 里写 `async void` 做初始化**（已明确否决）。
 - **两条唯一入口：** 内容读取经 `ContentRegistry`（不散落 `ResourceLoader.Load`；**抽取走 `AllEnabled()`**）；档案写入经 `ProfileManager.TryApply(spec)`。
-- **离线 stub 是「换一个实现」，不是在服务里插 `if (offline)`。** 四个边界服务各持一个窄后端接口，两份实现由 `[Export] bool UseOfflineBackend`（默认 `true`）选择。接口定义见 `20-systems/architecture.md`「总则 7」。
+- **离线 stub 是「换一个实现」，不是在服务里插 `if (offline)`。** 四个边界服务各持一个窄后端接口，两份实现由 `[Export] bool UseOfflineBackend`（默认 `true`）选择。接口定义见 `systems/architecture.md`「总则 7」。
 
 ## 装配顺序（规划）
 

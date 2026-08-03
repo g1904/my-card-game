@@ -46,12 +46,12 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ### 3. 采集设计现状（game-design-documents/）
 按 `knowledge/architecture.md` 的「知识 ↔ 设计文档对照」表读权威文档：
 - `terminology.md`（根级）↔ `dictionary.md`
-- `20-systems/` ↔ `systems/*`、`data/*`（内容即系统的字段 / 内嵌类型；`30-content/` 已并入）
-- `20-systems/services/` ↔ `autoloads/*`
-- `40-ux/` ↔ `scenes/*`
-- `50-decisions/ADR-*`（已 Accepted 的决策必须反映）
-- `10-handoffs/` 中 `status: distilled` 的**最近数份**——漂移通常最先出现在这里
-- `60-requirements/_index.md`（status 为 `built` 的 FR，其系统应有知识笔记）
+- `systems/` ↔ `systems/*`、`data/*`（内容即系统的字段 / 内嵌类型；`30-content/` 已并入）
+- `systems/services/` ↔ `autoloads/*`
+- `ux/` ↔ `scenes/*`
+- `decisions/ADR-*`（已 Accepted 的决策必须反映）
+- `handoffs/` 中 `status: distilled` 的**最近数份**——漂移通常最先出现在这里
+- `requirements/_index.md`（status 为 `built` 的 FR，其系统应有知识笔记）
 
 ### 4. 三方比对并修复
 对每个领域，找出并**直接修复**：

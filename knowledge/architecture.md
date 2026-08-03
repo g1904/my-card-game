@@ -8,16 +8,16 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 
 | 知识文件 | 权威设计文档 |
 |----------|--------------|
-| `architecture.md`（本文件） | `20-systems/architecture.md`（结构与边界的权威，含 API 契约总则八条、物化模型、EventBus 负载契约、共享核心类型） |
+| `architecture.md`（本文件） | `systems/architecture.md`（结构与边界的权威，含 API 契约总则八条、物化模型、EventBus 负载契约、共享核心类型） |
 | 运行链路 | `program-overview.md`（端到端运行时视角）、`system-overview.md`（工程形态：文件夹布局、autoload 注册、代码形态） |
 | `dictionary.md` | `terminology.md`（根级术语表） |
-| `systems/*` | `20-systems/`（类模型化结构） |
-| `data/*` | `20-systems/`（内容即各系统的字段 / 内嵌类型） |
-| `scenes/*` | `40-ux/`（screen-flow、combat-ux、onboarding） |
-| `autoloads/*` | `20-systems/services/`（七服务 + 层级词表 + 各服务 API 契约表） |
-| 已定案决策 | `50-decisions/ADR-*` |
+| `systems/*` | `systems/`（类模型化结构） |
+| `data/*` | `systems/`（内容即各系统的字段 / 内嵌类型） |
+| `scenes/*` | `ux/`（screen-flow、combat-ux、onboarding） |
+| `autoloads/*` | `systems/services/`（七服务 + 层级词表 + 各服务 API 契约表） |
+| 已定案决策 | `decisions/ADR-*` |
 | 待答问题 | `open-questions.md` |
-| 可构建规格 | `60-requirements/FR-*` |
+| 可构建规格 | `requirements/FR-*` |
 
 ## 代码现状（知识层独有的真值）
 
@@ -36,7 +36,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 - **拆分轴 = 生命周期层 + 行为边界，不是数据类型。** 不按 power / item / card 各开服务，也不为九类 AdventureEvent 各开服务——只有 Combat 真有状态机，其余差异在**数据**而非代码。
 - **两条唯一入口 + 一个编排顶点：** 内容读取 = `content-service.ContentRegistry`；档案写入 = `profile-service.ProfileManager.TryApply(spec)`；编排顶点 = game-progression（非服务，串联核心循环）。
 - **展示层三层：** 静态文案留在 `XxxData : Resource` → 运行时 / 存档态只带 `Id` + 可变状态 → 呈现期 ViewModel 组装（不落存档、不进云端负载）。
-- **物化模型：** `AdventureEventData`（模板）→ future-event-service（**唯一物化点**）→ `EventOption`（**产出即定稿、不可变、落存档**）。→ `20-systems/architecture.md`「总则 6」。
+- **物化模型：** `AdventureEventData`（模板）→ future-event-service（**唯一物化点**）→ `EventOption`（**产出即定稿、不可变、落存档**）。→ `systems/architecture.md`「总则 6」。
 - **内容三层存储：** `res://content/` 基线 + `user://overlay/` 热更（**只改不增**）→ 合并后统一校验 → ContentRegistry 按 `Id` 索引。→ `data/_index.md`。
 - **启动契约：** `main` 场景 = `BootstrapScreen.tscn`，按序驱动四个边界服务的 `InitializeAsync`。→ `autoloads/_index.md`。
 

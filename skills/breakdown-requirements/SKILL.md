@@ -10,12 +10,12 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 `/derive-requirements` 的产出是**从设计文档整片切下来的** `FR-*`——粒度往往偏大，一个 FR 可能仍横跨数据资源、服务逻辑、场景与接线，直接喂 `/blueprint` 会得到一份过大的蓝图。本技能补上这一环：**一份 FR → 一个文件夹的可执行子需求**。
 
 ```
-20/40 主题文档 → /derive-requirements → FR-*（片区级）
+systems/ux 主题文档 → /derive-requirements → FR-*（片区级）
                 → /breakdown-requirements → FR-*/（可执行子需求）
                        → /blueprint → /implement
 ```
 
-**范围守则：** 你**只**写入 `game-design-documents/60-requirements/`（父 FR 文件、新建的拆解文件夹、`_index.md` 台账）。**不要**编辑源设计文档（`00/20/40/50`）——那是 `/analyze-new-ideas`。**不要**触碰游戏代码（`game-*-branch/`）——那是 `/blueprint` → `/implement`。
+**范围守则：** 你**只**写入 `game-design-documents/requirements/`（父 FR 文件、新建的拆解文件夹、`_index.md` 台账）。**不要**编辑源设计文档（`vision/` / `systems/` / `ux/` / `decisions/`）——那是 `/analyze-new-ideas`。**不要**触碰游戏代码（`game-*-branch/`）——那是 `/blueprint` → `/implement`。
 
 **充实 vs. 臆造（强制）：** 拆解是**重排与细化父 FR 已有的内容**，不是补设计。任何新增的验收标准都必须能从父 FR 逻辑推出；推不出来的**放入该子需求的 `## Open questions`**，绝不断言为需求。父 FR 自身的 Open questions 按相关性下发到对应子需求（并在父 FR 中保留）。
 
@@ -24,12 +24,12 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ### 1. 解析目标
 解析 `$ARGUMENTS`：
 - 一个 **`FR-<id>`** → 拆解它。
-- **空** → 读 `60-requirements/_index.md`，列出所有 `status: ready`（以及 `draft`）且**尚未拆解**的 FR（`status != broken-down`、无 `breakdown:` 字段），询问拆哪个。
+- **空** → 读 `requirements/_index.md`，列出所有 `status: ready`（以及 `draft`）且**尚未拆解**的 FR（`status != broken-down`、无 `breakdown:` 字段），询问拆哪个。
 - **一次只拆一份 FR。** 要拆多份就跑多次——拆解需要逐条核对覆盖，批量会漏。
 
 ### 2. 读父 FR 与既有约定（写之前先读）
-1. `game-design-documents/60-requirements/_index.md` — 状态词汇、台账、命名约定。
-2. `60-requirements/_TEMPLATE.md`（父 FR 形态）与 `_TEMPLATE-sub.md`（**子需求形态，本技能的产出模板**）。
+1. `game-design-documents/requirements/_index.md` — 状态词汇、台账、命名约定。
+2. `requirements/_TEMPLATE.md`（父 FR 形态）与 `_TEMPLATE-sub.md`（**子需求形态，本技能的产出模板**）。
 3. 目标 `FR-<id>.md` 全文——尤其 `## Acceptance criteria`、`## Scope`、`## Data & state touchpoints`、`## Open questions`。
 4. 该 FR 的 `source-docs` 里**与拆解相关的段落**（只为理解，不为改写）。
 5. `.claude/knowledge/architecture.md` + 相关 `systems/*` 笔记——了解代码现状，以便切出的子需求落在真实的文件边界上。
@@ -61,10 +61,10 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 父 FR 的**每一条**验收标准都必须映射到**至少一个**子需求。映射不上的条目 → 要么是切分漏了（补），要么是该条标准本身依赖未答问题（记入 Open questions 并在报告中点名）。这张映射表写进 `_index.md`。
 
 ### 5. 写文件
-在 `60-requirements/` 下**新建与父 FR 同名的文件夹**（父 FR 的 `.md` 文件保持原位，成为文件夹的兄弟）：
+在 `requirements/` 下**新建与父 FR 同名的文件夹**（父 FR 的 `.md` 文件保持原位，成为文件夹的兄弟）：
 
 ```
-60-requirements/
+requirements/
 ├── FR-<system>-<slug>.md            ← 父 FR（原位，status → broken-down）
 └── FR-<system>-<slug>/              ← 本技能新建
     ├── _index.md                    ← 拆解台账 + 覆盖映射表 + 构建顺序
@@ -79,14 +79,14 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - `_index.md` 内容：子需求一览表（`id | title | status | depends-on | blueprint`）、**父 FR 验收标准 → 子需求覆盖映射表**、建议构建顺序、以及本次拆解未能覆盖的条目。
 
 ### 6. 闭环台账
-- **父 FR**：`status` → `broken-down`，新增 `breakdown: 60-requirements/FR-<system>-<slug>/`。**不删改父 FR 的验收标准**——它仍是覆盖核对的基准。
-- **`60-requirements/_index.md`**：父 FR 那一行的 `status` 改为 `broken-down`，并在其下追加各子需求的行（缩进标记 `└`，`blueprint` 列留空待 `/blueprint` 填）。
+- **父 FR**：`status` → `broken-down`，新增 `breakdown: requirements/FR-<system>-<slug>/`。**不删改父 FR 的验收标准**——它仍是覆盖核对的基准。
+- **`requirements/_index.md`**：父 FR 那一行的 `status` 改为 `broken-down`，并在其下追加各子需求的行（缩进标记 `└`，`blueprint` 列留空待 `/blueprint` 填）。
 - 提示用户：对第一个子需求跑 `/blueprint FR-<sub-id>`。
 
 ### 7. 已知边界（照实说，不要自己扩权）
 - **签核语义：** 本技能默认「**父 FR 签核即覆盖其子需求**」，故子需求直接产出为 `ready`。若用户希望逐个签核子需求，改为一律产出 `draft` 并在报告中说明——这是用户的选择，不要替他们定。
 - **不评估 derive 就绪度。** 就绪度归 `/assess-derive-readiness`（`open-questions.md`「derive 就绪度」小节的唯一写入者）。本技能不写该小节、不给就绪度结论。
-- **不改设计。** 拆解过程中发现设计缺口 → 记入子需求的 `## Open questions` 并在报告中浮现，**不要**顺手去改 `20-systems/` / `40-ux/`。
+- **不改设计。** 拆解过程中发现设计缺口 → 记入子需求的 `## Open questions` 并在报告中浮现，**不要**顺手去改 `systems/` / `ux/`。
 
 ## 输出形态
 ```

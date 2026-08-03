@@ -1,6 +1,6 @@
 # 标准 —— 信号与 EventBus（引用层）
 
-`.claude/rules/csharp-godot-rules.md`（信号章节）的配套。**权威：`game-design-documents/20-systems/architecture.md`**「总则 5」与「EventBus 负载契约」——**14 个事件的负载 schema、`Emit` 代码形状去那边看**，此处不复制。
+`.claude/rules/csharp-godot-rules.md`（信号章节）的配套。**权威：`game-design-documents/systems/architecture.md`**「总则 5」与「EventBus 负载契约」——**14 个事件的负载 schema、`Emit` 代码形状去那边看**，此处不复制。
 
 ## 何时用什么
 
@@ -26,4 +26,4 @@
 
 - **顺序：** 不要假设订阅者的执行顺序。若顺序重要（PlayerPower 触发优先级），显式建模成一份解析出的优先级列表，而不是依赖订阅顺序。
 - **反馈回路：** 一个发射同一事件的处理器会递归。在效果可链式触发处（power 响应 power）防范重入。
-- **泄漏：** 见纪律 3。订阅计数 / 调试期泄漏检查是否要做，仍是待决问题 → `20-systems/architecture.md`「待决问题」。
+- **泄漏：** 见纪律 3。订阅计数 / 调试期泄漏检查是否要做，仍是待决问题 → `systems/architecture.md`「待决问题」。
