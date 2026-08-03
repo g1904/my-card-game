@@ -8,7 +8,7 @@
 
 `game-design` 是**客户端**的设计事实来源。客户端的七个「服务」全部是同一个 Godot 进程内的模块单例，彼此为直接 C# 方法调用；**唯一真实的进程边界是客户端 ↔ 后端**。这条边界两侧的部署节奏、技术栈与发布线都不同，因此文档也分线承载。
 
-跨越这条边界的客户端服务有四个：`account-service`、`content-service`、`sync-service`，以及 `future-event-service` 内部的 `PlotManager`。它们在客户端侧的门面设计见 `game-design-documents/20-systems/services/`。
+跨越这条边界的客户端服务有四个：`account-service`、`content-service`、`sync-service`，以及 `future-event-service` 内部的 `PlotManager`。它们在客户端侧的门面设计见 `game-design-documents/systems/services/`。
 
 ## 布局
 

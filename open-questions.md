@@ -7,9 +7,9 @@
 
 ### 强制在线 · 账号与合规（路线已定，仅剩落地）
 
-- **后端 / 账号系统具体选型。** 路线已定为**重账号 + 云端权威**（`game-design-documents/50-decisions/ADR-0003`）；技术栈、托管形态、账号系统自建还是接第三方均未定。
+- **后端 / 账号系统具体选型。** 路线已定为**重账号 + 云端权威**（`game-design-documents/decisions/ADR-0003`）；技术栈、托管形态、账号系统自建还是接第三方均未定。
 - **合规落地。** PIPL、实名、防沉迷、渠道审核、账号注销、数据导出——重账号 + 已删游客态 + 国内渠道意味着这些必须正面处理。
-- **多设备并发登录的裁决语义。** 同账号在两台设备同时在线时，云端权威如何裁决（后登录挤下线？拒绝？）。→ 客户端侧门面见 `game-design-documents/20-systems/services/account-service.md`。
+- **多设备并发登录的裁决语义。** 同账号在两台设备同时在线时，云端权威如何裁决（后登录挤下线？拒绝？）。→ 客户端侧门面见 `game-design-documents/systems/services/account-service.md`。
 - **token 失效时正在进行的轮回如何处理。** 阻塞、本地缓冲上行、还是回退到上一个存档点？与断线降级策略耦合。
 
 ### 协议契约（尚未建立 · 优先）
@@ -29,4 +29,4 @@
 
 ### 剧本下发
 
-- **剧本服务的请求 / 下发 / 缓存 / 离线降级协议。** 客户端只存 key points、内容在剧本服务已定；协议本身未定。→ 客户端侧见 `game-design-documents/20-systems/services/plot-manager.md`。
+- **剧本服务的请求 / 下发 / 缓存 / 离线降级协议。** 客户端只存 key points、内容在剧本服务已定；协议本身未定。→ 客户端侧见 `game-design-documents/systems/services/plot-manager.md`。
