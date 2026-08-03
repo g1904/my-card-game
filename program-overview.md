@@ -2,10 +2,10 @@
 
 > **这份文档回答「代码跑起来是什么样」。** 从进程启动到轮回结束的端到端调用链、服务 / 管理器职责矩阵、内容与存档的加载路径。
 >
-> 结构与边界的**权威**在 `20-systems/architecture.md`；本文件是它的**运行时视角**对照面。工程落地形态（进程边界、文件夹布局、autoload 注册、代码形态）见 `system-overview.md`。术语权威在 `terminology.md`。
+> 结构与边界的**权威**在 `systems/architecture.md`；本文件是它的**运行时视角**对照面。工程落地形态（进程边界、文件夹布局、autoload 注册、代码形态）见 `system-overview.md`。术语权威在 `terminology.md`。
 >
 > **注意：** 下文的「服务」指**进程内模块单例**（同一 Godot 二进制、同一进程、直接 C# 方法调用），**不是**分布式微服务。见 `system-overview.md` 第一节。
-> Source: `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
+> Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
 
 ---
 
@@ -60,8 +60,8 @@
 | | | BattlefieldManager | **战场（battlefield）**：场上生效中的卡牌 / 持续状态 / **触发器注册面**，及回合内 / 跨回合的生命周期标记与清理 |
 | | | StackManager | **栈（stack）**：压栈、**LIFO 结算**、连锁触发的解决顺序 |
 
-> **卡组 = `DeckModule`（第三级），不是平级 manager**：抽 / 弃 / 洗（seeded）归参战方内部的 module，CharacterManager 与 EnemyManager 各自持有，**每个 character / enemy 一份**（敌人也出牌）。Source: `10-handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
-> **栈与战场是两个区**：栈 = 等待结算的队列，战场 = 已结算并正在生效的东西；结算路径 = 打出 → 入栈 → LIFO 弹出结算 → 效果施加 →（若持续）落到战场。属于某一方的 mana / 道念 / 手牌 / 卡组仍归两个参战方 manager。Source: `10-handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
+> **卡组 = `DeckModule`（第三级），不是平级 manager**：抽 / 弃 / 洗（seeded）归参战方内部的 module，CharacterManager 与 EnemyManager 各自持有，**每个 character / enemy 一份**（敌人也出牌）。Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
+> **栈与战场是两个区**：栈 = 等待结算的队列，战场 = 已结算并正在生效的东西；结算路径 = 打出 → 入栈 → LIFO 弹出结算 → 效果施加 →（若持续）落到战场。属于某一方的 mana / 道念 / 手牌 / 卡组仍归两个参战方 manager。Source: `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
 
 **非服务的横切件：**
 
@@ -291,7 +291,7 @@ IContentRepository<T> where T : Resource
 
 ## 对应
 
-- 结构与边界权威：`20-systems/architecture.md`
-- 各服务详情：`20-systems/services/_index.md`
-- 系统层共有约定：`20-systems/common-properties.md`
+- 结构与边界权威：`systems/architecture.md`
+- 各服务详情：`systems/services/_index.md`
+- 系统层共有约定：`systems/common-properties.md`
 - 术语：`terminology.md`

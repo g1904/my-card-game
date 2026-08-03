@@ -2,10 +2,10 @@
 
 > 本分片属 `../open-questions.md` 的当前焦点区。
 
-- **隐藏属性的档位划分与阈值（08-01 新增 · 承重）。** 「**跨档给一条定性叙事**」已定案，但**每个隐藏属性分几档、阈值在哪**未定——**定性反馈的触发完全依赖它**，不定则该机制无法落地。寿元已给两档（30% / 10%），道心 / 煞气未给。→ `20-systems/services/plot-manager.md`。
-- **跨档叙事文案的归属与呈现（08-01 新增）。** 文案挂在档位定义上（每档一条固定文案），还是随触发它的事件而变？是否走内容层（可热更）？播在哪里（结算面板一行 / 独立小弹层）？同一次结算**多个属性同时跨档**如何呈现？→ `20-systems/services/plot-manager.md`、`40-ux/screen-flow.md`。
-- **隐藏属性清单。** 已定 **道心 / 煞气 / 寿元** 三项且均隐藏；仍待定：是否还有其他隐藏属性、增减触发（哪些 AdventureEvent 推拉）、剧情线目录。→ `20-systems/services/plot-manager.md`、`life-cycle-service.md`。
-- **各篇章 `lifeSpanCost` 的具体分档表（08-01 收窄 · 08-01b 目标值改写 · 承重）。** **定价方向已定**（目标时长反推；预算不变、逐篇章上调；闭关 Research 更耗；剩余寿元跨篇章结转；内容侧正数量值、物化取负）；**目标时长已上调为 30–40 / 35–45 / 45–55 分钟**（熟练玩家口径），故反推出的**单次定价将显著低于先前设想、一个篇章的事件总数显著变多**。仍待定：**哪些事件类型多耗、单次幅度各是多少**。→ `20-systems/balance.md`、`20-systems/adventure-event/`。
-- **非境界突破的寿元增长途径。** 是否存在（回寿类事件产出）未定。→ `20-systems/adventure-event/`、`20-systems/balance.md`。
-- **AdventurePlot 数据编码与剧本服务契约。** 四级结构、「Character 只存 key points、内容在剧本服务」、离线降级（事务前置 + `user://cache/plot/` LRU 预取）均已定；仍待定：树的数据表达（**调制** eventOptions 还是并行结构）、key points 粒度 / schema、剧本服务**请求 / 下发协议与版本化**、DnD 式选分支触发点与 UI。→ `20-systems/services/plot-manager.md`。
+- **隐藏属性的档位划分与阈值（08-01 新增 · 承重）。** 「**跨档给一条定性叙事**」已定案，但**每个隐藏属性分几档、阈值在哪**未定——**定性反馈的触发完全依赖它**，不定则该机制无法落地。寿元已给两档（30% / 10%），道心 / 煞气未给。→ `systems/services/plot-manager.md`。
+- **跨档叙事文案的归属与呈现（08-01 新增）。** 文案挂在档位定义上（每档一条固定文案），还是随触发它的事件而变？是否走内容层（可热更）？播在哪里（结算面板一行 / 独立小弹层）？同一次结算**多个属性同时跨档**如何呈现？→ `systems/services/plot-manager.md`、`ux/screen-flow.md`。
+- **隐藏属性清单。** 已定 **道心 / 煞气 / 寿元** 三项且均隐藏；仍待定：是否还有其他隐藏属性、增减触发（哪些 AdventureEvent 推拉）、剧情线目录。→ `systems/services/plot-manager.md`、`life-cycle-service.md`。
+- **各篇章 `lifeSpanCost` 的具体分档表（08-01 收窄 · 08-01b 目标值改写 · 承重）。** **定价方向已定**（目标时长反推；预算不变、逐篇章上调；闭关 Research 更耗；剩余寿元跨篇章结转；内容侧正数量值、物化取负）；**目标时长已上调为 30–40 / 35–45 / 45–55 分钟**（熟练玩家口径），故反推出的**单次定价将显著低于先前设想、一个篇章的事件总数显著变多**。仍待定：**哪些事件类型多耗、单次幅度各是多少**。→ `systems/balance.md`、`systems/adventure-event/`。
+- **非境界突破的寿元增长途径。** 是否存在（回寿类事件产出）未定。→ `systems/adventure-event/`、`systems/balance.md`。
+- **AdventurePlot 数据编码与剧本服务契约。** 四级结构、「Character 只存 key points、内容在剧本服务」、离线降级（事务前置 + `user://cache/plot/` LRU 预取）均已定；仍待定：树的数据表达（**调制** eventOptions 还是并行结构）、key points 粒度 / schema、剧本服务**请求 / 下发协议与版本化**、DnD 式选分支触发点与 UI。→ `systems/services/plot-manager.md`。
 - **剧本预取与事务前置的边界。** **LRU 容量上限**、**预取失败是否静默**（留待实际请求时再报）未定。→ 同上。

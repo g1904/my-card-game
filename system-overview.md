@@ -2,8 +2,8 @@
 
 > **这份文档回答「这些服务在 Godot 工程里长什么样」。** 进程边界、文件夹布局、autoload 注册、service / manager 的代码形态。
 >
-> 「代码怎么跑起来」的端到端运行链路见 `program-overview.md`；结构与边界的**权威**在 `20-systems/architecture.md`。
-> Source: `10-handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` + `10-handoffs/2026-07-27b-service-api-contracts.md`（Bootstrap 启动契约、`internal sealed` manager、后端接口化）。
+> 「代码怎么跑起来」的端到端运行链路见 `program-overview.md`；结构与边界的**权威**在 `systems/architecture.md`。
+> Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` + `handoffs/2026-07-27b-service-api-contracts.md`（Bootstrap 启动契约、`internal sealed` manager、后端接口化）。
 
 ---
 
@@ -179,7 +179,7 @@ public partial class ProfileService : Node
 }
 ```
 
-**服务门面的骨架是固定的**（`20-systems/architecture.md` 总则 3）：`static Instance` + `private` manager 字段 + 只暴露方法的 API 面 + **不返回内部可变集合**（一律 `IReadOnlyList<T>` / `IReadOnlyDictionary<,>`）。`Instance` 为 null 即启动顺序配错，属「必需缺失」→ `GD.PushError` + 抛，不做静默降级。
+**服务门面的骨架是固定的**（`systems/architecture.md` 总则 3）：`static Instance` + `private` manager 字段 + 只暴露方法的 API 面 + **不返回内部可变集合**（一律 `IReadOnlyList<T>` / `IReadOnlyDictionary<,>`）。`Instance` 为 null 即启动顺序配错，属「必需缺失」→ `GD.PushError` + 抛，不做静默降级。
 
 ### 管理器（普通 C# 类，**不是** `Node`；一律 `internal sealed`）
 
@@ -280,5 +280,5 @@ internal interface IPlotBackend     { Task<OpResult<PlotSegment>>      ResolveAs
 ## 对应
 
 - 运行时链路：`program-overview.md`
-- 结构与边界权威：`20-systems/architecture.md`
-- 服务清单与拆分轴：`20-systems/services/_index.md`
+- 结构与边界权威：`systems/architecture.md`
+- 服务清单与拆分轴：`systems/services/_index.md`

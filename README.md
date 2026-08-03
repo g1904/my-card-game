@@ -12,17 +12,17 @@
 
 ## 流水线
 ```
-90-inbox (draft)
-   └─▶ 10-handoffs/<date>-<slug>.md      raw intent, one entry per handoff   (status: raw)
-          └─▶ distilled into 20-systems / 40-ux living docs                  (status: distilled)
-                 └─▶ settled choice?  record 50-decisions/ADR-####
+inbox (draft)
+   └─▶ handoffs/<date>-<slug>.md      raw intent, one entry per handoff   (status: raw)
+          └─▶ distilled into systems / art / ux living docs        (status: distilled)
+                 └─▶ settled choice?  record decisions/ADR-####
                         └─▶ once a doc is fully detailed:  /derive-requirements
-                               └─▶ 60-requirements/FR-*.md   片区级 feature specs + acceptance criteria
+                               └─▶ requirements/FR-*.md   片区级 feature specs + acceptance criteria
                                       └─▶ /breakdown-requirements
-                                             └─▶ 60-requirements/FR-*/   可执行子需求（一个 = 一次 blueprint）
+                                             └─▶ requirements/FR-*/   可执行子需求（一个 = 一次 blueprint）
                                                     └─▶ knowledge + FR → /blueprint → /implement
 ```
-`90-inbox → 10-handoffs → 20-systems / 40-ux` 由 `/analyze-new-ideas` 承接。内容即系统的字段 / 内嵌类型，故**没有独立的内容文件夹**——内容写在 `20-systems/` 内。从详细设计到代码的**桥梁是两步**：`/derive-requirements` 产出片区级的 `60-requirements/FR-*`，`/breakdown-requirements` 再把**一份** FR 拆成同名文件夹内的**可执行子需求**——后者才是 `/blueprint` 的直接输入。两层结构、id 形态与签核语义见 `60-requirements/_index.md`。
+`inbox → handoffs → systems / art / ux` 由 `/analyze-new-ideas` 承接。内容即系统的字段 / 内嵌类型，故**没有独立的内容文件夹**——内容写在 `systems/` 内。从详细设计到代码的**桥梁是两步**：`/derive-requirements` 产出片区级的 `requirements/FR-*`，`/breakdown-requirements` 再把**一份** FR 拆成同名文件夹内的**可执行子需求**——后者才是 `/blueprint` 的直接输入。两层结构、id 形态与签核语义见 `requirements/_index.md`。
 
 **derive 就绪度由 `/assess-derive-readiness` 单独评估**（全量扫描全部主题文档，写入 `open-questions.md` 的「derive 就绪度」小节），**由用户在时机成熟时手动调用**；它是该小节的**唯一写入者**。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不**顺带评估或更新就绪度——逐次 handoff 顺带的判定会迅速过时且互相矛盾。**当前状态：全库尚未进入可 derive 的阶段。**
 
@@ -30,32 +30,33 @@
 | 文件 | 内容 |
 |------|------|
 | `terminology.md` | **术语事实来源**：中文领域词 ↔ 英文/代码标识符。横跨所有主题文档，故置于根级。提炼至 `.claude/knowledge/dictionary.md`。 |
-| `program-overview.md` | **程序运行总览**：层级词表（service ⊃ manager ⊃ module ⊃ processor ⊃ handler）、服务 / 管理器职责矩阵、启动→登录→核心循环→轮回结束的端到端调用链、内容与档案的加载路径。横跨所有系统，故置于根级。结构与边界权威在 `20-systems/architecture.md`。 |
+| `program-overview.md` | **程序运行总览**：层级词表（service ⊃ manager ⊃ module ⊃ processor ⊃ handler）、服务 / 管理器职责矩阵、启动→登录→核心循环→轮回结束的端到端调用链、内容与档案的加载路径。横跨所有系统，故置于根级。结构与边界权威在 `systems/architecture.md`。 |
 | `system-overview.md` | **项目结构与落地形态**：进程边界（service = 进程内模块单例，**非**微服务）、Godot 工程文件夹布局、autoload 注册、service / manager 的代码形态。 |
 | `open-questions.md` | 跨 session 待答清单的**索引**：说明、分片导航表、焦点判据、`## derive 就绪度`、`## 下一阶段`。问题条目本身在 `open-questions/` 分片中。 |
 
 ## 文件夹图例
 | 文件夹 | 内容 | 可变性 |
 |--------|-----------------|------------|
-| `00-vision/` | 北极星：pillars、scope、references。 | 稳定，极少编辑。 |
-| `10-handoffs/` | 原始的时间线输入——大多是你的文字，每个 handoff 一个文件。 | 持续更新（时间线日志，最新置顶；可自由编辑 / 修正，非仅追加）。 |
-| `20-systems/` | 各玩法系统的设计意图，以**类概念**组织（每个系统一个「类」，其内容为字段/内嵌类型）。文件名与 `.claude/knowledge/systems/` 对应。 | 持续更新；**只保留最新设计**（重写替换，见下）。 |
-| `40-ux/` | 屏幕、流程、手感（文本线框图）。 | 持续更新；**只保留最新设计**。 |
-| `50-decisions/` | ADR 风格的已定决策。 | 可修改（软件开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
-| `60-requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往 `/blueprint` 的桥梁。由 `/derive-requirements` 生成、用户签核（`draft → ready`），再由 `/breakdown-requirements` 拆成同名文件夹内的可执行子需求（`FR-*/`）。 | 持续更新；随设计深化而重新生成/扩展。 |
-| `90-inbox/` | 未整理的草稿，待分流到 handoff/主题中。两类：手写的 `draft-<suffix>.md`；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。 | 自由发挥。 |
+| `vision/` | 北极星：pillars、scope、references。 | 稳定，极少编辑。 |
+| `handoffs/` | 原始的时间线输入——大多是你的文字，每个 handoff 一个文件。 | 持续更新（时间线日志，最新置顶；可自由编辑 / 修正，非仅追加）。 |
+| `systems/` | 各玩法系统的设计意图，以**类概念**组织（每个系统一个「类」，其内容为字段/内嵌类型）。文件名与 `.claude/knowledge/systems/` 对应。 | 持续更新；**只保留最新设计**（重写替换，见下）。 |
+| `art/` | 美术与音频的设计意图与生成指导：**两个一级分区** `visuals/`（内含子分区 `animations/`，占位）与 `soundtracks/`，各含总方向 + `references/` + `guides/`。承载 vision 文本、参考登记与 art / audio guide（= 投喂生成工具的 prompt）；**生成出的二进制资产不入本库**，归 `game-feature-branch/`。 | 持续更新；**只保留最新设计**。当前为脚手架阶段。 |
+| `ux/` | 屏幕、流程、手感（文本线框图）。 | 持续更新；**只保留最新设计**。 |
+| `decisions/` | ADR 风格的已定决策。 | 可修改（软件开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
+| `requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往 `/blueprint` 的桥梁。由 `/derive-requirements` 生成、用户签核（`draft → ready`），再由 `/breakdown-requirements` 拆成同名文件夹内的可执行子需求（`FR-*/`）。 | 持续更新；随设计深化而重新生成/扩展。 |
+| `inbox/` | 未整理的草稿，待分流到 handoff/主题中。两类：手写的 `draft-<suffix>.md`；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。 | 自由发挥。 |
 | `open-questions/` | 跨 session 待答清单的**分片**：`01-combat.md` … `07-codex-monetization.md`（焦点区，编号即优先级）、`deferred-content.md`（已搁置的内容充实）、`update-log.md`（逐次更新摘要）。**只跟踪仍待答的问题**（无「已解决」区）；主题文档的 `## Open questions` 是权威归属，此处是导航。答定即移出到 `answer-logs/`。 | 持续更新；由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。分片过长可再拆、过短可并回，同步更新索引导航表。 |
-| `answer-logs/` | 已答定问题从待答清单移出的归档台账，一次移出一份 `log-<draftSuffix>.md`（`draftSuffix` = 对应 `90-inbox/draft-<suffix>.md` 的后缀 或 `solution-draft-<slug>.md` 的 `<slug>`，无草稿来源则用当天 `MMDD`）。由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。 | 历史台账，一次移出新建一份；与本库其余文档一样可编辑修正，非仅追加。 |
+| `answer-logs/` | 已答定问题从待答清单移出的归档台账，一次移出一份 `log-<draftSuffix>.md`（`draftSuffix` = 对应 `inbox/draft-<suffix>.md` 的后缀 或 `solution-draft-<slug>.md` 的 `<slug>`，无草稿来源则用当天 `MMDD`）。由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。 | 历史台账，一次移出新建一份；与本库其余文档一样可编辑修正，非仅追加。 |
 
 ## 维护约定：一切皆可改，只保留最新设计
-软件开发尚未开始——本库**没有任何文档是「仅追加」或「一旦定案即不可变」的**（`10-handoffs/`、`90-inbox/`、`50-decisions/` ADR 均可自由编辑 / 重写 / 重构）。要改一份 ADR 的决定，就**直接改这份 ADR**，不必新开一个 ADR 去取代它。
+软件开发尚未开始——本库**没有任何文档是「仅追加」或「一旦定案即不可变」的**（`handoffs/`、`inbox/`、`decisions/` ADR 均可自由编辑 / 重写 / 重构）。要改一份 ADR 的决定，就**直接改这份 ADR**，不必新开一个 ADR 去取代它。
 
-活文档**只保留最新的设计与决策**：当内容被取代 / 重命名 / 迁移时，**直接重写替换**，删除「取代 X / 并入 Y / 由 Z 拆出 / 迁入自 / 原 X / 重构说明 / 旧文件保留待清理」等考古与对已删文件的引用。溯源以指向当前 `10-handoffs/*` 的简短 `Source:` 承载即可；历史 / 回溯归 **git**（项目由 GitHub 版本控制，legacy 需要时可手动取回）。方向来源：`10-handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md`。
+活文档**只保留最新的设计与决策**：当内容被取代 / 重命名 / 迁移时，**直接重写替换**，删除「取代 X / 并入 Y / 由 Z 拆出 / 迁入自 / 原 X / 重构说明 / 旧文件保留待清理」等考古与对已删文件的引用。溯源以指向当前 `handoffs/*` 的简短 `Source:` 承载即可；历史 / 回溯归 **git**（项目由 GitHub 版本控制，legacy 需要时可手动取回）。方向来源：`handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md`。
 
 ## 状态词汇（handoff）
 - `raw` — 已捕获，尚未处理。
 - `triaged` — 已阅读并分流到正确的主题，但尚未撰写成文。
 - `distilled` — 已折叠进某个主题文档（和/或某个 ADR）；`distilled-to:` 指明去向。
 
-## 数字前缀
-文件夹带编号，使 vision 与 handoff 排序在主题文档之上。主题文件名与 `.claude/knowledge/` 一一对应，因此一个 handoff 能干净地映射到它最终喂入的那份知识笔记。
+## 文件夹命名
+顶层文件夹用**纯语义名**（`vision/`、`handoffs/`、`systems/` …），不带数字前缀——阅读顺序以本 README 的文件夹图例为准，而非文件系统排序。主题文件名与 `.claude/knowledge/` 一一对应，因此一个 handoff 能干净地映射到它最终喂入的那份知识笔记。

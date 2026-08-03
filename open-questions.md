@@ -4,7 +4,7 @@
 >
 > 每次 session 结束时，未答的 Open questions 汇总到对应分片，供下次拾起；一旦答定，就从分片中移除、归档进对应主题文档的 `## 待决问题` / `## 决策`，并在 `answer-logs/log-<draftSuffix>.md` 记一笔。此清单**只跟踪仍待答的问题**（不留已解决区），是导航 / 拾取清单，**权威归属在各主题文档**；已答定问题的移出记录见 `answer-logs/`。
 >
-> **最近更新：2026-08-03（0803）。** 逐次更新摘要（本次答结了什么、推翻了什么）见 `open-questions/update-log.md`。
+> **最近更新：2026-08-04（0804）。** 逐次更新摘要（本次答结了什么、推翻了什么）见 `open-questions/update-log.md`。
 
 ## 分片导航
 
@@ -18,11 +18,11 @@
 | `open-questions/05-service-contracts.md` | **⑤ 服务契约 / 工程侧残留**：离线开关防护、`revision`、纪律可执行性、需求流水线形态。 |
 | `open-questions/06-meta-progression.md` | **⑥ 元进程的失败侧与中长期规划感**：道统残卷概率、方位感来源。 |
 | `open-questions/07-codex-monetization.md` | **⑦ 图鉴族与商业化**：`CharacterPower`、五本图鉴、premium bundle。 |
-| `open-questions/deferred-content.md` | **已搁置：内容充实**（07-30 起暂不推进）＋ 随内容搁置的 UX 呈现细节 ＋ 尚未设计的占位主题。 |
+| `open-questions/deferred-content.md` | **已搁置：内容充实**（07-30 起暂不推进）＋ **美术与音频（`art/`，08-04 加入）** ＋ 随内容搁置的 UX 呈现细节 ＋ 尚未设计的占位主题。 |
 
 ## 当前焦点：各系统机制细节
 
-> **焦点判据（07-30 定）：** **规则、字段语义、流程与算法 = 机制细节 = 焦点**（分片 ①–⑦）；**具体条目目录与数值 = 内容充实 = 搁置**（`open-questions/deferred-content.md`）。与既定开发路线「框架 → 内容 → 平衡与体验 → 社交及其他」的第 ① 阶段一致。Source: `10-handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md`。
+> **焦点判据（07-30 定）：** **规则、字段语义、流程与算法 = 机制细节 = 焦点**（分片 ①–⑦）；**具体条目目录与数值 = 内容充实 = 搁置**（`open-questions/deferred-content.md`）。与既定开发路线「框架 → 内容 → 平衡与体验 → 社交及其他」的第 ① 阶段一致。Source: `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md`。
 >
 > 焦点顺序即分片编号顺序；**① 战斗机制**优先级最高。
 
@@ -34,6 +34,6 @@
 
 ## 下一阶段
 
-- **ADR 状态：** 已固化 **ADR-0002**（修行事件九类分类，九值枚举）、**ADR-0003**（强制在线 · 云端权威 · 重账号）、**ADR-0004**（境界存档 · 重试模型，含寿元归 0=defeated）、**ADR-0005**（**`.claude` 是工程层、对设计只做薄引用**；07-30 由 `knowledge/` 扩到整个 `.claude`，含 rules / skills 与冲突裁决规则）。ADR 候选：**开发顺序**（框架 → 内容 → 平衡与体验 → 社交及其他，见 `00-vision/scope.md`）；**内容载体形态**（随包基线 + overlay + 版本校验，见 `20-systems/services/content-service.md`）。（注：ADR 现可自由编辑，改决定直接改 ADR，不再新开取代 ADR。）
-- **流水线闭环（07-30）：** design → code 链路补上 `/breakdown-requirements`（一份 FR → 一个文件夹的可执行子需求），完整形态见 `README.md` 与 `60-requirements/_index.md`。
-- **架构闭环缺口：** 8 处**全部闭合**（移出记录见 `answer-logs/log-0725c.md` 与 `log-0726b.md`）；状态表见 `20-systems/architecture.md` 的「闭环缺口」小节。残留细节已下沉为各焦点分片的普通待决问题。
+- **ADR 状态：** 已固化 **ADR-0002**（修行事件九类分类，九值枚举）、**ADR-0003**（强制在线 · 云端权威 · 重账号）、**ADR-0004**（境界存档 · 重试模型，含寿元归 0=defeated）、**ADR-0005**（**`.claude` 是工程层、对设计只做薄引用**；07-30 由 `knowledge/` 扩到整个 `.claude`，含 rules / skills 与冲突裁决规则）。ADR 候选：**开发顺序**（框架 → 内容 → 平衡与体验 → 社交及其他，见 `vision/scope.md`）；**内容载体形态**（随包基线 + overlay + 版本校验，见 `systems/services/content-service.md`）。（注：ADR 现可自由编辑，改决定直接改 ADR，不再新开取代 ADR。）
+- **流水线闭环（07-30）：** design → code 链路补上 `/breakdown-requirements`（一份 FR → 一个文件夹的可执行子需求），完整形态见 `README.md` 与 `requirements/_index.md`。
+- **架构闭环缺口：** 8 处**全部闭合**（移出记录见 `answer-logs/log-0725c.md` 与 `log-0726b.md`）；状态表见 `systems/architecture.md` 的「闭环缺口」小节。残留细节已下沉为各焦点分片的普通待决问题。
