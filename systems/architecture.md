@@ -30,7 +30,23 @@
 | 第四级 | **processor** | 预留 | — |
 | 第五级 | **handler** | 预留 | — |
 
-> **纪律不随层数放宽：** 边界仍是「服务之间不读写对方字段、不伸手进对方 manager」；同理**不得跨层直呼**——外部只看得见宿主服务的 API 面，module 及以下一律是宿主 manager 的内部实现。第四 / 第五级目前没有实例，名字先定下来以免各处自造词；**module 以下暂无下沉判据**，见待决问题。
+> **纪律不随层数放宽：** 边界仍是「服务之间不读写对方字段、不伸手进对方 manager」；同理**不得跨层直呼**——外部只看得见宿主服务的 API 面，module 及以下一律是宿主 manager 的内部实现。**第四 / 第五级目前没有实例，且暂不落实例——保持空是健康的。**
+
+**module 以下的下沉判据（已定案）：判据的轴从「职责」换成「形态」。** 前三级各有其轴——service = **边界**（三判据）、manager = **职能**（服务内的一块职责）、module = **可复用的部件**（`DeckModule` 每个参战方各持一份，其成立依据正是「同一形状被实例化多次」）。顺着这条轴：
+
+> **processor = 无状态的处理阶段；handler = 按 kind 分派的叶子。**
+
+- **拆出 processor 需三条判据全中（与门）：**
+  1. **它是一个可独立命名的处理阶段**，输入 / 输出明确，**不持有跨调用的状态**（或只持一次调用内的临时状态）。——**这是与 module 的分界**：module 持有状态（`DeckModule` 拥有三个区），processor 不持有。它也是「拆分轴 = 生命周期层 + 行为边界」这条既定轴在第四级的延续（无状态 = 无独立生命周期）。
+  2. **它有 ≥ 2 个同形态的实现，或有明确的可替换性**（规则变体、按数据选实现）。单一实现且永不变体的一段代码，拆出去只是换个文件名。**本库已经在实践这条判据**——九类事件只有 2 个 `IEventResolver`，正是同构的先例。
+  3. **拆出后调用入口仍只有宿主 module 一个**——不产生第二个调用方、不越层被 manager 直呼。
+- **下沉到 handler（第五级）的判据：存在一个开放的 `kind` 枚举，且每个 kind 的处理互不共享状态** → 一个 kind 一个 handler，由 processor 按 kind 分派。**「开放」是关键词**：kind 集合封闭且稳定时（如 `TurnStep` 三值），一个 `switch` 比五个 handler 类清晰得多。**handler 的价值在可加性**——新增一个 kind = 新增一个 handler 文件，与「新增一张卡 = 新增一个 `.tres`」是同一条可加性纪律在代码侧的投影。
+- **三条反判据（明确不拆）：** ① 只是「这个文件太长了」；② 只被调用一次且无变体；③ 为了让层级看起来更完整。**层数不是成熟度指标**——「抽象层次不封顶在两级」这句话同时也意味着**不封底**。
+- **校准样本（列出但不构成排期）：** 目标合法性筛选（`StackManager` 内）**最强候选**（无状态 ✅ / 按目标类别与次类型筛选有天然变体 ✅ / 只被结算流程调用 ✅）· 效果施加（`StackManager` 内）**强候选**，其下**可能**是 handler 的第一处用武之地（一个效果 kind 一个 handler）· seeded 洗牌（`DeckModule` 内）**不拆**（只有一种洗法）· 意图生成（`EnemyManager` 内）**暂不拆、观察**。
+- **「先有判据、后有实例」为定案**，比先造实例再补判据安全。**已知代价**：判据偏严可能出现「该拆没拆」的巨型 module——**接受**，巨型 module 是**局部**问题（宿主 manager 之外看不见它），而层级滥用是**全局**问题（词表失去意义、每个人自造层），两害相权取局部。
+- **连带：`BattlefieldManager` 提级仍不推荐。** 本判据只消解了它此前四条理由中的第二条（「级联降级会强迫回答一个尚无判据的问题」），其余三条依然成立。
+
+Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
 
 - **service（服务）= 边界单元。** 值得成为服务当且仅当命中**三条判据之一**：① 拥有**自己的状态机或跨多帧的长流程**；② 需要**事务性地跨多个字段一致写入**（全有或全无）；③ 坐在**外部 I/O 边界**上（网络、存档、平台 SDK）。服务以 autoload 形式存在，**不持有独立数据**，只操作核心「类」。**边界纪律（已定案的准确措辞）：服务之间不读写对方字段、不伸手进对方 manager；跨服务的方法调用（经对方的服务门面 `Xxx.Instance.Method(...)`）允许。** 编排顶点 game-progression 负责「谁在什么时机调谁」的屏幕流程串联，但**不是**一切跨服务调用的必经中转；既成事实经 EventBus 广播。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
 - **manager（管理器）= 服务内部的职能组件。** 多个 manager 生活在同一服务里，**共享宿主服务的事务边界与生命周期**；**不被跨服务直接调用**——外部只看得见宿主服务的 API 面。
@@ -46,6 +62,8 @@
 | **combat-service** | ① | TurnManager、CharacterManager、EnemyManager、BattlefieldManager、StackManager |
 
 > **combat-service 的战场与栈各自一个 manager（08-03）。** **BattlefieldManager** 持有 **battlefield（战场）**——场上正在生效的卡牌 / 持续状态 / **触发器注册面**；**StackManager** 持有栈（压栈、LIFO 结算、连锁触发顺序）。**栈 = 等待结算的队列，战场 = 已结算并正在生效的东西**，是两个区；TurnManager 因此回落为纯粹的回合状态机。Source: `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
+
+> **战场与两个参战方 manager 的划线判据 = 「是否在场上生效」（08-04b）。** 一件东西**在场上生效、可被效果针对 / 查询、需在结束阶段被清理、需进决策点存档** → **战场条目，归 BattlefieldManager**，条目自带 `OwnerSide` 表示归属方；**参战方的私有资源与牌堆**（mana、道念、手牌、卡组、本场可用道具）→ 归 CharacterManager / EnemyManager。**「属于谁」只是条目的一个字段，不是它的住处**——附着在某一方身上的持续状态（「我方本回合所有牌 +1 道念」）因此是战场条目。**单一战场记录，不分双场区容器。** **读侧统一、写侧分权**：需要整场信息的场合读 combat-service 组装的 `CombatSnapshot`（第一级已是「拥有整场信息的顶点」），写入仍各归其主。**层级不动**——BattlefieldManager 不提级、两个参战方 manager 不降级：提级会让它变成 god object，并把 `DeckModule` 压到第四级、强迫回答尚无判据的「module 以下的下沉判据」；且层级词表的拆分轴是**生命周期层 + 行为边界**，而战场与两个参战方的生命周期完全同长（一场战斗），不存在包含关系。Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`。
 
 > **combat-service 的卡组 = `DeckModule`（第三级）。** 抽 / 弃 / 洗与 seeded 洗牌由 CharacterManager 与 EnemyManager 各自持有的 `DeckModule` 承担，**每个 character / enemy 一份**（敌人也出牌）。它不是平级 manager，而是 manager 内部的 module。Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` + `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
 
@@ -103,8 +121,8 @@ ContentRegistry（内存）    按 Id 索引，唯一内容读取入口
 | 失败性质 | 形状 | 例 |
 |----------|------|-----|
 | **必需缺失 = 程序缺陷 / 坏数据** | `GD.PushError($"[Svc-Method] ..., id={id}")` + `throw` | `ContentRegistry.Get(id)`、启动期校验 |
-| **可选缺失 = 调用方可降级** | `bool TryXxx(..., out T value)`，返回 `false` 前 `GD.PushWarning` | `ContentRegistry.TryGet`、`TryRefill` |
-| **业务失败 = 预期内的拒绝** | 返回 `OpResult` / `OpResult<T>` / `ApplyResult`，**绝不抛** | 付不起成本、网络不通、token 失效、重试耗尽 |
+| **可选缺失 = 调用方可降级** | `bool TryXxx(..., out T value)`，返回 `false` 前 `GD.PushWarning` | `ContentRegistry.TryGet`、`TryGetActiveCharacter` |
+| **业务失败 = 预期内的拒绝** | 返回 `OpResult` / `OpResult<T>` / `ApplyResult`，**绝不抛** | 网络不通、token 失效、重试耗尽（**事件推进不再因「付不起」被拒绝**，见总则 8） |
 
 ```csharp
 public enum OpError { None, Network, Auth, Compliance, Validation, NotFound, Conflict, Cancelled, Migration }
@@ -170,7 +188,7 @@ res:// + user://overlay/          ContentRegistry              future-event-serv
 ```
 
 - **模板侧（`AdventureEventData : Resource`）** 承载稳定 `Id`、`eventType`、静态展示文案、基准数值与**可变体的参数空间**、数据驱动的 outcome / effect 定义。它是 ContentRegistry 里的**共享只读单例**，可被 overlay 热更覆写——**任何服务都不得在运行时写它**（写回会污染注册表，被同一轮回的后续批次与其他角色看到）。
-- **物化侧（future-event-service）** 是**唯一物化点**。输入 = 模板（经 `AllEnabled()` 取池）+ CharacterProfile + location 框定 + PlotManager 调制 + SeedManager 的 map 子流；输出 = 一批 `EventOption`。**产出 eventOptions ≡ 物化 AdventureEvent**；`ifMandatory` / `eventPriority` 的动态置位只是这条规则的特例，**按情境制造变化与风味**才是物化的目的。
+- **物化侧（future-event-service）** 是**唯一物化点**。输入 = 模板（经 `AllEnabled()` 取池）+ CharacterProfile + location 框定 + PlotManager 调制 + SeedManager 的 map 子流；输出 = 一批 `EventOption`。**产出 eventOptions ≡ 物化 AdventureEvent**；`eventPriority` 的动态置位只是这条规则的一个特例，**按情境制造变化与风味**才是物化的目的。
 - **消费侧定稿（finalized）。** `EventOption` 一经输出即冻结：life-cycle-service / combat-service / ViewModel 一律只读，**不得回查模板重算、不得改写其字段**。这条纪律保证「同一个事件在呈现、结算、记入历程三处看到的是同一份数据」。
 
 ```csharp
@@ -178,10 +196,8 @@ public sealed record EventOption(                 // 定稿实例：immutable �
     string             InstanceId,                // 本次物化实例的稳定标识；pastEvent / 存档引用它
     string             EventId,                   // 溯源到模板
     EventType          EventType,                 // Mystery 时 = 遮罩类型；真身见 RevealedEventId
-    int                Priority,                  // 物化时置位
-    bool               IsMandatory,               // 物化时置位
+    int                Priority,                  // 物化时置位；取值域 { 0, 1 }
     ProfileChangeSpec  SelectCost,                // 物化时组装（modifier pipeline 尚未施加）
-    ProfileChangeSpec  SkipCost,
     bool               IsRevealed,                // Mystery：是否已揭示
     string             RevealedEventId            // Mystery 遮罩的固定事件（物化时即已确定）
     /* ⟨待定：其余物化字段清单⟩ */);
@@ -192,8 +208,8 @@ public sealed record EventOption(                 // 定稿实例：immutable �
 **三条推论：**
 
 1. **定稿实例必须落存档，不能只存 `EventId` 事后重算。** 物化用了 seeded RNG、当时的角色状态、以及可被 overlay 热更的模板；确定性只在同一 `contentVersion` 内成立。因此**当前批 eventOptions 与 `pastEvent` 痕迹都要存物化后的快照**。
-2. **`InstanceId` 与 `EventId` 并存且不可互相替代。** 同一模板可在一次轮回里被物化多次；`pastEvent`、`EventResolved` 负载、`TryRefill` 的「被跳过的那一个」都按 `InstanceId` 定位。
-3. **通则：** 凡「内容定义 + 情境 / 轮回内状态」的组合都是两个类型——`AdventureEventData` ↔ `EventOption`（**定稿不可变**）；`CardData` ↔ `CardInstance`（运行态**可变**）；**`EnemyTemplate` ↔ 物化后的敌人实例**（future-event-service 取模板 → 充实 / 改写 → 指派给事件，**敌人等级即物化产物**，见 `services/future-event-service.md`）。共享纪律：**服务签名里传实例，不传 `Resource`**；差别只在实例是否可变。这与展示层三层切分同构，把第二层的类型形态明确了。
+2. **`InstanceId` 与 `EventId` 并存且不可互相替代。** 同一模板可在一次轮回里被物化多次；`pastEvent` 与 `EventResolved` 负载都按 `InstanceId` 定位。
+3. **通则：** 凡「内容定义 + 情境 / 轮回内状态」的组合都是两个类型——`AdventureEventData` ↔ `EventOption`（**定稿不可变**）；`CardData` ↔ `CardInstance`（运行态**可变**）；**`EnemyData` ↔ `EnemyInstance`**（**定稿不可变**；future-event-service 取模板 → 充实 / 改写 → 指派给事件，**敌人等级即物化产物**；条目定义归 `systems/enemies/`）。共享纪律：**服务签名里传实例，不传 `Resource`**；差别只在实例是否可变。这与展示层三层切分同构，把第二层的类型形态明确了。
 
 #### 总则 7 —— 后端接口化：四个边界服务各持一个可替换后端
 
@@ -227,13 +243,14 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
 `AdvanceEventAsync` 的固定流程：
 
 ```
-校验 mode 合法性（IsMandatory + Skip → 拒绝；Priority < EffectivePriority → 拒绝）
-  → TryApply(SelectCost | SkipCost)          ← 付不起则回 AdvanceResult 拒绝，不产生任何写入
+校验选项合法性（Priority < EffectivePriority → 拒绝）
+  → TryApply(SelectCost)                     ← 无条件施加；不做「付得起」校验（08-06c）
+  → 终态判定 ①（支付后立即）                 ← 判负 → 短路进失败流程，不再进入 resolver
   → 【eventStart 阶段】选 resolver、Mystery 揭示
   → resolver.ResolveAsync(option, ct)
   → 【eventEnd 阶段】合并 ResolveOutcome + lifeSpanCost + 隐藏属性推拉为**一次** TryApply
   → 记入 pastEvent（按 InstanceId，携带定稿实例快照）
-  → 终态判定 → EventBus 广播 → sync 自动存档点
+  → 终态判定 ②（结算后）→ EventBus 广播 → sync 自动存档点
 ```
 
 九类事件仍只有**两个** resolver——与拆分轴「只有 Combat 真有状态机、其余差异在数据而非代码」一致，且保住「新增一个事件 = 新增一个 `.tres`」的可加性。
@@ -244,10 +261,9 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
 public sealed class ProfileChangeSpec { public IReadOnlyList<ChangeElement> Elements { get; } }
 public readonly record struct ChangeElement(CostKey Key, int BaseValue);   // 负 = 消耗，正 = 产出
 public enum CostKey        { LifeSpan, Jade, /* ⟨待定：其余 element 清单⟩ */ }
-public enum AdvanceMode    { Select, Skip }
 public enum CycleStatus    { Ongoing, Defeated, Completed }
 public enum DefeatReason   { Discarded, LifeSpanExhausted, LifeTotalExhausted }   // 战斗失败本身不终结角色，只扣 lifeTotal
-public enum CapabilityFlag { RevealHiddenStats, ShowMysteryType, ShowSkipCost }
+public enum CapabilityFlag { RevealHiddenStats, ShowMysteryType }
 public enum HiddenStat     { Faith, MaleficQi, LifeSpan }
 public enum RngStream      { Map, Combat, Shop, Reward }
 public enum EventType      { Practice, Combat, Research, Exchange, Social, Mystery, Finale, Explore, Travel }
@@ -260,7 +276,7 @@ public enum EventType      { Practice, Combat, Research, Exchange, Social, Myste
 | 事件 | 负载 | 广播者 |
 |------|------|--------|
 | `CycleStarted` | `(string CharacterId, int Chapter, ulong Seed)` | life-cycle |
-| `EventResolved` | `(string CharacterId, string InstanceId, string EventId, AdvanceMode Mode, int LifeSpanRemaining)` | life-cycle |
+| `EventResolved` | `(string CharacterId, string InstanceId, string EventId, int LifeSpanRemaining)` | life-cycle |
 | `ChapterCompleted` | `(string CharacterId, int Chapter, Realm ReachedRealm)` | life-cycle |
 | `CharacterDefeated` | `(string CharacterId, DefeatReason Reason, int RetriesLeft)` | life-cycle |
 | `EventOptionsChanged` | `(string BatchId, int Revision)` | future-event |
@@ -336,7 +352,7 @@ Input (touch, 横向滑动选择)
 | 2 | 战斗内部无归属 | **已闭合** → combat-service（唯一自带状态机的事件类型；Finale 复用） |
 | 3 | 存档 / 云同步无归属 | **已闭合** → sync-service（ProfileSyncManager / LocalCacheManager / MigrationManager） |
 | 4 | 本地 / 云端内容分界未定 | **已闭合** → 有稳定 `Id` 且被存档引用 → 本地内容层；按进度动态请求、不被存档引用 → 云端剧本服务 |
-| 5 | skip 通道无结算归属 | **已闭合** → 归属（`AdvanceEvent` 的 `mode = Skip`，经 ProfileManager 施加）+ 玩法语义主干（**通常不扣寿元**、**计入 `pastEvent`** 作为行为轨迹、由 future-event-service **单项补位**且补位可落空）均已定；残留细节已下沉为普通待决问题 |
+| 5 | skip 通道无结算归属 | **已闭合（08-06c：以移除该通道的方式）** → 跳过、`skipCost`、`ifMandatory`、单项补位整体删除；一批只有一次操作（择一进入），选中一个即等价于跳过其余 |
 | 6 | `selectCost` / `lifeSpanCost` 重叠 | **已闭合**（07-25b：包含关系）；ProfileManager 是其唯一消费点 |
 | 7 | 编排顶点缺失 | **已闭合** → game-progression |
 | 8 | UI 与服务间无契约层 | **已闭合**（07-25b：ViewModel 层） |
@@ -351,8 +367,7 @@ Input (touch, 横向滑动选择)
 - **热更「只改不增」的连带项：** 范围边界已定（overlay 只改既有条目的数值 / 文案，不得新增 `Id`）、确定性张力已裁决（以 overlay 更新为准，不冻结 `contentVersion`，放弃跨版本 seed 可复现）；残留：是否需「预埋占位 `Id`」策略绕开审核周期、是否在存档中记录 `contentVersion` 以便诊断。→ `services/content-service.md`。Source: `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
 - **断线降级的具体行为：** push / pull / 剧本请求失败时阻塞玩家、本地缓冲重试、还是回退存档点？→ `services/sync-service.md`、`services/account-service.md`。
 - **ViewModel 层是否需要单独一份文档：** 三层切分已定案并在本文件显式化；是否为 ViewModel 层单列文档（或归 `ux/`）待定。Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
-- **enemies 归属：** 当前归 `adventure-event/combat/`；**Practice 与 Finale 均已确认使用敌人**（天劫即一个带定制卡组的 Enemy），是否升为共享内容层待确认。Source: 同上 + `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
-- **module 以下的下沉判据未给。** service 与 manager 各有明确判据，但「什么时候一个 module 该再拆出 processor」没有判据——第四 / 第五级目前只有名字。Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
+
 
 ## 对应
 提炼至：`.claude/knowledge/architecture.md`（**薄引用层**，ADR-0005：导航 + 代码现状 + 承重一句话，代码形态内容只回链本文件，不留副本）。

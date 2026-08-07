@@ -20,6 +20,7 @@
 | &nbsp;&nbsp;├ [explore/](adventure-event/explore/_index.md) | 探索秘境（第八类）。 |
 | &nbsp;&nbsp;├ [social/](adventure-event/social/_index.md) | 社交事件。 |
 | &nbsp;&nbsp;└ [travel/](adventure-event/travel/_index.md) | 前往某处地点（第九类；地图路由，刷新 location）。 |
+| [enemies/](enemies/_index.md) | **敌人**（与 adventure-event 平级）：`EnemyData` ↔ `EnemyInstance`、样本卡组、item / power 持有列表、`EncounterScopes` 与 `PoolScope`、`±2` 赋级带的接受面。三类战斗事件共享同一批条目。 |
 | [character-profile/](character-profile/_index.md) | 角色档案（单次轮回 / 单角色的状态与历史）。 |
 | &nbsp;&nbsp;├ [deck/](character-profile/deck/_index.md) | 卡组、抽牌/hand/弃牌、seeded 洗牌、卡牌定义、起始卡组。 |
 | &nbsp;&nbsp;├ [item/](character-profile/item/_index.md) | 角色持有的道具。 |
@@ -31,7 +32,7 @@
 | &nbsp;&nbsp;├ [player-item/](player-profile/player-item/_index.md) | 可购道具定义。 |
 | &nbsp;&nbsp;├ [player-power/](player-profile/player-power/_index.md) | 被动修正 / relic-joker。 |
 | &nbsp;&nbsp;├ [achievements/](player-profile/achievements/_index.md) | 分组成就与两档（60% / 90%）一次性奖励。 |
-| &nbsp;&nbsp;├ [codex/](player-profile/codex/_index.md) | **图鉴族（五个）**：Enemy / CharacterPower / PlayerPower / CharacterItem / PlayerItem —— 账号级静态文案知识，不含动态情报。 |
+| &nbsp;&nbsp;├ [codex/](player-profile/codex/_index.md) | **图鉴族（六个）**：Enemy / CharacterPower / PlayerPower / CharacterItem / PlayerItem / Location —— 账号级静态文案知识，不含动态情报。 |
 | &nbsp;&nbsp;├ [account-info](player-profile/account-info.md) | 账号身份与状态元数据。 |
 | &nbsp;&nbsp;└ [game-setting](player-profile/game-setting.md) | 账号级常规系统设置。 |
 | [services/](services/_index.md) | 服务层索引：**层级 service ⊃ manager ⊃ module ⊃ processor ⊃ handler**、拆分轴原则、七个服务清单。 |

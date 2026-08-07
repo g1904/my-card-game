@@ -1,10 +1,10 @@
 # codex — 共有属性
 
-> 五个图鉴的条目共有字段与解锁语义。族总览见 `_index.md`；敌人图鉴的具体词条见 `enemy-codex.md`。
+> 六个图鉴的条目共有字段与解锁语义。族总览见 `_index.md`；敌人图鉴的具体词条见 `enemy-codex.md`。
 
 ## 已定的约束
 
-- **条目按对象的稳定 `Id` 索引。** 图鉴条目以对应内容条目（`EnemyTemplate` / `PlayerPowerData` / `ItemData` …）的 `Id` 为键——与全库「稳定 `Id` 是一切引用的键」一致（见 `systems/common-properties.md`）。绝不用显示名或索引作键。
+- **条目按对象的稳定 `Id` 索引。** 图鉴条目以对应内容条目（`EnemyData` / `PlayerPowerData` / `ItemData` …）的 `Id` 为键——与全库「稳定 `Id` 是一切引用的键」一致（见 `systems/common-properties.md`）。绝不用显示名或索引作键。
 - **只记录静态知识。** 条目承载「这个东西是什么、会做哪些事」，**不承载任何运行态**（本回合意图、当前道念、场上状态）——那些属于 `combat-service` 的战斗内状态，战斗结束即消失。分层论证见 `_index.md`。
 - **展示文案不进图鉴条目。** 显示名 / 描述 / 立绘 / 词条正文留在对应的 `Resource` 上；图鉴的**存档条目只带 `Id` + 解锁状态 + 计数类可变字段**，呈现时由 ViewModel 组装。这是全库「运行时 / 存档态只带 `Id` + 可变状态」的直接应用。**推论：图鉴的存档负担接近一个 id 集合**，文案改版不触发存档迁移，也不撑大增量 push。
 - **写入经 `profile-service.ProfileManager`。** 解锁与计数更新是 `ProfileChangeSpec` 的变更目标，不绕过唯一写入面。

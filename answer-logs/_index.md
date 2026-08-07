@@ -18,6 +18,14 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-combat-solutions.md` | 2026-08-06 | `inbox/combat-solutions.md`（战斗待答方案草稿汇总，五组 · 已带用户逐节裁决）：**`01-combat.md` 的 38 条战斗待答一次性全部答结** —— 意图三档阈值整体收紧一级且**赋级带回退三章统一的对称 `±2`**（推翻 08-06 / 08-06b 的 `[−4, +2]` 与降阶碾压硬门）/ **`lifeTotalLimit` 概念整体删除** / `ActiveCombat` 存档 schema 与 D0–D6 决策点清单 / 卡牌侧数值与效果系统三层骨架 / 遭遇参数收进 `EncounterSpec` / **enemies 升为与 adventure-event 平级的系统** / 经验曲线与分布 / 道具折价分层与法则强度闸门 / 1% 分母口径 / 九项呈现形态定稿 | **38** |
+| `log-0806b.md` | 2026-08-06 | `inbox/draft-0806b.md`（eventOptions 专场第二场）：**`LocationCodex` 记连边**（跨轮回重建整张 `locationMap` 是设计目标）/ **`skipCost` 概念整体移除** / **跳过通道与 `ifMandatory` 整体移除**（选一个即等价于跳过其余，`TryRefill` 一并删除）/ **付不起 `selectCost` 改为「照付 → 判定 → 判负进失败流程」** / **`eventPriority` = 两档，future-event-service 独占置位、PlotManager 不可改** | 5（另 2 条收窄） |
+| `log-0806_2.md` | 2026-08-06 | `inbox/draft-0806.md`（08-06 三条 ⚠ 承重裁决项的收口）：ch1 赋级带定为**非对称 `[−4, +2]`**（连带答结 `lifeTotal` 算术冲突）/ 三章带边界 = **内容配置** / 降阶碾压**不需要**独立呈现语言 / **法则不会被强制剥夺**（自愿置换才真移除，其余降级为「本轮回禁用」）/ `chapterRetry` = **三个具名字段 + 通关后保留 + 账号级另有统计计数** | 5 |
+| `log-0805b_2.md` | 2026-08-06 | 直接对话（`handoffs/2026-08-05b-...` 的追加拍板）：Travel 闸门给**多个**目的地 / `eventCountLimit` 只计选择进入并结算（跳过与 Travel 均不计） / 连通关系由全局不变的 **`locationMap`** 承载（三篇章共用、玩家不可见） / **每批必有不可跳过项是设计意图不是死锁**。新增结构：`locationMap` + **`LocationCodex`（图鉴族第六本）** | 4（另 2 条收窄） |
+| `log-0806.md` | 2026-08-06 | 直接对话（对 08-05 遗留待裁决项的回应）：ch1 赋级带放宽至 ±4 且新增「降阶 = 碾压」硬门（收口意图阈值冲突，取向 = 调带不调阈值） / 失去法则的 1% 分母 = 全部 event 且不限于战斗（带出「移除 `Power` 两条通道」的新结构） / sync 缓冲闸门口径 = 事件级存档点 / `attemptIndex` 整层删除，改由 `CharacterProfile.chapterRetry` 承载 | 4 |
+| `log-0805b.md` | 2026-08-05 | `inbox/draft-0805b.md`（location 携带三组字段：事件类型概率修正 · 敌人模板集合 · `eventCountLimit`；配额用尽 → 本批仅剩 Travel；跳过的两条残留细节改由产出侧保证闭合；补位落空判据 = 地域配额用尽） | 2（另 3 条部分答定） |
+| `log-0805.md` | 2026-08-05 | `inbox/draft-0805.md`（敌人赋级重定义为角色等级 ±2 的对称带，连带答结 lifeTotal 算术冲突与天劫等级档位 / 栈必须落存档，栈上的目标选择即决策点 / 埋伏进敌人卡池但不计入意图 / `IgnoresProtection` 配额 ≈1% 的游戏场景 / 不会有凭空生成的牌） | 6（其中 1 条部分答定） |
+| `log-mtg-loanwords-and-card-types.md` | 2026-08-04 | `inbox/solution-draft-mtg-loanwords-and-card-types.md`（MTG 借词第一批全部定名，含卡牌类型六分 / 异能三分 / 永久物 / 次类型；触发条件可跨归属方；法则能承载战斗内触发；意图 = 快照故偏差不做处理；战场与参战方的边界判据） | 5（另 1 条部分答定） |
 | `log-0804.md` | 2026-08-04 | `inbox/draft-0804.md`（`animations/` 归 `visuals/` 之内、一级分区确定为两个；另：音频工具倾向 Suno 但未定案） | 1（另 1 条部分答定） |
 | `log-0803.md` | 2026-08-03 | `inbox/draft-0803.md`（满手抽不进 / 触发载体开放 / 道念下限 0 逐次结算截断 / 敌人赋级上界 = 高一个大境界的初期 / 引入 battlefield 及 BattlefieldManager · StackManager / 法则 · 古宝 · 神通 · 法宝 中文重定名） | 6 |
 | `log-0802c_2.md` | 2026-08-02 | 粘贴文本（`handoffs/2026-08-02c-...` 的追加拍板：意图即承诺、公布后不因玩家行动重算 / 敌人回合内意图区收起） | 2 |

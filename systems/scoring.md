@@ -10,9 +10,9 @@
 - **道念（momentum）是计分用的胜利点数（victory point）。** 它是本作对「计分」这一空缺的回答：**计分不是战斗之外的一层结算，而就是战斗本身的胜负标尺**。Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 - **胜负 = 道念高者胜（已定案）。** 战斗结束时比较双方道念，**高者胜**。战斗**不以任一方 lifeTotal 归零为终止 / 判定条件**。Source: 同上。
 - **战斗过程中 lifeTotal 不直接参与。** 回合内的一切焦点都在**积累道念 / 压制对方道念**上；lifeTotal 在战斗过程中既不被消耗也不被读取。Source: 同上。
-- **失败惩罚 = 按道念差扣 lifeTotal（已定案）。** 战斗 / 修炼失败时，角色在**战斗结束的结算时刻**损失 lifeTotal，损失量由「**角色道念 − 敌人道念**」的差值决定（差得越多，伤得越重）。Source: 同上。
-- **换算 = 1:1（已定案 · 负侧）。** 道念差**就是** lifeTotal 的损失量：`lifeTotal -= (敌人道念 − 角色道念)`——不是线性系数、不是分档表，中间**不隔一层映射**。**推论：道念差成为一把真正的通用刻度**——战斗屏上的「我落后 8 点」同时就是「输了要掉 8 点 lifeTotal」，账当场可算，无需额外教学。**不设上限截断（已定案）：** 1:1 就是全部规则，不加封顶、不加分档。**「一次惨败打穿耐久」由内容设计侧规避**——遭遇编排不会给出会导致该结果的等级差，故规则层无需为此加护栏。**推论：内容侧因此背上一条硬约束**——`EnemyTemplate` 的物化赋级必须把「最坏情况下的道念差」控制在当前 `lifeTotal` 可承受的范围内，这条约束落在 future-event-service 的赋级规则上。Source: `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
-- **胜利侧同样读道念差 → 奖励厚度（已定案）。** 赢多少也算数：**道念差越大，奖励越厚**（碾压 > 险胜）。**道念差因此是一个双向的结算刻度**——同一个量在胜负两侧分别驱动奖励厚度与惩罚深度，不需要第二套结算量。**负侧已定为 1:1；胜侧是否同为 1:1 未定**，曲线归 `systems/balance.md`。Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` + `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
+- **失败惩罚 = 按道念差扣 lifeTotal（已定案）。** 战斗 / 修炼失败时，角色在**战斗结束的**收口**时刻**损失 lifeTotal，损失量由「**角色道念 − 敌人道念**」的差值决定（差得越多，伤得越重）。Source: 同上。
+- **换算 = 1:1（已定案 · 负侧）。** 道念差**就是** lifeTotal 的损失量：`lifeTotal -= (敌人道念 − 角色道念)`——不是线性系数、不是分档表，中间**不隔一层映射**。**推论：道念差成为一把真正的通用刻度**——战斗屏上的「我落后 8 点」同时就是「输了要掉 8 点 lifeTotal」，账当场可算，无需额外教学。**不设上限截断（已定案）：** 1:1 就是全部规则，不加封顶、不加分档。**「一次惨败打穿耐久」由赋级规则在规则层封住（08-05）**——物化赋级的合法区间 = **角色当前等级 `±2`**（见 `systems/services/future-event-service.md`），最坏的开局落差因此有界（境界边界处炼气 9 / 筑基 23）。**内容侧的遭遇编排纪律退为第二道防线**，扣减侧的规则层仍不加护栏。Source: `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` + `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md`。
+- **胜利侧同样读道念差 → 奖励厚度（已定案）。** 赢多少也算数：**道念差越大，奖励越厚**（碾压 > 险胜）。**道念差因此是一个双向的结算刻度**——同一个量在胜负两侧分别驱动奖励厚度与惩罚深度，不需要第二套结算量。**负侧 = 1:1；胜侧 = 两条支路**——**强制奖励（可数量）走线性 `1:1 × 可调单价`**（「1 点道念差 = 1 个 `rewardPerMomentum` 单位」，单价逐篇章下调以吸收 `baseMomentum` 的百倍量纲膨胀），**可选奖励（品质）走归一化 `advantage` 三档**（险胜 / 优胜 / 碾压，只改候选池的稀有度权重、不改数量）。**道念差因此有两个消费点，调平衡时须同时看。** 公式、单价表与门槛见 `systems/balance.md`。Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` + `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
 - **`momentum` 的字段形态 = 非负整数（已定案）。** `>= 0` 的 Integer——下限 0 在类型层面即已表达，不引入小数、不引入负值。**推论：削减是饱和减法**，削到 0 即止、多余量不结转，故若要如实呈现「本次削了多少」，需区分**意图削减量**与**实际削减量**。Source: `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
 
 ```
@@ -80,7 +80,6 @@
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **胜利侧的「道念差 → 奖励厚度」是否也 1:1。** 负侧已定；胜侧仍是定性表述。若也 1:1，「1 点道念差」在奖励侧等于什么单位（灵玉？候选项数量？某个权重）未定。→ `systems/balance.md`。Source: 同上。
 - **Practice / Finale 的具体改写值。** 「回合数与胜负条件可变、一简一难」已定方向；Practice 是更少回合（更快）还是更多回合（更宽容）、Finale 的额外门槛取什么形式，均未给。→ `systems/adventure-event/practice/`、`finale/`。Source: 同上。
 - **卡牌产 / 削道念的量纲基准（已归属专场）。** 「一张牌该产多少」「10 个回合内总产出应达起始值的几倍」——**明确推迟到内容横向扩展阶段的「ch1 数值模型」session**，切入点是起始角色 starter deck 的设计。→ `systems/character-profile/deck/`、`systems/balance.md`。Source: 同上。
 

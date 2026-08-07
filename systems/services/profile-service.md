@@ -27,8 +27,8 @@ if (!result.Success)
 }
 ```
 
-- **全有或全无。** 先**全量校验**所有 cost element 是否付得起，再**一次性提交**。这直接确定了「付不起某个 element 时整体不可选」这条判定。
-- **它是已定 `selectCost` / `skipCost` 复合成本类型的唯一消费点。**（二者同为 **`ProfileChangeSpec`**——由若干 `ChangeElement` 组成，`lifeSpanCost` 是其中一个 element；见 `systems/adventure-event/common-properties.md`。）**成本与产出用同一个类型**：`ChangeElement.BaseValue` 带符号（负 = 消耗，正 = 产出），使一次结算的扣减与收益天然落在同一事务内。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
+- **全有或全无。** 一次 `TryApply` 是**单点提交**：要么全部 element 一起落，要么一个都不落——不允许半套写入。**「先全量校验付得起、否则整体拒绝」已不再适用于事件推进（08-06c）**：`selectCost` **无条件施加**，支付后由 life-cycle-service 做终态判定。**事务性与可负担性校验是两件事，这次只拆掉后者**；负值施加时各资源的钳制规则待定，见待决问题。Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
+- **它是已定 `selectCost` 复合成本类型的唯一消费点。**（它是 **`ProfileChangeSpec`**——由若干 `ChangeElement` 组成，`lifeSpanCost` 是其中一个 element；见 `systems/adventure-event/common-properties.md`。）**成本与产出用同一个类型**：`ChangeElement.BaseValue` 带符号（负 = 消耗，正 = 产出），使一次结算的扣减与收益天然落在同一事务内。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
 - **modifier pipeline 在此生效。** ProfileManager 读取每个 element 数值的那一刻走 `Apply(key, baseValue)`，因此 PlayerPower 的全局数值修正（`lifeSpanCost`、商店价格、掉落权重……）**不需要任何消费层写 `if (hasPowerX)`**。新增一个修正 = 新增一条数据，受影响系统零改动。
 - **可加性。** 新增一种资源 element = 新增一个 element 类型 + 数据字段；不新增服务、不改调用方。这正是**不为 power / item / card / resource 各开一个 collection 服务**的替代品（见 `_index.md` 的拆分轴）。
 
@@ -36,7 +36,7 @@ if (!result.Success)
 
 `2026-07-25b` 定下的 capability flag 体系此前无宿主，现归本服务。
 
-- 在启动及 PlayerProfile 变更时，遍历**拥有且 `status = 启用`** 的 `PlayerPower`，把它们声明授予的 **capability flag**（如 `RevealHiddenStats`、`ShowMysteryType`、`ShowSkipCost`）聚合为一份**生效能力集**，并把具名 **modifier** 聚合为修正表。
+- 在启动及 PlayerProfile 变更时，遍历**拥有且 `status = 启用`** 的 `PlayerPower`，把它们声明授予的 **capability flag**（如 `RevealHiddenStats`、`ShowMysteryType`）聚合为一份**生效能力集**，并把具名 **modifier** 聚合为修正表。
 - 变更时经 **EventBus** 广播 `CapabilitiesChanged`。
 - **消费侧收敛为「一个 flag ↔ 一处消费点」：** 受影响的 UI 组件**自己订阅**并查询 `Has(flag)`，业务逻辑层完全不知道该 power 存在。散落条件的根因是把呈现决策写进了业务层；把决策点归位，条件自然只剩一处。
 - **`status`（启用 / 禁用）与「拥有 / 失去」是正交两维：** 列表成员表达「拥有哪些」，`status` 表达「拥有的这些里哪些当前生效」。失去 = 移出 `List<PlayerPower>`，不是置 `status = 禁用`。详见 `systems/player-profile/player-power/common-properties.md`。
@@ -92,7 +92,9 @@ if (!result.Success)
 
 ## 待决问题
 
-- **cost element 清单未定。** `TryApply` 的形状取决于它：有哪些 element（jade / mana / 道具 / 隐藏属性推拉？）、各自数据形态（固定值 / 区间 / 公式）。「付不起时整体不可选」已由全有或全无的事务语义确定，但**是否允许部分抵扣**仍未定。→ `systems/adventure-event/common-properties.md`。
+- **cost element 清单未定。** `TryApply` 的形状取决于它：有哪些 element（jade / mana / 道具 / 隐藏属性推拉？）、各自数据形态（固定值 / 区间 / 公式）。→ `systems/adventure-event/common-properties.md`。
+- **负值施加的钳制规则未定（08-06c 新增 · 承重）。** `selectCost` 无条件施加后必须回答：**哪些资源截断到 0、哪些允许为负、哪些的耗尽构成终态**（寿元归 0 = `defeated` 已定；灵玉 / mana / 其余 element 未定）。它决定 `TryApply` 在余额不足时的行为。→ `systems/character-profile/currency.md`。Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
+- **`CanAfford` / 「余额不足即拒」还剩哪些消费点（08-06c 新增）。** 事件推进路径已不需要；Exchange 内的商店购买等主动消费点是否仍需？若全都不需要，`CanAfford` 与 `AdvanceResult.CostRejected` / `MissingElement` 可整体删除。Source: 同上。
 - **capability flag 的枚举与命名空间；叠加 / 冲突规则。** 两个 power 授予同一 flag 如何处理；多个 modifier 作用于同一 key 时的**运算顺序**（加法先于乘法？声明序？优先级字段？）未定。→ `systems/player-profile/player-power/common-properties.md`。
 - **`status` 与「拥有 / 失去」两态的存档表达。** 两个正交维度如何编码进 schema 未定。
 - **AchievementManager 的触发采集面。** 成就进度靠订阅 EventBus **被动采集**（解耦但易漏），还是由各服务**主动上报**（可靠但反向依赖）？

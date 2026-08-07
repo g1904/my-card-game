@@ -38,11 +38,21 @@
 
   **境界之间不留跳变（已定案）：** 全局序就是连续的 1–22，枚举值自带描述（`level=1` → 炼气一层，`level=14` → 筑基初期，…）。**境界鸿沟改由 `baseMomentum` 承载**——每个等级对应一个战斗起始道念，筑基以上每级跨度持续放大（表见 `systems/balance.md`）。这条分工让等级序保持为一把简单的直尺，而把「跨境界有多难」放进战斗数值里。Source: 同上 + `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。
 - **等级成长 = 事件产出经验值（已定案）。** 境界内等级由 **AdventureEvent 的 reward 给予**，但**给的是经验值而非等级本身**：
-  - **`experiencePoint`（经验值）是 CharacterProfile 上的一个字段（已定案 · 08-02）。** **每个等级各有一个升级所需的经验阈值**；事件奖励**发放经验值**，累积达到阈值才升一级。**推论：「事件直接给等级」的先前表述作废**——等级成长多了一层累积量，产出因此可以做得**细碎而连续**（一次事件给几点经验），而不必每次都是一次跳级。**阈值曲线待定**，见待决问题。Source: `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
+  - **`experiencePoint`（经验值）是 CharacterProfile 上的一个字段（已定案 · 08-02）。** **每个等级各有一个升级所需的经验阈值**；事件奖励**发放经验值**，累积达到阈值才升一级。**推论：「事件直接给等级」的先前表述作废**——等级成长多了一层累积量，产出因此可以做得**细碎而连续**（一次事件给几点经验），而不必每次都是一次跳级。**阈值曲线与给予量已定案**，见下与 `systems/balance.md`。Source: `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
   - **不只绑定 Combat / Practice** —— 任何类型的修行事件都可能给经验产出（闭关、探索、社交皆可）。
   - **不只有胜利才给** —— **失败同样可能有经验产出**（挫折亦是修行）。这与「失败侧应有产出」的取向一致（见 `systems/player-profile/codex/`、`player-power/`）。**推论：经验值让「失败给的比胜利少」有了自然的表达**——同一个量的不同数值，不需要「给不给等级」这种全有全无的判断。
   - 它与 `manaLimit` 同属一套「由事件 cost / reward 推拉」的成长体系，走同一条 `ProfileChangeSpec` → `TryApply` 链路（见 `systems/services/life-cycle-service.md`）。**经验值是战斗奖励中「强制自动计入」的那一类**（见 `systems/services/combat-service.md`）。
-  - **产出的频次与分布未定**，见待决问题——它与寿元预算的花法互相约束。
+  - **阈值曲线 = 境界内递增 + 境界间重置量纲（已定案）。** **重置的理由不是美观，而是「进阶即归位初期」**：等级在境界边界被重置，若经验阈值仍连续累加就出现「等级归零、阈值不归零」的语义割裂。**跨境界的难度阶梯已由 `baseMomentum` 跨度独占承载**（既定分工：等级序是一把简单直尺，跨境界有多难放进战斗数值里），**经验侧不叠第二条跨境界曲线**。具体阈值与给予量见 `systems/balance.md`。
+  - **产出分档 = `ExperienceGrade { None / Minor / Standard / Major }` 枚举 + 平衡表映射（已定案）**，`AdventureEventData` 上**不落裸数字**。**阈值与给予量同比放大**（ch1 标准产出 4 / ch2 12 / ch3 16），与 `baseMomentum` 跨境界放大的数值语言同构。
+  - **带经验的产出点约占事件总数 75%（已定案 · 初值）。** 全覆盖会让经验变成「时间的自动函数」、事件选择在成长维度上失去差异；覆盖率过低（< 50%）则玩家为了升级只挑带经验的事件，压扁事件池多样性。**75% 让「大多数路都在前进、但选得好前进得快」两件事同时成立。**
+  - **档位偏置 = 「产出对位成本」的一致化（已定案 · 内容编排口径）**：Combat 胜利 `Major` · Practice 胜利 `Standard`（低风险 ⇒ 产出对位低一档）· **Finale `None` / `Minor`**（见下）· Research 闭关 `Major`（`lifeSpanCost` 最高）· Explore `Standard` / `Minor` · Social `Minor` · Exchange `None`。
+    - **它与 location 的事件类型概率修正自然咬合**：荒野多 Combat = 经验更密但风险更高，坊市多 Exchange = 经验稀疏但资源丰——**地域由此自带成长节奏的风味，不需要为 location 再加一个经验修正字段**（与「敌人物化两条轴正交」同款克制）。
+  - **失败产出 = 一条 reward 两个字段，不是两套内容（已定案）**：`ExperienceGrade`（成功档位）+ `FailureRatio`（默认 **0.5**，逐条可覆写，留给「这场输了才真正学到东西」的特例）。折算在 `ProfileChangeSpec` 组装时完成，`TryApply` 收到的已是最终整数。**50% 而非更低**：失败已经付了 `lifeTotal` 的硬代价（归 0 即角色终结），靠反复失败刷经验天然不是优势路线。
+  - **承重推论：经验的目标点不是「篇章结束」，而是「Finale 之前」（已定案）。** 「天劫的 `diff` 恰为 +1」这条自洽性验证隐含一条硬约束——**角色必须在进入 Finale 之前就已升满本境界**，否则 `±2` 带会给出一个更低的天劫等级，「渡劫 = 突破到下一境界」的叙事随之破裂。**推论 ①：全部升级所需经验必须由篇章的常规事件段供满**，Finale 本身不承担经验供给。**推论 ②：Finale 的出现条件 = 角色已达本境界巅峰**——不需要新机制，`eventPriority` + `ifMandatory` 已能表达（与 `eventCountLimit` 达成后 Travel 封锁同批的用法同构）。
+  - **供给 / 需求 ≈ 1.15–1.20；满级后经验直接丢弃**（不结转、不开兑换通道，与「进阶即归位初期」同向）。**卡级的实际后果 = 寿元耗尽而等级未满 → `defeated`**，这是**有意保留的失败面**，但要求 `lifeSpanCost` 与 `eventCountLimit` 的反推**必须验证「按标准路线走能在预算内升满」**——这是把经验曲线绑进时长旋钮反推的一条验收项。
+  - **承重推论：ch2 / ch3 的升级稀疏是一个必须补偿的节奏缺口。** ch1 每 2 个事件升一级，ch2 / ch3 每 9–11 个事件才升一级——**中段会出现连续十几分钟毫无等级反馈**，这直接撞上「中长期规划感的来源」那条长期待答。**补偿 = 经验进度条常驻于 EventOption 选择界面的角色状态条**（`当前 / 本级阈值`）：玩家读到「还差 12 点到筑基中期」就有了跨越十来个事件的中期目标。它在 ch1 是锦上添花，**在 ch2 / ch3 是唯一的连续进度感来源**。与寿元隐藏纪律不冲突——**经验从未被定为隐藏属性**。配套：**eventOption 卡片不标注该事件的经验产出档位**（保留探索感，与「给方向不给数字」一致）。见 `ux/screen-flow.md`。
+  - **已知风险**：反推链是脆的（事件总数一变，整条阈值曲线失效）——**缓解是把「供给 / 需求比」做成一份可算的校验表**，每次调时长旋钮时重算，而不是死记数字；ch1 的 12 次升级可能让升级感变廉价（若实测如此，收口方向是**提高 ch1 阈值 + 降低覆盖率**，**不动炼气 13 层**）；**溢出即弃**会让后半章的经验奖励对已满级玩家毫无价值 → 缓解为满级后 UI 标注「已圆满」，并保证带经验的事件同时带其他产出（**不做纯经验事件**）。
+  Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`（阈值曲线 / 分档 / 分布 / Finale 前满级 / 经验条常驻）。
   Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` + `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
 
 ### 进程形态与节点呈现
@@ -52,9 +62,35 @@
 - **AdventurePlot 调制 eventOptions（方向）。** 隐藏抽象 **AdventurePlot（隐藏剧情线）** 是一棵分支可能性树，在背景中**调制 future-event-service 产出的 eventOptions**。隐藏属性（道心 / 煞气 / 寿元）达阈值时驱动对应剧情线，改写后续可选事件；某些节点可像 DnD 那样让玩家选择分支。详见 `systems/services/plot-manager.md`。Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 
 ### 地域 / location 与 Travel 路由
-- **地域 / location = 抽象概念。** 角色当前所在地点。location **框定 eventOptions**——角色当前地点决定**下一批可能出现的修行事件池**。它是介于「原始生成」与「AdventurePlot 调制」之间的另一层框定：不同地点开放不同的修行事件池。Source: `handoffs/2026-07-24-docs-restructure-class-model.md`。
+
+- **地域 / location = 带三组字段的内容条目（已定案 · 08-05b · 承重）。** 角色当前所在地点，是介于「原始生成」与「AdventurePlot 调制」之间的一层框定。它**携带三样东西**：
+
+  | 字段 | 框定强度 | 作用面 |
+  |------|----------|--------|
+  | **事件类型出现概率修正**（event type possibility modifiers） | **软**（改权重，不改可及性） | 物化时的事件类型配比：荒野多 Combat、坊市多 Exchange、洞天多 Research |
+  | **敌人模板集合**（一组特定的 `EnemyData`） | **硬**（限定取池） | 战斗类事件物化时「派谁来」 |
+  | **`eventCountLimit`**（事件容量上限） | **硬**（计数闸门） | 玩家在该地域最多经历几个事件 |
+
+  - **「不同地点开放不同的事件池」这句旧措辞由此收窄：** 事件侧**不是硬分池**，而是**对候选池的类型出现概率施加修正**；硬分池只发生在**敌人**那一侧。一软一硬是两种框定形态。
+  - **推论：location 已具备内容条目的形态**——携带字段集合、由内容作者编写、被物化读取，故应有稳定 `Id`、经 `ContentRegistry` 索引、受 `ContentEnabled` 与 overlay 热更管辖（见 `data-resource-rules.md`）。**数据载体的定名与形态待答**，见待决问题。
+  - **推论（承重）：敌人物化的两条轴至此正交。** **location 决定「派谁来」**（模板池），**相对角色等级的赋级带决定「有多强」**（三章统一 `±2`，见 `systems/services/future-event-service.md`）。地域的生态与风味不需要另设机制——这两个字段就是它的全部表达。
+  - **具体数值归内容制作阶段**：各 location 的类型修正取值、模板清单、`eventCountLimit` 的数字均在内容阶段定。
+  Source: `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md`。
+- **`locationMap`（地域图）= 一张全局不变的连通图（已定案 · 08-05b · 承重）。** 地域之间的连边由一份**独立的 `locationMap` 数据**承载——**既不挂在 Travel 事件的内容条目上，也不在运行时算**；Travel 的目的地从当前 location 在图上的**邻接集合**中取。
+  - **三个篇章共用同一张图 ⇒ location 不随篇章 / 境界变化。** **难度的篇章差异不由「换一张更难的图」承载，而由敌人赋级带（相对角色当前等级）承载**——同一张图在三个篇章重走，敌人强度自动跟着角色走。这与「全局等级序是一把简单的直尺、境界鸿沟由 `baseMomentum` 承载」是同一种分工：**结构保持简单，难度放进数值。**
+  - **推论：熟悉度成为跨轮回的资产。** 图不变 ⇒ 不同轮回走的是**同一片世界**，地名、地域的事件倾向、哪片区域出什么敌人都会被记住并复用。**这是把「重复游玩」转化为「越玩越懂」的结构基础**，也正是 `locationCodex` 的存在理由。
+  - **推论（工程形态）：不变 + 高频读 ⇒ 只读静态数据，启动加载一次、常驻内存。** 它进 `ContentRegistry`（受 overlay 热更管辖，但**一次轮回内视为不变**），future-event-service **只读不写**；**存档不存图本身，只存「当前所在 location 的 `Id`」**。
+  - **`locationMap` 在轮回内对玩家不可见。** 「进程是逐批择一的线性推进，不是可俯瞰的分支地图」这条不变——**图存在但不呈现**。玩家可见的那一面是账号级的 **`LocationCodex`（图鉴族第六本）**，「去过即记」**且记连边**，见 `systems/player-profile/codex/_index.md`。**推论（08-06c）：不可见是「初见不可见」而非「永远不可见」**——跨轮回的知识可以逼近整张图，这是设计目标；两者不冲突，因为地图长在玩家脑子里（在图鉴里），不在 HUD 上。**连带：图的稳定性从设计选择升格为对玩家的隐性承诺**，改连边等于清空一份账号级资产。
+  Source: 同上。
 - **Travel / 前往某处地点 = 地图路由（AdventureEvent-Travel，第九类）。** Travel 是 adventure-event 的一个子类型，**功能上是一次地图路由选择**——选择 Travel 事件即**刷新角色所在的 location**，从而换掉下一批 eventOptions。即：Travel 是玩家在月圆之夜式菜单中「换图 / 换地点」的入口。子类型定义见 `systems/adventure-event/travel/`；本文档持有 location 抽象与路由语义。Source: `handoffs/2026-07-24-docs-restructure-class-model.md`。
-- **归属划分。** location 抽象与路径导航语义归本文档（game-progression）；Travel 作为**事件类型**的呈现 / 数据归 `adventure-event/travel/`；二者通过「Travel 刷新 location → location 框定 eventOptions」协作。
+- **`eventCountLimit` 达成 → 本批只剩 Travel（已定案 · 08-05b · 承重）。** 玩家在当前 location 选够事件、达到 `eventCountLimit` 后，**最后剩下的 eventOption 是「前往另一个 location」**。
+  - **承载机制无需新增，且 08-06c 后只需一个字段：** Travel 选项以**最高 `eventPriority`（= 1）**出场即可封锁同批其余选项。跳过通道与 `ifMandatory` 已整体移除——**本批的每一项本就都是必做项**，闸门不需要第二个字段来封死回避通道。
+  - **闸门给多个 Travel 目的地（已定案 · 08-05b）。** 收窄后剩下的是**若干个并列的 Travel 选项**，各指向 `locationMap` 上当前 location 的一个邻接地域——**「去哪」本身是一次真实的玩家决策**。**推论：闸门是逐批择一的线性进程里唯一一个带地理含义的分岔点**；结合 `LocationCodex`，它是玩家把跨轮回积累的地理知识**变现**的地方。候选数量与抽取规则未定，见待决问题。
+  - **推论：Travel 由「可选路由」升格为结构性闸门。** 地域迁移是**被规则驱动的必经节点**，不再只是玩家想换图时才选的事件。**进程的形状由此清晰：一次篇章 = 若干 location 的串联，每个 location 内是一段定长的 eventOptions 循环，location 之间由 Travel 缝合。**
+  - **推论：`eventCountLimit` 是篇章节奏的结构单位。** 篇章事件总数 ≈ 途经各 location 的容量之和，故它与时长主旋钮 `lifeSpanCost` **互相约束**，须一同反推目标时长（见 `systems/balance.md`）。
+  - **计数口径（已定案 · 08-05b · 08-06c 简化）：只计「选择进入并结算」的事件，Travel 不计入。** **推论：配额是「在这个地域做了几件事」的纯计数**——离开的动作本身不算做事。跳过通道移除后**一批 = 一次操作 = 一次配额消耗**，地域节奏成为一条干净的计数。
+  Source: 同上。
+- **归属划分。** location 抽象、字段语义与路径导航归本文档（game-progression）；Travel 作为**事件类型**的呈现 / 数据归 `adventure-event/travel/`；二者通过「Travel 刷新 location → location 框定 eventOptions」协作。
 
 ### blind / ante 缩放
 - blind / ante 的**要求、奖励与 scaling** 归本文档（进程侧）；缩放曲线为可调数值，存入 `.tres` 并归 `systems/balance.md`（ante 曲线）。**具体 blind 要求 / 奖励 / 缩放曲线尚未陈述**，见待决问题。Source: `handoffs/2026-07-24-docs-restructure-class-model.md`。
@@ -68,13 +104,15 @@
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **`experiencePoint` 的升级阈值曲线（08-02 新增 · 承重）。** 载体已定案（每级一个经验阈值、事件奖励发经验、累积达阈值升级）；**曲线未定**：炼气 13 级 / 筑基 · 金丹各 4 级各需多少经验，是线性、递增还是每境界重置量纲。它与单次事件的经验给予量互为倒数，两者须一同确定。→ `systems/balance.md`。Source: `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
-- **经验产出的频次与分布（途径已定，分布未定）。** 「等级成长 = event reward 发经验、不只战斗类、失败也可能给」已定案；仍待定：一章内的经验总供给要够从 1 爬到 13（炼气）/ 1 到 4（筑基 · 金丹）、如何分布在事件池中、失败给的经验比胜利少多少。**这会反向约束该章的事件总数与寿元预算的花法。** → `systems/balance.md`。Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` + 同上。
-- **中长期规划感的来源（08-01 提出，未裁决）。** 进程是**逐批择一的线性推进**，既无俯瞰地图也无前方预告——玩家看不到「还有几步到 Finale」、也无法为几步之后布局。中长期规划感由什么承担（可见的篇章进度条？eventOptions 的前瞻提示？还是有意不给），本次评审提出但**未讨论**。→ 亦见 `ux/`。Source: 同上。
+- **中长期规划感的来源（08-01 提出 · 08-06c 大幅收窄）。** 进程是**逐批择一的线性推进**，既无俯瞰地图也无前方预告。**地理方位感这一半已落地**：`LocationCodex` 记连边（08-06c），玩家因此能**提前两步规划路线**——跨轮回的知识增长直接转化为轮回内的决策质量。**仍待定的是进度感那一半**：图鉴不回答「还有几步到 Finale」，是否还需轮回内的补充（篇章进度条？前瞻提示？）。→ 亦见 `ux/`、`systems/player-profile/codex/`。Source: 同上 + `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
 - **「可用结束点」已明确**：到达下一境界所落的**存档点**即结束点，可读档开始下一 chapter。**chapter 途中死亡 → 从该 chapter 起始存档重试**；炼气（第 1 chapter）近乎无限重试，后续 chapter 有限重试（数值见 `systems/services/life-cycle-service.md`）。Source: `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md`。
 - **选择区的呈现与导航手感**：月圆之夜式菜单 + 横向滑动选择已定案，但**每批 eventOptions 的选项数量 / 排布 / 滑动手感**尚未落定。注意进程形态是**逐批择一的线性推进**（每次从当前 eventOptions 中选一个，选完重算下一批），**不是可俯瞰、可回溯的分支地图**。Source: `handoffs/2026-07-13.md`。
 - **eventOptions 生成 / 加权**：future-event-service 服务化已定，但**从 characterProfile 如何生成 / 加权抽取**下一批 eventOptions（策划 vs 随机权重、带种子 RNG 派生）、以及 location 框定 / AdventurePlot 调制 / seeded RNG 的**叠加顺序**未定。→ `systems/services/future-event-service.md`。Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md`。
-- **location 机制细节（待定）：** 地域的枚举 / 层级、Travel 如何映射到具体 location、一个 location 开放哪些修行事件池、location 与 AdventurePlot 调制的叠加顺序、location 是否随篇章 / 境界变化——均**尚未陈述**。Source: `handoffs/2026-07-24-docs-restructure-class-model.md`。
+- **location 与 `locationMap` 的数据载体与定名（08-05b 收窄）。** **字段与图的存在形态已定案**（三组字段 + 一张全局不变的连通图，见「意图」）；仍待定：载体形态与定名（`LocationData : Resource` + `.tres`？枚举 + 资源两件套？`locationMap` 是单份邻接表资源还是由各 location 持边？）、稳定 `Id` 形态、是否与 `AdventureEventData` 一样受 `AllEnabled()` 与 overlay 管辖。Source: `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md`。
+- **Travel 闸门给几个候选、怎么选（08-05b 收窄）。** **多个并列已定案**；仍待定：是否把当前 location 的**全部邻接**都列出、还是 seeded 抽取其中几个，候选是否受剧本调制。→ `systems/adventure-event/travel/`。Source: 同上。
+- **`eventCountLimit` 是否随篇章 / 剧本调制而变（08-05b 收窄）。** **计数口径已定案**（只计选择进入并结算的，Travel 不计入）；配额本身能否被 PlotManager 推拉未定。Source: 同上。
+- **事件类型概率修正的形态（08-05b 新增）。** 乘性权重 / 加性偏移 / 「白名单 + 权重」？某个类型能否被修正到 0（= 该地域不出这类事件，软框定退化为硬框定）？**具体数值归内容制作阶段，但形态是机制。** Source: 同上。
+- **location 机制的其余细节（待定）：** 地域的枚举 / 层级、Travel 如何映射到具体 location、location 与 AdventurePlot 调制的叠加顺序、location 是否随篇章 / 境界变化——均**尚未陈述**。Source: `handoffs/2026-07-24-docs-restructure-class-model.md`。
 - **blind / ante 缩放（未陈述）：** 具体 blind 要求 / 奖励 / ante 缩放曲线**尚未陈述**；缩放数值最终归 `systems/balance.md`。Source: `handoffs/2026-07-24-docs-restructure-class-model.md`。
 
 ## 对应

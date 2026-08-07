@@ -53,7 +53,7 @@ game-feature-branch/
 │   │   ├── ProfileChangeSpec.cs  ChangeElement.cs   ← 成本与产出合一，element 带符号
 │   │   ├── EventOption.cs  EventOptionBatch.cs      ← 物化后的定稿实例
 │   │   ├── IBootstrappable.cs        ← 启动契约（四个边界服务实现）
-│   │   └── Enums.cs                  ← CostKey / CapabilityFlag / AdvanceMode / RngStream / EventType ...
+│   │   └── Enums.cs                  ← CostKey / CapabilityFlag / RngStream / EventType ...
 │   ├── Data/                         ← XxxData : Resource 定义
 │   │   ├── AdventureEventData.cs
 │   │   ├── CardData.cs  EnemyData.cs  ItemData.cs  PlayerPowerData.cs
@@ -219,17 +219,19 @@ internal sealed class ProfileManager        // internal：跨服务代码里根�
 
 ```csharp
 // src/Services/LifeCycle/LifeCycleService.cs
-public async Task<AdvanceResult> AdvanceEventAsync(EventOption chosen, AdvanceMode mode, CancellationToken ct)
+public async Task<AdvanceResult> AdvanceEventAsync(EventOption chosen, CancellationToken ct)
 {
-    // 收定稿实例而非 AdventureEventData：Priority / IsMandatory / SelectCost 都是物化时置位的
-    var spec = mode == AdvanceMode.Skip ? chosen.SkipCost : chosen.SelectCost;
+    // 收定稿实例而非 AdventureEventData：Priority / SelectCost 都是物化时置位的
+    var spec = chosen.SelectCost;   // 08-06c：无跳过通道，推进只有一种形态
 
-    var result = ProfileService.Instance.TryApply(spec);    // ✅ 服务门面
+    ProfileService.Instance.TryApply(spec);                 // ✅ 服务门面；无条件施加，不做「付得起」校验
     // var result = ProfileService.Instance._profile...      // ❌ 伸手进 manager
-    if (!result.Success)
-        return new AdvanceResult(false, AdvanceStage.CostRejected, result.MissingElement, CycleStatus.Ongoing);
 
-    GD.Print($"[LifeCycle-AdvanceEvent] start instance={chosen.InstanceId} event={chosen.EventId} mode={mode}");
+    var statusAfterCost = _cycleState.EvaluateStatus();      // 终态判定 ①：支付本身可能耗尽寿元
+    if (statusAfterCost == CycleStatus.Defeated)
+        return new AdvanceResult(false, AdvanceStage.None, default, CycleStatus.Defeated);
+
+    GD.Print($"[LifeCycle-AdvanceEvent] start instance={chosen.InstanceId} event={chosen.EventId}");
     // ...
 }
 ```

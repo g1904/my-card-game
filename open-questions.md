@@ -4,20 +4,20 @@
 >
 > 每次 session 结束时，未答的 Open questions 汇总到对应分片，供下次拾起；一旦答定，就从分片中移除、归档进对应主题文档的 `## 待决问题` / `## 决策`，并在 `answer-logs/log-<draftSuffix>.md` 记一笔。此清单**只跟踪仍待答的问题**（不留已解决区），是导航 / 拾取清单，**权威归属在各主题文档**；已答定问题的移出记录见 `answer-logs/`。
 >
-> **最近更新：2026-08-04（0804）。** 逐次更新摘要（本次答结了什么、推翻了什么）见 `open-questions/update-log.md`。
+> **最近更新：2026-08-06（combat-solutions · 战斗待答清单一次性收口，38 条全部答结）。** 逐次更新摘要（本次答结了什么、推翻了什么）见 `open-questions/update-log.md`。
 
 ## 分片导航
 
 | 分片 | 内容 |
 |------|------|
 | `open-questions/update-log.md` | 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身。 |
-| `open-questions/01-combat.md` | **① 战斗机制**（焦点之首）：战斗结构残留、等级与意图、结构与存档、战斗内容与规则。 |
-| `open-questions/02-event-options.md` | **② eventOptions 生成流程**：生成 / 加权、物化字段、跳过与优先级、`CostKey`、`pastEvent`。 |
+| `open-questions/01-combat.md` | **① 战斗机制**（焦点之首）：「本轮回禁用」与置换型剥夺、结构与配置、内容与数值（多数已归 ch1 数值标杆专场）、呈现。 |
+| `open-questions/02-event-options.md` | **② eventOptions 生成流程**：生成 / 加权、物化字段、优先级、`CostKey` 与资源打穿、`pastEvent`、location 与图鉴连边。 |
 | `open-questions/03-adventure-event-types.md` | **③ 逐类型 AdventureEvent 机制**（九类各开一场专门 session）。 |
 | `open-questions/04-hidden-attributes-plot.md` | **④ 隐藏属性 / 剧本机制**：档位阈值、跨档叙事、`lifeSpanCost` 分档、AdventurePlot 契约。 |
 | `open-questions/05-service-contracts.md` | **⑤ 服务契约 / 工程侧残留**：离线开关防护、`revision`、纪律可执行性、需求流水线形态。 |
 | `open-questions/06-meta-progression.md` | **⑥ 元进程的失败侧与中长期规划感**：道统残卷概率、方位感来源。 |
-| `open-questions/07-codex-monetization.md` | **⑦ 图鉴族与商业化**：`CharacterPower`、五本图鉴、premium bundle。 |
+| `open-questions/07-codex-monetization.md` | **⑦ 图鉴族与商业化**：`CharacterPower`、六本图鉴、premium bundle。 |
 | `open-questions/deferred-content.md` | **已搁置：内容充实**（07-30 起暂不推进）＋ **美术与音频（`art/`，08-04 加入）** ＋ 随内容搁置的 UX 呈现细节 ＋ 尚未设计的占位主题。 |
 
 ## 当前焦点：各系统机制细节

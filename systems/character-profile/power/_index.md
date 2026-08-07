@@ -10,6 +10,16 @@
 - **「对标」的含义（可复用的形状）。** PlayerPower 已定的那套结构在轮回层同样适用，除非另有陈述：**always-available、带 `status` 开关**、通过**事件触发器施加被动修正**（relic / joker 语义）、以及 **capability flag（布尔）+ modifier pipeline（数值）**两条生效通道。**「拥有 / 失去」与「启用 / 禁用」仍是两个正交维度。** 见 `../../player-profile/player-power/common-properties.md`。Source: 同上（推演自「对标 PlayerPower」）。
 - **与 PlayerPower 的分界 = 生命周期层，而非能力种类。** 这与全库既定的拆分轴一致（`PlayerItem` ↔ `CharacterItems` 是同一条分界）：**账号级的跨轮回持久、失败不清；轮回级的随 `defeated` / `completed` 一并清理**。因此二者**不共用一份持有列表**，但可以共用同一套能力定义与生效管线。Source: 同上。
 - **神通可承载战斗内的触发式效果（已定案 · 08-03 · 承重）。** 触发式效果的载体是开放的——**牌上的触发器 / 场上的持续状态 / CharacterPower** 都可能承载。**推论 ①：轮回级能力必须能被战斗内读到**——combat-service 组装参战方时要把角色持有的神通**注册进战场（battlefield）**，触发命中后由 StackManager 压栈。**推论 ②：神通不再只是「战斗外的 build 数值」**——它在战斗内有一条直接的表达通道，与卡牌并列。见 `systems/services/combat-service.md`。Source: `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
+- **神通在战斗内以 `CardType.Power` 呈现，是徽记式的开局入场永久物（已定案 · 08-04b）。** 08-03 已定「参战方组装时把神通注册进战场」，本条给这个行为**一个类型名**并把**法则**一并纳入同一条路径。形态：
+  - **对位 MTG 的徽记（emblem）** —— 几乎不可被针对或移除、一旦存在就一直存在。**出入**：MTG 的徽记在指挥区且不是永久物；**本作的 `Power` 就落在战场上、是永久物**，只是带 `IsProtected` 标记。**不引入指挥区**（战斗内已有六处位置，为一类不可交互的条目再开第七处，收益不抵竖屏 UI 与存档形态的成本）。
+  - **入场条件是两条与门：`status == 开启` 且 `UsableScene` 含 `InCombat`。** `status` 关闭 = **不入场**，而非「入场但不生效」——前者更干净，且让战场上不出现无效条目。两个字段**正交不可合并**：`UsableScene` 是内容侧的静态属性（这个能力在战斗里有没有意义），`status` 是玩家侧的运行时开关（我要不要用它）。
+  - **入场时点早于第一个开始阶段**，故「回合开始时」类触发从第 1 回合起就已挂载。
+  - **一律受保护**：`IsProtected` 在落场时统一置 true，**不由 `PowerData` 逐条目声明**；**唯一后门 = 效果侧声明 `IgnoresProtection`**，其稀缺性与卡面明示**归内容侧纪律，代码不加硬规则保护**（只留 `PushWarning` 软检查）。
+  - **无 mana 费用**（它不被「打出」；启动式异能的启动费另算），且**是唯一不产生弃牌堆流量、也不产生栈上「打出」事件的类型**——触发式异能照常压栈，但它自身永远不入栈。
+  - **`PowerData` 字段：** `Id` · `Scope: PowerScope { Character, Player }` · `UsableScene`（**必填**） · `Abilities`（静止式 / 启动式 / 触发式皆可，**至少一个**，否则 `PushError`） · `Subtypes`。**无 `IsProtected` 字段、无 mana 费用字段**；`status` 仍在 Profile 侧。
+  - **敌人同样持有 power**（`EnemyData` 需要一个 power 持有列表字段）——「不可被移除的场上特性」正是 boss / 天劫最自然的表达。
+
+  Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`。
 - **它是轮回内 build 的一部分。** 与 deck（卡组）、CharacterItem / 法宝（角色道具）并列——一次轮回里「我这局变强了多少」由这三者共同承载，而 PlayerPower 承载的是「跨轮回我强了多少」。
 - **有自己的图鉴：CharacterPowerCodex。** 图鉴族（见 `../../player-profile/codex/`）为角色能力单列一本。**图鉴是账号级、跨轮回持久的**，而 CharacterPower 本身随轮回清理：轮回结束后能力没了，但「见过它」这条知识留下。Source: 同上。
 
@@ -21,7 +31,8 @@
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **与 PlayerPower 的复用边界（承重）。** 「对标」到什么程度：共用同一个 `PowerData` 定义与同一条 modifier pipeline，只是持有列表与清理规则不同？还是各自一套数据类型？前者可加性更好，但要求能力定义能声明自己属于哪一层。→ `../../player-profile/player-power/common-properties.md`、`systems/services/profile-service.md`。
+- **与 PlayerPower 的复用边界（承重 · 08-04b 大幅收窄）。** **战斗内那一半已答定**：两层**共用一个 `PowerData` 定义**，由条目上的 `Scope: PowerScope { Character, Player }` 声明自己属于哪一层——与 `Item` 完全对称。仍待定的是**战斗外那一半**：capability flag / modifier pipeline 的注册面是否也两层共用、持有列表与清理规则的落点。→ `../../player-profile/player-power/common-properties.md`、`systems/services/profile-service.md`。
+- **`Power` 的战斗内运行态存档形态未定（08-04b 新增）。** **入场本身不必存档**（可由两个 Profile 的持有列表 + `status` 确定性重建）；但「本场已触发 N 次」这类**运行态计数器**须进决策点存档，字段形态未定。→ `systems/services/combat-service.md`、`sync-service.md`。Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`。
 - **获取 / 失去触发。** 在哪些 AdventureEvent 获得（闭关顿悟？社交传功？秘境所得？）、能否失去、篇章突破时是否随「全部继承」一并带入下一篇章（既定的篇章继承是**全部继承**，故默认应带入——需确认）。→ `systems/adventure-event/`、`systems/services/life-cycle-service.md`。
 - **与卡牌 / CharacterItems 的边界。** 三者都是轮回内的 build 组件：什么该做成一张卡、什么该做成一件道具、什么该做成一个能力？判据未给。→ `../deck/`、`../item/`。
 - **写入面与存档形态。** 持有列表落在 CharacterProfile 的哪个字段、`status` 开关是否也持久化、写入是否同样经 `profile-service.ProfileManager`（应是）。→ `systems/services/profile-service.md`。

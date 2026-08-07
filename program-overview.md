@@ -157,16 +157,18 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │ ② game-progression ─▶ ViewModel 组装                               │
 │      静态文案(ContentRegistry) + 运行时数值 + capability 可见性     │
 │      ──▶ 月圆之夜式菜单，横向滑动                                   │
-│          每项显示 selectCost / skipCost / 是否 ifMandatory          │
+│          每项显示 selectCost（如实展示，不设不可选 / 置灰态）       │
 │                          ↓                                          │
-│ ③ 玩家触控：【选择】或【跳过】（ifMandatory 封死跳过通道）          │
+│ ③ 玩家触控：【选择】——唯一操作，无跳过通道（08-06c）               │
+│      Priority == 1 的选项存在时，0 档本轮被封锁                     │
 │                          ↓                                          │
-│ ④ life-cycle-service.AdvanceEvent(character, chosen, mode)          │
-│      mode = Select | Skip  ← 跳过复用同一入口的分支                 │
+│ ④ life-cycle-service.AdvanceEventAsync(chosen, ct)                  │
 │      │                                                              │
-│      ├─ profile-service.ProfileManager.TryApply(selectCost/skipCost)│
-│      │     全量校验所有 element → 全有或全无；付不起则拒绝，回 ②    │
+│      ├─ profile-service.ProfileManager.TryApply(selectCost)         │
+│      │     全有或全无的单点提交；**不做「付得起」校验**             │
 │      │     （modifier pipeline 在此处生效，消费层零条件分支）        │
+│      │                                                              │
+│      ├─ 终态判定 ①：支付后即判；判负 → 短路进失败流程              │
 │      │                                                              │
 │      ├─ event.eventStart()  ──────────────────┐                     │
 │      │                                         │ 事件自身内部流程    │

@@ -17,12 +17,12 @@
 统一形状：**数据声明 → 中心聚合 → 单点查询**，分两条通道。
 
 **通道一 · 布尔型「能力标记 / capability flag」**（可见性、解锁、QoL）
-- 每个此类效果定义为一个**具名 flag**（例：`RevealHiddenStats`、`ShowMysteryType`、`ShowSkipCost`）。PlayerPower 的效果定义在 `.tres` 上**声明它授予哪些 flag**——新增能力 = 新增数据，不改系统代码。
+- 每个此类效果定义为一个**具名 flag**（例：`RevealHiddenStats`、`ShowMysteryType`）。PlayerPower 的效果定义在 `.tres` 上**声明它授予哪些 flag**——新增能力 = 新增数据，不改系统代码。
 - 一个 **capability 聚合面**在启动及 PlayerProfile 变更时，把所有**拥有且 `status = 启用`** 的 PlayerPower 所授予的 flag 聚合为一份**生效能力集**，变更时经 **EventBus** 广播 `CapabilitiesChanged`。（该聚合面缺少宿主服务——见 `systems/architecture.md` 的账号级服务缺口。）
 - **消费侧收敛为「一个 flag ↔ 一处消费点」。** 让**受影响的组件自己订阅**：隐藏属性显示组件默认隐藏，自查 `Has(RevealHiddenStats)` 并响应 `CapabilitiesChanged` 重绘；业务逻辑层完全不知道该 power 存在。**条件散落的根因是把呈现决策写进了业务层**——决策点归位后，条件自然只剩一处。
 
 **通道二 · 具名数值「修正管线 / modifier pipeline」**（平衡修正）
-- 非布尔的全局修正（`lifeSpanCost`、`skipCost`、商店价格、掉落权重……）由 PlayerPower 注册**具名 modifier**（key + 运算 + 数值，同为 `.tres` 字段）。
+- 非布尔的全局修正（`lifeSpanCost`、商店价格、掉落权重……）由 PlayerPower 注册**具名 modifier**（key + 运算 + 数值，同为 `.tres` 字段）。
 - 系统读取该数值时**统一走一个入口** `Apply(key, baseValue)`，而非各消费层写 `if (hasPowerX) value -= 1`。新增一个修正 = 新增一条数据，受影响系统零改动。
 
 两条通道均满足 `data-resource-rules.md` 的「内容保持可加性：新增 = 新增 `.tres`，而非编辑 switch 语句」。

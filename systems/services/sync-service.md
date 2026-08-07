@@ -45,7 +45,12 @@
 | **Pull（启动全量）** | **硬阻塞。** 强制在线下无权威档即不可玩；呈现「重试 / 退出」，**不提供本地缓存开局**（本地非权威，用它开局等于制造必然冲突） |
 | **剧本请求** | **事务前置。** 剧本内容取得**之前**不施加任何成本、不推进 key point；取不到 → 该事件呈现「内容加载失败 · 重试」，**Profile 零变更**（见 `plot-manager.md`） |
 
-- **缓冲上限（两个闸门，先到先触发）：** 未同步的**自动存档点数 ≥ 3**，或**最早一条待发变更滞留 ≥ 180 秒**。
+- **缓冲上限（两个闸门，先到先触发）：** 未同步的**事件级存档点数 ≥ 3**，或**最早一条待发变更滞留 ≥ 180 秒**。
+  - **口径 = 事件级存档点（已定案 · 08-06）。** 计的是**轮回开始 / 每个 AdventureEvent 结算后 / 篇章边界 / 轮回结束**这四类，**不含事件推进过程中的决策点存档**。理由：决策点密度约 **31 点 / 场战斗**，按旧口径一场战斗打到第三个决策点就会撞上闸门并弹出软阻塞模态，显然不是该闸门的本意。
+  - **推论 ①：这把「存档点与 push 解耦」贯彻到了闸门口径上** —— **闸门计的是 push 单位，不是本地写入单位**。
+  - **推论 ②：决策点存档回归本职** = 纯本地的崩溃恢复与防重掷手段，**不驱动 push、不计入闸门、不影响断线判定**；「决策点粒度决定 push 防抖压力」这句表述**作废**，粒度只影响本地写入频率（毫秒级、无流量顾虑）。
+  - **推论 ③：两个闸门的语义齐了** —— 都以事件级 push 为单位；且软阻塞的触发时机（「不打断进行中的事件，在下一次 AdventureEvent 选择前弹模态」）与闸门口径**自动对齐**，不必各说一次。
+  Source: `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md`。
 - **超限 → 软阻塞：** 不打断进行中的事件（战斗打完），但在**下一次 AdventureEvent 选择前**弹模态「网络异常，正在重连」，提供「重试 / 退出到主界面」。退出时待发队列**保留本地**。
 - **恢复后的合并语义：** `FlushPending()` 前**先 pull**；若云端 `revision` 已领先本地基线（多设备），**以云端为准丢弃本地缓冲**，并明确告知玩家「另一设备的进度已生效，本次离线进度未保留」。**不做静默合并、不引入字段级三路合并**——那会实质削弱 `ADR-0003`。
 - **token 失效 / 被挤下线：** `RefreshToken()` 静默刷新；刷新失败**视同断线**走同一缓冲通道（不另开一套）；被后端**明确挤下线** → **硬阻塞**要求重登，重登后同样**先 pull 后 flush**。（见 `account-service.md`。）
@@ -89,7 +94,8 @@ public enum SyncState       { Idle, Syncing, Buffered, Offline, Failed }
 
 ### 存档 schema 版本（已定案）
 
-- 本次新增 `rng`（见 `systems/character-profile/_index.md`）、`StartContentVersion`、`LastContentVersion` → **bump schema 版本**。
+- 本次新增 `rng`（见 `systems/character-profile/_index.md`）、`StartContentVersion`、`LastContentVersion`、**`activeCombat`（战斗中间态，可空；schema 见 `combat-service.md`）** → **bump schema 版本**。当前无线上存档 ⇒ 空迁移。
+- **`attemptIndex` 的删除不 bump schema 版本、无迁移**——它从未落存档（只是一个派生参数）。Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
 - 当前无线上存档，故迁移为**空迁移**——**就在此刻**把 MigrationManager 的逐版迁移骨架立起来，这是最便宜的时机（等有了线上存档再补，成本高一个量级）。
 - **增删 RNG 子流不 bump schema 版本**（子流清单是 `SeedManager` 内的常量，读档时按缺失 / 多余分别 warn + 初始化 / warn + 丢弃）。Source: 同上。
 

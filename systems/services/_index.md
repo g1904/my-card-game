@@ -31,7 +31,7 @@
 2. **横切生命周期层。** `PlayerItem`（账号级、跨轮回、失败不清）与 `CharacterItems`（轮回级、`defeated` 即清）的持久化语义与清理规则完全不同；一个 `item-collection-service` 会同时管两者，边界比拆分前更糟。
 3. **贫血 CRUD。** 只有 `Add / Remove / Get / Count` 而无规则的服务，规则仍留在调用方——服务层没有承担任何东西。
 
-**同理不为九类 AdventureEvent 各开服务。** 只有 **Combat** 真有自己的状态机；Research / Social / Explore / Exchange / Travel / Mystery 共享同一形状（呈现 → 选择或跳过 → 校验扣成本 → 应用产出 → 推拉隐藏属性 → 收口），差异在**数据**而非**代码**。为其各建服务违反可加性原则（新增内容 = 新增 `.tres`，而非新增代码 / 服务）。**Practice 与 Finale 都是 Combat 的变体**，复用 combat-service 的回合循环与参战方结构（CharacterManager + EnemyManager）——三者共用一个 `CombatEventResolver`；**Mystery** 揭示后落到真实 `eventType`。
+**同理不为九类 AdventureEvent 各开服务。** 只有 **Combat** 真有自己的状态机；Research / Social / Explore / Exchange / Travel / Mystery 共享同一形状（呈现 → 择一进入 → 扣成本 → 应用产出 → 推拉隐藏属性 → 收口），差异在**数据**而非**代码**。为其各建服务违反可加性原则（新增内容 = 新增 `.tres`，而非新增代码 / 服务）。**Practice 与 Finale 都是 Combat 的变体**，复用 combat-service 的回合循环与参战方结构（CharacterManager + EnemyManager）——三者共用一个 `CombatEventResolver`；**Mystery** 揭示后落到真实 `eventType`。
 
 「同类内容的统一入口与标准操作接口」这一诉求由 **content-service 的 ContentRegistry + 泛型仓储接口**满足（见 `content-service.md`），而非按类型开服务。
 
