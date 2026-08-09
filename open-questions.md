@@ -15,11 +15,14 @@
 ### 协议契约（尚未建立 · 优先）
 
 - **客户端 ↔ 后端的契约事实来源尚未成文。** 端点、DTO、错误码、`contentVersion` / `manifest.json` 格式、存档 schema 版本与迁移路径——两侧都读它，必须单点定义。跨越这条边界的客户端服务有四个：`account-service`、`content-service`、`sync-service`、`PlotManager`。
-- **契约的表达形式未定。** OpenAPI + JSON Schema 文档级契约，还是（若后端也用 C#）共享 DTO 代码？
+- **契约的表达形式未定。** OpenAPI + JSON Schema 文档级契约，还是（若后端也用 C#）共享 DTO 代码？**这条现在挡着一处具体落地**：Profile 上行负载的**语义**已在客户端侧定案（`pushId` / `baseRevision` / 信封三件套 `contentVersion` · `appVersion` · `revision`），但**报文字段名与序列化形态要等本条才能定稿**。
 
 ### 存档同步 / 冲突
 
-- **上行负载的版本化与冲突合并细节。** 云端权威已定，但断线缓冲恢复后的合并规则、拒绝语义、幂等键未定。
+- **`revision` 计数器与 CAS 语义的服务端实现（客户端侧已定，2026-08-09）。** 客户端已定案：`revision` = **后端分配的账号级单调递增 `long`**，上行携带 `baseRevision` 作为 CAS 前置条件，后端按三分支应答（相等 → 接受并 `+1` 回 `newRevision`；本地落后 → 拒绝并回当前值；本地领先 → 不可能态，同样拒绝并回当前值）。**后端待定**：计数器的存储与并发控制、跨区域一致性、以及「本地领先」这类异常的服务端观测口径。→ 客户端侧见 `game-design-documents/systems/services/sync-service.md`。
+- **`pushId` 幂等窗口（客户端侧语义已定，2026-08-09）。** 客户端每个上行批次携带一个 GUID `pushId`，**随待发队列持久化、跨启动重试保持不变**；后端须对重复到达的 `pushId` **不再 `+1`**，直接回上次结果（`newRevision` + `Deduplicated`）。**后端待定**：记忆多少个 / 保留多久、存储形态。**这一条是承重项**——缺了它，「请求已达、响应丢失」这一移动网络常态会让客户端把已被接受的进度误判为多设备冲突并丢弃。
+- **`AccountSeed` 的下发与掷骰复算协议（客户端侧已定，2026-08-09）。** 客户端已定案：`AccountSeed`（`ulong`）**由后端在账号创建时下发**、落 `AccountInfo`、跨设备一致且终身不变；道统残卷的掉落掷骰为 `roll = Hash64(AccountSeed, FinaleWinOrdinal) mod 10000`，**由客户端执行、后端可离线复算**（序号与命中结果随 profile 上行）。**后端待定**：生成与下发时机（随哪条响应返回）、是否对客户端只读、`Hash64` 的跨语言实现须与客户端逐位一致（这是复算成立的前提）、以及**复算不一致时的处置**（拒绝上行 / 以云端复算结果为准改写 / 仅上报风控）。→ 客户端侧见 `game-design-documents/systems/player-profile/account-info.md` 与 `systems/player-profile/player-power/_index.md`。
+- **上行负载的版本化与冲突合并细节的其余部分。** 云端权威已定，合并规则与拒绝语义随上面两条落定；仍待后端定的是负载本身的版本化形态与限流交互。
 - **自动存档点频率的服务端侧约束。** 每个 AdventureEvent 后 push 的写入频率、是否需服务端限流 / 合并窗口。
 
 ### 内容分发（CDN）
