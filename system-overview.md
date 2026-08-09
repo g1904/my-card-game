@@ -128,6 +128,8 @@ CombatService="*res://src/Services/Combat/CombatService.cs"
 
 Godot 4 允许 autoload 直接指向 `.cs` 脚本（类继承 `Node` 即可），无需为每个服务建空 `.tscn`。
 
+> **这是一条无例外的约定（已定案）：七个服务的 autoload 形态统一，不为承载配置而建空场景。** 直接推论：**autoload 指向 `.cs` 时不存在场景实例，`[Export]` 没有存储处、检视器里也无从编辑**——运行时永远拿到字段默认值。因此**服务级配置项一律走 ProjectSettings，不走 `[Export]`**；`[Export]` 保留给真正的场景组件（卡牌、敌人、UI 控件），那才是「设计师在检视器里调数值」的正确落点。Source: `handoffs/2026-08-09e-discipline-enforceability.md`。
+
 **七个服务 = 场景树中七个常驻节点；manager 一个节点都不占**——它们是服务持有的普通 C# 对象：
 
 ```
@@ -262,12 +264,51 @@ ContentService.InitializeAsync   （版本比对 + overlay 合并 + 校验；断
 ```csharp
 internal interface IAccountBackend  { Task<OpResult<Session>>          SignInAsync(LoginChannel c, CancellationToken ct); }
 internal interface IContentBackend  { Task<OpResult<ContentManifest>>  GetManifestAsync(CancellationToken ct); }
-internal interface IProfileBackend  { Task<OpResult<PlayerProfile>>    PullAsync(string accountId, CancellationToken ct);
-                                      Task<OpResult>                   PushAsync(ProfilePayload p, CancellationToken ct); }
+internal interface IProfileBackend  { Task<OpResult<ProfileSnapshot>>  PullAsync(string accountId, CancellationToken ct);
+                                      Task<OpResult<PushAck>>          PushAsync(ProfilePayload p, CancellationToken ct); }
 internal interface IPlotBackend     { Task<OpResult<PlotSegment>>      ResolveAsync(PlotRequest req, CancellationToken ct); }
 ```
 
-每个接口两份实现：`HttpXxxBackend`（后端就绪后）与 `OfflineXxxBackend`（当前阶段，读 `res://` 假数据 / 内存回显），由服务上的 `[Export] bool UseOfflineBackend`（默认 `true`，直到后端上线）选择——**开发期切换不需要重编译**。离线 stub 因此是「换一个实现」，而不是「在服务里插 `if (offline)`」。
+每个接口两份实现：`HttpXxxBackend`（后端就绪后）与 `OfflineXxxBackend`（当前阶段，读 `res://` 假数据 / 内存回显）。离线 stub 是「换一个实现」，而不是「在服务里插 `if (offline)`」。
+
+#### 选择形态：唯一选择点 + Release 构建里离线实现根本不存在（已定案）
+
+**四个服务不各自持开关。** 选级理由见 `systems/architecture.md`「纪律的可执行化」——离线后端属「能上线且线上不可见」，必须做到阶梯第 1 级。Source: `handoffs/2026-08-09e-discipline-enforceability.md`。
+
+```csharp
+// src/Core/BackendSelector.cs —— 后端实现的唯一选择点
+internal static class BackendSelector
+{
+    internal static IAccountBackend CreateAccount() =>
+#if DEBUG
+        UseOffline ? new OfflineAccountBackend() : new HttpAccountBackend();
+#else
+        new HttpAccountBackend();
+#endif
+    // CreateContent() / CreateProfile() / CreatePlot() 同形
+
+    private static bool UseOffline =>
+        (bool)ProjectSettings.GetSetting("mycardgame/backend/use_offline_backend", true);
+}
+```
+
+```csharp
+// src/Services/Account/OfflineAccountBackend.cs —— 四个离线实现整类包在 #if DEBUG 内
+#if DEBUG
+internal sealed class OfflineAccountBackend : IAccountBackend { /* ... */ }
+#endif
+```
+
+| # | 手段 | 阶梯级 | 作用 |
+|---|------|--------|------|
+| 1 | **`BackendSelector` 唯一选择点** | 1 | **四个字段 = 四个可能各自出错的点**，最糟的失败态是「三个开了一个没开」的半在线状态（登录成功、内容加载正常，只有存档静默写进内存回显）——比全离线更难诊断。收敛成一个点后这个失败态在结构上不存在 |
+| 2 | **`OfflineXxxBackend` 整类 `#if DEBUG`** | 1 | **主闸**：Release 构建里离线实现不存在，问题从「开关会不会配错」降级为「类型存不存在」——配错连编译都不通过 |
+| 3 | **ProjectSettings `mycardgame/backend/use_offline_backend`**（bool，默认 `true`） | 3 | 开发期开关载体，**取代 `[Export]`**。值落在 `project.godot`：进版本控制、可 diff、可在评审中看见；Godot 原生支持 feature tag override（`....release`） |
+| 4 | **BootstrapScreen 横幅 + release×offline 断言** | 3 | 在驱动 `InitializeAsync` 前打一行必然位于日志顶部的 `[Bootstrap-Backends] offline=… build=…`；`!OS.IsDebugBuild() && IsOffline` → `PushError` + `throw`。若第 2 项生效此 `throw` 恒不可达，**保留它是为了防「条件编译常量哪天被改错」**，成本一行 |
+
+**条件编译使用清单（穷举，不得扩张）：** `src/Core/BackendSelector.cs`、四个 `src/Services/*/Offline*Backend.cs`、`src/Autoload/EventBus.cs` 的审计块，**共 6 处**。**服务与 manager 内部一律不得出现 `#if`**——「换实现而非插 `if`」在条件编译上同样成立。
+
+> **待实测确认一次：** 前提是「Godot 的 .NET 集成在 Release 导出配置下不定义 `DEBUG`，编辑器内运行与 Debug 导出定义」。`game-feature-branch/` 当前尚无 `.csproj`，无从验证；若不成立，改用显式 `<DefineConstants>MYCARDGAME_OFFLINE_OK</DefineConstants>`，**方案形态不变**。
 
 ---
 
@@ -277,7 +318,8 @@ internal interface IPlotBackend     { Task<OpResult<PlotSegment>>      ResolveAs
 - **服务是常驻的，轮回结束时清的不是服务本身。** `TeardownCycle` 清的是 `CharacterProfile`、实例化的卡牌 / 敌人节点、服务内部的集合与静态字段——「防跨轮回残留」指的是这些，不是销毁服务。
 - **边界靠纪律，不靠编译器——但已尽可能加固。** C# 无法阻止调用方绕过服务门面。已采取的加固：**manager 类型一律 `internal sealed`**（跨服务代码里写不出对方 manager 的类型名）、服务只暴露方法而不暴露 manager 引用（上例 `_profile` 为 `private`）、服务不返回内部可变集合。
 - **边界服务可被替换为离线 stub。** `account-service` / `content-service` / `sync-service` 与 `future-event-service` 内的 `PlotManager` 各持一个窄后端接口（见上节），离线实现让整个游戏在**后端尚未存在**时先端到端跑起来。这对当前阶段（后端未开工）是关键的开发策略。
-- **⚠ `[Export] bool UseOfflineBackend` 默认 `true` 是一个能悄无声息发到线上的开关。** 正式包如何保证它不为 `true`（导出预设 / 编译期 `#if` / 启动期断言）未定——见 `open-questions.md`。
+- **离线开关不可能悄无声息发到线上（已定案）。** 主闸是「Release 构建里离线实现根本不存在」而非任何一处配置——见上节。**否决过的路径：** 导出预设作主闸（配置会被漏配、被覆盖、被新建预设时忘记同步）、启动期断言作主闸（断言只在**跑到那一步**时生效，而离线包的症状恰恰是「一切正常」，正式包若没人在 release 模式下真跑一遍，断言等于不存在）。二者只作第 3 级兜底。
+- **纪律该做到哪一级，有统一判据。** 「靠约定执行」的工程纪律按**违反它的代价**选级（写不出来 / 编译不过 / 大声失败 / 评审清单），判据与三处应用见 `systems/architecture.md`「纪律的可执行化」。
 
 ## 对应
 

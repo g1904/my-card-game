@@ -8,6 +8,10 @@
 - **AccountInfo = 账号身份与状态元数据。** PlayerProfile 的一个账号级字段，承载登录身份与账号状态；是主菜单「PlayerProfile（玩家档案）」按钮的数据来源。Source: `ux/screen-flow.md`。
 - **强制账号登录（无游客态）。** 登录渠道优先级：移动端手机 / 邮箱 → 微信 / QQ → 海外 / 跨平台；**游客入口已彻底移除**，因此不存在游客→登录的账号迁移。Source: `decisions/ADR-0003-online-cloud-authority.md` + `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 - **服务归属：登录与身份归 `account-service`，持久化经 `profile-service.ProfileManager` 写入、`sync-service` 同步。** Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
+- **`AccountSeed`（`ulong`）= AccountInfo 上的账号级随机种子（已定案 · 08-09b）。** 账号创建时**由后端下发**，跨设备一致、终身不变。**唯一消费者是道统残卷的掷骰**——`roll = Hash64(AccountSeed, FinaleWinOrdinal) mod 10000`（见 `player-power/_index.md`）。
+  - **它不进 `SeedManager`、不进四条子流清单**，因此不触及「增删子流不 bump schema 版本」那条纪律，也**不影响轮回的可复现性**（不派生自 `CycleSeed`、不消耗任何子流 `State`）。
+  - **它同时是一条客户端 ↔ 后端契约**：种子在后端，客户端掷骰、后端可离线复算任一次掷骰结果，防篡改能力不因客户端执行而丢失。下发时机、复算不一致时的处置归后端库，见 `backend-design-documents/open-questions.md`。
+  Source: `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md`。
 - **本子系统为独立 markdown（已定案）。** 结构轻，不成文件夹——与 `player-item/` / `player-power/` / `achievements/` 三个文件夹子系统区分。Source: `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
 
 ## 决策(-> ADR)

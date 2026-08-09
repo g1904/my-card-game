@@ -43,7 +43,7 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 
   因此「存档引用未知内容」的风险**依然为零**：关闭一个条目只让它不再被新抽到。
 - **合并后校验对 disabled 条目照常全量执行**（`Id` 唯一性、交叉引用不悬空）——它们是完整内容，只是不进抽取池。
-- 为免各产出侧漏写过滤（漏写即线上事故），ContentRegistry 直接提供 **`AllEnabled()`**，让「正确」成为最短路径。**纪律条款：任何从内容集合抽取的代码必须走 `AllEnabled()`**——与「不散落 `ResourceLoader.Load`」同级，见 `.claude/rules/data-resource-rules.md`。
+- 为免各产出侧漏写过滤（漏写即线上事故），ContentRegistry 直接提供 **`AllEnabled()`**，让「正确」成为最短路径。**纪律条款：任何从内容集合抽取的代码必须走 `AllEnabled()`**——与「不散落 `ResourceLoader.Load`」同级，见 `.claude/rules/data-resource-rules.md`。**这条纪律不止于条款：仓储上没有中性名 `All()`**，全量走 `AllIncludingDisabled()`，见下方「`AllEnabled()` 纪律的可执行化」。
 - **能力边界（如实）：** 本机制压缩的是**已随包发布内容的放量时机**，**不压缩内容本身的发版节奏**；换来**灰度 / 分批放量 / 线上秒关**三项运营能力。Source: `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
 
 ### 存档记录 `contentVersion`：记两个（已定案）
@@ -88,14 +88,36 @@ ContentRegistry 为每种 `XxxData : Resource` 持有一个仓储，对外是**�
 
 ```csharp
 IContentRepository<T> where T : Resource
-    T                Get(string id);              // 必需：缺失 → PushError + 抛出
-    bool             TryGet(string id, out T v);  // 可选：缺失 → 调用方降级
-    IReadOnlyList<T> All();
-    IReadOnlyList<T> AllEnabled();                // 抽取池：仅 ContentEnabled == true
-    IEnumerable<T>   Where(Func<T,bool> predicate);
+    T                Get(string id);                 // 必需：缺失 → PushError + 抛出；不过滤 ContentEnabled
+    bool             TryGet(string id, out T v);     // 可选：缺失 → 调用方降级
+    IReadOnlyList<T> AllEnabled();                   // 抽取池：仅 ContentEnabled == true
+    IReadOnlyList<T> AllIncludingDisabled();         // 全量：启动期校验 / 图鉴统计 / 调试
+    IEnumerable<T>   Where(Func<T,bool> predicate);  // 不过滤；调用方自负
 ```
 
+**没有中性名 `All()`——它已被删除**（见下方「`AllEnabled()` 纪律的可执行化」）。
+
 **所有服务经此取内容；代码中不散落 `ResourceLoader.Load`。** 新增一种内容类型 = 新增一个 `XxxData` 与一个仓储条目，**不新增服务、不改调用方**——这正是「同类内容的统一入口与标准操作接口」这一诉求的正确落点（而非按内容类型各开一个服务，见 `_index.md` 的拆分轴）。
+
+### `AllEnabled()` 纪律的可执行化：删掉中性诱饵名（已定案）
+
+> 「抽取必走 `AllEnabled()`，漏写即线上事故」此前只是一条约定。按 `systems/architecture.md`「纪律的可执行化」的选级判据，它属**能上线且线上不可见**（漏写过滤后游戏照常运行，错误只在真实玩家身上显形），**必须做到阶梯第 1 / 2 级**。Source: `handoffs/2026-08-09e-discipline-enforceability.md`。
+
+**核心动作是删除 `All()` 本身，而不是给它改名。** 漏写过滤的发生机制是「随手写了那个最短、最中性、看起来最无害的名字」——只要 `All()` 还在，它就是诱饵。两个名字都带修饰语时，作者**必须在两种语义之间做一次显式选择**；写下 `AllIncludingDisabled()` 的人不可能声称自己没意识到有 disabled 条目这回事。
+
+| 成员 | 语义 | 阶梯级 |
+|------|------|--------|
+| `AllEnabled()` | 抽取池，`ContentEnabled == true`。**产出侧唯一取池入口** | 1 |
+| `AllIncludingDisabled()` | 全量。**合并后强校验是它的第一个正当调用方**（disabled 条目照常参与 `Id` 唯一性与交叉引用校验），另有图鉴统计 / 调试——这使「两个显式名」不是多余的对称 | — |
+| `[Obsolete(error: true)] All()` | **过渡期硬闸**，恒抛。任何出于惯性写下 `All()` 的代码（**包括 AI 生成的**）当场编译失败并被指路。保留至少到内容阶段结束 | 2 |
+
+**否决 `All()` 保留但语义改为 enabled-only：** 最短路径确实安全了，但一个叫 `All` 却不返回全部的方法**会撒谎**——用错误的名字换安全，只是把 bug 挪到未来（写图鉴统计的人读到 `All()` 会以为拿到了全集）。**否决 Roslyn 分析器：** `[Obsolete(error: true)]` 拿到同一份编译期保证，成本低几个数量级。
+
+#### `DrawPool<T>`：抽取池独立为一个类型（已采纳，排到第二阶段开工前）
+
+命名改造让漏写过滤极难，但仍未做到不可能：`Where(...)` 或 `AllIncludingDisabled()` 的结果照样能被拿去抽取。终局形态是把 `AllEnabled()` 的返回类型换成 `readonly struct DrawPool<T>`（薄包装、零堆分配），并**只在其上定义 seeded 抽取方法**（`PickOne(rng)` / `PickMany(rng, count)` / `Filter(predicate)` —— 过滤后仍是 `DrawPool<T>`）。于是「从内容集合抽取」这个动作在语言层**只能从抽取池发起**：`AllIncludingDisabled()` 返回的 `IReadOnlyList<T>` 上根本没有 `PickOne`。顺带给 seeded 抽取一个统一落点（当前抽取逻辑散在 future-event-service 物化、商店库存、奖励掷骰三处）。
+
+**排期：第二阶段（内容）开工前、第一份内容 FR 之前落地；本阶段 `AllEnabled()` 仍返回 `IReadOnlyList<T>`。** 理由两条：① 彼时三个抽取侧都已有真实调用方，能验证 `PickOne` / `PickMany` 的形状是否够用，此刻定死形状是纸上设计；② 届时「`ContentEnabled` 分桶粒度」大概率已答定，`DrawPool<T>` 可一次性带上正确的构造签名（若要按分桶裁剪，形态会变成 `AllEnabled(bucketContext)` 一类）。**延后风险低**（纯加法改造，受影响的只有抽取侧三处），**但不可再往后拖**——三个抽取侧一旦写完再改返回类型，就从「纯加法」退化为「改调用方」。
 
 ### 本地 / 云端内容分界（已定案）
 
@@ -131,16 +153,20 @@ public readonly record struct ContentUpdateInfo(int FromVersion, int ToVersion, 
 
 public interface IContentRepository<T> where T : Resource
 {
-    T                Get(string id);               // 必需：缺失 → PushError + throw
-    bool             TryGet(string id, out T v);   // 可选：缺失 → PushWarning，调用方降级
-    IReadOnlyList<T> All();
-    IReadOnlyList<T> AllEnabled();                 // 抽取池：ContentEnabled == true；产出侧唯一取池入口
-    IEnumerable<T>   Where(Func<T, bool> predicate);
+    T                Get(string id);                 // 必需：缺失 → PushError + throw；不过滤 ContentEnabled
+    bool             TryGet(string id, out T v);     // 可选：缺失 → PushWarning，调用方降级
+    IReadOnlyList<T> AllEnabled();                   // 抽取池：ContentEnabled == true；产出侧唯一取池入口
+    IReadOnlyList<T> AllIncludingDisabled();         // 全量：启动期校验 / 图鉴统计 / 调试
+    IEnumerable<T>   Where(Func<T, bool> predicate); // 不过滤；调用方自负
+
+    [Obsolete("抽取走 AllEnabled()；确需含已关闭条目走 AllIncludingDisabled()。", error: true)]
+    IReadOnlyList<T> All();                          // 过渡期编译闸，恒抛
 }
 ```
 
 - **`Repo<T>()` 而非七个具名属性：** 新增内容类型 = 注册一个仓储，**调用方与服务签名都不动**（可加性）。
 - **`AllEnabled()` 是物化取池的唯一入口：** future-event-service 物化时必须从 `AllEnabled()` 取候选；`Get(id)` 不过滤——使存档中引用到已关闭条目的实例仍能正确解析。
+- **没有中性名 `All()`；合并后强校验走 `AllIncludingDisabled()`。** 理由与 `DrawPool<T>` 的第二阶段排期见上方「`AllEnabled()` 纪律的可执行化」。
 - **返回的集合一律 `IReadOnlyList<T>`**（总则 3：服务不返回内部可变集合）。
 
 **后端接口（总则 7）：** 本服务持有 `IContentBackend`（`GetManifestAsync` 等），两份实现 `HttpContentBackend` / `OfflineContentBackend`。
@@ -154,8 +180,7 @@ public interface IContentRepository<T> where T : Resource
 
 ## 待决问题
 
-- **`AllEnabled()` 纪律的可执行性。** 约定已立（抽取必走 `AllEnabled()`），但**如何在代码评审之外强制**未定：`All()` 是否应改名为 `AllIncludingDisabled()`，让默认路径就是安全路径？还是靠 Roslyn 分析器 / 评审清单？Source: `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
-- **`ContentEnabled` 的粒度是否够用。** 单一布尔只支持「全开 / 全关」；**灰度与分批放量**需要按玩家分桶（百分比 / 白名单 / 篇章档位），而布尔字段本身不携带分桶信息。分桶信息放哪（overlay 的另一层配置？后端下发的 bucket 列表？）未定。Source: 同上。
+- **`ContentEnabled` 的粒度是否够用。** 单一布尔只支持「全开 / 全关」；**灰度与分批放量**需要按玩家分桶（百分比 / 白名单 / 篇章档位），而布尔字段本身不携带分桶信息。分桶信息放哪（overlay 的另一层配置？后端下发的 bucket 列表？）未定。**这是 `DrawPool<T>`（第二阶段前置项）的唯一依赖**：若抽取池要按分桶裁剪，构造签名会变成 `AllEnabled(bucketContext)` 一类形态。Source: 同上。
 - **disabled 条目被存档引用时的 UX。** 读取侧不过滤，故存档能正确解析；但玩家手中一张「已被线上关闭」的卡 / 道具**是否应有任何提示**，还是完全静默照常可用，未定。→ 亦见 `ux/`。Source: 同上。
 - **`manifestSchema` 的版本化。** 它触发整包全量重下，但其自身的版本号形态、与 `contentVersion` / `appVersion` 的关系未定。Source: 同上。
 

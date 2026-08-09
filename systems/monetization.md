@@ -33,7 +33,11 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 
   Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`。
 - **付费获得的法则不会被游戏销毁（已定案 · 08-06b · 承重）。** 事件侧「失去法则」**永远不强制剥夺**：真正从账号移除只发生在**玩家自愿接受的置换**中（有对价，例如换成另一条法则），其余事件一律降级为**「本轮回禁用」——不从账号删除**。**推论：「花钱买到的东西可能被一个事件拿走」这条风险彻底关闭**，它免去了一整类客诉与退款争议，并让「失去法则」成为一条有梯度的压力线（本场移除 < 本轮回禁用 < 自愿置换）而非二元惩罚。**置换本身是卡组构筑式的取舍，是正向设计而非负向条目。** 见 `player-profile/player-power/`。Source: `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md`。
-- **随机 PlayerPower 与「道统残卷」共用同一个获取面。** 后者是失败累积的 PlayerPower 掉落概率（见 `player-profile/player-power/`）；二者是否互相影响（礼包给的 power 是否重置残卷概率）未陈述。
+- **随机 PlayerPower 与道统残卷共用同一个获取面，二者的交互 = 不重置概率、但压低上限（已定案 · 08-09b）。** 残卷是 Finale 失败累积、Finale 胜利掷定的 PlayerPower 掉落概率（见 `player-profile/player-power/`）。
+  - **礼包不重置 `Accumulated`** —— 重置只发生在残卷自己掷中并发放时。
+  - **但礼包使 `x`（已拥有法则数）+1，可能把账号推进上限更低的档位**（例：`x` 由 2 变 3 ⇒ 上限 50% → 30%）。**这是有意的**：`x` 分档的本意就是「拥有得越多，后续越难再得」，**获取渠道是打还是买不改变这条曲线**。
+  - **推论：付费不会吞掉玩家已积累的失败，只会让下一条法则来得更慢。** 与「付费是增值而非必需」的既定口径同向——礼包立刻给出一条法则，代价是后续掉率下降，**净收益仍为正，但不叠加**。这是付费与元进程之间一条**有意的负反馈**。
+  Source: `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md`。
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -45,8 +49,7 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 
 - **购买形态。** 一次性还是可重复购买？可重复则 ③ ④ 如何叠加（9 → 更多？还是只生效一次）？定价与地区策略？
 - **是否还有其他付费点。** 外观 / 通行证 / 单次续命等未陈述；「不做哪些」同样需要明确（例如是否明确排除抽卡与消耗型货币）。
-- **随机的口径。** ① ② 的「随机」是从全池等概率抽，还是排除已拥有的？抽到重复如何处理？走哪条 RNG（**不应污染轮回 seed 的确定性**）？
-- **与道统残卷的交互。** 礼包给的 PlayerPower 是否重置「下次轮回获得新 PlayerPower」的累积概率。→ `systems/player-profile/player-power/`。
+- **随机的口径（08-09b 收窄）。** ① ② 的「随机」是从全池等概率抽，还是排除已拥有的？抽到重复如何处理？**RNG 那一问已有既定答案可循**：账号级随机走 `Hash64(AccountSeed, <账号级序号>)`，与 `CycleSeed` 不相交（见 `systems/common-properties.md`），礼包应沿用同一条纪律。→ `systems/player-profile/player-power/`。
 - **持有状态的存档表达。** 礼包持有落成什么——`CapabilityFlag`？modifier pipeline 的具名修正？独立的 `Entitlement` 字段？它需要**服务端权威**（付费凭证不能只信客户端），故也是一条客户端 ↔ 后端协议契约，应同步登记进 `backend-design-documents/`。→ `systems/services/profile-service.md`、`sync-service.md`。
 - **UX 呈现。** 礼包入口放在哪、是否在重试次数耗尽时提示购买（这直接决定观感是「增值」还是「付费才玩得下去」）。→ `ux/screen-flow.md`。
 - **合规。** 付费与实名 / 防沉迷 / 渠道分成 / 退款的交互归后端与合规侧。→ `backend-design-documents/`。

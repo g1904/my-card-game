@@ -135,8 +135,8 @@ public sealed record EventOption(                 // 定稿实例：immutable �
 ```csharp
 internal interface IAccountBackend  { Task<OpResult<Session>>          SignInAsync(LoginChannel c, CancellationToken ct); }
 internal interface IContentBackend  { Task<OpResult<ContentManifest>>  GetManifestAsync(CancellationToken ct); }
-internal interface IProfileBackend  { Task<OpResult<PlayerProfile>>    PullAsync(string accountId, CancellationToken ct);
-                                      Task<OpResult>                   PushAsync(ProfilePayload p, CancellationToken ct); }
+internal interface IProfileBackend  { Task<OpResult<ProfileSnapshot>>  PullAsync(string accountId, CancellationToken ct);   // 08-09 修订：带回 revision
+                                      Task<OpResult<PushAck>>          PushAsync(ProfilePayload p, CancellationToken ct); } // 08-09 修订：带回 newRevision
 internal interface IPlotBackend     { Task<OpResult<PlotSegment>>      ResolveAsync(PlotRequest req, CancellationToken ct); }
 ```
 

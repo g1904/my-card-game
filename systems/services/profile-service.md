@@ -30,6 +30,7 @@ if (!result.Success)
 - **全有或全无。** 一次 `TryApply` 是**单点提交**：要么全部 element 一起落，要么一个都不落——不允许半套写入。**「先全量校验付得起、否则整体拒绝」已不再适用于事件推进（08-06c）**：`selectCost` **无条件施加**，支付后由 life-cycle-service 做终态判定。**事务性与可负担性校验是两件事，这次只拆掉后者**；负值施加时各资源的钳制规则待定，见待决问题。Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
 - **它是已定 `selectCost` 复合成本类型的唯一消费点。**（它是 **`ProfileChangeSpec`**——由若干 `ChangeElement` 组成，`lifeSpanCost` 是其中一个 element；见 `systems/adventure-event/common-properties.md`。）**成本与产出用同一个类型**：`ChangeElement.BaseValue` 带符号（负 = 消耗，正 = 产出），使一次结算的扣减与收益天然落在同一事务内。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
 - **modifier pipeline 在此生效。** ProfileManager 读取每个 element 数值的那一刻走 `Apply(key, baseValue)`，因此 PlayerPower 的全局数值修正（`lifeSpanCost`、商店价格、掉落权重……）**不需要任何消费层写 `if (hasPowerX)`**。新增一个修正 = 新增一条数据，受影响系统零改动。
+- **首批具名 element 中已确定的一组：道统残卷（已定案 · 08-09b）。** 「cost element 清单未定」这条待答由此添了具体条目——`PowerFragmentAccumulated`（累加 / 置值）、`PowerFragmentWinOrdinal`（自增）、`PowerFragmentFirstWin(chapter)`（置位）、以及**授予法则**（复用 `GrantPower` 语义，但作为 `Spoils` 的一个 element 提交）。四者与 `baseReward` / `lifeTotal` 扣减 / `lifeSpanCost` 落在 Finale 的**同一次 `TryApply`** 内，符合「一个事件 = 一次事务 = 一个存档点」。**`Accumulated` 是万分比整数、施加后钳制到 `[0, 10000]`**——它是「负值施加的钳制规则」这条待答项在账号级侧的第一个已定案例。Source: `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md`。
 - **可加性。** 新增一种资源 element = 新增一个 element 类型 + 数据字段；不新增服务、不改调用方。这正是**不为 power / item / card / resource 各开一个 collection 服务**的替代品（见 `_index.md` 的拆分轴）。
 
 ### CapabilityManager：能力标记聚合面（已定案）

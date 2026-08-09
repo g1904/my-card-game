@@ -8,11 +8,11 @@
 
 ## 设计意图 vs. Claude 知识库
 - **`game-design-documents/`（此处）** = 原始的人工意图与 handoff。由你掌管。设计在此*起源*。
-- **`.claude/knowledge/*`** = 从这些文档**提炼**而来、面向 Claude 的参考资料。Claude 在此阅读以进行规划；只有在被要求时才会编辑*这些*设计文档。
+- **`.claude/knowledge/*`** = **指向本库的薄引用层**（导航表 + 代码现状 + 一句话承重纪律，设计内容不在那里复述）。Claude 由它导航到本库以进行规划；只有在被要求时才会编辑*这些*设计文档。形态权威：`decisions/ADR-0005-knowledge-thin-reference-layer.md`。
 
 ## 流水线
 ```
-inbox (draft)
+inbox (draft)                          顶层 = 在办；提炼后移入 inbox/archive/
    └─▶ handoffs/<date>-<slug>.md      raw intent, one entry per handoff   (status: raw)
           └─▶ distilled into systems / art / ux living docs        (status: distilled)
                  └─▶ settled choice?  record decisions/ADR-####
@@ -29,7 +29,7 @@ inbox (draft)
 ## 根级关键文件
 | 文件 | 内容 |
 |------|------|
-| `terminology.md` | **术语事实来源**：中文领域词 ↔ 英文/代码标识符。横跨所有主题文档，故置于根级。提炼至 `.claude/knowledge/dictionary.md`。 |
+| `terminology.md` | **术语事实来源**：中文领域词 ↔ 英文/代码标识符。横跨所有主题文档，故置于根级。`.claude/knowledge/dictionary.md` 回链本文件，只另留通用的体裁词汇，不复制本作专有术语。 |
 | `program-overview.md` | **程序运行总览**：层级词表（service ⊃ manager ⊃ module ⊃ processor ⊃ handler）、服务 / 管理器职责矩阵、启动→登录→核心循环→轮回结束的端到端调用链、内容与档案的加载路径。横跨所有系统，故置于根级。结构与边界权威在 `systems/architecture.md`。 |
 | `system-overview.md` | **项目结构与落地形态**：进程边界（service = 进程内模块单例，**非**微服务）、Godot 工程文件夹布局、autoload 注册、service / manager 的代码形态。 |
 | `open-questions.md` | 跨 session 待答清单的**索引**：说明、分片导航表、焦点判据、`## derive 就绪度`、`## 下一阶段`。问题条目本身在 `open-questions/` 分片中。 |
@@ -39,14 +39,14 @@ inbox (draft)
 |--------|-----------------|------------|
 | `vision/` | 北极星：pillars、scope、references。 | 稳定，极少编辑。 |
 | `handoffs/` | 原始的时间线输入——大多是你的文字，每个 handoff 一个文件。 | 持续更新（时间线日志，最新置顶；可自由编辑 / 修正，非仅追加）。 |
-| `systems/` | 各玩法系统的设计意图，以**类概念**组织（每个系统一个「类」，其内容为字段/内嵌类型）。文件名与 `.claude/knowledge/systems/` 对应。 | 持续更新；**只保留最新设计**（重写替换，见下）。 |
+| `systems/` | 各玩法系统的设计意图，以**类概念**组织（每个系统一个「类」，其内容为字段/内嵌类型）。命名与 `.claude/knowledge/systems/` 沿用同一套系统名（知识侧的单系统笔记**在该系统于代码中落地后**才建，不预先占位）。 | 持续更新；**只保留最新设计**（重写替换，见下）。 |
 | `art/` | 美术与音频的设计意图与生成指导：**两个一级分区** `visuals/`（内含子分区 `animations/`，占位）与 `soundtracks/`，各含总方向 + `references/` + `guides/`。承载 vision 文本、参考登记与 art / audio guide（= 投喂生成工具的 prompt）；**生成出的二进制资产不入本库**，归 `game-feature-branch/`。 | 持续更新；**只保留最新设计**。当前为脚手架阶段。 |
 | `ux/` | 屏幕、流程、手感（文本线框图）。 | 持续更新；**只保留最新设计**。 |
 | `decisions/` | ADR 风格的已定决策。 | 可修改（软件开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
-| `requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往 `/blueprint` 的桥梁。由 `/derive-requirements` 生成、用户签核（`draft → ready`），再由 `/breakdown-requirements` 拆成同名文件夹内的可执行子需求（`FR-*/`）。 | 持续更新；随设计深化而重新生成/扩展。 |
-| `inbox/` | 未整理的草稿，待分流到 handoff/主题中。两类：手写的 `draft-<suffix>.md`；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。 | 自由发挥。 |
+| `requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往 `/blueprint` 的桥梁。由 `/derive-requirements` 生成、用户签核（`draft → ready`），再由 `/breakdown-requirements` 拆成同名文件夹内的可执行子需求（`FR-*/`）。含 `_index.md`（两层结构 + 覆盖核对）与两份骨架 `_TEMPLATE.md` / `_TEMPLATE-sub.md`；**当前尚无 FR**。 | 持续更新；随设计深化而重新生成/扩展。 |
+| `inbox/` | 未整理的草稿，待分流到 handoff/主题中。两类：手写的 `draft-<suffix>.md`；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。**分两层：顶层只放在办草稿，已提炼的移入 `inbox/archive/`**（判据：有无对应 `status: distilled` 的 handoff）；约定与在办清单见 `inbox/_index.md`，草稿→handoff 对应表见 `inbox/archive/_index.md`。 | 顶层自由发挥；`archive/` 只作溯源，不再改动。 |
 | `open-questions/` | 跨 session 待答清单的**分片**：`01-combat.md` … `07-codex-monetization.md`（焦点区，编号即优先级）、`deferred-content.md`（已搁置的内容充实）、`update-log.md`（逐次更新摘要）。**只跟踪仍待答的问题**（无「已解决」区）；主题文档的 `## Open questions` 是权威归属，此处是导航。答定即移出到 `answer-logs/`。 | 持续更新；由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。分片过长可再拆、过短可并回，同步更新索引导航表。 |
-| `answer-logs/` | 已答定问题从待答清单移出的归档台账，一次移出一份 `log-<draftSuffix>.md`（`draftSuffix` = 对应 `inbox/draft-<suffix>.md` 的后缀 或 `solution-draft-<slug>.md` 的 `<slug>`，无草稿来源则用当天 `MMDD`）。由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。 | 历史台账，一次移出新建一份；与本库其余文档一样可编辑修正，非仅追加。 |
+| `answer-logs/` | 已答定问题从待答清单移出的归档台账，一次移出一份 `log-<draftSuffix>.md`（`draftSuffix` = 对应 `inbox/draft-<suffix>.md` 的后缀 或 `solution-draft-<slug>.md` 的 `<slug>`，无草稿来源则用当天 `MMDD`）。由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入；`_index.md` 说明命名规则并汇总台账表。 | 历史台账，一次移出新建一份；与本库其余文档一样可编辑修正，非仅追加。 |
 
 ## 维护约定：一切皆可改，只保留最新设计
 软件开发尚未开始——本库**没有任何文档是「仅追加」或「一旦定案即不可变」的**（`handoffs/`、`inbox/`、`decisions/` ADR 均可自由编辑 / 重写 / 重构）。要改一份 ADR 的决定，就**直接改这份 ADR**，不必新开一个 ADR 去取代它。
@@ -59,4 +59,4 @@ inbox (draft)
 - `distilled` — 已折叠进某个主题文档（和/或某个 ADR）；`distilled-to:` 指明去向。
 
 ## 文件夹命名
-顶层文件夹用**纯语义名**（`vision/`、`handoffs/`、`systems/` …），不带数字前缀——阅读顺序以本 README 的文件夹图例为准，而非文件系统排序。主题文件名与 `.claude/knowledge/` 一一对应，因此一个 handoff 能干净地映射到它最终喂入的那份知识笔记。
+顶层文件夹用**纯语义名**（`vision/`、`handoffs/`、`systems/` …），不带数字前缀——阅读顺序以本 README 的文件夹图例为准，而非文件系统排序。主题文件名与 `.claude/knowledge/` 沿用同一套系统 / 场景名，因此一个 handoff 能干净地映射到知识层对应的那条引用条目。

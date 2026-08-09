@@ -4,6 +4,55 @@
 >
 > 本文件只记「发生了什么变化」，不承载问题条目本身。
 
+## 2026-08-09e（solution-draft-discipline-enforceability · 三条工程纪律的可执行化一次收口）
+
+- **答结 3 条**（全部来自 `05-service-contracts.md`）：`[Export] bool UseOfflineBackend` 的发布期防护 · EventBus 退订纪律的可执行性 · `AllEnabled()` 纪律的可执行性。移出记录见 `../answer-logs/log-discipline-enforceability.md`。
+- **新增上位判据：「纪律的可执行化」四级阶梯**（写不出来 / 编译不过 / 大声失败 / 评审清单）+ 两条选级判据，落 `systems/architecture.md`，与八条 API 契约总则同层，**列为 ADR 候选**。三条待答本是同一问题的三个实例（*正确的写法要作者主动记得，错误的写法既不报错也不显眼*），故一次收口。
+- **推翻 / 作废：** `[Export] bool UseOfflineBackend` 这一表述整体作废（autoload 指向 `.cs` 时 `[Export]` 无存储处，技术上本就不成立）→ 改 ProjectSettings；连带**「autoload 直接指向 `.cs`、不为服务建空 `.tscn`」升为无例外约定**，推论「服务级配置一律走 ProjectSettings，`[Export]` 只留给场景组件」。仓储接口上的 **`All()` 被删除**（`content-service.md` / `common-properties.md` / `.claude/rules/data-resource-rules.md` 三处措辞跟改）。
+- **`systems/architecture.md` 的待决问题少一条**（EventBus 退订可执行性）；`content-service.md` 的待决问题少一条（`AllEnabled()` 可执行性），另一条（`ContentEnabled` 分桶粒度）**影响面收窄**为仅 `DrawPool<T>` 的构造签名。
+- **新增待答 1 条** → `05-service-contracts.md`：`#if DEBUG` 判据需在首次生成 `.csproj` 后实测确认一次。
+- **排期性结论（非待答）：** `DrawPool<T>` 类型层加固已采纳，落点 = 第二阶段（内容）开工、第一份内容 FR 之前。
+
+## 2026-08-09d（solution-draft-finale-win-ordinal-vs-statistics · 账号级字段的两层通则与 `Ordinal` 命名硬约定）
+
+- **答结 1 条**（`06-meta-progression.md` 的「`FinaleWinOrdinal` 与账号级统计计数的边界」）：不靠注释、靠**三条结构性纪律**关死 —— **① 分层通则升格**（08-06b / 08-09b 两次就事论事的判据写成 `PlayerProfile` 上账号级字段的通则，判据 = 有没有被**规则**读）**并补上真正缺的合并判据**：**可以合并，当且仅当「语义 + 同步口径 + 篡改后果」三者全同；跨层的两个字段永远不满足**（只写「注意别合并」半年后必然失效，正向判据才可被主动执行）· **② 统计侧不设「Finale 胜利数」字段**，「渡劫成功了几次」展示**直读 `FinaleWinOrdinal`**——**让重复字段从一开始就不存在**是最强的防合并手段 · **③ 统计侧「通关」= 完成整个轮回**（`TotalCyclesCompleted`），一次通关贡献 3 次 Finale 参与而 Finale 胜利可完全不伴随通关 ⇒ **两个数在任何账号上都不相等**，**首批不设 `TotalChaptersCompleted`**（与 ordinal 几近恒等，最易被误合并）· **④ `Ordinal` 后缀立为规则字段层的命名硬约定**（`Total` / `Count` 归统计层，统计层禁用 `Ordinal`，可机械检查、零迁移成本）。
+- **连带定案**：两层**同经 `ProfileManager.TryApply`、同在一次 diff 里**，只在校验强度上分开（规则字段严格 · 后端可复算；统计计数宽松 · 可容忍丢失）；**明确不做两层之间的交叉一致性校验**——写一条「`FinaleWinOrdinal` ≈ 统计通关数」等于在实现层承认二者该相等，是把已排除的合并从后门放回来。
+- **收窄（仍待答）**：`01-combat.md` 的「账号级统计计数」只剩**容器形态 + 首批统计项完整清单 + 宽松同步的具体形态**三项（边界一问移出，层归属与首批的含 / 不含已定）。
+- **新增待答落点**：无新增。（`terminology.md` 侧「通关」的中文定名是否需与修真词表对齐，属术语打磨，不构成结构性待答。）
+- 对应 answer log：`../answer-logs/log-finale-win-ordinal-vs-statistics.md`。
+
+## 2026-08-09c（solution-draft-past-event-trace-schema · `pastEvent` 痕迹 schema 四问一次收口）
+
+- **答结 1 条**（`02-event-options.md` 的 `pastEvent` 痕迹 schema，含四个必须一起答的子问题）：**① 快照字段 → 判据先于字段表**（「重算不出来的存，重算得出来的不存」；文本类字段一律留模板侧，快照里一个字符串正文都不存）+ 条目类型 **`PastEventEntry`**（核心是 `AppliedChange` = `eventEnd` 那一次合并 `TryApply` 的最终 spec，复用 `ProfileChangeSpec`；`LifeSpanAfter` **写明为判据的明示例外**；`EventOutcome` 四值，不为 DnD 选分支预留成员）· **② 未选项 → 归档轻摘要**（依据：「定稿实例必须落存档」对未选项**不成立**，它们永不被消费，只需可回溯不需可重建）· **③ 与 key points → 零结构耦合、单向只读**（把 `InstanceId` 塞进 key point 等于让云端剧本服务依赖客户端存档标识空间）· **④ 体积 → 不影响 push 粒度**（~770 B / 事件，落在既有 ~2 KB 预算内）。
+- **连带答结**：**「风味文案是否也物化」→ 不物化，跟随模板数据**——它收掉了「`EventOption` 完整物化字段清单」的文本那一半，也使「定稿实例必须落存档」↔「存档态不复制展示文本」的那处**被误认的张力整体消解**（两条管的不是同一类字段，`variantKey` 化解方案随之作废）。
+- **砍掉一条依赖边**：`pastEvent` 的 schema **不再被「key points 粒度」阻塞**，两者各自定稿；`plot-manager.md` 的该条待答同步加了一条边界（不得以「key point 引用 `InstanceId`」的形态回答）。
+- **新增明文纪律**：`pastEvent` **只追加、不修改既有条目**（不变式，也是体积估算与 diff 友好性的前提）· **软上限告警**（条数 > 500 或序列化 > 512 KB → `GD.PushWarning`，只观测不改行为，因为整聚合 pull 是硬阻塞路径）· **明确否决**分页 / 冷热分离 / 独立存档段。
+- **类型修正**：`CharacterProfile` 的修行历程由 `List<AdventureEvent>` 改为 **`IReadOnlyList<PastEventEntry>`**（原标注与既定物化模型不符——存的是定稿快照，不是 `Resource`）；`terminology.md` 同步，并新增 `PastEventEntry` / `EventOutcome` 两个词条。**随本次结构落定 bump 存档 schema 版本（空迁移）。**
+- **收窄（仍待答）**：`EventOption` 完整物化字段清单（剩余分叉不含文本类字段）· `CostKey` element 清单（追加一条：与「每批数量」共同决定 ~770 B 估算是否需复核）。
+- **新增待答落点**：`02-event-options.md` 新增 1 条（**物化后敌人实例的类型形态**；不阻塞 `pastEvent` 的最小面已定 = `EnemyTemplateId` + 赋级 `Level`）。
+- **不受影响**：ADR-0003 / ADR-0004 未被触及；push 粒度、断线降级、`revision` / `pushId` 契约原样成立。
+- 对应 answer log：`../answer-logs/log-past-event-trace-schema.md`。
+
+## 2026-08-09b（solution-draft-legacy-fragment-chance · 道统残卷整条焊到 Finale 上）
+
+- **答结 2 条**：**① 道统残卷概率的累积规则与上限**（`06-meta-progression.md` 挂起最久的一条）→ 定名 **道统残卷 / `PlayerPowerFragment`**；**三个时刻全部落在 Finale**（失败累积 · 胜利掷骰 · 该 Finale 的 eventReward 界面即时发放）；上限 / 基础概率 / 适格篇章按已拥有法则数 `x` 分档，**闸门逐档累加地移除**且**适格 Finale ⟺ 该档增量 > 0**（两表合一，实现侧只需一张表）；**首胜 100% 优先于闸门**；发放后重置为**新档地板**而非归 0；掷骰走 `Hash64(AccountSeed, FinaleWinOrdinal) mod 10000`、**与 `CycleSeed` 完全解耦**（子流由 `CycleSeed` 派生 ⇒ 篇章重试即可刷）、序号即幂等键、**客户端掷后端可复算**；状态落 `PlayerProfile.PlayerPowerFragment`（5 字段），**不并入账号级统计计数**。**② 礼包是否重置残卷概率**（`07-codex-monetization.md` / `monetization.md`）→ **不重置，但使 `x` +1 从而可能压低上限档位**，是**有意的负反馈**。
+- **推翻**：08-06d 的「**Finale 失败后可再次挑战**」→ 改为**每篇章一个 Finale、败后不可在同一篇章内重战**。可刷性由「一篇章一个 Finale + 败后不可重战 + 重试上限」三重封死，**残卷不需要任何额外防刷规则**。
+- **新增承重语义**：**Finale 失败但存活（约 1%）⇒ 篇章照常完成、境界照常突破** ⇒ **渡劫的胜负不再是篇章推进的闸门**，只决定 `lifeTotal` 损失与残卷是否兑现。
+- **口径收窄（需正视）**：08-01 的「失败侧首次有产出」现只对 **Finale 失败**成立；常规失败的产出面只剩 **EnemyCodex 遭遇即记 + 失败经验**。`systems/scoring.md` 与 `systems/services/future-event-service.md` 中点名引用残卷的论证链已逐处改写。
+- **收窄（仍待答）**：`07` 的「两条获取渠道」只剩**候选池与排重规则**（交互与 RNG 两问已答结）；`player-profile/` 的统计计数形态**追加一条边界要求**——须明写与 `FinaleWinOrdinal` 的区别。
+- **新增待答落点**：`06-meta-progression.md` 新增 2 条（`FinaleWinOrdinal` 与统计计数的边界 · 1% 存活分支的叙事补白落点）；`backend-design-documents/open-questions.md` 新增 1 条（`AccountSeed` 的下发与复算协议）。
+- **不受影响**：`SeedManager` 四条子流常量与确定性边界的既定措辞原样成立；ADR-0003 / ADR-0004 未被触及；断线降级路径不变（无新增网络往返）。
+- 对应 answer log：`../answer-logs/log-legacy-fragment-chance.md`。
+
+## 2026-08-09（solution-draft-sync-revision-and-soft-block · sync 契约两条答结）
+
+- **答结 2 条**（均在 `05-service-contracts.md`）：**① `revision` 的产生方与语义** → 后端分配的账号级单调递增 `long`，客户端只持传输层基线 `baseRevision`（落 `user://cache/sync-envelope.json`，**不进 Profile、不 bump 存档 schema、无迁移**），上行走 **CAS 三分支** + **幂等键 `pushId`**（缺它会在「请求已达、响应丢失」时丢玩家进度）。**② 软阻塞 × 进战斗前 flush** → **不挡**；两者不是先后关系而是不同层——**flush 是一次「尝试」，闸门是一个「状态」**。
+- **修订既有文本（补全，非松动）**：`systems/architecture.md` 总则 7 的 `IProfileBackend` 两个返回类型 → `OpResult<ProfileSnapshot>` / `OpResult<PushAck>`（原签名没有为 `revision` 留返回位置）；`sync-service` API 面新增只读诊断属性 `long BaseRevision`。总则 7 的**原则不动**。
+- **UX 两项取向签核**：进战斗前 flush 失败**不加任何额外提示**（由常驻「离线 · 待同步 N」承担，**该指示在战斗屏内必须可见**——这是前提）· `BaseRevision` 在**设置屏**显示为只读「同步版本 #N」（`0` → 「尚未同步」；诊断展示，不进玩法路径）。
+- **新增待答落点**：`05-service-contracts.md` 新增一条「`pushId` 的后端记忆窗口与报文字段名」（客户端侧语义已定，剩余部分属后端）；同步登记进 `backend-design-documents/open-questions.md` 的「协议契约」与「存档同步 / 冲突」两节。
+- **不受影响**：`sync-service.md` 的「迁移失败的玩家侧表现」保留；`05-service-contracts.md` 其余 8 条不变。
+- 对应 answer log：`../answer-logs/log-sync-revision-and-soft-block.md`。
+
 ## 2026-08-06（combat-solutions · 战斗待答清单一次性收口：38 条全部答结）
 
 - **答结 38 条**（`01-combat.md` 的全部战斗待答），逐条见 `../answer-logs/log-combat-solutions.md`。五组分别覆盖：赋级带与意图（8）· 存档与结构（7）· 卡牌与规则（7）· 奖励与遭遇参数（7）· 数值进程与呈现（9）。

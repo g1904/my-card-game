@@ -42,6 +42,13 @@
 
   这也是**本地 / 云端内容分界**的云端一侧：剧本文本**按进度动态请求、一次性呈现、不被存档引用**，因此**不进 ContentRegistry、不落存档**；而 `AdventureEventData` 等有稳定 `Id` 且被存档引用的定义属**本地内容层**。判据见 `content-service.md`。
 
+- **`pastEvent` 是本 manager 的只读输入，与 key points 零结构耦合（已定案 · 08-09c · 承重）。** **`pastEvent` 不持有任何 key point 引用；key points 也不引用 `PastEventEntry`。**
+  - **边界依据：** key points 是剧本服务的进度锚点，剧本内容在云端、不落存档。把 `InstanceId` / `Seq` 塞进 key point，等于让**云端剧本服务隐式依赖客户端存档的 `InstanceId` 空间**——那是客户端物化时随手生成的标识，一旦形态变动就成为一处跨进程的破坏性改动。协议契约要窄，这条不该穿过去。
+  - **不需要新链路：** `ModulateEventOptions(CharacterProfile c, EventOptionBatch batch)` 已经拿到整个 `CharacterProfile`，`pastEvent` 就在其中。读选择偏好是一次**服务内 manager 对宿主数据的只读访问**，不跨任何边界，也不新增方法。
+  - **派生索引不落存档：** 「每类事件走过几次」「每 location 走过几次」这类聚合为**读时计算**（n ≈ 200，一次线性扫描，非每帧热路径）或本 manager 内的内存缓存，**不作为存档字段**——存了就有两份真相，迁移与重放时必然对不齐。
+  - **可读出的信号有两条：** 「选了什么」（`PastEventEntry` 本体）与「同批还摆着什么而没选」（`Unchosen` 轻摘要）。后者是跳过通道移除后回避信号的新形态。
+  - **推论：`pastEvent` 的 schema 不被「key points 粒度」这个待答项阻塞，两者各自定稿。**
+  Source: `handoffs/2026-08-09c-past-event-trace-schema.md`。
 - **剧本的离线降级：事务前置 + 预取缓存（已定案）。**
   - **事务前置：** 剧本内容**取得之前**不施加任何成本、不推进 key point。取不到 → 该事件呈现「内容加载失败 · 重试」，**CharacterProfile 零变更**。这把网络失败挡在事务边界之外，避免「扣了成本却没剧情」这类不可回滚的半状态。
   - **预取缓存：** PlotManager 按 key points **预取下一批**剧本文本（深度 = 下一批 eventOptions 对应的 key points），**LRU 缓存于 `user://cache/plot/`**。该缓存是**纯缓存**：可随时丢弃、**不落存档**、不参与冲突裁决。有缓存直接用，无缓存才走上面的失败路径。
@@ -80,7 +87,7 @@
 
 ## 待决问题
 
-- **数据编码与耦合：** AdventurePlot 树如何用数据表达？它是**调制** eventOptions，还是并行结构？key points 的粒度与 schema？Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
+- **数据编码与 key points 粒度（08-09c 收窄）：** AdventurePlot 树如何用数据表达？它是**调制** eventOptions，还是并行结构？key points 的粒度与 schema？**与 `pastEvent` 的耦合方式已答定（零结构耦合、单向只读，见「意图」）**，故本条**不再阻塞 `pastEvent` 定稿**，也不得以「让 key point 引用 `InstanceId`」的形态回答。Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` + `handoffs/2026-08-09c-past-event-trace-schema.md`。
 - **剧本服务契约：** 离线降级已定（事务前置 + `user://cache/plot/` LRU 预取，见「意图」）；仍待定：**请求 / 下发协议**与**版本化**。→ 协议契约的另一侧归 `backend-design-documents/`。
 - **预取与事务前置的边界。** 预取降低失败率但不消除它；**LRU 容量上限**、以及**预取失败是否静默**（不打扰玩家、留待实际请求时再报）未定。Source: `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
 - **DnD 式选分支：** 触发点、UI、以及玩家可见 / 不可见分支的边界未定。

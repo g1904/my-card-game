@@ -4,7 +4,7 @@ date: 2026-08-07
 question: `pastEvent` 的痕迹 schema —— 快照存哪些字段、未被选中的选项是否随批次一并归档、与 AdventurePlot key points 的耦合方式、快照体积对增量 push 粒度的影响
 source: open-questions/02-event-options.md → 第 15 条（`pastEvent` 的痕迹 schema）；亦见 systems/adventure-event/common-properties.md#待决问题、systems/services/future-event-service.md#待决问题
 targets: systems/adventure-event/common-properties.md、systems/services/future-event-service.md、systems/services/sync-service.md、systems/services/plot-manager.md、systems/character-profile/_index.md、terminology.md、systems/architecture.md（总则 6 的 schema 面）
-status: reviewed
+status: distilled
 ---
 
 # 方案草稿 — `pastEvent` 的痕迹 schema

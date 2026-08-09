@@ -10,6 +10,10 @@
 - 在一个 chapter 内，进程由 **eventOptions 循环**驱动：future-event-service 依当前 characterProfile 产出一批可选的 AdventureEvent（eventOptions），玩家**从中选择一个**来推进；每个 AdventureEvent 触发事件、改变玩家状态，随后 future-event-service **重算下一批 eventOptions**。见 `systems/services/future-event-service.md`。Source: `handoffs/2026-07-13.md` + `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md`。
 - **各 chapter 相互衔接。** 第 N+1 个 chapter 从第 N 个 chapter 的某个*可用结束点*开始——因此完成状态会分支，并为下一个 chapter 的起点埋下种子。Source: `handoffs/2026-07-13.md`。
 - 每个 chapter 边界都是角色档案上的一个**存档 / 记录点**（共三个）；抵达元婴即为最终奖杯展示。Source: `handoffs/2026-07-13.md`。
+- **篇章收口 = 一次性的 Finale，胜负不是推进闸门（已定案 · 08-09b · 承重）。** **每个篇章只有一个 Finale，失败后不可在同一篇章内再次挑战**——想再渡一次这一劫只能重走整个篇章（走篇章重试，上限 ∞ / 3 / 1，付费 ∞ / 9 / 3）。
+  - **Finale 失败通常打穿 `lifeTotal` ⇒ 经既有 `LifeTotalExhausted` 通道 defeated**；但**未被打穿的那约 1% 情形里角色存活并照常完成该篇章、照常突破境界**。
+  - **因此渡劫的胜负只决定两件事**：`lifeTotal` 的损失量，以及**道统残卷是否兑现**（发放只认胜利）。**篇章推进本身不再由 Finale 的胜负把关。**
+  - 完整语义见 `systems/adventure-event/finale/_index.md`。Source: `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md`。
 - **篇章总数 = 四境三篇章（已确认）。** 重试上限：第一章（炼气→筑基）无限、第二章（筑基→金丹）3、第三章（金丹→元婴）1。（重试 / 存档 / 篇章继承的完整生命周期语义归 `systems/services/life-cycle-service.md`。）Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 - **篇章继承 = 全部继承（已定案）。** 读档续入下一 chapter 时，角色带入**上一篇章的全部信息**（deck、法宝、属性、叙事标记等），无逐项筛选。Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 - **每个篇章 = 一个移动端时段，时长由 `lifeSpanCost` 定价控制（已定案）。** 目标时长（**熟练玩家口径**，新手更长）：第一篇章 **30–40 分钟**、第二篇章 **35–45 分钟**、第三篇章 **45–55 分钟**。**寿元预算增量是叙事阶梯的形式量，事件定价才是时长旋钮**；第三篇章预算 +300 远多于前两章，靠**上调 `lifeSpanCost`** 把时长压回区间。**剩余寿元跨篇章结转**（下一篇章预算 = 该章增量 + 上一章剩余），故「省着花」有跨篇章回报，寿元是贯穿整个轮回的一条资源线。分档表归 `systems/balance.md`。**推论：时段被拉长到接近一小时**，故中途存档续玩比先前更承重（已由决策点存档覆盖）。Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` + `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`。

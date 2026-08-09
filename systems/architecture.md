@@ -176,6 +176,15 @@ public void Emit(in CycleStarted e)
 
 配套纪律：**订阅方在 `_Ready` 订阅、在 `_ExitTree` 退订**。代价：GDScript 与编辑器信号面板订阅不了——本项目纯 C#，不构成损失。负载 schema 与三条负载纪律见下方「EventBus 负载契约」。
 
+**退订纪律的强制形态 = `#if DEBUG` 订阅审计（阶梯第 3 级，已定案）。** 漏退订不改变玩法结果（幽灵订阅者收到的是既成事实广播，不可否决），只吃内存并可能对已 `QueueFree` 的节点调方法，**开发期即可显形**——按「纪律的可执行化」的选级判据，第 3 级足够，不必付第 1 / 2 级的成本。形态四条：
+
+1. **判据：** 遍历 `event` 的 `GetInvocationList()`，`d.Target is GodotObject go && !GodotObject.IsInstanceValid(go)` 即泄漏。
+2. **定位信息取自 `d.Method`，不取自 `d.Target`。** 泄漏发生时目标实例已释放，`Target.ToString()` 无用；`Method.DeclaringType.Name + "." + Method.Name` 是反射元数据，**不依赖实例存活**，直接给出 `CombatScreen.OnCardResolved` 这样可定位的名字。**因此订阅时不需额外登记来源，`+=` 的惯用形态原样保留。**
+3. **触发时机 = 每次屏幕切换完成后**，由编排顶点 game-progression 调一次 `AuditSubscribers()`。屏幕场景是订阅者的绝大多数，切屏正是它们被释放的边界；频率 = 每次切屏一次，**零热路径成本**。**否决「每次 `Emit` 顺带检查」**——`GetInvocationList()` 每次分配数组，`CardResolved` 在战斗热路径上，直接撞「热路径不分配」。**EventBus 自己的 `_ExitTree` 只打一条订阅计数摘要，不做泄漏判定**：此时七个 autoload 服务可能正在同步销毁，`IsInstanceValid` 会对它们误报。
+4. **泄漏检查豁免 autoload 服务的订阅**——服务与游戏同生命周期，它们的订阅按定义不是泄漏。用 `IsInstanceValid` 在切屏时机作判据天然满足这一点，这也是必须避开 `_ExitTree` 判定的原因。
+
+Source: `handoffs/2026-08-09e-discipline-enforceability.md`。
+
 #### 总则 6 —— 物化模型：模板 `Data` → future-event-service 物化 → 定稿实例
 
 **AdventureEvent 的多数属性由 future-event-service 依情境物化产出，产出即定稿。** 这是影响面最大的一条，它同时改写 `adventure-event/common-properties.md` 与 `future-event-service.md` 的意图层表述。
@@ -208,6 +217,7 @@ public sealed record EventOption(                 // 定稿实例：immutable �
 **三条推论：**
 
 1. **定稿实例必须落存档，不能只存 `EventId` 事后重算。** 物化用了 seeded RNG、当时的角色状态、以及可被 overlay 热更的模板；确定性只在同一 `contentVersion` 内成立。因此**当前批 eventOptions 与 `pastEvent` 痕迹都要存物化后的快照**。
+   **快照存哪些字段由一条判据给出（08-09c）：「重算不出来的存，重算得出来的不存」**——文本类字段一律留在模板侧（**风味文案也不物化**），物化产出的数值必进快照。它与「运行时 / 存档态只带 `Id` + 可变状态、不复制展示文本」**不冲突**：后者管展示文本，本条管物化数值。痕迹条目 `PastEventEntry` 的完整形态见 `systems/adventure-event/common-properties.md`。
 2. **`InstanceId` 与 `EventId` 并存且不可互相替代。** 同一模板可在一次轮回里被物化多次；`pastEvent` 与 `EventResolved` 负载都按 `InstanceId` 定位。
 3. **通则：** 凡「内容定义 + 情境 / 轮回内状态」的组合都是两个类型——`AdventureEventData` ↔ `EventOption`（**定稿不可变**）；`CardData` ↔ `CardInstance`（运行态**可变**）；**`EnemyData` ↔ `EnemyInstance`**（**定稿不可变**；future-event-service 取模板 → 充实 / 改写 → 指派给事件，**敌人等级即物化产物**；条目定义归 `systems/enemies/`）。共享纪律：**服务签名里传实例，不传 `Resource`**；差别只在实例是否可变。这与展示层三层切分同构，把第二层的类型形态明确了。
 
@@ -218,14 +228,22 @@ public sealed record EventOption(                 // 定稿实例：immutable �
 ```csharp
 internal interface IAccountBackend  { Task<OpResult<Session>>          SignInAsync(LoginChannel c, CancellationToken ct); }
 internal interface IContentBackend  { Task<OpResult<ContentManifest>>  GetManifestAsync(CancellationToken ct); }
-internal interface IProfileBackend  { Task<OpResult<PlayerProfile>>    PullAsync(string accountId, CancellationToken ct);
-                                      Task<OpResult>                   PushAsync(ProfilePayload p, CancellationToken ct); }
+internal interface IProfileBackend  { Task<OpResult<ProfileSnapshot>>  PullAsync(string accountId, CancellationToken ct);
+                                      Task<OpResult<PushAck>>          PushAsync(ProfilePayload p, CancellationToken ct); }
 internal interface IPlotBackend     { Task<OpResult<PlotSegment>>      ResolveAsync(PlotRequest req, CancellationToken ct); }
 ```
 
-每个接口两份实现：`HttpXxxBackend`（后端就绪后）与 `OfflineXxxBackend`（当前阶段，读 `res://` 假数据 / 内存回显），由服务上的 `[Export] bool UseOfflineBackend`（默认 `true`）选择——开发期切换不需重编译。
+每个接口两份实现：`HttpXxxBackend`（后端就绪后）与 `OfflineXxxBackend`（当前阶段，读 `res://` 假数据 / 内存回显）。
+
+**选择形态（已定案）：唯一选择点 `BackendSelector` + Release 构建里离线实现根本不存在。** 四个服务**不各自持开关**——由 `src/Core/BackendSelector.cs` 的 `CreateAccount()` / `CreateContent()` / `CreateProfile()` / `CreatePlot()` 产出实现，四个 `OfflineXxxBackend` **整类包在 `#if DEBUG` 内**（阶梯第 1 级：Release 下写不出对离线实现的引用，配错连编译都不通过）；开发期的开关载体是 ProjectSettings 自定义项 `mycardgame/backend/use_offline_backend`（第 3 级兜底），**不是 `[Export]`**。落地形态、启动期审计与「条件编译共 6 处、不得扩张」的清单见 `system-overview.md` 第四节，选级理由见下方「纪律的可执行化」。Source: `handoffs/2026-08-09e-discipline-enforceability.md`。
+
+> **理由（承重）：** 四个字段 = 四个可能各自出错的点，最糟的失败态是「三个开了一个没开」的**半在线状态**——它比全离线更难诊断（登录成功、内容加载正常，只有存档静默写进内存回显）。收敛成一个选择点后，这个失败态在结构上不存在。这与两条唯一入口 + 唯一物化点是同一条纪律。
+
+> **不插 `if`，也不插 `#if`：** 服务与 manager 内部一律只见 `IXxxBackend` 接口。
 
 > 这四个接口是客户端 ↔ 后端**协议契约的客户端一侧投影**；其权威在 `backend-design-documents/`。本库只定客户端的**调用形状**（方法名、参数、`OpResult` 语义），不定 HTTP 路径 / 报文字段。
+
+**`IProfileBackend` 的两个返回类型都带 `revision`**（`ProfileSnapshot(Profile, Revision, SchemaVersion)` / `PushAck(NewRevision, Deduplicated)`）——`revision` 是**后端分配的账号级单调递增 `long`**，客户端持有的基线值 `baseRevision` 是**传输层元数据**（落 `user://cache/sync-envelope.json`，不进 Profile、不进存档 schema）；上行走 **CAS**，并携带幂等键 `pushId` 防「请求已达、响应丢失」时丢进度。语义、三分支表与校验点见 `systems/services/sync-service.md`。Source: `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md`。
 
 #### 总则 8 —— 结算阶段名取代「事件自带钩子」
 
@@ -298,6 +316,34 @@ public enum EventType      { Practice, Combat, Research, Exchange, Social, Myste
 
 各服务文档的「API 面（契约）」小节统一为四列表：**方法 | 形态(A/B/C) | 完整签名 | 失败语义**。凡形状依赖未答问题的，写 `⟨待定：链接到待决项⟩`，不留空白也不臆造。
 
+### 纪律的可执行化（**已定案** · 八条总则的共同上位判据）
+
+> 一条约定该做到哪一级，取决于**违反它的代价**——不取决于它写得多醒目。本判据是把本库已有的三处实践（`internal sealed` manager、`Async` 后缀、两条唯一入口）归纳成的显式阶梯，供日后遇到「这条约定怎么强制」时直接套用，不必逐条重新讨论。Source: `handoffs/2026-08-09e-discipline-enforceability.md`。
+
+| 级 | 手段 | 违反时 | 成本 |
+|----|------|--------|------|
+| **1 · 写不出来** | 类型 / 可见性 / 命名——错误的写法在语言层不存在或不合法 | 不可能发生 | 设计期一次性 |
+| **2 · 编译不过** | `[Obsolete(error: true)]`、`#if` 条件编译、分析器 | 编译期报错 | 低～中 |
+| **3 · 大声失败** | 启动期断言、切屏 / 退出期审计（一律 `#if DEBUG`） | 开发期 `PushError` | 低，但只在开发期生效 |
+| **4 · 评审清单** | 文档条款 + 人工评审 | 靠人 | 零成本、零保证 |
+
+**两条选级判据：**
+
+- **能上线且线上不可见 → 必须做到第 1 或第 2 级。** 判据是「这条纪律被违反后，测试期能不能被发现」。违反后游戏照常运行、错误只在真实玩家身上显形的，**第 3 级不够**。
+- **只在开发期显形、且违反后会累积 → 第 3 级足够**，不必付第 1 / 2 级的成本。
+
+**三处已定案的应用：**
+
+| 纪律 | 判据落点 | 落到第几级 | 形态 |
+|------|----------|-----------|------|
+| 离线后端不得发到线上 | 上线且不可见 | **1** | `BackendSelector` 唯一选择点 + `OfflineXxxBackend` 整类 `#if DEBUG`（总则 7）；ProjectSettings 开关与启动期断言为第 3 级兜底 |
+| 抽取必走 `AllEnabled()` | 上线且不可见 | **1 / 2** | **删除中性名 `All()`**，只留 `AllEnabled()` + `AllIncludingDisabled()`；过渡期 `[Obsolete(error: true)] All()` 占位（第 2 级）。第二阶段前把 `AllEnabled()` 返回类型升为 `DrawPool<T>`、seeded 抽取只定义在其上（第 1 级）。见 `services/content-service.md` |
+| EventBus 订阅必退订 | 只在开发期显形 | **3** | `#if DEBUG` 订阅审计，切屏后触发（总则 5） |
+
+**「不插 `if`，也不插 `#if`」——条件编译的使用清单是穷举的，不得扩张：** `src/Core/BackendSelector.cs`、四个 `src/Services/*/Offline*Backend.cs`、`src/Autoload/EventBus.cs` 的审计块，**共 6 处**。服务与 manager 内部一律不得出现 `#if`。
+
+**否决记录：** Roslyn 分析器（单独项目要维护、随 Godot 生成的 `.csproj` 走易被覆盖、无 CI 前提下只在本机构建生效；`[Obsolete(error: true)]` 拿到同一份编译期保证）· 把「上线且不可见」类纪律只做到第 3 级（断言只在跑到那一步时生效，而这类违规的症状恰恰是「一切正常」）。
+
 ### adventure-event 子类型层级
 - **AdventureEvent = 逐时逐刻的游玩单元。** 展开为按子类型分文件夹的深层结构（`systems/adventure-event/<子类型>/`），每个子类型含 `_index.md` + `common-properties.md`。
 - **九类子类型：** Combat（战斗）、Finale（境界突破，篇章边界高潮）、Mystery（未知，遮罩一个固定事件）、Practice（修炼）、Exchange（交易 / 商店）、Research（闭关）、Social（社交）、**Explore（探索秘境，第八类）**、**Travel（前往某处地点，第九类 = 地图路由）**。分类权威见 `terminology.md` 与 `decisions/ADR-0002`。
@@ -341,6 +387,7 @@ Input (touch, 横向滑动选择)
 - **API 契约总则（三种方法形态 / 三分失败语义 + `OpResult` / 服务门面骨架 / Bootstrap 启动契约 / EventBus 用 C# 泛型事件 / 后端接口化 / 结算阶段名）** → 已定案，**ADR 候选**（待固化）。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
 - **物化模型：`AdventureEventData` 为模板、future-event-service 为唯一物化点、`EventOption` 产出即定稿且落存档** → 已定案，**ADR 候选**（待固化）。Source: 同上。
 - **`CostSpec` / `RewardSpec` 合并为单一 `ProfileChangeSpec`（element 带符号）** → 已定案。Source: 同上。
+- **纪律的可执行化四级阶梯 + 两条选级判据（离线后端删类 / 删中性名 `All()` / EventBus 订阅审计三处应用）** → 已定案，**ADR 候选**（待固化，与「API 契约总则」并列）。Source: `handoffs/2026-08-09e-discipline-enforceability.md`。
 
 ## 闭环缺口（架构体检 · 2026-07-25c 更新）
 
@@ -362,7 +409,6 @@ Input (touch, 横向滑动选择)
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **EventBus 退订纪律的可执行性。** 「`_Ready` 订阅 / `_ExitTree` 退订」是约定；漏退订即泄漏，且在 C# 事件上不会报错。是否需要 EventBus 侧的调试期订阅计数 / 泄漏检查未定。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
 - **cost element 清单（ProfileManager 的形状取决于它）：** 有哪些 element（jade / mana / 道具 / 隐藏属性推拉？）、各自数据形态（固定值 / 区间 / 公式）、是否允许**部分抵扣**。→ `systems/adventure-event/common-properties.md`、`services/profile-service.md`。
 - **热更「只改不增」的连带项：** 范围边界已定（overlay 只改既有条目的数值 / 文案，不得新增 `Id`）、确定性张力已裁决（以 overlay 更新为准，不冻结 `contentVersion`，放弃跨版本 seed 可复现）；残留：是否需「预埋占位 `Id`」策略绕开审核周期、是否在存档中记录 `contentVersion` 以便诊断。→ `services/content-service.md`。Source: `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
 - **断线降级的具体行为：** push / pull / 剧本请求失败时阻塞玩家、本地缓冲重试、还是回退存档点？→ `services/sync-service.md`、`services/account-service.md`。

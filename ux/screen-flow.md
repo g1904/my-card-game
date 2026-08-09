@@ -15,7 +15,7 @@
   | PlayerProfile(玩家档案) | 状态与账号信息(`AccountInfo`) | `AccountInfo` |
   | PlayerPower(法则) | always-available 能力,带**开关(默认开启)**;QoL 或影响公平性的全局加强,不与角色绑定 | `List<PlayerPower>` |
   | Achievements(成就) | 分组成就;玩家**只能查看进度 / 领取奖励**;奖励按**组内加权进度**发放,分 **60% / 90% 两档一次性奖励**(见下) | `List<Achievements>` |
-  | Settings(设置) | 音量等常规系统设置 | `GameSetting` |
+  | Settings(设置) | 音量等常规系统设置;**外加一行只读的「同步版本 #N」**(见下) | `GameSetting` |
 
   Source(能力 / 成就语义、加权发放):`handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 
@@ -57,7 +57,12 @@
   - 战斗内那一份筛选视图称**「随身」**(角标 + 底部抽屉),见 `ux/combat-ux.md`。
   Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
 - **两段告警的呈现细节 = 静态标注于 EventOption 选择界面(已定案)。** 形态是**静态标注**(static annotation):数值 / 文案随事件结算而变,**平时静止**,不做持续跳动 / 计时器感的动画。位置**只在 EventOption 选择界面**——即玩家做抉择、也正是寿元被消耗的那个界面;**不做全局 HUD、不进战斗内**(见 `ux/combat-ux.md`)。Source: `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md`。
+- **「渡劫成功次数」与「总通关数」是两个数,并列展示且允许不相等(已定案 · 08-09d)。** 数据源分属两层:**渡劫成功次数**读 `PlayerProfile.PlayerPowerFragment.FinaleWinOrdinal`(规则字段层,统计侧刻意不另设 Finale 胜利数字段);**总通关数**读统计计数层的 `TotalCyclesCompleted`(完成整个轮回 = 三篇章全通 · 抵达元婴)。一次通关贡献 3 次 Finale 参与、至多 3 次胜利,而 Finale 胜利可完全不伴随通关,故**二者在任何账号上都不相等**。**呈现纪律:措辞不得暗示二者应当一致**;渡劫成功次数不计入 1% 的「失败但存活」,因此它可能小于已完成的篇章数——**该差值是有味道的信息,不是 bug**。落点为玩家档案与元婴界面(通关证书)的统计区。Source: `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md`。
 - **隐藏属性跨档时给一条定性叙事(已定案)。** 道心 / 煞气 / 寿元的**数值继续完全隐藏**,但**跨过一个隐藏档位时**在事件收口处给一条定性描述(「你于静室枯坐三日,心念澄明。」「你的指节泛起一层洗不去的暗红。」)。**只在跨档时触发**,不是每次结算都播——稀缺才有分量。玩家学到**方向与因果**,学不到精确数值,因而无法做电子表格式优化。规则与档位归 `systems/services/plot-manager.md`;它复用既有的 `eventEnd` 阶段,无新结构。Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
+- **同步状态的两处呈现(已定案 · 08-09)。**
+  - **常驻「离线 · 待同步 N」指示。** `sync-service` 的既定指示:UI 收到 `SyncStateChanged` 后单点查询 `PendingCount` 渲染。**它在战斗屏内同样必须可见**——这是「进入战斗前同步失败不额外提示」那条纪律成立的前提;若战斗屏隐藏了它,静默就变成了失联。见 `ux/combat-ux.md`。
+  - **设置屏的「同步版本 #1337」。** 只读一行小字,与版本号 / 账号 ID 同区,取值 `SyncService.Instance.BaseRevision`;`0` 显示为**「尚未同步」**而非 `#0`。理由:强制在线 + 云端权威下,线上问题几乎都是「这台设备停在哪个版本」,让玩家与客服**对上同一个数字**的成本近乎为零,而替代方案(导出日志)在移动端基本不可行。**纪律:它是诊断展示,不是玩法数据**——ViewModel 只在设置屏读一次,不进任何玩法路径、不参与判断。
+  Source: `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md`。
 - **美术挂点占位。** 循环视频、图标、卡面等 TBA;组合场景时为其保留可轻松替换的挂点,先用占位 / 免费资源。Source: `handoffs/2026-07-16-ux-flow-login-and-dev-order.md`。
 
 ## 决策(-> ADR)

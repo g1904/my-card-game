@@ -244,13 +244,14 @@ ContentRegistry 为每种 `XxxData : Resource` 持有一个仓储，对外是**�
 
 ```csharp
 IContentRepository<T> where T : Resource
-    T        Get(string id);              // 必需：缺失 → PushError + 抛出
-    bool     TryGet(string id, out T v);  // 可选：缺失 → 调用方降级
-    IReadOnlyList<T> All();
+    T        Get(string id);                 // 必需：缺失 → PushError + 抛出；不过滤 ContentEnabled
+    bool     TryGet(string id, out T v);     // 可选：缺失 → 调用方降级
+    IReadOnlyList<T> AllEnabled();           // 抽取池：ContentEnabled == true；产出侧唯一取池入口
+    IReadOnlyList<T> AllIncludingDisabled(); // 全量：启动期校验 / 图鉴统计 / 调试
     IEnumerable<T>   Where(Func<T,bool> predicate);
 ```
 
-**所有服务经此取内容；代码中不散落 `ResourceLoader.Load`。** 新增一种内容类型 = 新增一个 `XxxData` 与一个仓储条目，不新增服务、不改调用方。
+**所有服务经此取内容；代码中不散落 `ResourceLoader.Load`。** 新增一种内容类型 = 新增一个 `XxxData` 与一个仓储条目，不新增服务、不改调用方。**没有中性名 `All()`**——抽取与全量各有显式名字，理由见 `systems/services/content-service.md`「`AllEnabled()` 纪律的可执行化」。
 
 ### 本地 / 云端分界（一条判据）
 

@@ -47,6 +47,8 @@
   - **产出即定稿（finalized · immutable）。** `EventOption` 一经输出即冻结：life-cycle-service / combat-service / ViewModel 一律只读消费，**不得回查模板重算、不得改写其字段**。这是「同一个事件在呈现、结算、记入历程三处看到的是同一份数据」的保证。
   - **定稿实例必须落存档。** 物化用了 seeded RNG、当时的角色状态、以及可被 overlay 热更的模板；确定性只在同一 `contentVersion` 内成立，重算不保证同结果。因此**当前批 eventOptions 与 `pastEvent` 痕迹都存物化后的快照**，而非只存 `EventId` 事后重算。
   - **`InstanceId` 与 `EventId` 并存且不可互相替代。** 同一模板可在一次轮回里被物化多次（不同情境 → 不同实例）；`pastEvent` 与 `EventResolved` 负载都按 `InstanceId` 定位。
+  - **文本类字段一律不物化（已定案 · 08-09c）。** 显示名 / 描述 / 图标之外，**风味文案同样跟随模板数据**——它不进定稿实例、不进快照、不落存档，由 UI 层按 `EventId` 现场取模板组装。**收益：文案改版永不触发存档迁移**，且使「重算不出来的存」这条快照判据两侧再无灰色地带（见 `systems/adventure-event/common-properties.md` 的「`pastEvent` 的痕迹 schema」）。**推论：「完整物化字段清单」的剩余分叉只在数值与结构字段上。** Source: `handoffs/2026-08-09c-past-event-trace-schema.md`。
+  - **快照存哪些字段由一条判据给出，不逐字段拍板：** 「重算不出来的存，重算得出来的不存」。字段表与 `PastEventEntry` 的完整形态归 `systems/adventure-event/common-properties.md`；本服务侧的承重点是**物化产出的数值必进快照**（`SelectCost` / `Priority` / Mystery 真身 / 敌人赋级）。Source: 同上。
 - **选择约束只剩一条轴，且由本服务独占置位（已定案 · 08-06c）。** `eventPriority` 是**唯一**约束玩家选择权的字段（`ifMandatory` 已随跳过通道一并删除），它是上述物化模型的一个特例——**不由内容作者在 `.tres` 写死**，而由本服务在物化这一批时**动态置位**：
   - **取值域两档：`0`**（常态，玩家可从本批任选）与 **`1`**（本批一旦出现，有效可选集收窄为该档）。语义详见 `systems/adventure-event/common-properties.md`。
   - **置位方唯一 = 本服务；PlotManager 不得改变它。** **推论（边界澄清 · 承重）：PlotManager 只调内容不调约束**——它影响哪些事件进池、以什么权重出现，但**不能通过抬优先级强制玩家做某件事**；剧本的强制性只能靠**把候选池收窄**表达。
@@ -54,7 +56,7 @@
 - **跳过通道整体移除，批次刷新只剩一种形态（已定案 · 08-06c · 承重）。** 玩家面对一批 eventOptions 唯一能做的是**择一进入**；**每完成一次选择，本服务整批重算**——**选中一个即等价于跳过了其余全部**，故跳过是冗余机制。
   - **`TryRefill`（单项补位）整个方法删除**，本服务的 API 面由五个方法收为**四个**。「补位可能落空」「落空判据 = 配额用尽」「不生成付不起 `skipCost` 的事件」「不生成整批全跳的批次」**全部作废**——前提消失。
   - **`EventOptionBatch` 的恒真不变式与 `AnySkippable` 删除**：不再需要用字段保证「至少一个必做项」，因为**本批的每一项都是必做项**。
-  - **「打不过也得打」这条设计意图升级为结构性事实。** 仍**不需要**产出侧的「至少一个可负担 / 可战胜选项」保证：**必须面对的遭遇打不过 → 输掉这一局，是正常且合意的结果**。这与失败侧的既有建制自洽（EnemyCodex 遭遇即记、道统残卷概率累积、失败也可能给经验，加上篇章重试模型）——**「输」是这个游戏的一个正常出口**；同时它**约束产出侧不要过度保护**，难度的界由赋级带给出已经足够。
+  - **「打不过也得打」这条设计意图升级为结构性事实。** 仍**不需要**产出侧的「至少一个可负担 / 可战胜选项」保证：**必须面对的遭遇打不过 → 输掉这一局，是正常且合意的结果**。这与失败侧的既有建制自洽（EnemyCodex 遭遇即记、失败也可能给经验，加上篇章重试模型；**道统残卷的累积已收窄为 Finale 失败专属**，不参与常规遭遇的论证）——**「输」是这个游戏的一个正常出口**；同时它**约束产出侧不要过度保护**，难度的界由赋级带给出已经足够。
   - **`selectCost` 侧同样不欠可负担性保证（08-06c 答结）。** 支付 `selectCost` 是**无条件的可推进行为**，付不起也照付、支付后判定状态、判负进失败流程（见 `systems/adventure-event/common-properties.md`）。**推论：「付不起唯一可选项 ⇒ 无法推进」这条死锁在规则层不成立**，本服务不需要为此做任何产出侧兜底。
   Source: `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` + `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
 - **敌人物化 = 一条五旋钮管线，输入固定、顺序固定、产物落存档（已定案）。**
@@ -160,6 +162,7 @@ public sealed record EventOptionBatch(
 三点推演：
 
 - **`ComputeEventOptions` 的语义就是「物化」：** 取 `AllEnabled()` 候选 → location 框定 → PlotManager 调制 → map 子流抽取 → 组装定稿实例（**成本量值在此取负**）。**物化完成后本服务不再改这批实例**；一批的更新只有一种形态——`RefreshAfterEvent` 产出**一批全新的实例**。
+- **未选项摘要从「被替换的那一批」取，取用方是 life-cycle-service（已定案 · 08-09c）。** `RefreshAfterEvent` 会把当前批整批换掉；被换掉的那一批里除 `resolvedInstanceId` 之外的选项，正是要写进 `PastEventEntry.Unchosen` 的轻摘要来源。**本服务不因此新增方法、也不负责写档**——`Current` 在重算之前仍指向旧批，life-cycle-service 在组装 `PastEventEntry` 时读它即可，写入照常经 `profile-service.ProfileManager`。字段形态见 `systems/adventure-event/common-properties.md`。Source: `handoffs/2026-08-09c-past-event-trace-schema.md`。
 - **`EffectivePriority` 由本服务算好放进 batch**，而不是让 UI 自己去 `Max(o.Priority)`。呈现层只做呈现，「哪些可选」是产出侧的语义。
 - **PlotManager 的四个方法不出现在服务门面上**（manager 不被跨服务调用）：`ResolvePlot` / `ModulateEventOptions` / `OnHiddenStatThreshold` 是 `ComputeEventOptions` 物化链条内部的一环；只有 `ChooseBranch` 需要玩家输入，故投影为服务门面上的 `ChooseBranchAsync`。
 
@@ -179,8 +182,8 @@ public sealed record EventOptionBatch(
 > _尚未解决，需要一次 handoff/决策。_
 
 - **生成 / 加权规则未定（08-05b 收窄）。** **location 层的形态已定案**（事件类型概率修正 + 敌人模板池 + `eventCountLimit`），**具体数值归内容制作阶段**；仍待定：**每批数量**、类型修正的**运算形态**（乘性 / 加性 / 白名单 + 权重，能否修正到 0）、月圆之夜式策划与随机权重的配比、以及 location 框定 / PlotManager 调制 / seeded RNG 的**叠加顺序**。→ `systems/game-progression.md`。Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` + `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md`。
-- **`EventOption` 的完整物化字段清单未定（07-27b 收窄 · 08-06c 减为七字段）。** 骨架七字段已定（`InstanceId` / `EventId` / `EventType` / `Priority` / `SelectCost` / `IsRevealed` / `RevealedEventId`）；但「**多数**属性由物化决定」意味着还有一批未列出的字段：哪些数值可被情境改写？风味文案是否也物化？outcome 权重是否在物化时固化？这需要一次**内容侧** handoff 才能定稿。→ `systems/adventure-event/common-properties.md`。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
-- **定稿实例快照的存档字段形态未定（07-27b 收窄 · 08-06c 再收窄）。** 持久化**方式**已定案（落物化后的定稿实例快照，不重算——见「意图」），**且痕迹只剩一种**（跳过通道已移除）；仍待定：快照存哪些字段、**未被选中的选项是否随批次快照一并归档**、以及**快照体积对增量 push 粒度的影响**。→ `systems/adventure-event/common-properties.md`、`sync-service.md`。Source: 同上 + `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
+- **`EventOption` 的完整物化字段清单未定（07-27b 收窄 · 08-06c 减为七字段 · 08-09c 再收窄）。** 骨架七字段已定（`InstanceId` / `EventId` / `EventType` / `Priority` / `SelectCost` / `IsRevealed` / `RevealedEventId`）；但「**多数**属性由物化决定」意味着还有一批未列出的字段：哪些数值可被情境改写？outcome 权重是否在物化时固化？这需要一次**内容侧** handoff 才能定稿。**「风味文案是否也物化」已答结：不物化**（见「意图」），故剩余分叉**不含任何文本类字段**。→ `systems/adventure-event/common-properties.md`。Source: `handoffs/2026-07-27b-service-api-contracts.md` + `handoffs/2026-08-09c-past-event-trace-schema.md`。
+- **物化后敌人实例的类型形态未定（08-09c 显式化）。** `EnemyInstance` 是**嵌在 `EventOption` 上**还是只记引用？战斗类痕迹需要它才能定稿。**不阻塞 `pastEvent` 的最小面已定：至少存 `EnemyTemplateId` + 物化赋级 `Level`**（等级是物化产物、重算不出，EnemyCodex 与角色履历都要读它）。→ `systems/enemies/`、`systems/adventure-event/common-properties.md`。Source: `handoffs/2026-08-09c-past-event-trace-schema.md`。
 - **框定叠加顺序。** location 框定、PlotManager 调制、seeded RNG 三者的叠加顺序与优先级未定。→ `systems/game-progression.md`、`systems/services/plot-manager.md`。
 - **`Priority = 1` 依什么条件抬升（08-06c 收窄）。** **取值域（两档）与置位方（本服务独占，PlotManager 不得改）已定案**；仍待定：本服务依什么条件把某个选项抬到 `1`（剧情线关键节点？配额闸门之外还有哪些？），以及**同批出现多个 `1` 档时是否需要额外收窄规则**（当前语义：同档内自由择一）。→ `systems/adventure-event/common-properties.md`。Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
 

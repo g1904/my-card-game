@@ -154,9 +154,9 @@ user://overlay.staging/         下载落地区，允许脏，失败即清空
 - **`AllEnabled()` 纪律的可执行性。** 约定已立（抽取必走 `AllEnabled()`），但**如何在代码评审外强制**未定：`All()` 是否应改名为 `AllIncludingDisabled()` 让默认路径就是安全路径？还是靠 Roslyn 分析器 / 评审清单？
 - **`ContentEnabled` 的粒度是否够用。** 单一布尔支持「全开 / 全关」；**灰度与分批放量**需要按玩家分桶（百分比 / 白名单 / 篇章档位），而布尔字段本身不携带分桶信息。分桶信息放哪（overlay 的另一层配置？后端下发的 bucket 列表？）未定。
 - **disabled 条目被存档引用时的 UX。** 读取侧不过滤，故存档能正确解析；但玩家手中一张「已被线上关闭」的卡 / 道具**是否应有任何提示**、还是完全静默照常可用，未定。
-- **`revision` 的产生方与语义。** 断线合并语义依赖比较云端与本地基线的 `revision`（单调递增计数？服务端时间戳？ETag？），由谁分配、客户端如何持有基线值，未定——这是**客户端 ↔ 后端协议契约**问题，应同步登记进 `backend-design-documents/open-questions.md`。
+- ~~**`revision` 的产生方与语义。**~~ 已答结（08-09）：后端分配的账号级单调递增 `long` + 客户端传输层基线 `baseRevision` + CAS 三分支 + 幂等键 `pushId`。见 `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md`。
 - **`attemptIndex` 的来源。** 防 re-roll 派生式 `Hash64(combatStreamSeed, eventId, attemptIndex)` 中的 `attemptIndex` 语义未定：它是「同一事件的第几次进入」（需落存档计数）还是「篇章重试的第几次」（复用既有重试计数）？若不落存档则退出重进仍会重掷，防护落空。
-- **软阻塞与「进入战斗前强制 flush」的交互。** 进入战斗前是 Immediate flush 点；若此时正处于断线缓冲态且已超限，玩家是被挡在战斗外（软阻塞发生在 AdventureEvent 选择前，战斗尚未开始）还是可以进入？两条规则的先后顺序未明写。
+- ~~**软阻塞与「进入战斗前强制 flush」的交互。**~~ 已答结（08-09）：**不挡**——flush 是一次「尝试」，闸门是一个「状态」。见同上 handoff。
 - **剧本预取与「事务前置」的边界。** 预取降低了失败率但不消除它；LRU 容量上限、预取失败是否静默（不打扰玩家、留待实际请求时再报）未定。
 - **`manifestSchema` 的版本化。** 它触发整包全量重下，但其自身的版本号形态、与 `contentVersion` / `appVersion` 的关系未定。
 

@@ -17,7 +17,7 @@
 ## 元进程持久化与内容开关
 
 - **元进程持久化字段结构：** `PlayerPower` / `PlayerItem` / `Achievements` / `GameSetting` / `AccountInfo` 语义已澄清、服务归属已定（profile-service）、文档落位已定；但**各自字段 schema 与解锁 / 获取 / 失去触发**待定；`status`（启用 / 禁用）与「拥有 / 失去」两态的存档表达未定。→ `systems/services/profile-service.md`、`systems/player-profile/`。
-- **PlayerPower 获取 / 失去触发与公平性：** 方向已定为**轻度提升、PvE-only 可容忍**，且**道统残卷已给出一条获取渠道**（轮回开始时的概率掉落，规则见焦点区 ⑥）；具体在哪些 AdventureEvent 获取 / 失去、是否影响 cycle seed / 计分公平仍待定。→ `systems/player-profile/player-power/`。
+- **PlayerPower 获取 / 失去触发与公平性：** 方向已定为**轻度提升、PvE-only 可容忍**，且**道统残卷已给出一条获取渠道**（Finale 胜利时掷定并即时发放的概率掉落，规则已定案，见 `systems/player-profile/player-power/_index.md`）；具体在哪些 AdventureEvent 获取 / 失去、是否影响 cycle seed / 计分公平仍待定。→ `systems/player-profile/player-power/`。
 - **capability flag 的叠加 / 冲突规则：** 两个 power 授予同一 flag 如何处理；多个 modifier 作用于同一 key 的**运算顺序**（加法先于乘法？声明序？优先级字段？）。→ `systems/player-profile/player-power/common-properties.md`。
 - **AchievementManager 的触发采集面：** 成就进度靠订阅 EventBus 被动采集（解耦但易漏）还是各服务主动上报（可靠但反向依赖）？→ `systems/services/profile-service.md`。
 - **AccountInfo 字段 schema：** 账号 id / 绑定渠道 / 昵称头像 / 注册时间 / 封禁实名状态等未设计；多渠道绑定同一账号的模型未定。→ `systems/player-profile/account-info.md`。

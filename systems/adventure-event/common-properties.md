@@ -8,7 +8,7 @@
 ### 共有属性 / 字段
 
 - **AdventureEvent 之间不存在前后连边。** 单个 AdventureEvent 只是一份自足的内容条目，**不持有指向后续事件的引用**——事件之间的走向不由内容作者预先连线，而由 **future-event-service 在运行时依角色状态产出的一批 `List<EventOption> eventOptions`** 决定：受角色当前 location（地域）框定，并被隐藏剧本层 AdventurePlot 持续调制（见 `systems/services/future-event-service.md`、`systems/services/plot-manager.md`）。Source: `terminology.md` + `handoffs/2026-07-24-docs-restructure-class-model.md` + `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md`。
-- **`pastEvent`（历程轨迹 · CharacterProfile 侧）。** 与向前的走向相对，向后的**已经历轨迹**仍需持久化：`pastEvent` 是一条**扁平的时序列表**（不是图的反向边），记录角色走过哪些事件。它归属 CharacterProfile 的轮回状态，不挂在 AdventureEvent 上。**只有一种痕迹：进入并结算**——跳过通道已整体移除（见下方「一批只有一次操作」）。
+- **`pastEvent`（历程轨迹 · CharacterProfile 侧）。** 与向前的走向相对，向后的**已经历轨迹**仍需持久化：`pastEvent` 是一条**扁平的时序列表**（不是图的反向边），记录角色走过哪些事件。它归属 CharacterProfile 的轮回状态，不挂在 AdventureEvent 上。**只有一种痕迹：进入并结算**——跳过通道已整体移除（见下方「一批只有一次操作」）。条目类型 `PastEventEntry` 与字段表见下方「`pastEvent` 的痕迹 schema」。
 - **`eventType`（类型标签 · 子类型枚举）。** 每个 AdventureEvent 带一个 `eventType` 字段，归属九类之一（Combat / Finale / Mystery / Practice / Exchange / Research / Explore / Social / Travel）。Mystery 为元类型，遮罩一个固定的其余某类事件——被遮罩事件的真实 `eventType` 在揭示前对玩家不可见。Source: `terminology.md` + `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
 - **`selectCost`（选择成本 · 共有字段）= 一个定制的复合成本类型（已定案）。** 选中该 AdventureEvent 以推进轮回所需付出的代价。`selectCost` **不是单一数值，而是一个定制类**——它由**若干成本 element 组成**，**`lifeSpanCost` 是其中一个 element**。因此一个事件的选择代价可以同时涉及多种资源（寿元 + 其他），由该成本类型统一承载，而非在 AdventureEvent 上平铺一堆并列的成本字段。它把「从 eventOptions 中推进」建模为一次**付费的取舍**，而非单纯的菜单点选——契合月圆之夜式事件菜单的策划取向。Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
   - **`lifeSpanCost`（成本 element）：** 完成该事件对角色**寿元 / lifeSpan** 的扣减，由内容作者以**正数量值**标注；见下方独立条目。
@@ -32,9 +32,9 @@
   - **它承载的设计意图不但没丢，反而更强：** 「每批必有不可跳过项、打不过也得打」**升级为结构性事实**——**本批的每一项都是必做项**，回避通道在规则层根本不存在，**不需要字段来表达它**。
   - **单项补位（`TryRefill`）随之删除。** 补位只为「被跳过的那个位置空了」而存在；没有跳过就没有空位。**批次刷新只剩一种形态：一次选择 → 整批重算。**
   - **推论（一次删掉五处结构）：** `EventOption` 九字段 → **七字段**（删 `IsMandatory` / `SkipCost`）· `EventOptionBatch` 删 `AnySkippable` 与「每批至少一个 `IsMandatory`」的恒真不变式 · `AdvanceMode { Select, Skip }` **整个枚举删除**（`AdvanceEventAsync` 少一个参数、`EventResolved` 负载少一个字段）· future-event-service 的 API 面五方法 → **四方法** · `CapabilityFlag` 删 `ShowSkipCost`、modifier key 清单删 `skipCost`。
-  - **推论：`pastEvent` 只剩一种痕迹**（进入并结算）——「区分两种痕迹」这个 schema 难题直接消解。**未被选中的选项是否随批次快照一并归档仍未定**，见待决问题。
+  - **推论：`pastEvent` 只剩一种痕迹**（进入并结算）——「区分两种痕迹」这个 schema 难题直接消解。**未被选中的选项随批次归档轻摘要**（已定案 · 08-09c），见下方「`pastEvent` 的痕迹 schema」。
   - **推论：跳过侧的两条产出侧保证作废**（不生成付不起 `skipCost` 的事件 / 不生成整批全跳的批次）——前提消失。
-  - **推论：「跳过什么类型的事件反向影响剧本」这条内容侧方向作废。** 剧本仍可读 `pastEvent` 的**选择**偏好，但不再有「回避了什么」这条信号。
+  - **推论：「跳过什么类型的事件反向影响剧本」这条内容侧方向改变形态、并未作废（08-09c 收窄）。** 「回避了什么」不再是一个**独立的玩家操作**，而是选择的**补集**——由 `PastEventEntry.Unchosen`（同批未选项轻摘要）承载，剧本照常读得出「同批还摆着什么而没选」。见下方「`pastEvent` 的痕迹 schema」。
   Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
 - **`eventPriority`（事件优先级 · 共有字段 · 已定案 · 08-06c 定形）。** **唯一**约束玩家选择权的字段，约束面是**同批 eventOptions 内的可选范围**：
   - **取值域只有两档：`0`**（常态——玩家可从本批中任选）与 **`1`**（本批一旦出现，**有效可选集收窄为该档**，`0` 档本轮被封锁）。
@@ -99,6 +99,79 @@ internal interface IEventResolver          // 按 eventType 注册
 
 **隐藏属性的跨档定性反馈挂在 `eventEnd`（已定案 · 无新结构）。** 隐藏属性推拉在 `eventEnd` 阶段合并施加；**当某个隐藏属性因本次推拉而跨过一个隐藏档位时，附带一条定性的叙事描述**（不给数字）。它**复用已有的 `ResolveOutcome` → `eventEnd` 链路**，不引入新的结构或阶段。触发规则与档位归 `systems/services/plot-manager.md`，呈现归 `ux/screen-flow.md`。Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 
+### `pastEvent` 的痕迹 schema（已定案 · 08-09c）
+
+**判据先于字段表：「重算不出来的存，重算得出来的不存」。**
+
+> 凡「模板 + `EventId` 在任意 `contentVersion` 下都能稳定重建」的，**不进快照**；凡「由本次物化的情境 / seeded RNG / 当时角色状态决定，重建不出同一结果」的，**必进快照**。
+
+**判据本身是这条设计的权威，字段表只是它当下的投影**——字段表会随「`EventOption` 完整物化字段清单」继续增长，判据不会。由它自动落定四条：
+
+- **静态展示文案（显示名 / 描述 / 图标）不进快照**，按 `EventId` 经 `ContentRegistry.Get()` 随时取得（读取侧不过滤 `ContentEnabled`，被关闭的条目照常解析）。**文案改版不触发存档迁移**这条既有收益因此保住。
+- **风味文案同样不进快照** —— 它跟随模板数据，与显示名 / 描述属同一层。**由此判据两侧再无灰色地带：所有文本类字段一律留在模板侧，快照里一个字符串正文都不存。**（这同时收窄了「`EventOption` 完整物化字段清单」那条待决问题的文本那一半，见下。）
+- **模板上的基准数值、参数空间、outcome / effect 定义不进快照** —— 本次掷定的结果已经在 `AppliedChange` 里，存权重表等于存一份用不上的中间态。
+- **物化产出的数值必进快照** —— `SelectCost`、`Priority`、Mystery 真身、敌人赋级正是「重算不保证同结果」的那一半。
+
+**「定稿实例必须落存档」与「存档态只带 `Id` + 可变状态、不复制展示文本」不冲突**（写明以免日后被误当成矛盾去松动其中一条）：后者管**展示文本**，前者管**物化数值**，快照存后者不存前者，两条同时成立。唯一可能让它们正面相撞的条件是「风味文案也物化」，而文案不物化，该条件不成立。
+
+**痕迹条目 ≠ `EventOption`，而是「定稿实例快照 + 本次结算的最终账」。** 一个事件的权威事实是 `eventEnd` 那**一次**合并 `TryApply` 的 spec，而非分散在 `ResolveOutcome` / `lifeSpanCost` / 隐藏属性推拉里的若干片段——**存最终 spec 一份，胜过存若干片段再让读取方自己合**。
+
+```csharp
+public sealed record PastEventEntry(          // 痕迹条目：immutable，只追加，落存档
+    int                Seq,                   // 角色内单调递增的时序坐标；不复用、不因迁移重排
+    string             InstanceId,            // 定位键；与被结算的那个 EventOption 同值
+    string             EventId,               // 溯源模板（disabled 条目照常解析）
+    EventType          EventType,             // 当时呈现给玩家的类型；Mystery 时 = 遮罩类型
+    string             RevealedEventId,       // Mystery 真身；非 Mystery 为空串
+    int                Priority,              // 当时的物化置位 { 0, 1 }；回溯「这一步是不是被闸门收窄的」
+    string             BatchId,               // 归属批次；与未选项摘要同批
+    string             LocationId,            // 当时所在地域
+    ProfileChangeSpec  SelectCost,            // 物化组装的定稿 spec（带符号，已取负）
+    ProfileChangeSpec  AppliedChange,         // eventEnd 那一次合并 TryApply 的最终 spec
+    EventOutcome       Outcome,               // 结算走向
+    int                LifeSpanAfter,         // 结算后剩余寿元 —— 判据的明示例外，见下
+    IReadOnlyList<UnchosenOptionRef> Unchosen // 同批未被选中的选项轻摘要
+    /* ⟨随「EventOption 完整物化字段清单」与「敌人实例类型形态」两项答定后扩充；
+        文本类字段不在扩充范围内 —— 风味文案跟随模板⟩ */);
+
+public sealed record UnchosenOptionRef(       // 未选项：只求可回溯，不求可重建
+    string    InstanceId,
+    string    EventId,
+    EventType EventType,
+    int       Priority);
+
+public enum EventOutcome { Resolved, CombatWon, CombatLost, Aborted }
+// Resolved               = 非战斗类事件正常结算
+// CombatWon / CombatLost = 战斗类事件的胜负（剧本与履历都要读，且不可由 AppliedChange 可靠反推）
+// Aborted                = 支付 SelectCost 后终态判定 ① 即短路，事件未进入 resolver
+```
+
+- **`AppliedChange` 是核心，也是唯一真正新增的东西。** 有了它，「这个角色一路上到底发生了什么」是一条可直接重放的账；没有它，履历 / 剧本 / 诊断三个消费方各自去猜。它**复用既有的 `ProfileChangeSpec`，不引入新类型**。
+- **`Seq` 是时序坐标，不是内容键。** 「绝不用数组索引作内容的键」约束的是内容键；`Seq` 显式写出来才能在日志、履历展示与诊断中安全提及。角色内单调递增、不复用、不因迁移重排。
+- **`LifeSpanAfter` 是上述判据的明示例外。** 它可由 `AppliedChange` 全序列重放得出，按判据本不该存；但它**已在 `EventResolved` 负载里**（`LifeSpanRemaining`），且元进程的角色履历要画寿元曲线。**成本 4 字节 × 200 条 = 800 字节，换掉一次全序列重放。** 它是**写明的例外，不是先例**——不得据此放宽判据。
+- **`Aborted` 是跳过通道移除后的直接产物。** 支付 `selectCost` 后立即判负会短路、事件不再结算，但**这一步仍然发生过**（成本已施加、`selectCost` 不回滚），必须留痕且必须与正常结算可区分——否则履历上会出现一条「结算了但什么也没产出」的诡异记录。它通常是角色的**最后一条**痕迹。
+- **枚举保持四值，不为 DnD 式选分支预留成员。** 分支形态未定时预留即臆造；日后若需要，是**新增一个可空字段**（`ChosenBranchId`），不是改枚举——**枚举成员的增删牵动存档迁移，可空字段不牵动**。
+
+**未被选中的选项 = 归档轻摘要（已定案）。** 论证基础是一条推演：**「定稿实例必须落存档」对未选项不成立**——该条的理由是「重算不保证同结果，而这份实例还要被消费」，而未选项在下一次整批重算时即被丢弃，**永远不会被任何流程消费**；它们不需要**可重建**，只需要**可回溯**。剧本要的信号是「玩家回避了什么类型 / 什么内容」，`EventType` + `EventId` 就足够；未选项的 `SelectCost` 永不会被施加，敌人实例永不会入场。
+
+| | 方案 | 单事件增量 | 剧本可读出 | 结论 |
+|---|------|-----------|-----------|------|
+| A | 不归档 | 0 | 只有「选了什么」 | 否决：回避信号**永久丢掉**，日后想补要改 schema + 迁移 |
+| **B** | **归档轻摘要**（四字段） | **~4 × 60 B ≈ 240 B** | 「选了什么」+「同批还摆着什么而没选」 | **采纳** |
+| C | 归档完整快照 | ~4 × 500 B ≈ 2 KB | 同 B（多出字段无消费方） | 否决：体积翻数倍换零新增信息 |
+
+**副产品：批次的完整性得以保留。** `pastEvent` 不再是一串孤立事件，而是一串**批次**——「这一步你面前摆着这四个，你选了第二个」。这对元进程的角色履历展示与日后的「回放 / 复盘」都是免费的地基。
+
+**与 AdventurePlot key points：单向读取、零结构耦合。** `pastEvent` 不持有任何 key point 引用，key points 也不引用 `PastEventEntry`；PlotManager 只把 `pastEvent` 当只读输入。**推论：`pastEvent` 的 schema 不受「key points 粒度」这个待答项阻塞，两者各自定稿。** 详见 `systems/services/plot-manager.md`。
+
+**存档与校验：**
+
+- **本次落定 `pastEvent` 结构 → bump 存档 schema 版本**；当前无线上存档 → **空迁移**，走既有 MigrationManager 骨架。只追加不变式与体积护栏见 `systems/services/sync-service.md`。
+- **加载时校验：** `EventId` 经 `ContentRegistry` 解析不到 → **可选缺失** → `GD.PushWarning` + 该条降级为「仅标识可读」（履历显示为未知条目），**不阻断读档**——历程是历史记录，一条读不出的旧条目不该让整个角色无法进入。`InstanceId` 缺失 / `Seq` 不连续 / `Seq` 重复 → **必需缺失** → `GD.PushError` 带 `characterId` + `seq`。
+- **写入点不新增。** 上方结算流程里「记入 `pastEvent`」这一步的语义具体化为：**由 life-cycle-service 组装 `PastEventEntry`（含从被替换的当前批取未选项摘要），经 `profile-service.ProfileManager` 写入**——与「档案写入的唯一入口」一致，不绕过。
+
+Source: `handoffs/2026-08-09c-past-event-trace-schema.md`。
+
 ### 通用流程
 
 - **呈现 = 月圆之夜风格（已定案）。** 修行事件以精心策划的**事件菜单**形态呈现，参考《月圆之夜》。Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
@@ -111,12 +184,12 @@ internal interface IEventResolver          // 按 eventType 注册
 > _已定案的决定链接到 decisions/ADR-####。_
 
 - **呈现形态、选择交互** 已定案，见「意图」及 `decisions/ADR-0002-adventure-event-taxonomy.md` 上下文。
+- **`pastEvent` 痕迹 schema（`PastEventEntry` + 判据 + 未选项轻摘要）** 已定案，见「意图」的同名小节。**ADR 候选**（它同时约束存档 schema、同步粒度与剧本读取面）。Source: `handoffs/2026-08-09c-past-event-trace-schema.md`。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **`EventOption` 的完整物化字段清单未定（07-27b 新增 · 08-06c 收窄为七字段）：** 骨架**七字段**已定（见 `future-event-service.md`）；但「**多数**属性由物化决定」意味着还有一批未列出的字段——哪些数值可被情境改写？风味文案是否也物化？outcome 权重是否在物化时固化？需要一次**内容侧** handoff。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
-- **`pastEvent` 的痕迹 schema 与 key points 粒度（08-06c 收窄）：** 持久化**方式**已定案（落物化后的定稿实例快照，按 `InstanceId` 索引，不重算），**且痕迹只剩一种**（跳过通道已移除，「区分两种痕迹」消解）；仍待定：快照存哪些字段、**未被选中的选项是否随批次快照一并归档**（归档则剧本能读出「回避了什么」，代价是体积成倍增长）、与 AdventurePlot key points 的耦合方式、以及**快照体积对增量 push 粒度的影响**。→ 亦见 `systems/services/future-event-service.md`、`plot-manager.md`、`sync-service.md`。Source: 同上 + `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
+- **`EventOption` 的完整物化字段清单未定（07-27b 新增 · 08-06c 收窄为七字段 · 08-09c 再收窄）：** 骨架**七字段**已定（见 `future-event-service.md`）；但「**多数**属性由物化决定」意味着还有一批未列出的字段——哪些数值可被情境改写？outcome 权重是否在物化时固化？需要一次**内容侧** handoff。**「风味文案是否也物化」这一半已答结：不物化，跟随模板数据** ⇒ **剩余分叉只在数值与结构字段上，不含任何文本类字段**。Source: `handoffs/2026-07-27b-service-api-contracts.md` + `handoffs/2026-08-09c-past-event-trace-schema.md`。
 - **可用事件的生成规则：** future-event-service 如何具体产出「下一批 eventOptions」（数量、类型配比、刷新时机、location + AdventurePlot 叠加顺序）未定。→ 亦见 `systems/game-progression.md`。
 - **成本类型的 element 清单未定（08-06c 收窄）。** `selectCost` 为定制复合成本类型、`lifeSpanCost` 为其一个 element 已定案；**其余有哪些 element**（jade？mana？道具？隐藏属性推拉？）、每个 element 的数据形态（固定值 / 区间 / 公式）未定。**「付不起某个 element 时整体不可选」这一问已作废**——支付无条件发生；取而代之的新问是**打穿之后怎么办**，见下条。→ `systems/character-profile/currency.md`、`systems/balance.md`。Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` + `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
 - **哪些资源允许被打穿、各自的截断与终态判据（08-06c 新增 · 承重）：** `selectCost` 无条件施加后必须回答——寿元归 0 = `defeated` 已定；**灵玉 / mana / 其余 element 打到负数怎么办**（截断到 0？允许为负？）、哪些资源的耗尽构成终态、哪些只是变穷。这直接决定 `ProfileManager.TryApply` 施加负值时的钳制规则。→ `systems/services/profile-service.md`、`systems/character-profile/currency.md`。Source: 同上。

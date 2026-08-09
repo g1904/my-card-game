@@ -7,6 +7,6 @@
 - **其余四个图鉴的解锁触发与词条深度。** EnemyCodex = 遭遇即记、五项文案；能力 / 道具类是「获得即记」「见到即记（含商店中见到）」还是「使用过即记」？词条该写什么？→ `systems/player-profile/codex/`。
 - **图鉴的入口与浏览形态。** 六本图鉴在主菜单如何组织、是否与成就 / 奖励挂钩、战斗内能否查阅（EnemyCodex 尤其相关）。→ `ux/screen-flow.md`、`ux/combat-ux.md`。
 - **premium bundle 的其余细则。** 一次性还是可重复购买（可重复则重试上限如何叠加）？定价与地区？是否还有其他付费点、以及明确排除哪些（抽卡 / 消耗型货币）？→ `systems/monetization.md`。
-- **两条 PlayerPower 获取渠道的交互与随机口径。** 礼包给的 power 是否重置「道统残卷」的累积概率？两条渠道的「随机」是否共用候选池与排重规则？走哪条 RNG（**不应污染轮回 seed 的确定性**）？→ `systems/player-profile/player-power/`、`systems/monetization.md`。
+- **两条 PlayerPower 获取渠道的候选池与排重规则（08-09b 收窄，只剩「抽哪一条」）。** **交互已答结**：礼包**不重置**残卷的 `Accumulated`，但使 `x` +1 从而可能压低上限档位（有意的负反馈）。**RNG 也已答结**：账号级掷骰走 `Hash64(AccountSeed, <账号级序号>)`，与 `CycleSeed` 不相交、不污染轮回确定性。**仍待定的是抽取本身**——从哪个池抽（`AllEnabled()` 全池 / 排除已拥有 / 按稀有度）、抽到重复怎么办；它是残卷伪码里 `pickedPowerId` 与 `HasGrantable()` 的**前置依赖**（残卷其余部分不依赖它）。→ `systems/player-profile/player-power/`、`systems/monetization.md`。
 - **礼包持有状态的存档表达与服务端权威。** 落成 `CapabilityFlag`、modifier pipeline 的具名修正，还是独立的 `Entitlement` 字段？付费凭证不能只信客户端，故它同时是一条**客户端 ↔ 后端协议契约**，应同步登记进 `backend-design-documents/open-questions.md`。→ `systems/services/profile-service.md`、`sync-service.md`。
 - **商业化的 UX 观感。** 礼包入口放在哪、是否在重试次数耗尽时提示购买——这直接决定观感是「增值」还是「付费才玩得下去」。→ `ux/screen-flow.md`。

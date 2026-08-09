@@ -44,7 +44,7 @@
 | **平**（道念相等） | 不变 | 只发 `baseReward`，无任何厚度加成 |
 | **负** | `-= (敌人道念 − 角色道念)`（1:1） | `baseReward`；**少数事件另夹带负向条目** |
 
-- **输了通常只有 `baseReward`。** 失败不是零产出——与「失败侧首次有产出」（EnemyCodex 遭遇即记、道统残卷累积、等级产出也可能来自失败）一脉相承。Source: `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md`。
+- **输了通常只有 `baseReward`。** 失败不是零产出——与「失败侧首次有产出」一脉相承。**常规失败的产出面是两条：EnemyCodex 遭遇即记 + 失败仍给的经验**；**道统残卷的累积已收窄为 Finale 失败专属**（08-09b），不再是普遍适用的失败侧产出。Source: `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` + `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md`。
 - **额外惩罚**包在 reward 里**，不另立结构。** 少数事件的失败会附带额外惩罚，它就是**奖励结构中的负向条目**。**推论：与 `ProfileChangeSpec` 的带符号约定天然自洽**（`ChangeElement.BaseValue` 负 = 消耗、正 = 产出），故「奖励里夹一条惩罚」不需要任何新类型，仍是同一份 `CombatResult.Spoils`、同一次 `TryApply`。Source: 同上。
 - **奖励的计算归 combat-service，施加仍归 life-cycle-service。** 见 `systems/services/combat-service.md`。
 

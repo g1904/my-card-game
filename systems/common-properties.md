@@ -16,14 +16,15 @@
 - 领域术语的中文 ↔ 英文 / 代码标识符权威在 `terminology.md`（例：修行事件 / AdventureEvent、角色信息 / CharacterProfile）。
 
 ### 数据即资源
-- 每种内容类型是一个 `[GlobalClass] partial class XxxData : Resource`，带 `[Export]` 字段；实例以 `.tres` 编写，由 `content-service` 的 **ContentRegistry** 在启动时按 `Id` 索引。玩法代码经注册表的**泛型仓储接口**（`Get` / `TryGet` / `All` / `Where`）查找，不散落 `ResourceLoader.Load`。Source: `.claude/rules/data-resource-rules.md`。
+- 每种内容类型是一个 `[GlobalClass] partial class XxxData : Resource`，带 `[Export]` 字段；实例以 `.tres` 编写，由 `content-service` 的 **ContentRegistry** 在启动时按 `Id` 索引。玩法代码经注册表的**泛型仓储接口**（`Get` / `TryGet` / `AllEnabled` / `AllIncludingDisabled` / `Where`）查找，不散落 `ResourceLoader.Load`。Source: `.claude/rules/data-resource-rules.md`。
 - **内容分三层：** `res://content/` 基线（随包发布、只读）+ `user://overlay/` 云端热更增量（按 `Id` 覆盖）→ 合并进 ContentRegistry；**校验点在合并之后**（重复 / 悬空 `Id` → `GD.PushError` 启动期早失败）。详见 `systems/services/content-service.md`。Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
 - **可调平衡数值不硬编码**，归 `systems/balance.md` 或导出字段（见 `data-resource-rules.md`）。
 
 ### 内容共有字段 `ContentEnabled`（已定案）
 - 每种 `XxxData : Resource` 携带 **`ContentEnabled: bool`，默认 `true`**——线上放量开关，overlay 只改这个既有布尔字段，不触碰「不得新增 `Id`」纪律。
 - **过滤只发生在产出侧：** 一切**抽取**（eventOptions、商店库存、奖励掷骰）走 `ContentRegistry` 的 **`AllEnabled()`**；**读取侧 `Get(id)` 不过滤**，故存档引用到被关闭的条目仍能正确解析。**任何从内容集合抽取的代码必须走 `AllEnabled()`**——与「不散落 `ResourceLoader.Load`」同级的纪律。
-- **合并后强校验对 disabled 条目照常全量执行**（`Id` 唯一性、交叉引用不悬空）。完整论证见 `systems/services/content-service.md`。Source: `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
+- **这条纪律由命名强制，不只靠条款：仓储上没有中性名 `All()`**——只有 `AllEnabled()`（抽取池）与 `AllIncludingDisabled()`（全量：启动期校验 / 图鉴统计 / 调试），过渡期保留一个 `[Obsolete(error: true)] All()` 编译闸。选级判据见 `systems/architecture.md`「纪律的可执行化」。Source: `handoffs/2026-08-09e-discipline-enforceability.md`。
+- **合并后强校验对 disabled 条目照常全量执行**（`Id` 唯一性、交叉引用不悬空），走 `AllIncludingDisabled()`。完整论证见 `systems/services/content-service.md`。Source: `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
 
 ### 展示字段的归属（已定案）
 - 各「类」只携带编码（`Id` / 数值）。展示（充血）字段的归属**按生命周期切分三层**，而非为前端另建一套并行类：**静态展示文本**（显示名 / 描述 / 图标）留在 `XxxData : Resource` 上；**运行时 / 存档态**只带 `Id` + 可变状态，不复制展示文本；**组合展示**（数值代入、条件文案、随 capability flag 变化的可见性）由 UI 层轻量 **ViewModel** 按需组装，不落存档、不进云端负载。完整论证与待确认项见 `systems/architecture.md`。Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md`。
@@ -37,6 +38,11 @@
   - **子流清单是 `SeedManager` 内的常量**（map / combat / shop / reward）。读档遇存档中没有的**新子流** → `GD.PushWarning` + 按 `Hash64(CycleSeed, name)` 全新初始化；遇清单里已不存在的**旧子流** → 警告并丢弃。**增删子流不 bump schema 版本。**
   - **防 re-roll 的派生层已整层删除（已定案 · 08-06）。** 原方案是战斗内随机不直接用 `combat` 子流、而是每场再派生 `Hash64(combatStreamSeed, eventId, attemptIndex)`。**两个动机都已消解：** ① 「退出重进重掷」已由决策点存档 + RNG `State` 持久化从根上关闭；② 「篇章重试是否换一套战斗随机」答定为**换**，而换法是**给这一次重试一套新的随机流**，不是在既有流上再派生一层。**`attemptIndex` 因此没有任何剩余职责，字段与派生层一并去掉**；篇章重试次数改由 `CharacterProfile.chapterRetry` 承载（它是重试上限的计数器，与 RNG 无关，见 `systems/services/life-cycle-service.md`）。Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` + `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md`。
   - 存档 schema 见 `systems/character-profile/_index.md`；派生方是 `life-cycle-service.SeedManager`。Source: `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
+- **账号级随机与轮回随机是两条不相交的线（已定案 · 08-09b）。** 判据：**结果写 `PlayerProfile` 的随机，绝不可从 `CycleSeed` 派生**——四条子流全由 `Hash64(CycleSeed, streamName)` 得出，而**篇章重试会生成全新的 `CycleSeed`**，把账号级掉落挂上去等于让玩家靠重试换一次结果。
+  - **形态：** 账号级掷骰走 `Hash64(AccountSeed, <账号级单调序号>)`，`AccountSeed` 是后端下发、落 `AccountInfo` 的 `ulong`（见 `systems/player-profile/account-info.md`）。**它不进 `SeedManager`、不进子流清单**，故不触及「增删子流不 bump schema 版本」那条纪律。
+  - **单调序号同时是幂等键**——同一序号重复结算得同一结果，退出重进 / push 重放都不改变结果，与决策点存档的防重掷同一条纪律。
+  - **对轮回可复现性零影响**（不派生自 `CycleSeed`、不消耗任何子流 `State`）。首个也是目前唯一的用例是**道统残卷**（见 `systems/player-profile/player-power/_index.md`）。**「持有的账号级内容不同 ⇒ 同一 seed 的轮回体验不同」不构成公平性问题**：账号状态本就是轮回的输入（deck、法则、古宝皆然），既定的确定性承诺只覆盖「同一存档恢复后能正确继续」。
+  Source: `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md`。
 - **确定性的边界：同一 `contentVersion` 内（已定案）。** 内容热更**以 overlay 更新为准**——轮回进行中 overlay 更新时新数值立即生效，**不冻结该轮回的 `contentVersion`**。因此本项目**不承诺「同一 seed 跨内容版本复现同一轮回」**：seeded RNG 的目的是消除未加种子的随机、保证存档恢复后能正确继续，而非提供跨版本的绝对可复现性。数值可随时线上修正的价值高于跨版本复现。Source: `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`、`systems/services/content-service.md`。
 
 ### 存档版本化与原子写入（强制在线 · 云端权威）

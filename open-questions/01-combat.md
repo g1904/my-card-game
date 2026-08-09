@@ -11,7 +11,7 @@
 - **「本轮回禁用」的承载字段与生效面（承重）。** 事件侧失去法则已定案为**不强制剥夺**（自愿置换才真移除，其余降级为本轮回禁用）；禁用集合**必须落在轮回级状态上**（账号级 `status` 开关不能承载它）——落 `CharacterProfile` 的哪个位置、被禁用的法则是**开局根本不入场**还是入场后立刻被移除、是否对进行中的战斗立即生效、是否对玩家可见，均未定。→ `systems/character-profile/`、`systems/player-profile/player-power/`、`systems/services/combat-service.md`。
 - **置换型剥夺的候选池与对价规则。** 换来的法则从哪个池抽（全池 / 排除已有 / 同稀有度）、玩家能否先看到换来的是什么再决定、拒绝置换是否有代价，以及**置换能否移除神通**（`Scope == Character` 一侧尚未表态）。→ `systems/player-profile/player-power/`、`systems/character-profile/power/`。
 - **`ProfileChangeSpec` 表达三类移除的 element 形态。** 按 `Id` 指定 / 随机 / 按 `Scope` 限定；「置换」是原子的双向 element 还是「移除 + 给予」两条；能否出现在 `SelectCost` 侧（置换似乎合理，禁用型不该）；以及 `PushWarning` 逐条列举是否要在事件 outcome 侧补一处对称落点。→ `systems/adventure-event/common-properties.md`、`systems/services/future-event-service.md`。
-- **账号级统计计数的字段形态与范围。** 落成 `PlayerStatistics` 类还是直接挂字段？除篇章重试外首批还统计什么（总轮回数 / 总 defeated 数 / 各 `DefeatReason` 计数）？是否参与云端同步的权威性判定（被篡改无玩法后果，或许可走宽松口径）？→ `systems/player-profile/_index.md`、`systems/services/life-cycle-service.md`、`sync-service.md`。
+- **账号级统计计数的容器形态与首批统计项清单（08-09d 收窄）。** 落成 `PlayerStatistics` 类还是直接挂字段？除篇章重试累计与 `TotalCyclesCompleted` 外首批还统计什么（总 defeated 数 / 各 `DefeatReason` 计数）？**宽松同步口径的具体形态**是什么？**已答结的部分：** 与规则字段层的边界（两层通则 + 合并判据 + `Ordinal` 命名硬约定）、统计计数落**宽松侧**、「通关」= 完成整个轮回（`TotalCyclesCompleted`）、**不设 Finale 胜利数与篇章完成数**。→ `systems/player-profile/_index.md`、`systems/services/life-cycle-service.md`、`sync-service.md`。
 
 ## 结构与配置的残留
 
