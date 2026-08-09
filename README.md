@@ -33,6 +33,7 @@ D:\MyCardGame\
 ├── backend-testing-branch/      — read-only reference snapshot (git: backend-testing)
 ├── backend-production-branch/   — read-only reference snapshot (git: backend-production)
 ├── backend-design-documents/    — backend design intent, SOURCE OF TRUTH (git: backend-design)
+├── .gitignore                   — shared ignore surface for the branch checkouts
 ├── push-all.cmd                 — commit + push every branch checkout at once
 └── session-manager.cmd          — session favorites/tags entry point
 ```
@@ -44,7 +45,7 @@ D:\MyCardGame\
 - **`.claude/` 自身也是一份检出**（分支 `claude-config`，分支根 = 本文件夹根）。它与其余九个目录一样受 `push-all.cmd` 覆盖。`.gitignore` 排除 `.idea/`、`blueprints/`、`plans/`、`session-tags.json`。
 
 ### 设计意图
-`game-design-documents/`（`game-design` 分支 —— 仅文档，孤儿历史）承载**客户端**的人工设计交接：游戏*应该*是什么样的事实来源。这里的 `knowledge/*` 是它的**提炼后**、面向 Claude 的视图。规划一个功能时，先阅读相关的设计文档。
+`game-design-documents/`（`game-design` 分支 —— 仅文档，孤儿历史）承载**客户端**的人工设计交接：游戏*应该*是什么样的事实来源。这里的 `knowledge/*` 是**指向它的薄引用层**（导航 + 代码现状 + 一句话承重纪律，不复述设计内容）。规划一个功能时，先阅读相关的设计文档。
 
 `backend-design-documents/`（`backend-design` 分支 —— 同为仅文档、孤儿历史）承载**后端**的设计意图：账号合规、协议契约、存档同步、内容分发、剧本下发。
 
@@ -117,7 +118,7 @@ D:\MyCardGame\
 8. `/review-local-changes` 或 `/review-feature` —— 在提交前捕获 bug。
 9. `/investigate <symptom>` —— 把一个 bug 追溯到按可能性排序的根因 + 诊断步骤。
 
-`knowledge/` 下的知识是设计文档的提炼后、面向 Claude 的视图 —— `/implement` 会在构建时就地更新相关的 `systems/`、`scenes/`、`data/`、`autoloads/` 笔记；怀疑知识与代码/设计脱节时运行 `/sync-knowledge` 做整体对账。术语的权威在 `game-design-documents/terminology.md`（提炼至 `knowledge/dictionary.md`）。
+`knowledge/` 是**指向设计库的薄引用层**（导航表 + 代码现状 + 一句话承重纪律；设计内容不在此复述，见 `decisions/ADR-0005`）—— `/implement` 会在构建时就地更新相关的 `systems/`、`scenes/`、`data/`、`autoloads/` 笔记；怀疑知识与代码/设计脱节时运行 `/sync-knowledge` 做整体对账（它同时把偷偷长回来的副本压回薄引用）。术语的权威在 `game-design-documents/terminology.md`；`knowledge/dictionary.md` 只保留通用的 roguelike 卡组构建体裁词汇，不复制本作专有术语。
 
 台账闭环：`/blueprint` 把 FR 翻为 `blueprinted` 并登记 `blueprints/_index.md`；`/implement` 在验证通过后把 FR 翻为 `built`。
 

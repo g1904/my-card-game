@@ -11,24 +11,30 @@
 | 类型 | Resource 类（规划） | 权威设计位置（`systems/`） |
 |------|--------------------|------------------------------|
 | Card（卡牌） | `CardData` | `character-profile/deck/` |
-| Relic / Joker（玩家能力） | `PlayerPowerData` | `player-profile/player-power/` |
-| Enemy（敌人） | `EnemyData` | `adventure-event/combat/` |
+| 卡牌次类型 | `CardSubtypeData` | `character-profile/deck/`——**稳定字符串 id 的 `.tres` 注册表，不是 C# 枚举**（须能被效果筛选引用）；id 规范 `<maintype>.<name>` |
+| 异能 | `AbilityData` | `character-profile/deck/`——静止式 / 启动式 / 触发式三分，与「载体」正交，抽为可复用条目 |
+| 法则 / 神通（Power） | `PlayerPowerData` / `PowerData` | `player-profile/player-power/`、`character-profile/power/` |
+| Enemy（敌人） | `EnemyData` ↔ `EnemyInstance` | **`systems/enemies/`**（与 adventure-event 平级）——含样本卡组、`EncounterScopes` / `PoolScope` |
 | AdventureEvent（修行事件） | `AdventureEventData` | `adventure-event/`（拆入九个子类型） |
 | 可购道具 | `ItemData` / `PlayerItemData` | `player-profile/player-item/`、`character-profile/item/` |
-| Blind / Ante | `BlindData` | `game-progression.md` |
+| Location（地域） | ⟨载体待定⟩ | `game-progression.md`——携带三组字段（事件类型概率修正 / 一组 `EnemyData` 取池 / `eventCountLimit`）；**已具备内容条目形态**，载体定名仍待答 |
+| `locationMap`（地域图） | ⟨载体待定⟩ | `game-progression.md`——**一张全局不变的连通图**，三篇章共用；只读静态数据、启动加载常驻，存档只存当前 location `Id` |
+| 遭遇参数 | `EncounterSpec`（`sealed record`，非 `Resource`） | `adventure-event/combat/`——回合数与胜负判据参数化 |
 | 平衡配置 | `BalanceData` | `balance.md` |
 | 剧本分支文本 | —（**不是**本地内容） | `services/plot-manager.md`——云端下发，不进 ContentRegistry、不落存档 |
 
 ## 承重纪律
 
 1. **`Id` 是稳定唯一的字符串，也是唯一的交叉引用键。** 绝不按名称、数组下标或场景路径引用内容。
-2. **抽取走 `AllEnabled()`。** 每个条目带共有字段 `ContentEnabled: bool`（默认 `true`），是线上灰度 / 分批放量 / 秒关开关。**关键的不对称**：**产出侧**（eventOptions 物化、商店库存、奖励掷骰）只从 `AllEnabled()` 抽；**读取侧** `Get(id)` / `TryGet` **不过滤**——存档引用到刚被关闭的条目仍须正确解析。不要自己写 `All().Where(x => x.ContentEnabled)`；漏写过滤即线上事故。
+2. **抽取走 `AllEnabled()`。** 每个条目带共有字段 `ContentEnabled: bool`（默认 `true`），是线上灰度 / 分批放量 / 秒关开关。**关键的不对称**：**产出侧**（eventOptions 物化、商店库存、奖励掷骰）只从 `AllEnabled()` 抽；**读取侧** `Get(id)` / `TryGet` **不过滤**——存档引用到刚被关闭的条目仍须正确解析。**仓储上没有中性名 `All()`**——全量走 `AllIncludingDisabled()`，写下 `All()` 会编译失败（`[Obsolete(error: true)]`）。漏写过滤即线上事故。
 3. **`XxxData : Resource` 是模板不是成品，运行时绝不写它。** 它是注册表里的**共享只读单例**、可被 overlay 覆写；写回会污染同一轮回的后续批次与其他角色。
-4. **「内容定义 + 情境 / 轮回内状态」= 两个类型：** `AdventureEventData` ↔ `EventOption`（物化定稿，**不可变**，落存档）、`CardData` ↔ `CardInstance`（运行态**可变**）。共享纪律：**服务签名里传实例，不传 `Resource`**。
+4. **「内容定义 + 情境 / 轮回内状态」= 两个类型：** `AdventureEventData` ↔ `EventOption`（物化定稿，**不可变**，落存档）、`CardData` ↔ `CardInstance`（运行态**可变**）、`EnemyData` ↔ `EnemyInstance`（物化定稿，**不可变**；**敌人等级即物化产物**，嵌 `EventOption` 落存档）。共享纪律：**服务签名里传实例，不传 `Resource`**。
 5. **静态展示文案就留在 `XxxData` 上**（可本地化、可改而不破坏引用），不为「充血模型」另建并行展示类；动态组合走呈现期 ViewModel。**运行时 / 存档态只带 `Id` + 可变状态**，不复制展示文本——文案变更不触发存档迁移。
 6. **校验点在合并之后。** overlay + 基线合并完再统一校验：重复 `Id`、悬空交叉引用 → 启动期 `GD.PushError`，早失败。**`ContentEnabled == false` 的条目照常参与全量校验**——它们是完整内容，只是不进抽取池。
 7. **可调数值存导出字段 / `BalanceData`**，绝不硬编码在系统逻辑里。
 8. **不散落 `ResourceLoader.Load`** ——一切内容经 ContentRegistry。
+9. **敌人与玩家共用 `CardData` 体系，但不共用卡池。** `Pool` 是**必填字段、无默认值**——漏填即坏数据，在启动期校验里报出来。敌人卡组固定 15 张、允许重复。
+10. **本作不存在多敌人场景** ——`EventOption` 上的敌人字段是**单数**。不要预留 `List<EnemyInstance>`。
 
 ## 三层存储与热更边界（形状见 `services/content-service.md`）
 
@@ -52,4 +58,6 @@ ContentRegistry（内存）    按 Id 索引，全游戏唯一读取入口
 
 因此 **AdventureEvent 的定义本身属本地内容层**——启动期强校验模型成立。
 
-> 仍待决（→ `open-questions.md`）：`ContentEnabled` 单一布尔不携带分桶信息，**灰度所需的分桶配置放哪**未定；disabled 条目被存档引用时是否提示玩家未定；`AllEnabled()` 纪律在代码评审外如何强制未定。
+> 仍待决（→ `open-questions/deferred-content.md`）：`ContentEnabled` 单一布尔不携带分桶信息，**灰度所需的分桶配置放哪**未定；disabled 条目被存档引用时是否提示玩家未定。
+>
+> **`AllEnabled()` 的强制形态已定案（08-09e）**：靠**删除中性诱饵名 `All()` 本身**（过渡期 `[Obsolete(error: true)]` 恒抛作编译闸），不靠评审清单——漏写过滤的发生机制是「随手写了那个最短最中性的名字」。已否决「把 `All()` 语义改为 enabled-only」（命名诚实性）与 Roslyn 分析器（同一份编译期保证，成本高几个数量级）。`DrawPool<T>` 已采纳但**排期到第二阶段、第一份内容 FR 之前**。→ `systems/services/content-service.md`。

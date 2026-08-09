@@ -16,8 +16,9 @@
 2. **按具名子流取随机，不从单个全局生成器抽。** 否则不相关的系统会互相错位（多抽一张卡会移动地图生成）。子流枚举 `RngStream { Map, Combat, Shop, Reward }`；派生式 **`streamSeed = Hash64(CycleSeed, streamName)`**。
 3. **经 `life-cycle-service.Stream(RngStream)` 取 `RandomNumberGenerator`**（而非 `int Next()`）——Godot 的 `RandomNumberGenerator` 自带可序列化的 `Seed` / `State`，正是持久化形态的载体。派生与持有归 SeedManager。
 4. **恢复用 `State`，诊断用 `DrawCount`。** `State`（u64）回填即 O(1) 恢复，不必重放；`DrawCount`（int）是迁移保险——`State` 是引擎实现细节，Godot 升级可能改其语义，届时用 `seed + drawCount` fast-forward 重放。读档时**在任何抽取发生之前**先恢复各状态。
-5. **战斗内随机不直接用 `combat` 子流**，每场再派生一层 `Hash64(combatStreamSeed, eventId, attemptIndex)`。否则「退出重进」会重掷战斗随机——在强制在线 + 云端权威下这是**最易被发现的漏洞**。（`attemptIndex` 语义待定；若不落存档这层防护会落空 → `open-questions.md`。）
-6. **子流清单是 SeedManager 内的常量。** 读档遇存档中没有的**新**子流 → `PushWarning` + 按 `Hash64(CycleSeed, name)` 全新初始化；遇清单里已不存在的**旧**子流 → 警告并丢弃。**增删子流不 bump schema 版本。**
+5. **战斗内随机不直接用 `combat` 子流**，每场再派生一层 `Hash64(combatStreamSeed, eventId)`。否则「退出重进」会重掷战斗随机——在强制在线 + 云端权威下这是**最易被发现的漏洞**。**`attemptIndex` 那一层已整层删除**（08-06）：篇章重试 = `RetryChapter` 内部生成一个**全新 seed**、换一整套随机流，与首次 `StartCycle` 走同一条生成路径——「重开一局」说的是随机流，不是角色（角色仍按 ADR-0004 全部继承）。次数计在 `CharacterProfile.chapterRetry`，它是计数器容器、不参与派生。
+6. **账号级掉落的掷骰绝不走 `SeedManager` 的子流**（明示例外，08-09b）。四条子流全由 `Hash64(CycleSeed, streamName)` 派生，而**篇章重试会生成全新的 `CycleSeed`**——把账号级掉落挂上去等于让玩家靠重试换一次掷骰结果。道统残卷（`PlayerPowerFragment`）改用 `Hash64(AccountSeed, FinaleWinOrdinal)`：`AccountSeed` 由后端下发、落 `AccountInfo`，**不进 `SeedManager`、不进子流清单**（故不触及纪律 6 的 schema 约定）；`FinaleWinOrdinal` 单调递增且**本身就是幂等键**——同一序号重复结算得同一结果，退出重进 / push 重放都不改变掉落。**对轮回可复现性零影响**：不从 `CycleSeed` 派生、不消耗任何子流的 `State`，两者不相交。客户端掷、后端可复算。→ `systems/player-profile/player-power/_index.md`。
+7. **子流清单是 SeedManager 内的常量。** 读档遇存档中没有的**新**子流 → `PushWarning` + 按 `Hash64(CycleSeed, name)` 全新初始化；遇清单里已不存在的**旧**子流 → 警告并丢弃。**增删子流不 bump schema 版本。**
 
 ## 验证小贴士
 

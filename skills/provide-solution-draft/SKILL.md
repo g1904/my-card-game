@@ -63,7 +63,7 @@ open-questions.md 中的待答项
 - **确实无法由推演 / 通行做法得出**（纯取向、或缺关键信息）→ 如实说明，把它留在 `## 仍需用户决定`，并说明缺什么信息。**绝不为了让草稿完整而臆造机制、数字或决策**（与 `/analyze-new-ideas` 的「充实 vs 臆造」同一条边界）。
 
 ### 6. 写草稿文件
-写到 `game-design-documents/inbox/solution-draft-<slug>.md`：
+写到 `game-design-documents/inbox/solution-draft-<slug>.md`（**顶层 = 在办**；提炼后由 `/analyze-new-ideas` 移入 `inbox/archive/`——本技能不写 `archive/`）：
 - **`<slug>`：** 由问题主题取的短横线小写 slug（英文 / 代码标识符优先，便于与主题文档对应），例：`solution-draft-hotfix-overlay-scope.md`、`solution-draft-skip-cost-semantics.md`、`solution-draft-rng-persistence.md`。同名已存在 → 追加 `-2`、`-3`（不覆盖用户可能已在评审的草稿；若确认是同一问题的重做，先问用户是否覆盖）。
 - **结构：**
 ```markdown

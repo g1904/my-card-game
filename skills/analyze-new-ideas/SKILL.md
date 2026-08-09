@@ -22,7 +22,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - **粘贴的文本** → 把该消息当作原始记录；你将为它创建一个新的 handoff 文件。
 - 仅有一个**主题提示** → 询问用户原始内容在哪里。
 - **一份 `inbox/solution-draft-<slug>.md`**（`/provide-solution-draft` 的产物，用户已评审 / 修改过）→ 当作原始意图读取。注意其中标注 `[取向选择]` 或列在 `## 仍需用户决定` 的项：**用户已在评审中定下的按定下的处理，未定的仍按 Open question 搁置**，不要把提案当成已定案提炼。
-- **空（无参数）→ 扫描收件箱**：列出 `game-design-documents/inbox/` 的全部文件，并与 `handoffs/_index.md` 交叉核对哪些已被处理（已有对应 handoff / 已 distilled）。呈现待处理清单（文件名 + 一行内容摘要），询问处理哪个（或按用户指示批量逐个处理）。这可以防止草稿在收件箱中悄悄积压。
+- **空（无参数）→ 扫描收件箱**：列出 `game-design-documents/inbox/` **顶层**的草稿（`_index.md` / `_TEMPLATE.md` 与 `archive/` 除外——`archive/` 里的都是已提炼的，不再是待处理项），并与 `handoffs/_index.md` 交叉核对是否确已被处理。呈现待处理清单（文件名 + 一行内容摘要），询问处理哪个（或按用户指示批量逐个处理）。这可以防止草稿在收件箱中悄悄积压。
 
 先逐字读完输入。此时先不要润色——理解写下的意图本身，包括那些尚未成形的想法。
 
@@ -84,6 +84,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 ### 7. 更新索引并闭环
 - 在 `handoffs/_index.md` 中新增/更新对应行（最新的置顶）：`id | date | topic | status | distilled-to`。一旦折进主题文档，就把 `status` 设为 `distilled`，并在 `distilled-to` 填上你改动过的文件。
+- **归档草稿（强制）：** 若本次输入是 `inbox/` 顶层的一份草稿，且已产出 `status: distilled` 的 handoff，就把该草稿**移入 `inbox/archive/`**（`solution-draft-*` 同时把 front-matter 的 `status` 改为 `distilled`），并在 `inbox/archive/_index.md` 的对应表追加一行「草稿 → handoff」。若它仍留在顶层的在办清单里，从 `inbox/_index.md` 的清单中删掉该行。**顶层只留在办草稿**——这是收件箱不再堆积的机制。
 - 向用户汇报：
   - 该 handoff 现在的内容（清理/充实后的版本）。
   - 你扩展了哪些设计文档以及关键新增内容。

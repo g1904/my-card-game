@@ -16,9 +16,11 @@
 | **profile-service** | ② | ProfileManager、CapabilityManager、AchievementManager | **两个 Profile 的唯一写入面**；capability 聚合；成就。 |
 | **life-cycle-service** | ① | CycleStateManager、ChapterManager、SeedManager | 轮回生命周期、篇章边界与重试、具名 RNG 子流。 |
 | **future-event-service** | ① | EventOptionManager、PlotManager | 物化 AdventureEvent → eventOptions（**唯一物化点 / 唯一出口**）。 |
-| **combat-service** | ① | TurnManager、CharacterManager、EnemyManager（+ 各持一个 `DeckModule`） | **固定 10 回合**循环、抽/弃/洗、双方道念、敌人 AI 与意图（**三档揭示**）。**Finale 复用。** |
+| **combat-service** | ① | TurnManager、CharacterManager、EnemyManager（**各持一个 `DeckModule`**）、BattlefieldManager、StackManager | **固定 10 回合**循环、抽/弃/洗、双方道念、敌人 AI 与意图（**三档揭示**）。**Practice / Finale 复用。** |
 
 判据（三选一才够格成为服务）：① 自有状态机 / 跨多帧长流程；② 事务性跨多字段一致写；③ 外部 I/O 边界。
+
+**combat-service 的五个 manager 分区（08-03）：** 属于某一方的 mana / 道念 / 手牌 / 卡组归两个参战方 manager；**BattlefieldManager** 持战场（已结算、正在生效的条目 + 触发器注册面），**StackManager** 持栈（等待结算的队列，LIFO）。**栈与战场是两个区，划线判据是「是否在场上生效」而非「属于谁」**——战场是单一记录表 + `OwnerSide`，读侧走 `CombatSnapshot`。TurnManager 因此回落为纯粹的回合状态机。
 
 **非服务的横切件：** **EventBus**（autoload `Node`，广播既成事实 → `standards/signal-eventbus.md`）、**game-progression**（屏幕流程编排顶点）、**ViewModel**（呈现期对象）、**BootstrapScreen**（`main` 场景，驱动启动 → `scenes/_index.md`）。
 
@@ -30,7 +32,8 @@
 - **服务不返回内部可变集合** —— 一律 `IReadOnlyList<T>` / `IReadOnlyDictionary<,>`。
 - **`_Ready` 只装配，`InitializeAsync` 才做 I/O。** autoload 的 `_Ready` 不能 `await`；异步初始化经 `IBootstrappable`，由 `BootstrapScreen` 按序驱动（content → 登录 → account → sync → profile hydrate → 主菜单）。三个纯本地服务（profile / life-cycle / combat）**不实现**该接口。**不要在 `_Ready` 里写 `async void` 做初始化**（已明确否决）。
 - **两条唯一入口：** 内容读取经 `ContentRegistry`（不散落 `ResourceLoader.Load`；**抽取走 `AllEnabled()`**）；档案写入经 `ProfileManager.TryApply(spec)`。
-- **离线 stub 是「换一个实现」，不是在服务里插 `if (offline)`。** 四个边界服务各持一个窄后端接口，两份实现由 `[Export] bool UseOfflineBackend`（默认 `true`）选择。接口定义见 `systems/architecture.md`「总则 7」。
+- **autoload 一律直接指向 `.cs`，无例外**（不为服务包一层 `.tscn`）。**推论：服务级配置一律走 ProjectSettings，`[Export]` 只留给场景组件**——autoload 指向 `.cs` 时不存在场景实例，`[Export]` 既没有存储处也没有检视器落点。这是技术互斥，不是风格偏好。
+- **离线 stub 是「换一个实现」，不是在服务里插 `if (offline)`。** 四个边界服务各持一个窄后端接口，两份实现经**唯一选择点 `BackendSelector`** 取得；`OfflineXxxBackend` 整类包在 `#if DEBUG` 内（Release 里不存在），开发期开关是 ProjectSettings `mycardgame/backend/use_offline_backend`，**不是 `[Export]`**。条件编译仅限 6 处、不得扩张。接口定义见 `systems/architecture.md`「总则 7」，形态见 `system-overview.md` 第四节。
 
 ## 装配顺序（规划）
 

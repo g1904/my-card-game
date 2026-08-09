@@ -9,7 +9,7 @@
 
 ## 注册表 / 加载
 - 单一的 **DataRegistry** 自动加载在启动时加载每种类型的全部 `.tres` 并按 `Id` 建立索引。玩法代码通过注册表查找内容，而非到处散落 `ResourceLoader.Load` 调用。
-- **抽取必须走 `AllEnabled()`（与「不散落 `ResourceLoader.Load`」同级的纪律）。** 每个内容条目带共有字段 `ContentEnabled: bool`（默认 `true`），是线上放量 / 秒关开关。**过滤只在产出侧**：任何**从内容集合抽取**的代码（事件选项、商店库存、奖励掷骰）必须经注册表的 `AllEnabled()` 取抽取池；**读取侧 `Get(id)` 不过滤**，使存档中引用到已关闭条目的 `Id` 仍能正确解析。漏写过滤即线上事故——不要自己写 `All().Where(x => x.ContentEnabled)`，用 `AllEnabled()`。
+- **抽取必须走 `AllEnabled()`（与「不散落 `ResourceLoader.Load`」同级的纪律）。** 每个内容条目带共有字段 `ContentEnabled: bool`（默认 `true`），是线上放量 / 秒关开关。**过滤只在产出侧**：任何**从内容集合抽取**的代码（事件选项、商店库存、奖励掷骰）必须经注册表的 `AllEnabled()` 取抽取池；**读取侧 `Get(id)` 不过滤**，使存档中引用到已关闭条目的 `Id` 仍能正确解析。漏写过滤即线上事故。**仓储上没有中性名 `All()`**：抽取走 `AllEnabled()`，确需含已关闭条目（启动期校验 / 图鉴统计 / 调试）走 `AllIncludingDisabled()`；过渡期写下 `All()` 会直接编译失败（`[Obsolete(error: true)]`）。语义权威在 `game-design-documents/systems/services/content-service.md`。
 - **加载时校验**（参见 `null-check-rules.md`）：缺失/重复的 `Id`、悬空的交叉引用（例如某个遭遇战列出了未知的敌人 id）→ 在启动时用 `GD.PushError` 报出违规的 id/路径，让坏数据在启动时就大声、尽早地失败，而不是在轮回中途。**`ContentEnabled == false` 的条目照常参与全量校验**——它们是完整内容，只是不进抽取池。
 
 ## 平衡与配置
