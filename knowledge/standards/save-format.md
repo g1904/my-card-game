@@ -19,11 +19,12 @@
 5. **`PushAsync` 不接收 profile 参数。** profile 的内存权威在 profile-service；让调用方递一份进来等于把「谁是权威」再打开一次。
 6. **增量 push 按 `CharacterProfile` 粒度 diff。** `PlayerProfile` 整聚合含全部历史角色、随账号年龄单调增长，整体上行不可持续。
 7. **`revision` 是传输层的东西，绝不进存档。** `revision` 由**后端**分配（账号级单调递增 `long`，客户端分配即等于让非权威一侧决定「谁更新」）；客户端只持一个基线值 `baseRevision`，落 `user://cache/sync-envelope.json`（与待发队列同处、同样原子写、跨启动保留），**不落 `PlayerProfile` / `CharacterProfile`、不进存档 schema、不参与迁移**。上行走 CAS 三分支，且**每批带一个客户端生成的幂等键 `pushId`，重试时保持不变并随待发队列持久化**——跨启动重试换了 `pushId` 就会在「请求已达、响应丢失」这一移动网络常态下丢玩家进度。服务门面**不外泄 `Revision`**（只新增只读诊断属性 `BaseRevision`）：**暴露给人看可以，暴露给代码判断不行**。→ `systems/services/sync-service.md`。
-8. **flush 是一次「尝试」，软阻塞闸门是一个「状态」。** `Immediate` 只声明「不等 5 秒防抖窗口」，**不声明「发不出去就停下」**；`Debounced` 与 `Immediate` 在**失败处置上完全一致**（进待发队列 + 指数退避 + 不阻塞玩家）。因此**进入战斗前的 flush 失败绝不挡玩家**，也不加额外提示（沿用常驻「离线 · 待同步 N」指示）。阻塞与否只由闸门在既定时机判定——下一次 AdventureEvent 选择前。唯一的两处硬阻塞（启动 pull 失败、被后端挤下线）与 push 通道无关。
-9. **账号级字段分两层，判据是「它有没有被**规则**读」。** 规则字段层（被判定 / 闸门 / 幂等键读取，如 `PlayerPowerFragment.*`、`CharacterProfile.chapterRetry`）严格上行、后端可复算、读档越界钳制 + 告警；统计计数层（只被 UI 读来展示，如 `TotalCyclesCompleted`）宽松口径、告警即可。**依赖单向：规则字段可被 UI 读，统计计数绝不可被规则读。** 被 UI 看见不会把规则字段变成统计计数。两层都经同一次 `TryApply` 写入，不另开写入通道。**合并判据：口径相近不构成合并理由——可以合并当且仅当「语义 + 同步口径 + 篡改后果」三者全同，故跨层的两个字段永远不满足。** 也**不做两层间的交叉一致性校验**（写了就等于承认它们该相等，把已排除的合并从后门放回来）。**命名硬约定：后缀 `Ordinal` ⇒ 规则字段层（是「第几次」，有人拿它当键）；前缀 `Total` ⇒ 统计计数层（是「一共多少」）；统计计数层禁用 `Ordinal` 后缀。** → `systems/player-profile/_index.md`。
-10. **恢复后先 pull 再 flush。** 若云端 `revision` 已领先本地基线（多设备），**以云端为准丢弃本地缓冲**并明确告知玩家。**不做静默合并、不引入字段级三路合并**——那会实质削弱 ADR-0003。
-11. **存档带 `version` 并有迁移路径。** 相等 → 直接加载；更旧 → 逐版迁移；更新 / 未知 → **优雅拒绝**，绝不崩溃。当前无线上存档、迁移为空迁移，但 `MigrationManager` 的骨架**就在此刻**立起来（最便宜的时机）。
-12. **读档校验是强制的**（→ `.claude/rules/null-check-rules.md`）：未知内容 `Id`、版本不匹配、缺失字段必须以清晰错误 / 迁移处理，绝不静默为 null。
+8. **flush 是一次「尝试」，软阻塞闸门是一个「状态」。** `Immediate` 只声明「不等 5 秒防抖窗口」，**不声明「发不出去就停下」**；`Debounced` 与 `Immediate` 在**失败处置上完全一致**（进待发队列 + 指数退避 + 不阻塞玩家）。因此**进入战斗前的 flush 失败绝不挡玩家**，也不加额外提示（沿用常驻「离线 · 待同步 N」指示）。阻塞与否只由闸门在既定时机判定——下一次 AdventureEvent 选择前。唯一的两处硬阻塞（启动 pull 失败、被后端挤下线）与 push 通道无关，且**只由已知错误码触发——一个未知 `code` 永远不得新增第三处硬阻塞**。
+9. **`Upgrade` 类错误只在登录 / 启动 pull 构成硬阻塞，其余时机一律降级为非阻塞**（08-11b）：本地缓冲保留不丢弃 · 非模态提示 · **暂停自动退避**（重试必然失败，退避只是空耗电量）· **解除条件只有「重新登录成功」**，不因时间流逝或应用重启自动恢复。软阻塞闸门口径**完全不变**，变的只有模态文案与选项（无「重试」）。UI 靠 sync-service 的只读属性 `bool UpgradeRequired` 单点查询区分变体，**不新增 `SyncState` 值**——与 `PendingCount`、空负载 `CapabilitiesChanged` 同构。
+10. **账号级字段分两层，判据是「它有没有被**规则**读」。** 规则字段层（被判定 / 闸门 / 幂等键读取，如 `PlayerPowerFragment.*`、`CharacterProfile.chapterRetry`）严格上行、后端可复算、读档越界钳制 + 告警；统计计数层（只被 UI 读来展示，如 `TotalCyclesCompleted`）宽松口径、告警即可。**依赖单向：规则字段可被 UI 读，统计计数绝不可被规则读。** 被 UI 看见不会把规则字段变成统计计数。两层都经同一次 `TryApply` 写入，不另开写入通道。**合并判据：口径相近不构成合并理由——可以合并当且仅当「语义 + 同步口径 + 篡改后果」三者全同，故跨层的两个字段永远不满足。** 也**不做两层间的交叉一致性校验**（写了就等于承认它们该相等，把已排除的合并从后门放回来）。**命名硬约定：后缀 `Ordinal` ⇒ 规则字段层（是「第几次」，有人拿它当键）；前缀 `Total` ⇒ 统计计数层（是「一共多少」）；统计计数层禁用 `Ordinal` 后缀。** → `systems/player-profile/_index.md`。
+11. **恢复后先 pull 再 flush。** 若云端 `revision` 已领先本地基线（多设备），**以云端为准丢弃本地缓冲**并明确告知玩家。**不做静默合并、不引入字段级三路合并**——那会实质削弱 ADR-0003。
+12. **存档带 `version` 并有迁移路径。** 相等 → 直接加载；更旧 → 逐版迁移；更新 / 未知 → **优雅拒绝**，绝不崩溃。当前无线上存档、迁移为空迁移，但 `MigrationManager` 的骨架**就在此刻**立起来（最便宜的时机）。
+13. **读档校验是强制的**（→ `.claude/rules/null-check-rules.md`）：未知内容 `Id`、版本不匹配、缺失字段必须以清晰错误 / 迁移处理，绝不静默为 null。
 
 ## 存什么
 
@@ -35,8 +36,10 @@
 - **RNG 状态：** `CycleSeed` + 每个子流的 `Seed` / `State` / `DrawCount`。→ `rng-determinism.md`。
 - **篇章重试计数分两层、口径不同，不是同一个数的两份拷贝：** 角色级 `CharacterProfile.chapterRetry` = **三个具名字段**（与「四境三篇章」对齐），是闸门输入、**通关后保留**（它是历史不只是配额）；账号级另有**纯读数的统计计数**（`PlayerProfile` 上新的一类字段族，与 Achievements 相邻但无奖励）。ch1 角色级恒为 0 不是死字段——「炼气段重开几次」由账号级回答。
 - **战斗挂起态：** `CharacterProfile.ActiveCombat` 可空块（见承重纪律 4）。轮回结束 / 战斗收口后置空。
-- **「本轮回禁用的 `Power`」必须落轮回级状态** ——账号级 `status` 开关承载不了。法则**不会被强制从账号剥夺**，真正移除只发生在玩家自愿的「置换」中。
-- **push 信封**另带 `contentVersion` / `appVersion` / `revision`，让后端**不解 Profile** 即可做版本维度聚合。
+- **「本轮回禁用」落轮回级字段 `CharacterProfile.disabledAbility`**（与 `pastEvent` / `activeCombat` 平级，不进 `Status`）——账号级 `status` 开关承载不了。法则**不会被强制从账号剥夺**，真正移除只发生在玩家自愿的「置换」中。**存「施加时坐标 + 时长」，不存「到期坐标」**（判据同 08-09c：重算不出来的存）。**连带修正一处既定 schema：`ActiveCombat` 的「可重建项」重放依据须补 `disabledAbility`**——`Power` 的入场从两条与门变成三条（`status` 开启 ∧ `UsableScene` 含 `InCombat` ∧ 不在禁用表内），但禁用表本身随存档走，重建仍确定性，**不需要给 `activeCombat` 新增任何字段**。→ `systems/character-profile/_index.md`。
+- **push 信封**另带内容 / 应用版本与 `revision`，让后端**不解 Profile** 即可做版本维度聚合。**客户端 record 不因传输形态改动**（08-11b）：`AppVersion` / `ContentVersion` 与 token 由 `HttpXxxBackend` 搬进 HTTP 头，`pushId` / `baseRevision` / `schemaVersion` / `reason` 留在 body 的信封段（CAS 前置条件与它保护的负载留在同一层面，**不用 `If-Match`/ETag 表达**）。
+  - **`X-Request-Id` 与 `pushId` 是一对反向纪律，写反哪个都静默失效：** `pushId` 是幂等键，**跨启动重试必须不变**；`X-Request-Id` 是日志关联键，**每次重试都必须换**。前者写错丢进度，后者写错让日志无法定位单次尝试。
+  - **跨边界枚举值以字符串序列化且与 C# 枚举名逐字相同** ⇒ **重命名一个跨边界枚举值即是破坏性契约变更**，必须与后端同批改，不能当作纯客户端重构。
 
 ## 格式选择
 

@@ -1,28 +1,37 @@
 ---
 name: summarize-open-questions
-description: 扫描 game-design-documents/ 的全部 ## Open questions 与 handoff，把散落的未决项汇总、去重、按主题归拢，并重写 open-questions.md（索引）与 open-questions/ 下的分片这份跨 session 待答清单。同时把已答定的问题移出、核对其已归档，并记入 answer-logs/log-<draftSuffix>.md。只写待答清单与 answer-logs/，不裁决问题本身。
-argument-hint: [主题过滤：systems | content | ux | vision | all（默认 all）]
+description: 扫描一个设计库（客户端或后端）的全部 ## Open questions 与 handoff，把散落的未决项汇总、去重、按主题归拢，并重写 open-questions.md（索引）与 open-questions/ 下的分片这份跨 session 待答清单。同时把已答定的问题移出、核对其已归档，并记入 answer-logs/log-<draftSuffix>.md。只写待答清单与 answer-logs/，不裁决问题本身。
+argument-hint: [--lib=game|backend] [主题过滤：systems | contracts | ux | vision | operations | all（默认 all）]
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # Summarize Open Questions
 
-`game-design-documents/open-questions.md`（索引）+ `open-questions/`（按主题分片）是跨 session 的**待答清单**——让未拍板的问题不丢失、下次能拾起。它**只跟踪仍待答的问题**（不含「已解决」区）；权威归属仍在各主题文档的 `## Open questions`。**索引只放说明、分片导航、焦点判据、derive 就绪度与下一阶段；问题条目一律落在分片里。**已答定的问题移入 `game-design-documents/answer-logs/log-<draftSuffix>.md`（一次运行一个文件，见步骤 5b）。本技能对账两者，把散落的未决项汇总成一份整洁、去重、按主题归拢的清单，并把已答定的问题移出。
+`<LIB>/open-questions.md`（索引）+ `<LIB>/open-questions/`（按主题分片）是跨 session 的**待答清单**——让未拍板的问题不丢失、下次能拾起。它**只跟踪仍待答的问题**（不含「已解决」区）；权威归属仍在各主题文档的 `## Open questions`。**索引只放说明、分片导航、焦点判据、derive 就绪度与下一阶段；问题条目一律落在分片里。**已答定的问题移入 `<LIB>/answer-logs/log-<draftSuffix>.md`（一次运行一个文件，见步骤 5b）。本技能对账两者，把散落的未决项汇总成一份整洁、去重、按主题归拢的清单，并把已答定的问题移出。
 
 `/analyze-new-ideas` 在收尾时会顺手刷新此文件；本技能是它的**专职、可独立运行**版本——不引入新想法，只做归集与整理，用于清单变脏、积压或与主题文档漂移时的一次性重整。
 
-**范围守则：** 只写 `game-design-documents/open-questions.md`、`game-design-documents/open-questions/` 与 `game-design-documents/answer-logs/`。**不**改各主题文档（它们是权威归属，编辑归用户/`/analyze-new-ideas`），**不**裁决任何问题（拍板归用户）。若发现某主题文档的 `## Open questions` 本身有错漏或与 `## 决策` 矛盾，如实报告给用户，不擅自改动主题文档。
+**范围守则：** 只写 `<LIB>/open-questions.md`、`<LIB>/open-questions/` 与 `<LIB>/answer-logs/`——**只写本次选定的那一个库**，另一库一字不改。**不**改各主题文档（它们是权威归属，编辑归用户/`/analyze-new-ideas`），**不**裁决任何问题（拍板归用户）。若发现某主题文档的 `## Open questions` 本身有错漏或与 `## 决策` 矛盾，如实报告给用户，不擅自改动主题文档。
 
 ## 步骤
 
+### 0. 确定目标设计库（强制，先于一切）
+按 `.claude/rules/design-library-routing.md` 解析本次作用于 `game-design-documents/` 还是 `backend-design-documents/`：显式库参数 → 参数中的路径前缀 → 都判不出就**询问用户，绝不静默默认**（本技能通常无路径参数，故多半走到询问；用户只给主题过滤词时同样要问）。
+
+选定后，**下文所有写作 `game-design-documents/` 的路径一律读作 `<LIB>/` 下的同名路径**。在报告开头点明本次作用的库。
+
 ### 1. 确定范围
-解析 `$ARGUMENTS`：`systems`（`systems/`）/ `content`（`30-content/`）/ `ux`（`ux/`）/ `vision`（`vision/`）之一 → 只汇总该目录；`all` 或空 → 全部主题目录。
+剔除库参数后解析剩余 `$ARGUMENTS`，取该库实际存在的主题目录：
+- **客户端库**：`vision/` · `systems/` · `art/` · `ux/`（另有根级 `terminology.md` / `program-overview.md` / `system-overview.md`）。
+- **后端库**：`vision/` · `contracts/` · `systems/` · `operations/`。
+
+给定单个目录名 → 只汇总该目录；`all` 或空 → 该库的全部主题目录。**不要去找另一库才有的文件夹。**
 
 ### 2. 采集散落的未决项（写之前先读）
-- `Grep` 全部主题文档中的 `## Open questions`（含 `Open question` 的各种写法），连同其小节正文一并读出：`vision/`、`systems/`、`30-content/`、`ux/`。
+- `Grep` 全部主题文档中的 `## Open questions`（含 `Open question` 的各种写法），连同其小节正文一并读出（范围 = 第 1 步确定的该库主题目录）。
 - 读 `handoffs/` 中 `status: raw | triaged`（尚未 `distilled`）的 handoff 里标出的未决项与矛盾——这些可能还没进主题文档。
 - 读根级 `terminology.md`（若有悬而未定的术语）。
-- 读现有的 `open-questions.md`（索引）**与 `open-questions/` 下的全部分片**——保留其结构，作为对账基线。清单已拆分：索引只承载说明、分片导航表、焦点判据、`## derive 就绪度`、`## 下一阶段`；**问题条目本身在 `open-questions/01-combat.md` … `07-codex-monetization.md` 与 `deferred-content.md` 中**，更新摘要在 `open-questions/update-log.md`。
+- 读现有的 `open-questions.md`（索引）**与 `open-questions/` 下的全部分片**——保留其结构，作为对账基线。清单已拆分：索引只承载说明、分片导航表、焦点判据、`## derive 就绪度`、`## 下一阶段`；**问题条目本身在各分片中**（分片清单以该库索引的分片导航表为准），更新摘要在 `open-questions/update-log.md`。
 - 读 `answer-logs/_index.md` 与既有 log 文件名——**避免把已经移出过的问题重新捞回待答清单**，并确定本次 log 的命名不与既有冲突。
 - 对每个未决项，记住它的**来源文档路径**，以便在清单里指回其权威归属。
 
@@ -31,12 +40,13 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - 若其权威主题文档现已在 `## 决策` / `## 意图`（或 `decisions/ADR-*`）给出定论 → 从所在分片移除，并在**本次的 answer log**（第 5b 步）记一行，附归档去向（`文档路径`）与一句结论。**不在任何分片里保留「已解决」区。**
 - 若仍无定论 → 保留。
 - **只依据主题文档的既有内容判定「已答」**；本技能自身不回答问题、不把问题标记为已答。
+- **跨库核对**：某条问题的答案落在**另一个库**（典型：客户端的"这个数据哪来的"由后端契约答定）→ 同样算已答，归档去向写另一个库的文档路径。
 
 ### 4. 汇总、去重、按主题归拢
 把第 2 步采集到的全部未决项 + 现有清单中仍待答的项，合并成新的「待答」区：
 - **按主题分组**（与目录/知识领域对齐：run-manager、adventure-event-combat、map-progression、cards、balance、screen-flow、云同步 等）。沿用现有清单里已成形的分组名。
 - **去重与合并**：同一问题在多处出现 → 合并成一条，措辞取最清晰者。相关的小问题可归到同一子弹的从属项。
-- 每条以**问题形式**表述（不是断言），并**指回权威文档**（`→ systems/xxx.md` 或 `→ 未来的 30-content/balance.md`）。保留原有的重点标注（但**不要**保留或新写 derive 就绪度类断言——见第 5 步）。
+- 每条以**问题形式**表述（不是断言），并**指回权威文档**（`→ systems/xxx.md`、`→ contracts/xxx.md` 等；尚未建立的文档写「→ 未来的 `<路径>`」）。保留原有的重点标注（但**不要**保留或新写 derive 就绪度类断言——见第 5 步）。
 - **标出矛盾**：采集中发现的原始矛盾（如「说三个却列了四个」）明确列出，附解读结论，点名待用户确认。
 
 ### 5. 重写待答清单（索引 + 分片）
@@ -52,7 +62,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - 「下一阶段」小节：只记**可固化为 ADR 的已定方向**；**不写** derive 建议。
 
 ### 5b. 写本次的 answer log（每次运行新建一个文件）
-把第 3 步移出的条目写进 `game-design-documents/answer-logs/log-<draftSuffix>.md`：
+把第 3 步移出的条目写进 `<LIB>/answer-logs/log-<draftSuffix>.md`：
 - **`draftSuffix` 取值：** 本技能通常无草稿来源 → 用当天 `MMDD`；若本次整理明确对应某份 `inbox/draft-<suffix>.md` → 用该 `<suffix>`；若同名文件已存在，追加 `_2`、`_3`。
 - **每次移出新建一个文件，绝不追加进旧 log。** 本次若没有任何条目被移出，则**不建文件**，报告里写「本次无移出」。
 - 文件内容：标题 `# Answer log <draftSuffix>`，然后 `日期` / `来源`（本次整理的范围或对应草稿）/ `移出条数`，再逐条 `**<问题>** → <结论>（<归档去向文档>）`。部分答定的，写明剩余部分仍留在待答清单。
@@ -62,6 +72,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ### 6. 报告
 ```
 ## Open questions 整理：<范围>
+
+- library: <game-design-documents | backend-design-documents>
 
 ### 移出（已答定，已核对归档）→ answer-logs/log-<draftSuffix>.md
 - <问题> → <结论>（归档于 <文档>）

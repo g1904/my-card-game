@@ -53,6 +53,7 @@ Glob 时同时排除 `.godot/`、`bin/`、`obj/`、`node_modules/`。
 | 客户端 ↔ 后端边界的描述 | `game-design-documents/system-overview.md`、`systems/services/_index.md` |
 | 游戏定位（平台、朝向、在线性、引擎版本） | `rules/Context.md` 的「项目」段 + `game-design-documents/vision/scope.md` |
 | 引擎 / 渲染 / autoload 等技术参数 | `game-feature-branch/project.godot` |
+| 客户端 / 后端的开工状态 | `game-feature-branch/` 与 `backend-feature-branch/` 实际内容（**空目录 / 只有 README = 尚未开工，如实写**） |
 | 工具链、可用命令 | `.claude/rules/environment-rules.md` |
 
 ### 3. 逐条判定并修复
@@ -61,6 +62,7 @@ Glob 时同时排除 `.godot/`、`bin/`、`obj/`、`node_modules/`。
 - **过时的清单** —— 目录树/技能表缺项、多出已删项、说明与 `SKILL.md` 的 `description` 不符 → 补齐 / 删除 / 改写，并保持该 README 既有的排版格式（表格就用表格，树就用树，注释风格一致）。
 - **悬空引用** —— 指向已不存在的文件/文件夹/技能 → 改指当前位置，或删除该行。
 - **跨 README 不一致** —— 同一事实在多份 README 中说法冲突 → 全部对齐到事实来源（而非互相抄）。
+- **开工状态失真** —— 最常见的一类：代码已落地但 README 仍写「尚未开工」，或反之 → 按实际目录内容改写。
 - **正确** —— 不动。最小扰动：不为文风重排一份已经准确的 README。
 
 ### 4. 交叉校验

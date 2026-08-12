@@ -46,6 +46,7 @@ git -C game-feature-branch diff
 - **UI/输入**（`ui-input-rules.md`）：竖屏容器/锚点、触摸目标、无仅悬停。
 - **事件/信号设计**（`signal-eventbus.md`）：跨系统经 EventBus 解耦；无重入循环；在顺序重要处不假设顺序（如 relic 触发优先级）。
 - **业务逻辑**（若上下文允许）：分支覆盖（空牌堆、轮回中途恢复、boss vs 普通）、状态机合理性、无效果的重复施加。
+- **设计一致性**：实现的机制 / 数值 / 流程与 `game-design-documents/` 的 `systems/` + `ux/` 一致吗？跨边界报文与 `backend-design-documents/contracts/` 一致吗？**设计意图与实现不一致是红旗**，与代码缺陷同等对待。
 - **复制粘贴/卫生**：重复代码块、遗留的模板名、残留的 TODO/FIXME、不匹配的日志标签。
 
 ### 4. 报告

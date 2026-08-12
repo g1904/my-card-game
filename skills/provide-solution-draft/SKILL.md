@@ -1,13 +1,13 @@
 ---
 name: provide-solution-draft
-description: 取一个待答问题（open-questions.md 中的条目、主题文档的 Open question，或粘贴的问题文本），基于本库既有设计与行业通行做法推演出一份**提案式**解决方案，写成 inbox/solution-draft-<slug>.md 供用户评审。只写这一个草稿文件，不改任何设计文档、不裁决问题。
-argument-hint: <问题文本 | open-questions.md 中的条目关键词 | 主题文档路径（留空则列出候选问题）>
+description: 取一个待答问题（open-questions.md 中的条目、主题文档的 Open question，或粘贴的问题文本），基于本库既有设计与行业通行做法推演出一份**提案式**解决方案，写成 inbox/solution-draft-<slug>.md 供用户评审。作用于客户端或后端设计库（二选一）。只写这一个草稿文件，不改任何设计文档、不裁决问题。
+argument-hint: [--lib=game|backend] <问题文本 | open-questions.md 中的条目关键词 | 主题文档路径（留空则列出候选问题）>
 allowed-tools: Read, Write, Glob, Grep, Bash
 ---
 
 # Provide Solution Draft
 
-系统设计成熟到一定程度后，`open-questions.md` 里的很多问题**不再需要用户凭偏好拍板**——它们可以由**行业通行做法**加上**本库既有决策的逻辑推演**得出答案。本技能就是那一步：把一个待答问题变成一份**有依据、可评审的解决方案草稿**，落在 `game-design-documents/inbox/`。
+系统设计成熟到一定程度后，`open-questions.md` 里的很多问题**不再需要用户凭偏好拍板**——它们可以由**行业通行做法**加上**本库既有决策的逻辑推演**得出答案。本技能就是那一步：把一个待答问题变成一份**有依据、可评审的解决方案草稿**，落在 `<LIB>/inbox/`。
 
 **它不是拍板。** 草稿是提案，人类评审（保留 human-in-the-loop）后，再由 `/analyze-new-ideas` 把它当作原始意图输入，走 handoff → 主题文档的正常提炼流水线。
 
@@ -19,9 +19,16 @@ open-questions.md 中的待答项
   → /analyze-new-ideas inbox/solution-draft-<slug>.md   （提炼进主题文档 + 移出待答项）
 ```
 
-**范围守则（强制）：** 只写 `game-design-documents/inbox/solution-draft-<slug>.md` 这一个文件。**不**改 `open-questions.md` 与 `open-questions/`（移出待答项归 `/analyze-new-ideas` / `/summarize-open-questions`）、**不**改任何 `systems/` / `ux/` / `vision/` 主题文档、**不**写 ADR、**不**碰 `handoffs/`、**不**碰代码。**不评估 derive 就绪度**（归 `/assess-derive-readiness`）。
+**范围守则（强制）：** 只写 `<LIB>/inbox/solution-draft-<slug>.md` 这一个草稿文件（**本次选定的那一个库**），外加在 `<LIB>/inbox/_index.md` 的「待处理」表登记一行（见第 6b 步）。**不**改 `open-questions.md` 与 `open-questions/`（移出待答项归 `/analyze-new-ideas` / `/summarize-open-questions`）、**不**改任何主题文档（客户端 `systems/` / `art/` / `ux/` / `vision/`；后端 `contracts/` / `systems/` / `operations/` / `vision/`）、**不**写 ADR、**不**碰 `handoffs/`、**不**碰代码。**不评估 derive 就绪度**（归 `/assess-derive-readiness`）。
 
 ## 步骤
+
+### 0. 确定目标设计库（强制，先于一切）
+按 `.claude/rules/design-library-routing.md` 解析本次作用于 `game-design-documents/` 还是 `backend-design-documents/`：显式库参数 → 参数中的路径前缀 → 相对路径落地探测 → 都判不出就**询问用户，绝不静默默认**。
+
+选定后，**下文所有写作 `game-design-documents/` 的路径一律读作 `<LIB>/` 下的同名路径**。在报告开头点明本次作用的库。
+
+**问题的归属先于方案。** 若锁定的问题实际属于另一库（判据见路由规则的归属表——由谁实现），**停下并指出**，不要在当前库里给它写草稿。
 
 ### 1. 锁定问题
 解析 `$ARGUMENTS`：
@@ -36,9 +43,11 @@ open-questions.md 中的待答项
 在推演之前，必须读到：
 - `open-questions/` 中该条目所在的整份分片（相邻问题往往互相约束）。
 - 该条目 `→` 指向的**每一份**权威文档：既有的 `## 意图` / `## 决策`，以及它的待决问题。
-- `game-design-documents/vision/scope.md`（范围 / 强制在线 / 移动优先等硬约束）、`program-overview.md` + `system-overview.md`（运行时 + 工程视角的结构约束）、`terminology.md`（该问题涉及的领域词与代码标识符）。
+- `<LIB>/vision/scope.md`（范围 / 硬约束）与 `vision/pillars.md`。
+  - **客户端库**另读 `program-overview.md` + `system-overview.md`（运行时 + 工程视角的结构约束）、`terminology.md`（该问题涉及的领域词与代码标识符）。
+  - **后端库**另读 `contracts/_index.md`（边界报文的现状与计划）、以及被该问题牵动的 `game-design-documents/systems/services/*`（客户端侧已定的语义是硬前提）；术语沿用 `game-design-documents/terminology.md`。
 - 相关 `decisions/ADR-*`——**已固化的决策是硬边界**，方案不得与之冲突（若确有冲突，见第 5 步）。
-- 涉及实现形态时，读 `.claude/rules/*` 中对应领域规则（数据资源、存档 / RNG、UI / 输入、C#↔Godot）与 `game-feature-branch/` 的现状（**不要假定某系统已存在**）。
+- 涉及实现形态时：**客户端库**读 `.claude/rules/*` 中对应领域规则（数据资源、存档 / RNG、UI / 输入、C#↔Godot）与 `game-feature-branch/` 的现状（**不要假定某系统已存在**）；**后端库**无对应规则与知识层，且技术栈未定——**不要指定语言 / 框架 / 库**，把方案停在协议与语义层面，实现形态留给栈落定后。
 - 相关 `answer-logs/log-*.md`——避免重新提出一个已被答定或已被否决的方案。
 
 ### 3. 推演方案（三类依据，逐条标注）
@@ -63,7 +72,7 @@ open-questions.md 中的待答项
 - **确实无法由推演 / 通行做法得出**（纯取向、或缺关键信息）→ 如实说明，把它留在 `## 仍需用户决定`，并说明缺什么信息。**绝不为了让草稿完整而臆造机制、数字或决策**（与 `/analyze-new-ideas` 的「充实 vs 臆造」同一条边界）。
 
 ### 6. 写草稿文件
-写到 `game-design-documents/inbox/solution-draft-<slug>.md`（**顶层 = 在办**；提炼后由 `/analyze-new-ideas` 移入 `inbox/archive/`——本技能不写 `archive/`）：
+写到 `<LIB>/inbox/solution-draft-<slug>.md`（**顶层 = 在办**；提炼后由 `/analyze-new-ideas` 移入 `inbox/archive/`——本技能不写 `archive/`）：
 - **`<slug>`：** 由问题主题取的短横线小写 slug（英文 / 代码标识符优先，便于与主题文档对应），例：`solution-draft-hotfix-overlay-scope.md`、`solution-draft-skip-cost-semantics.md`、`solution-draft-rng-persistence.md`。同名已存在 → 追加 `-2`、`-3`（不覆盖用户可能已在评审的草稿；若确认是同一问题的重做，先问用户是否覆盖）。
 - **结构：**
 ```markdown
@@ -111,12 +120,21 @@ status: awaiting-review
 - <取向选择项：选项 + 推荐 + 理由>
 ```
 - 语气一律是**提案**，不写成既定事实（用「建议 / 推荐 / 倾向」，不用「已定 / 决定为」）——定案权在用户，落笔权在 `/analyze-new-ideas`。
+- **文件落在 `inbox/` 的顶层**，不放进 `archive/`（那里只装已 `distilled` 的旧草稿）。
+
+### 6b. 登记进 inbox 台账（强制）
+在 `<LIB>/inbox/_index.md` 的「待处理（ongoing）」表**顶部**追加一行：`文件 | 类型 | 日期 | 主题 | 下一步`。
+
+- `类型` 写 `solution-draft`；`下一步` 写 `评审后 /analyze-new-ideas`，若草稿有 `## 仍需用户决定` 项则写成 `评审 <K> 项取向后 /analyze-new-ideas`。
+- 若表中当前是 `*（空）*` 占位行，用你这一行替换掉它。
+- **只动这张表**：不要碰同文件的「已归档」表（那是 `/analyze-new-ideas` 归档时才写的）。
 
 ### 7. 报告并交回人类
 ```
 ## 方案草稿：<问题一行摘要>
 
-- file: game-design-documents/inbox/solution-draft-<slug>.md
+- library: <game-design-documents | backend-design-documents>
+- file: <LIB>/inbox/solution-draft-<slug>.md（已登记进 inbox/_index.md 待处理表）
 - 依据构成：既有推演 <N> 项 · 通行做法 <M> 项 · 取向选择 <K> 项
 
 ### 建议要点
@@ -129,7 +147,7 @@ status: awaiting-review
 - <有则列，无则省>
 
 下一步：评审并按需修改该草稿，然后运行
-  /analyze-new-ideas game-design-documents/inbox/solution-draft-<slug>.md
+  /analyze-new-ideas <LIB>/inbox/solution-draft-<slug>.md
 以提炼进主题文档并把该问题移出待答清单。
 ```
 - 若最终判定该问题**不适合**本技能（纯用户取向、或信息不足）→ **不建草稿文件**，直接报告为什么，并列出需要用户先提供的信息。

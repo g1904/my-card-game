@@ -7,7 +7,7 @@ allowed-tools: Bash
 
 # 会话收藏与标签管理
 
-调用项目封装脚本 `$TOOL_DIR/scripts/session-manager` 管理会话收藏。它是对底层实现 `session-manager-impl.ps1` 的薄封装，把冗长的 PowerShell 命名参数换成简洁的子命令语法，并自动处理执行策略与 Git Bash 路径转换。收藏数据存于 `$TOOL_DIR/session-tags.json`（项目本地，按 session ID 记录）。
+调用项目封装脚本 `.claude/scripts/session-manager` 管理会话收藏。它是对底层实现 `session-manager-impl.ps1` 的薄封装，把冗长的 PowerShell 命名参数换成简洁的子命令语法，并自动处理执行策略与 Git Bash 路径转换。收藏数据存于 `.claude/session-tags.json`（项目本地，按 session ID 记录）。
 
 ## 参数解析
 

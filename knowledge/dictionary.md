@@ -12,13 +12,13 @@
 | **Map / Node** | 轮回的分支路径；每个 **node** 是一次事件节点。本作的节点单元已定名为 **修行事件 / AdventureEvent**（原 encounter），见 `terminology.md`。地图路由与地域（**location**）切换由 **Travel** 修行事件驱动，归 `systems/game-progression.md`。 |
 | **Blind** | 一场战斗的胜利条件 / 关卡门槛（Balatro 的 small/big/boss blind）。本作对应 **Practice / Combat / Finale** 三档：**借难度分档，不借出现节律**；回合数与胜负判据都是遭遇参数（`EncounterSpec`）。 |
 | **Deck** | 玩家本局轮回拥有的全部卡牌。 |
-| **Draw pile / Hand / Discard pile** | 运行时的卡牌区域。卡牌在 draw → hand → discard →（重洗）→ draw 之间流转。 |
+| **Draw pile / Hand / Discard pile** | 运行时的卡牌区域。体裁通常是 draw → hand → discard →（重洗）→ draw 的环流，**本作没有重洗**：弃牌堆不回流，一场战斗内只在参战方组装时初洗一次；抽牌堆抽空后继续抽即触发**疲劳**（每张 −1 道念）。定名与规则权威见 `terminology.md`。 |
 | **Hand** | 本回合当前可打出的卡牌。 |
 | **Energy / Mana** | 每回合用于打出卡牌的资源。 |
 | **Jade（灵玉） / Currency** | **轮回级**货币，用于交易（Exchange）事件中购买。归 `character-profile/currency.md`，随轮回结束而清；跨轮回的账号级资产另归 player-profile。 |
 | **Checkpoint / 重试** | 篇章通关后在所达**境界**落存档点；失败（`defeated`）清理该角色并扣减该篇章重试次数，耗尽则该篇章重新锁定。归 ChapterManager；**次数与规则的权威见 `decisions/ADR-0004`**。 |
 | **Relic / Joker** | 一种持久的被动修饰器，通过触发式效果改变规则（Balatro 称 *joker*；StS 称 *relic*）。 |
-| **Scoring** | 体裁通称两路：Balatro 的 chips × mult，或 StS 的伤害 / HP。**本作两路都不采用**——计分模型 = **道念 / momentum**：由卡牌产出、可互相削减、下限 0 饱和减法，**固定 10 回合后道念高者胜**（它既是胜利点数也是胜负判据）。`lifeTotal` **不参与战斗内结算**，只承受战斗外的耐久损失（道念差 1:1 转换）。权威见 `systems/scoring.md`。 |
+| **Scoring** | 体裁通称两路：Balatro 的 chips × mult，或 StS 的伤害 / HP。**本作两路都不采用**——计分模型 = **道念 / momentum**：可互相削减、下限 0 饱和减法，**固定 10 回合后道念高者胜**（它既是胜利点数也是胜负判据）。**削减有两条通道**：卡牌（行动阶段打出）与**疲劳**（开始阶段抽空牌堆，08-11c 松动了「只有卡牌一条结算通道」）。`lifeTotal` **不参与战斗内结算**，只承受战斗外的耐久损失（道念差 1:1 转换）。权威见 `systems/scoring.md`。 |
 | **Upgrade / Remove** | 提升某张卡牌，或将其从 deck 中删除（通常在商店/事件处进行）。 |
 | **Event** | 提供风险/回报选择的非战斗 node。本作分类见 `terminology.md` 九类（社交/交易/闭关/探索秘境/前往某处地点……）。 |
 | **Boss** | 一个 ante/act 的收尾遭遇。本作对应 **Finale（境界突破 / 天劫）**——复用 combat-service；**失败不直接 `defeated`**，走既有 `LifeTotalExhausted`，失败后可再挑战。 |

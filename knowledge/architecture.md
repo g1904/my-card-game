@@ -15,6 +15,8 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 | `data/*` | `systems/`（内容即各系统的字段 / 内嵌类型） |
 | `scenes/*` | `ux/`（screen-flow、combat-ux、onboarding） |
 | `autoloads/*` | `systems/services/`（七服务 + 层级词表 + 各服务 API 契约表） |
+| 美术 / 音频（知识层无对应文件） | `art/`（`visuals/` · `soundtracks/`；只存 vision / 参考登记 / guide，**生成出的二进制资产归 `game-feature-branch/`**——目前一件都还没有） |
+| 协议契约（客户端只有投影） | `backend-design-documents/contracts/`——**报文形态的权威在后端库**，本库只定客户端的调用形状 |
 | 已定案决策 | `decisions/ADR-*` |
 | 待答问题 | `open-questions.md` |
 | 可构建规格 | `requirements/FR-*` |
@@ -38,8 +40,9 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 - **展示层三层：** 静态文案留在 `XxxData : Resource` → 运行时 / 存档态只带 `Id` + 可变状态 → 呈现期 ViewModel 组装（不落存档、不进云端负载）。
 - **物化模型：** `AdventureEventData`（模板）→ future-event-service（**唯一物化点**）→ `EventOption`（**产出即定稿、不可变、落存档**）。同一通则也适用于 `EnemyData` → `EnemyInstance`。→ `systems/architecture.md`「总则 6」。
 - **核心循环一批只有一次操作：择一进入。** 跳过通道整体移除（08-06c）——无 `skipCost` / `ifMandatory` / `AdvanceMode`，每次选择后整批重算。选择约束只剩 `Priority` 一条轴（取值域 `{0, 1}`，future-event-service 独占置位，PlotManager 不可改）。
-- **内容三层存储：** `res://content/` 基线 + `user://overlay/` 热更（**只改不增**）→ 合并后统一校验 → ContentRegistry 按 `Id` 索引。→ `data/_index.md`。
-- **启动契约：** `main` 场景 = `BootstrapScreen.tscn`，按序驱动四个边界服务的 `InitializeAsync`。→ `autoloads/_index.md`。
+- **内容三层覆盖来源：** `res://content/` 基线 < `user://overlay/` 热更（**只改不增**，剧本内容是唯一例外）< **flags**（只覆盖 `ContentEnabled` 一个布尔，只作用于产出侧取池）→ 合并后统一校验 → ContentRegistry 按 `Id` 索引。**「overlay 是唯一热更层」已不成立**（08-11b）。→ `data/_index.md`。
+- **一切内容都在本地，没有云端内容通道**（08-11）。剧本文本也是本地内容层的一员，随 overlay 分发；跨进程边界因此收敛为**鉴权 · 进度同步 · 内容分发**三处，玩法回路全程零网络请求。
+- **启动契约：** `main` 场景 = `BootstrapScreen.tscn`，按序驱动**三个**边界服务的 `InitializeAsync`，并在登录之后插入一次 `RefreshFlagsAsync`。→ `autoloads/_index.md`。
 
 ## 承重纪律（写代码时会改变写法的那几条）
 
@@ -47,7 +50,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 
 1. **确定性的边界 = 同一 `contentVersion` 内。** 随机性一律经 SeedManager 的具名子流，**不用未加种子的 `GD.Randi()`**；已明确**放弃跨内容版本复现**（overlay 即时生效、不冻结版本）。→ `standards/rng-determinism.md`
 2. **抽取走 `AllEnabled()`；仓储上没有中性名 `All()`**（全量走 `AllIncludingDisabled()`，写下 `All()` 会编译失败）。读取侧 `Get(id)` **不**过滤（存档引用不能悬空）。→ `data/_index.md`
-3. **档案写入只经 `ProfileManager.TryApply(spec)`：** 全量校验 → 全有或全无 → 单点提交。成本与产出在**同一次** `TryApply` 内（`ProfileChangeSpec` 带符号，无 `CostSpec`/`RewardSpec` 两个类型）。
+3. **档案写入只经 `ProfileManager.TryApply(spec)`：** 全量校验 → 全有或全无 → 单点提交。成本与产出在**同一次** `TryApply` 内（无 `CostSpec`/`RewardSpec` 两个类型）；`ProfileChangeSpec` = **资源 / 能力 / 统计三个平级列表**，只有资源那条带符号并走 modifier pipeline（08-10c）。
 4. **运行时绝不写 `XxxData : Resource`** ——它是注册表里的共享只读单例，写回会污染同一轮回的后续批次与其他角色。服务签名里**传实例，不传 `Resource`**。
 5. **方法形态看签名即知边界：** B（跨后端）/ C（跨多帧长流程）**带 `Async` 后缀并返回 `Task`**，A（纯内存 / 纯本地事务）**不带**。三者不许混用。
 6. **业务失败不抛异常**（付不起成本、网络不通、token 失效 → 返回 `OpResult` / `ApplyResult`）；只有「必需缺失 = 程序缺陷 / 坏数据」才 `GD.PushError` + `throw`。→ `.claude/rules/null-check-rules.md`

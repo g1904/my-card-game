@@ -8,6 +8,8 @@ argument-hint: <FR-<id> | 功能描述>
 
 给定一个 `FR-<id>`（功能需求规格）**或**一段自由文本 `<功能描述>`，为这款 Godot/C# 卡牌游戏产出一份实现蓝图。
 
+**范围：只面向客户端**（`game-design-documents/requirements/` 的 FR → `game-feature-branch/` 的实现）。后端设计库 `backend-design-documents/` 也有 `requirements/`，但**本技能不接受后端 FR**——后端技术栈未定，无从设计实现形态。若传入的 id 只在后端库命中，停下说明，不要凭空指定语言 / 框架。
+
 ## 步骤
 
 ### 1. 解析并校验请求
@@ -22,7 +24,8 @@ argument-hint: <FR-<id> | 功能描述>
 - 它是否自洽（无矛盾或循环依赖）？
 - 对于一次 roguelike 轮回，数据流与状态转换是否合理？
 - 是否有明显遗漏的边界情况（空牌堆、遭遇中途恢复轮回、种子可复现性、save/version）？
-- 若逻辑上有问题，现在就向用户提出——不要继续。
+- **设计意图是否已定？** 功能涉及玩法机制而 `game-design-documents/systems/` 里没有对应的设计意图 → 现在就提出；功能跨客户端 ↔ 后端而 `backend-design-documents/contracts/` 里没有对应的**协议契约** → 同样现在就提出。**不要边设计边发明机制，也不要边设计边发明契约。**
+- 若逻辑上有问题，现在就向用户提出——不要继续。走到需要用户澄清**设计意图**的程度时，回退到 `/analyze-new-ideas`（它的第 4 步 interview 才是澄清设计意图的正确位置），不要在蓝图里替用户拍板。
 
 ### 2. 知识探查（搜代码之前先读）
 1. 读 `.claude/knowledge/architecture.md` 了解宏观地图。
@@ -53,6 +56,7 @@ argument-hint: <FR-<id> | 功能描述>
 产出并保存到 `.claude/blueprints/<slug>.md`。文件顶部带 frontmatter：`source-fr: FR-<id>`（自由文本请求则为 `source-fr: -`）与 `date`，供 `/implement` 闭环 FR 台账使用。正文包含：
 - 要创建/修改的文件（完整路径）：场景（`.tscn`）、脚本（`.cs`）、数据（`.tres`）、autoload 注册。
 - 流程：**input/UI → system → CycleState → EventBus → 响应的系统/UI**，标注哪些部分已存在、哪些必须构建。
+- **设计一致性**：蓝图里的机制、数值与流程**必须与 `game-design-documents/` 一致**；跨边界的报文**必须与 `backend-design-documents/contracts/` 一致**。不一致就停下来问，**不要在蓝图里私自改设计或改契约**。
 - 类形态：字段、`[Export]`、方法、信号；数据资源字段与 id。
 - **信号/事件接线**：发出/消费哪些 EventBus 信号（载荷为 id/原语）。
 - **RNG 触点**：哪个 seeded 子流驱动任何随机性（依据 `rng-determinism`）。
@@ -60,6 +64,7 @@ argument-hint: <FR-<id> | 功能描述>
 - **Null/校验计划**（强制）：对每次节点查找、资源加载、registry/字典查找、save 读取——说明它是必需的（带上下文报错）还是可选的（warn + 默认值）。见 `null-check-rules.md`。
 - **移动端/触摸 UI 说明**：竖屏布局、容器，以及任何新 UI 的触摸目标。
 - **实现顺序**（通常自底向上：数据资源 → 系统逻辑 → 场景/UI → 接线）。
+- **验证步骤**：怎么运行（编辑器里打开哪个场景 / 按 Play）、做什么操作、期望看到什么（逐条对应 FR 的验收标准）。
 
 ### 6. 闭环
 - 在 `.claude/blueprints/_index.md` 中新增/更新对应行（最新的置顶）：`blueprint | source-fr | date | status`，status 置为 `designed`。

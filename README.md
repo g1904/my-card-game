@@ -66,6 +66,7 @@ D:\MyCardGame\
 ├── .gitignore
 ├── rules/
 │   ├── Context.md               — always-on conventions + knowledge nav (keep < ~250 lines)
+│   ├── design-library-routing.md — 设计技能的双库入参解析 (game-design ↔ backend-design)
 │   ├── environment-rules.md     — this machine's tools/PATH
 │   ├── csharp-godot-rules.md    — C#↔Godot interop conventions
 │   ├── scene-rules.md           — scene / node composition & instancing
@@ -86,7 +87,7 @@ D:\MyCardGame\
 │   ├── session-manager*         — session favorites/tags helper
 │   └── push-all-impl.ps1        — 批量 commit/push 全部分支检出目录（经根级 push-all.cmd 调用）
 └── skills/
-    ├── analyze-new-ideas/     — raw idea → clean handoff → distill into design docs
+    ├── analyze-new-ideas/     — raw idea → consistency/compat review → interview → clean handoff → distill into design docs
     ├── provide-solution-draft/ — one open question → proposed solution → inbox/solution-draft-<slug>.md (human review)
     ├── summarize-open-questions/ — rebuild open-questions.md (index) + open-questions/ shards; answered items → answer-logs/log-<draftSuffix>.md
     ├── assess-derive-readiness/ — full sweep: is any design doc ready to derive? (manual)
@@ -108,7 +109,9 @@ D:\MyCardGame\
 
 设计 → 需求 → 代码：
 
-1. `/analyze-new-ideas <raw>` —— 把原始意图捕获为整洁的 handoff，并提炼进 `game-design-documents/`（`systems/`、`ux/`）。无参数运行则扫描 `inbox/` 列出待处理草稿。
+> **双库入参：** 前 5 步（`/analyze-new-ideas`、`/provide-solution-draft`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）与 `/summarize-open-questions` 对**两个设计库**通用——`game-design-documents/`（客户端）与 `backend-design-documents/`（后端）。用 `--lib=game` / `--lib=backend` 显式指定，或直接给带库前缀的路径；判不出时技能会**询问，不静默默认**。解析顺序、跨库纪律与两库结构差异见 `rules/design-library-routing.md`。第 6 步起（`/blueprint` 及其后）仍只面向客户端。
+
+1. `/analyze-new-ideas [--lib=…] <raw>` —— 先校验想法的**逻辑自洽性**与**同既有 ADR / 主题文档 / 承重纪律的兼容性**；有冲突或含糊即**停下来发起 interview 让用户澄清**，拿到答复后才把意图捕获为整洁的 handoff 并提炼进选定设计库的主题文档。无参数运行则扫描该库 `inbox/` 列出待处理草稿。
 2. `/provide-solution-draft <问题>` —— 取 `open-questions.md` 的**一个**待答项，基于既有决策推演 + 行业通行做法给出**提案式**方案，写到 `inbox/solution-draft-<slug>.md`。**人类评审后**再喂回 `/analyze-new-ideas` 提炼（human-in-the-loop）。它只写这一个草稿文件，不裁决问题、不动主题文档。
 3. `/assess-derive-readiness` —— **由用户手动调用**。全量扫描全部主题文档，逐份判定 ready / partial / blocked，并整体重写 `open-questions.md` 的「derive 就绪度」小节（它是该小节的**唯一写入者**）。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不评估就绪度**。**当前：全库尚未进入可 derive 的阶段。**
 4. `/derive-requirements <doc>` —— 一旦某份设计文档已充分详尽（真实意图、无遗留问题），就把**片区级**功能规格产出到 `game-design-documents/requirements/FR-*`。用户签署确认（`draft → ready`）。
@@ -120,7 +123,11 @@ D:\MyCardGame\
 
 `knowledge/` 是**指向设计库的薄引用层**（导航表 + 代码现状 + 一句话承重纪律；设计内容不在此复述，见 `decisions/ADR-0005`）—— `/implement` 会在构建时就地更新相关的 `systems/`、`scenes/`、`data/`、`autoloads/` 笔记；怀疑知识与代码/设计脱节时运行 `/sync-knowledge` 做整体对账（它同时把偷偷长回来的副本压回薄引用）。术语的权威在 `game-design-documents/terminology.md`；`knowledge/dictionary.md` 只保留通用的 roguelike 卡组构建体裁词汇，不复制本作专有术语。
 
-台账闭环：`/blueprint` 把 FR 翻为 `blueprinted` 并登记 `blueprints/_index.md`；`/implement` 在验证通过后把 FR 翻为 `built`。
+台账闭环：`/blueprint` 把 FR 翻为 `blueprinted` 并登记 `blueprints/_index.md`；`/implement` 在**端到端验证通过后**把 FR 翻为 `built`。
+
+## 验证
+
+**`dotnet build` 成功不是验收标准。** 验证 = 在 Godot 编辑器中打开项目 → 按 Play（编辑器会用正确的引用驱动 .NET 构建）→ 逐条走 FR 的验收标准。详见 `rules/environment-rules.md`。
 
 ---
 

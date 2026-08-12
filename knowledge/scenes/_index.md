@@ -10,7 +10,7 @@
 
 **Bootstrap（`main` 场景）→ 登录屏 → 主菜单 →（切换篇章）→ 轮回。**
 
-- **`main` 场景是 `BootstrapScreen.tscn`，不是 `LoginScreen.tscn`。** autoload 的 `_Ready` 不能 `await`，故由它按序驱动四个边界服务的 `InitializeAsync` 并把进度喂给启动画面。→ `autoloads/_index.md`。
+- **`main` 场景是 `BootstrapScreen.tscn`，不是 `LoginScreen.tscn`。** autoload 的 `_Ready` 不能 `await`，故由它按序驱动**三个**边界服务的 `InitializeAsync`（并在登录之后插入一次 `RefreshFlagsAsync`）并把进度喂给启动画面。→ `autoloads/_index.md`。
 - **强制账号登录，无游客（Guest）入口。** 渠道优先级：手机 / 邮箱 → 微信 / QQ → 海外 / 跨平台。
 - **主菜单**核心操作是**切换篇章以开始一次轮回**（仅已解锁者可见；首玩者只能从炼气开始）。门禁细节 → `ux/onboarding.md`。
 - **轮回内主导航是月圆之夜式的 eventOptions 横向滑动菜单**，不是传统地图屏。**一批只有一次操作：择一进入**——跳过通道已整体移除（08-06c），不存在「跳过」按钮、不显示 `skipCost`、不标注「可跳过 / 必做」。
@@ -22,7 +22,7 @@
 ### 屏幕（全视口）
 | 场景（规划中） | 用途 |
 |-----------------|---------|
-| `BootstrapScreen.tscn` | **`main` 场景**（`scenes/screens/`）：启动画面 + 按序驱动边界服务初始化。非服务、非 autoload。 |
+| `BootstrapScreen.tscn` | **`main` 场景**（`scenes/screens/`）：启动画面 + 按序驱动三个边界服务的初始化与登录后的 flags 拉取。非服务、非 autoload。 |
 | `LoginScreen.tscn` | 第一个交互屏：T&S、`VideoStreamPlayer` 循环视频背景、渠道登录入口。**无游客入口。** |
 | `MainMenu.tscn` | 篇章选择 + 四个入口：PlayerProfile（`AccountInfo`）、PlayerPower（可开关能力）、Achievements、Settings（`GameSetting`）。 |
 | `Cycle.tscn` | 轮回外壳：承载当前事件的屏幕 + 常驻 HUD（灵玉、寿元、lifeTotal / mana、deck）+ **常驻经验条**（ch2 · ch3 唯一的连续进度感来源）+ **储物袋入口**（挂角色状态条，不进主菜单——它是 CharacterProfile 级）。 |
