@@ -6,34 +6,47 @@
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-### 存储形态：三层（已定案）
+### 存储形态：三层覆盖来源（已定案 · 08-11b）
 
 ```
 res://content/**.tres        基线内容，随版本发布，只读
                              → 保证首启可用、离线可读
 user://overlay/**.tres       云端下发的增量，可热更，按 Id 覆盖基线
-       ↓ 合并（overlay 优先，res:// 兜底）
+flags（运行时态，不落 .tres）  按账号解析后的开关结果，只覆盖 ContentEnabled
+       ↓ 合并（flags > overlay > res://；flags 只作用于产出侧取池）
 ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入口
 ```
 
+- **「overlay 是唯一热更层」不再成立**：`ContentEnabled` 有第三个覆盖来源（flags 通道），它**只覆盖这一个布尔、不改任何数值**，且不参与合并后强校验。整节见下方「flags：`ContentEnabled` 的第三层」。Source: `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md`。
 - `res://content/manifest.json` 携带 **`contentVersion`** 与逐条目 hash。启动时 ContentUpdateManager 比对云端版本，有更新则下载增量到 `user://overlay/`。
 - **校验点在合并之后。** 重复 `Id`、悬空交叉引用（如某遭遇战列出未知敌人 `Id`）→ `GD.PushError` **启动期早失败**。热更并未削弱这条纪律，只是把校验点从「加载 `res://` 后」后移到「合并完成后」。
 - **断网降级：** 跳过更新，直接使用 `res://` 基线 —— **首启不依赖网络下载内容**（但进入游戏仍需登录）。
 - **收益：** 平衡数值、事件定义、卡牌数值**可热更而不发版**，规避微信 / App Store 审核周期；同时保留启动期强校验与离线首启能力。
 
-### 热更范围：只改不增（已定案）
+### 热更范围：只改不增（已定案），剧本内容是唯一例外
 
 - **overlay 只能修改既有条目的数值 / 文案，不得新增 `Id`。** 新卡 / 新事件 / 新道具等**新内容只能随版本发布**，走应用商店审核。
 - **收益：** 「旧版本客户端的存档引用到未知内容」这一风险**从根上消失**，先前设想的兼容规则不再必要；ContentRegistry 的合并后强校验只需处理「已知 `Id` 的数值被覆写」这一种情形。
 - **代价：** 内容更新节奏受审核周期约束——只有平衡与文案能绕开发版。Source: `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
 
+#### 例外：**overlay 对剧本内容可新增 `Id`**（已定案 · 08-11）
+
+**判据 = 这条纪律唯一的存在目的。** 「只改不增」防的是「旧客户端存档引用到未知内容」；而剧本文本是内容类别里**唯一不被存档引用**的一类（`CharacterProfile` 只存 key points），故为它放开新增 `Id` **不重新引入那条纪律要防的风险**。**收益 = 新剧情可热更不发版**——这正是原云端剧本服务提供的能力，现由 overlay 通道提供，且不需要任何运行时请求。
+
+例外的边界必须写窄，两条：
+
+1. **只覆盖剧本内容类型本身**（AdventurePlot 的节点 / 分支 / 文本条目）。`CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PlayerPowerData` / 平衡表 / **状态转换触发的定性文案**（隐藏属性跨档叙事、Finale「失败但存活」补白）**照旧只改不增**——后者有稳定 `Id` 且需启动期校验，不在例外内。
+2. **新增的剧本条目不得引用本次 overlay 之外的新 `Id`。** 一条新剧本 arc 若需要一张新卡或一个新 AdventureEvent，那两者仍只能随版本发版；剧本条目只能引用**已存在**的非剧本 `Id`。这保住合并后强校验的「交叉引用不悬空」。
+
+**残留风险与其处置：** key points 是指向剧本节点的持久化锚点，所以 overlay 或客户端版本回退可使 key point 悬空。处置为 **`PushWarning` + 叙事降级、不阻塞轮回**（与本服务「读取侧不过滤」的不对称原则同构），完整规则见 `plot-manager.md`。Source: `handoffs/2026-08-11-plot-content-localization.md`。
+
 ### 放量开关 `ContentEnabled`：不预埋占位 Id（已定案）
 
 **否决「预埋空壳 `Id`、日后用 overlay 填充数值文案」。** 两条理由：① 与「合并后强校验」直接冲突——空壳条目要么迫使校验放宽（丢掉启动期早失败这条纪律），要么携带假数值被抽中；② 属应用商店审核灰区（随包发的是不可玩的壳）。
 
-**改为：内容随版本发布，由 overlay 翻开关放量。**
+**改为：内容随版本发布，翻开关放量。**
 
-- 内容共有字段新增 **`ContentEnabled: bool`，默认 `true`**（见 `systems/common-properties.md`）。overlay 只改这个**既有布尔字段**，完全落在「不得新增 `Id`」纪律内。
+- 内容共有字段新增 **`ContentEnabled: bool`，默认 `true`**（见 `systems/common-properties.md`）。翻这个**既有布尔字段**完全落在「不得新增 `Id`」纪律内。**它有两个覆盖来源：** overlay（随 `.tres` 走，对全体玩家同值，生效点是下一次冷启动）与 **flags 通道**（按账号解析、轮回中途可热应用，见下方专节）——**线上秒关与灰度走 flags**，overlay 只承担随内容一起发布的初值。
 - **过滤只发生在产出侧，不在读取侧**——这条不对称是机制成立的支点：
 
   | 侧 | 行为 |
@@ -43,8 +56,36 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 
   因此「存档引用未知内容」的风险**依然为零**：关闭一个条目只让它不再被新抽到。
 - **合并后校验对 disabled 条目照常全量执行**（`Id` 唯一性、交叉引用不悬空）——它们是完整内容，只是不进抽取池。
+- **结构性查表的内容类型恒启用（已定案 · 08-12e · 首例 `HiddenStatBandData`）。** 有一类内容条目**不是抽取池的成员，而是被查表读取的结构**——隐藏属性档位表是首例。**这条不对称对它们的推论是「放量开关无处安放」**：档位判定走的是读取侧，关掉一档不会让它「不再被抽到」，只会在档位表上造出**空洞**、触发**假跨档**，并让 `BandIndex` 连续性校验失去意义。故：**这类条目的 `ContentEnabled == false` → 加载期 `PushError`**，字段随内容共有字段照带但无语义；它们的解析走 `AllIncludingDisabled()`，**flags 对其不生效**。与之配对的**文案条目照常参与放量**（每档 2–3 条候选，关一条只是少一个候选、结构无空洞），秒关一条措辞的运营手段因此保留。判据一句话：**能被抽取的才配有开关。** Source: `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md`。
 - 为免各产出侧漏写过滤（漏写即线上事故），ContentRegistry 直接提供 **`AllEnabled()`**，让「正确」成为最短路径。**纪律条款：任何从内容集合抽取的代码必须走 `AllEnabled()`**——与「不散落 `ResourceLoader.Load`」同级，见 `.claude/rules/data-resource-rules.md`。**这条纪律不止于条款：仓储上没有中性名 `All()`**，全量走 `AllIncludingDisabled()`，见下方「`AllEnabled()` 纪律的可执行化」。
+- **加载期的「负向能力条目清单」告警（已定案 · 08-10c）。** 合并校验完成后，**逐条列举携带 `AbilityChangeElement`（`Remove` / `Disable`）的事件条目，并报出它们在全部事件条目中的占比**，`PushWarning` 输出——与既有的「战斗内法则 ≤ 1/5 配额」检查同形（**列举 + 比例，供人工审阅**，不是硬校验）。
+  - **它是 08-04b「`PushWarning` 逐条列举」在能力剥夺侧的对称落点；这个落点在内容加载侧，不在事件 outcome 侧。** 两条论证：① outcome 侧的运行时统计**样本量是 1**——1% 是**出现频次**口径（08-06 已明写因此无法机械化校验），单个玩家一次轮回本就该有方差，任何阈值都会误报；② **告警要落在能被看见的地方**——内容编排的错误发生在内容侧，需在启动 / 编辑期被看见，落在玩家进程里的 `PushWarning` 等于落在没人看的地方。
+  - **告警文案必须明写：这个比例不是 1% 的口径。** 1% 说的是**玩家的出现频次**、归内容编排与抽取权重侧；这里的比例只用来看**清单本身**有没有失控。
+  - **同时校验 `Rarity` 与不变式：** `PowerData` / `ItemData` / `CardData` 的 `Rarity` 缺失 → `PushError`（默认值会让漏填条目悄悄落进 `Tier1` 池并污染置换候选）；模板的 `SelectCost` 内出现 `AbilityElements` → `PushError`（见 `systems/adventure-event/common-properties.md` 的不变式）。
+  Source: `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md`。
 - **能力边界（如实）：** 本机制压缩的是**已随包发布内容的放量时机**，**不压缩内容本身的发版节奏**；换来**灰度 / 分批放量 / 线上秒关**三项运营能力。Source: `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
+
+### flags：`ContentEnabled` 的第三层（已定案 · 08-11b）
+
+> `GET /v1/content/flags`（**需鉴权**、按账号解析、`no-cache`）下发一批 `disabledIds`——**已按当前账号解析完毕的结果**。报文形态权威在 `backend-design-documents/contracts/content-manifest.md`；此处只定客户端怎么用。Source: `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md`。
+
+**为什么独立于 overlay：** overlay 的合并与 `LoadAll()` 校验在**启动链第一步**，沿用 overlay 通道时「秒关」的真实生效点是玩家**下一次冷启动**；且 `.tres` 里的布尔对全体玩家同值，**灰度 / 分批放量无处安放**。
+
+**为什么这一层安全（三条，逐条对上既有纪律）：** 不改任何数值 ⇒ 不触碰合并后强校验的任何输入，校验模型原样成立；不新增 / 不删除 `Id` ⇒ 完全落在「热更只改不增」纪律内；不影响读取侧 ⇒「存档引用未知内容」的风险依然为零。**它之所以能秒关，恰恰因为它被限制得足够窄。**
+
+> **硬边界（不可放宽）：flags 只能覆盖 `ContentEnabled` 这一个布尔，不得携带任何数值 / 文案 / 新 `Id`。** 一旦放宽，上述三条立即失效。
+
+- **作用点唯一 = `AllEnabled()` 取池。** 读取侧 `Get(id)` 照旧不过滤；合并后强校验照旧走 `AllIncludingDisabled()`，**flags 不参与校验**。
+- **首次拉取排在登录之后。** flags 端点需鉴权，而本服务是启动链第一步（登录之前）——两者对不上。`InitializeAsync` 仍只做 manifest 比对 + overlay 合并 + 校验；flags 首次拉取由 Bootstrap 在 `SignInAsync` **之后**、`SyncService.InitializeAsync` **之前**调用（抽取池必须在轮回开始前正确，而它失败不阻塞，放在硬阻塞的 pull 之前不增加阻塞风险）。启动链见 `systems/architecture.md` 总则 4。
+- **刷新时机 = 搭车信封，零轮询。** 共享应答头处理点观察到 `X-Flags-Version` 与内存值不同 → 拉一次全量 flags。秒关的实际延迟 = 该玩家的下一次上行，**分钟级以内**。不引入长连接 / 第三方推送。
+- **热应用：拉到即生效于下一次抽取。** 不需重启、不需重新合并 overlay、不触碰 ContentRegistry 的校验 ⇒ **轮回进行中安全**。数值型 overlay 无此性质，这正是把它独立出来的收益。
+- **本地缓存 `user://cache/flags.json`**（`accountId` / `flagsVersion` / `disabledIds`；原子写、跨启动保留，与 `sync-envelope.json` 同处同纪律）。
+  - **缓存的收益不在离线开局——那条路径根本不存在**：启动 pull 是**硬阻塞**，强制在线下无权威档即不可玩，故不存在「断网启动并进入轮回」。
+  - 真实收益只有一处：**登录成功但 flags 拉取失败**时的降级值。用上一次已知 flags 优于回落到 overlay 里的布尔（后者会让被秒关的条目复活）。
+  - **切账号即失效**：`accountId` 不匹配 → 丢弃（`PushError` + 定位上下文）。分桶是**按账号解析后的结果**，跨账号复用等于灰度串号。与 `sync-envelope.json` 的切账号纪律同构。
+- **拉取失败 → `PushWarning` + 用缓存（无缓存则用 overlay 的 `ContentEnabled` 值）+ 绝不阻塞**（硬阻塞仍只有两处）。下一次搭车观察到版本差异时自然重试——不为它另开重试机制。
+- **验签走同一密钥体系**（ES256 detached + `keyId`）。**验签失败 / `keyId` 未知 → 拒绝这批 flags + `PushError` + 上报一次 + 保留上一批**，与 overlay 验签失败 → 拒绝 + 回退基线同构。
+- **分桶规则哪也不放在客户端。** 端点按账号计算后只给结果；客户端始终只看到「这些 `Id` 现在不进抽取池」，**永远不知道分桶规则存在**。⇒ `DrawPool<T>` 的构造签名**不必**变成 `AllEnabled(bucketContext)` 一类，它的唯一依赖就此解除。
 
 ### 存档记录 `contentVersion`：记两个（已定案）
 
@@ -59,7 +100,8 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 
 ### 增量下载：文件级事务（已定案）
 
-- **粒度 = 文件级。** manifest 已携带逐条目 hash，只下载 hash 不匹配的文件。**整包全量重下仅两种情形**：首次安装 overlay、`manifestSchema` 不匹配。
+- **粒度 = 文件级。** manifest 已携带逐条目 hash，只下载 hash 不匹配的文件。**整包全量重下仅两种情形**：首次安装 overlay、本地 overlay 是按**旧 `manifestSchema`** 落地的（客户端支持云端那个 schema，但本地布局对不上）。
+- **`manifestSchema` 不受支持则跳过，不是重下（08-11b）。** 客户端内置一个「支持的 `manifestSchema` 集合」；云端 manifest 的 schema **高于**该集合 → **跳过本次更新、照常用现有 overlay / 基线**，与断网降级同构。两种情形必须分开——把「不认识的结构」当成「重下一遍」只会把同一个失败重复一次。
 - **不做字节级断点续传**（`.tres` 是 KB 级，续传复杂度换不回收益），改做**文件级事务**：
 
 ```
@@ -71,9 +113,21 @@ user://overlay.staging/         下载落地区，允许脏，失败即清空
 - **更新流程：** ① 比对本地与云端 manifest 得出待下集；② 逐文件下载进 `overlay.staging/` 并**逐文件校验 hash**，失败重下该文件（指数退避，最多 3 次）；③ **全集齐备且全部校验通过后**才搬入 `overlay/`，最后**原子写 `overlay.manifest.json`（临时文件 → rename）= 提交点**；④ 任一步失败 → 清空 staging，`overlay/` 与其 manifest **保持上一个完整版本**，本次更新视为**未发生**，走既有断网降级（用现有层照常开局）。
 - **由此永不存在半套 overlay：** `overlay/` 的有效性由**那一次 rename** 定义——与存档原子写**同构**。Source: 同上。
 
+### manifest 契约对位：客户端的四条义务（已定案 · 08-11b）
+
+服务端只保证三件事（每个文件有稳定 URL · URL 字节不可变 · manifest 与它列出的文件发布上原子），事务模型全在客户端一侧。对上后端 manifest 字段表，客户端另有四条**具体义务**：
+
+- **`files[].path` 落盘前校验路径穿越**（禁 `..` 与绝对路径）——这是内容分发里唯一有实质危害的注入面。
+- **`files[].size` 用于下载前的磁盘空间预检**，使「磁盘空间」这类失败提前判定，而非写到一半才失败（对上 `CheckAndUpdateAsync` 已定的磁盘分支）。
+- **拒绝 `contentVersion` 小于本地已生效版本的 manifest**（防回放）。**不做绝对时间 TTL**——设备时钟不可信，会误伤离线玩家。
+- **`minAppVersion`（manifest 内 · 内容维度）由客户端自行比对**，规则 = **semver 三段逐段整数比较**，不做字典序（字典序会判 `1.10.0 < 1.9.0`，且这类 bug 发版后才显形、无法在设备上复现）。低于它 → **跳过本次 overlay、照常用基线，永不阻塞**。**它与协议维度的强更闸门互不兼职**：后者由服务端判定、以 `client.version_unsupported` 在登录 / 启动点硬阻塞，客户端**不比较** `X-Min-App-Version`、也不持有兼容矩阵的任何副本。内容太新只是不更新内容；协议不兼容才拦人。
+
+Source: `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md`。
+
 ### 防篡改：manifest 签名（已定案）
 
-- 后端**私钥签 manifest**，客户端**内置公钥验签**；逐文件完整性由**已签名 manifest 内的 hash** 保证（一次验签 + N 次 hash，近乎零成本）。
+- 后端**私钥签 manifest**（ES256 detached），客户端**内置公钥验签**；逐文件完整性由**已签名 manifest 内的 hash**（SHA-256）保证（一次验签 + N 次 hash，近乎零成本）。
+- **客户端内置的是一组 `keyId → publicKey` 映射，不是一把公钥。** 轮换靠先发内置新旧两把的客户端版本、覆盖率足够后服务端再切私钥；没有 `keyId` 则轮换只能靠强更，且事后无法补救。信任根是**固定公钥（pinned）**，不引入证书链 / PKI——威胁模型只到「防误 / 防随手改」。
 - 校验不过 → `GD.PushError` **拒绝该 overlay、回退 `res://` 基线**、上报一次事件。
 - **明确边界：** 客户端完整性做到「**防误 / 防随手改**」为止，**不承诺防作弊**（改内存 / 改二进制不在防御范围）。纯 PvE + PlayerPower 已被接受为「轻度提升、影响平衡可容忍」，反作弊无收益。Source: 同上。
 
@@ -117,18 +171,29 @@ IContentRepository<T> where T : Resource
 
 命名改造让漏写过滤极难，但仍未做到不可能：`Where(...)` 或 `AllIncludingDisabled()` 的结果照样能被拿去抽取。终局形态是把 `AllEnabled()` 的返回类型换成 `readonly struct DrawPool<T>`（薄包装、零堆分配），并**只在其上定义 seeded 抽取方法**（`PickOne(rng)` / `PickMany(rng, count)` / `Filter(predicate)` —— 过滤后仍是 `DrawPool<T>`）。于是「从内容集合抽取」这个动作在语言层**只能从抽取池发起**：`AllIncludingDisabled()` 返回的 `IReadOnlyList<T>` 上根本没有 `PickOne`。顺带给 seeded 抽取一个统一落点（当前抽取逻辑散在 future-event-service 物化、商店库存、奖励掷骰三处）。
 
-**排期：第二阶段（内容）开工前、第一份内容 FR 之前落地；本阶段 `AllEnabled()` 仍返回 `IReadOnlyList<T>`。** 理由两条：① 彼时三个抽取侧都已有真实调用方，能验证 `PickOne` / `PickMany` 的形状是否够用，此刻定死形状是纸上设计；② 届时「`ContentEnabled` 分桶粒度」大概率已答定，`DrawPool<T>` 可一次性带上正确的构造签名（若要按分桶裁剪，形态会变成 `AllEnabled(bucketContext)` 一类）。**延后风险低**（纯加法改造，受影响的只有抽取侧三处），**但不可再往后拖**——三个抽取侧一旦写完再改返回类型，就从「纯加法」退化为「改调用方」。
+**排期：第二阶段（内容）开工前、第一份内容 FR 之前落地；本阶段 `AllEnabled()` 仍返回 `IReadOnlyList<T>`。** 理由：彼时各抽取侧都已有真实调用方，能验证 `PickOne` / `PickMany` 的形状是否够用，此刻定死形状是纸上设计。（**原先的第二条理由已消失**：分桶留在服务端，客户端只见按账号解析后的 `disabledIds`，构造签名不必带 `bucketContext`——见上方 flags 一节。）**延后风险低**（纯加法改造，受影响的只有抽取侧），**但不可再往后拖**——抽取侧一旦写完再改返回类型，就从「纯加法」退化为「改调用方」。
 
-### 本地 / 云端内容分界（已定案）
+**调用方由三处增为四处（08-12e）：** future-event-service 物化 · 商店库存 · 奖励掷骰 · **账号级 / 轮回级能力的授予池**（残卷 · 礼包 · 置换共用一段抽取，宿主是 profile-service 的 `GrantPoolPicker`，见 `systems/player-profile/player-power/_index.md`）。**这加强了「第二阶段开工前落地」的排期理由。**
 
-一条判据划清：
+**两条契约由第四个调用方定死（08-12e）：**
 
-| 判据 | 归属 | 内容 |
-|------|------|------|
-| 有稳定 `Id`、**被存档引用**、需启动期校验 | **本地内容层**（`res://` + overlay） | `AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表 —— **含静态展示文案** |
-| 按进度**动态请求**、一次性呈现、**不被存档引用** | **云端剧本服务** | AdventurePlot 的剧本分支文本与揭示内容（见 `plot-manager.md`） |
+- **`PickMany(rng, count)` 是无放回的。** 礼包一次给 2 件古宝必须两件不同；这是 `PickMany` **唯一一处会被误实现成有放回**的地方，故无放回写进契约、不留给实现自由裁量。数量不足 `count` 时按可选缺失处理（返回 false + `PushWarning`），不静默少给。
+- **`PickOne` / `PickMany` 需要加权重载**（按内容定义上的 `Rarity: RarityTier` 取权重表）。它不是本次新增的诉求——战后奖励池的稀有度权重（`Rarity` 的既有消费点 ①）同样需要它，08-12e 只是让它显性化。权重表本身是平衡数值，归 `systems/balance.md`，不落 `DrawPool<T>`。
 
-因此 **AdventureEvent 的定义本身属本地内容层**，ContentRegistry 的启动期强校验模型成立；云端剧本服务只下发文本，不进 ContentRegistry、不落存档。
+Source: `handoffs/2026-08-12e-ability-grant-draw-pool.md`。
+
+### 全部内容都属本地内容层（已定案 · 08-11 · 取代先前的「本地 / 云端分界」）
+
+**没有云端内容通道。** 一切内容——包括 AdventurePlot 的剧本文本与分支——都存于 `res://content/` 基线 + `user://overlay/`，经 ContentRegistry 按 `Id` 读取。**运行时内容零网络请求**；网络只在启动期用于 manifest 比对与增量下载。
+
+先前那条「按进度动态请求、一次性呈现、不被存档引用 → 云端剧本服务」的分界判据**已被撤销**——它是描述性的（「动态请求」是那个选择的结果而非理由），且它划出的云端一侧带来了整套为网络失败而生的复杂度与一条跨进程边界。理由全文见 `plot-manager.md` 与 `handoffs/2026-08-11-plot-content-localization.md`。
+
+内容仍按**是否被存档引用**分两类，但这条区分现在只决定 **overlay 能否为它新增 `Id`**（见下节），不决定它存在哪里：
+
+| 是否被存档引用 | 内容 | overlay 权限 |
+|---|---|---|
+| **被存档引用** | `AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表，**含静态展示文案与状态转换触发的定性文案** | **只改不增** |
+| **不被存档引用** | AdventurePlot 的剧本节点 / 分支 / 文本（`CharacterProfile` 只存 key points，剧本正文永不进存档） | **可新增 `Id`** |
 
 ## 管理器
 
@@ -139,7 +204,7 @@ IContentRepository<T> where T : Resource
 
 ## API 面（契约）
 
-> 总则与共享类型见 `systems/architecture.md`「API 契约总则」。本服务实现 `IBootstrappable`，是启动链**第一步**（版本比对 + overlay 合并 + 校验；断网降级到 `res://` 基线）。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
+> 总则与共享类型见 `systems/architecture.md`「API 契约总则」。本服务实现 `IBootstrappable`，是启动链**第一步**（版本比对 + overlay 合并 + 校验；断网降级到 `res://` 基线）。**`RefreshFlagsAsync` 不在 `InitializeAsync` 内**——flags 端点需鉴权，故它是启动链中登录之后的独立一步（见 `systems/architecture.md` 总则 4）。Source: `handoffs/2026-07-27b-service-api-contracts.md` + `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md`。
 
 | 方法 | 形态 | 完整签名 | 失败语义 |
 |------|------|----------|----------|
@@ -147,6 +212,9 @@ IContentRepository<T> where T : Resource
 | 合并加载 + 校验 | A | `void LoadAll()` | 校验失败 = **坏数据** → `GD.PushError` + 定位 `Id` + `throw`（启动期早失败）。**disabled 条目照常参与校验** |
 | 取仓储 | A | `IContentRepository<T> Repo<T>() where T : Resource` | 未注册的类型 = 程序缺陷 → `PushError` + 抛 |
 | 当前版本 | A | `int ContentVersion { get; }` | — |
+| flags 刷新 | B | `Task<OpResult> RefreshFlagsAsync(CancellationToken ct)` | 失败 → `PushWarning` + 降级到 `user://cache/flags.json`（无缓存则用 overlay 的 `ContentEnabled` 值）；**绝不阻塞**。验签失败 → `PushError` + 拒绝该批 + 保留上一批 |
+| flags 版本观测 | A | `void OnFlagsVersionObserved(int flagsVersion)` | 由 `src/Core/` 的共享应答头处理点调用；与内存值不同则内部触发一次拉取。**观测者不判断要不要拉，判断在本服务内**——否则每个 backend 各写一份判断 |
+| 当前 flags 版本 | A | `int FlagsVersion { get; }` | — 只读诊断 |
 
 ```csharp
 public readonly record struct ContentUpdateInfo(int FromVersion, int ToVersion, int FilesApplied, bool FellBackToBaseline);
@@ -175,14 +243,15 @@ public interface IContentRepository<T> where T : Resource
 
 ## 决策(-> ADR)
 
-- **内容载体形态（随包基线 + user:// 覆盖层 + 云端版本校验）** → 已定案，**ADR 候选**（待固化）。Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
-- 云端下发依赖 **强制在线 · 云端权威** → `decisions/ADR-0003-online-cloud-authority.md`（Accepted）。
+- **内容载体形态（随包基线 + user:// 覆盖层 + 云端版本校验）** → 已定案，**ADR 候选**（待固化）。**固化时须一并纳入 08-11 的两条**：全部内容属本地内容层（撤销云端剧本服务）· overlay 对剧本内容可新增 `Id`。Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` + `handoffs/2026-08-11-plot-content-localization.md`。
+- **overlay 增量下载**仍依赖 **强制在线 · 云端权威** → `decisions/ADR-0003-online-cloud-authority.md`（Accepted）。注意其适用面在 08-11 后**只剩启动期的 manifest 比对与下载**——运行时内容读取全程本地。
 
 ## 待决问题
 
-- **`ContentEnabled` 的粒度是否够用。** 单一布尔只支持「全开 / 全关」；**灰度与分批放量**需要按玩家分桶（百分比 / 白名单 / 篇章档位），而布尔字段本身不携带分桶信息。分桶信息放哪（overlay 的另一层配置？后端下发的 bucket 列表？）未定。**这是 `DrawPool<T>`（第二阶段前置项）的唯一依赖**：若抽取池要按分桶裁剪，构造签名会变成 `AllEnabled(bucketContext)` 一类形态。Source: 同上。
+- **flags 拉取的频次护栏（08-11b 新增）。** `X-Flags-Version` 每次应答都带；若服务端版本在短时间内连续抖动，客户端是否需要一个最小拉取间隔，或只在版本**增大**时拉？Source: `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md`。
 - **disabled 条目被存档引用时的 UX。** 读取侧不过滤，故存档能正确解析；但玩家手中一张「已被线上关闭」的卡 / 道具**是否应有任何提示**，还是完全静默照常可用，未定。→ 亦见 `ux/`。Source: 同上。
-- **`manifestSchema` 的版本化。** 它触发整包全量重下，但其自身的版本号形态、与 `contentVersion` / `appVersion` 的关系未定。Source: 同上。
+- **剧本内容的体积与分发粒度（08-11 新增）。** 剧本本地化后，三篇章的完整剧本树成为一笔真实的包体 / 下载量成本（原云端方案的「按需请求」天然回避了它）。是否需要按篇章分包、按进度增量下载？文件级事务与逐文件 hash 已现成，未定的是**分包边界**。权威归 `plot-manager.md` 的同名待答项。Source: `handoffs/2026-08-11-plot-content-localization.md`。
+- **剧本例外的可执行化（08-11 新增）。** 「新增剧本条目不得引用本次 overlay 之外的新 `Id`」需要一个可机械检查的形态（合并后校验的一条新规则），而非仅约定——选级理由见 `plot-manager.md`。Source: 同上。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/content-service.md`（引用层，待建）。

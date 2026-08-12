@@ -19,7 +19,7 @@
     - **推论 ③：「付不起」在事件选择面整体消失。** UI **不需要不可选 / 置灰态**，但**必须如实展示 `selectCost`**：让玩家能自己算出「这一步可能是最后一步」。**明知是死路仍然走**是有意义的玩家决策，与「打不过也得打」同构。
     - **事务性不变、可负担性校验去掉。** `ProfileManager.TryApply` 仍是全有或全无的单点提交；变的只是它不再为事件推进做「先校验付得起、否则整体拒绝」。**负值施加时各资源的钳制规则待定**，见待决问题。
     Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
-  - **代码形态 = `ProfileChangeSpec`（已定案）。** 该复合成本类型即 `ProfileChangeSpec`（`IReadOnlyList<ChangeElement>`，`ChangeElement.BaseValue` **带符号**：负 = 消耗，正 = 产出）——**成本与产出共用一个类型**，因为「全有或全无、单点提交」本就要求二者落在同一事务内。`selectCost` 在**物化时组装**（modifier pipeline 尚未施加，它在 `ProfileManager.TryApply` 那一刻才生效）。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
+  - **代码形态 = `ProfileChangeSpec`（已定案 · 08-10c 扩为三个平级列表）。** 该复合成本类型即 `ProfileChangeSpec`——`Elements`（资源，`ChangeElement.BaseValue` **带符号**：负 = 消耗，正 = 产出）· `AbilityElements`（能力，按 `Id` 的集合成员操作）· `Stats`（统计计数，纯自增）。**`selectCost` 只用得到第一个列表**：另两个在成本侧恒为空（见下）——**成本与产出共用一个类型**，因为「全有或全无、单点提交」本就要求二者落在同一事务内。`selectCost` 在**物化时组装**（modifier pipeline 尚未施加，它在 `ProfileManager.TryApply` 那一刻才生效）。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
   - **内容侧写正数量值，spec 里仍是负数（已定案 · 两条约定各自成立）。** 带符号约定**不变**；但**内容作者标注的成本一律是正数量值（magnitude）**——「这个事件耗 3 点寿元」写 `3`，不写 `-3`。**取负发生在 future-event-service 物化组装 `selectCost` 的那一刻**（见 `systems/services/future-event-service.md`）。二者互不推翻：作者面对的是「花多少」，`TryApply` 面对的是带符号 element。Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 
     | 层 | 形态 |
@@ -27,6 +27,18 @@
     | `AdventureEventData.tres` / 平衡分档表 | **正数量值** |
     | `EventOption.SelectCost` 内的 `ChangeElement.BaseValue` | **取负**（`-magnitude`） |
     | `ProfileManager.TryApply` | 照常按带符号 element 施加 |
+  - **能力 element 恒不出现在 `selectCost`（已定案 · 08-10c · 承重）。** `ProfileChangeSpec.AbilityElements` 在 `EventOption.SelectCost` 内**恒为空**——事件对能力的三种操作（`Grant` / `Remove` / `Disable`，即置换型剥夺与本轮回禁用）**只能出现在 outcome / reward 侧**。四条支撑：① **成本侧只放可如实计价的量**（`selectCost` 的展示纪律是让玩家能自己算出「这一步可能是最后一步」，面向可计量资源；一条法则值多少寿元无法回答）；② **成本侧无条件施加，与置换的「先看后决 · 拒绝无代价」正面冲突**；③ **能力得失是事件的后果，不是入场费**——三级严重度阶梯描述的是事件**造成**了什么；④ **它换来一条可机械检查的不变式**：`SelectCost.AbilityElements` 恒空 ⇒ 物化组装后断言 + 内容模板加载期校验，两处均 `PushError`。
+  - **outcome 侧的对应形态**（置换与禁用共用同一条链路）：
+
+    | | 形态 |
+    |---|---|
+    | 候选何时掷定 | **结算时**（`eventEnd` 之前），走 `reward` 子流 |
+    | 玩家看到什么 | 结算面板展示「失去 A · 得到 B」+ 接受 / 拒绝；禁用型只展示告知，无选择 |
+    | 「拒绝」是什么 | 点「拒绝」，什么都不发生（零代价） |
+    | 事件内决策点 | **有**，形状与战后奖励面板完全同构 |
+    | 落存档 | 决策点存档记录已掷定的候选；结果进 `PastEventEntry.AppliedChange` |
+
+    **不新增机制**——战后奖励面板已经是「预先算定的候选 + 玩家择一 + 随后并入 `eventEnd` 那一次 `TryApply`」。**候选必须预先算定并落决策点存档**，否则退出重进可以重掷候选。**推论：`PastEventEntry.SelectCost` 的快照形状不受影响**（它只装资源 element），`AppliedChange` 则新增能力 element 与统计 element。规则权威见 `systems/player-profile/player-power/_index.md`，element 形态见 `systems/services/profile-service.md`。Source: `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md`。
 - **一批只有一次操作：择一进入。跳过通道整体不存在（已定案 · 08-06c · 承重 · 推翻既有的跳过建制）。** 面对一批 eventOptions，玩家**唯一能做的事就是选中其中一个进入**——**没有跳过（skip）这条通道**，`skipCost` 与 `ifMandatory` 两个字段随之**整体删除**。
   - **理由 = 跳过本就是冗余机制。** **每完成一次选择，eventOptions 无论如何都会整批重算**；因此**选中某一个事件本身就等价于跳过了同批其余全部事件**。跳过通道只是把「不做这件事」额外做成了一个要付费、要留痕、要补位的独立机制，而玩家早已通过「选别的」得到同样的结果。
   - **它承载的设计意图不但没丢，反而更强：** 「每批必有不可跳过项、打不过也得打」**升级为结构性事实**——**本批的每一项都是必做项**，回避通道在规则层根本不存在，**不需要字段来表达它**。

@@ -21,6 +21,6 @@
 
 | 文件 | status | 说明 |
 |------|--------|------|
-| —— | —— | **当前无在办草稿。** |
+| `draft-0812a.md` | 在办 | 手写草稿 · 2026-08-12 · **卡组构筑（deck building）**：起始卡组沿用炉石竞技场式的「多轮择一」构筑，正文写到一半（断在「now let's introduce a new concep」）。**下一步：补完正文后再跑 `/analyze-new-ideas`。** |
 
 清空即为「无在办草稿」。已提炼草稿 → handoff 的对应关系见 `archive/_index.md`。

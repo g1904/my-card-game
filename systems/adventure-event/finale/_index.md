@@ -27,7 +27,7 @@
   Source: `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md`。
 - **Finale 失败但存活（约 1%）⇒ 篇章照常完成、境界照常突破（已定案 · 08-09b · 承重）。** 失败的道念差通常足以打穿 `lifeTotal`，但**未被打穿的那一小部分情形里角色存活并顺利完成该篇章**。
   - **承重推论：渡劫的胜负不再是篇章推进的闸门。** 胜负只决定两件事——`lifeTotal` 的损失量，以及**残卷是否兑现**（发放只认胜利；失败但存活者照常累积、但不掷骰不发放）。
-  - **叙事需要一句补白**（「侥幸捱过天劫者亦得突破，只是无所得」量级），否则「失败也能突破」读起来像笔误。落点见待决问题。
+  - **叙事补白已落定（08-10b）：归 `systems/services/plot-manager.md` 的叙事层**，与「隐藏属性跨档定性叙事」同一条落点（`ResolveOutcome` → `eventEnd`），不新增结构。文案两版：**「劫败而身存，破境亦有缺。」/「以败换境，以伤换生。」**，**等概率随机二选一**、**属内容层**（有稳定 `Id`、需启动期校验，故 overlay 对它照旧**只改不增**——而剧本条目自 08-11 可由 overlay 新增 `Id`，两者的分界即在此，见 `systems/services/content-service.md`）；**两版均不得暗示道统残卷**（失败侧对残卷彻底隐含仍然成立）。Source: `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md`。
   Source: 同上。
 - **Finale 是道统残卷的唯一累积源与唯一兑现点（已定案 · 08-09b）。** 失败累积 · 胜利掷骰 · 在**该 Finale 的 eventReward 界面**即时发放，全部并入该事件 `eventEnd` 的那一次 `TryApply`——**不新增结算阶段、不新增存档点**（Finale 结算本就是篇章边界的 `Immediate` flush 点）。**失败侧不给玩家任何提示**（无文案 / 无进度条 / 无百分比）。完整规则见 `systems/player-profile/player-power/_index.md`。Source: 同上。
 - **Finale 不承担经验供给（已定案 · 由经验模型推出）。** 天劫的 `diff = +1` 这条自洽性验证隐含一条硬约束：**角色必须在进入 Finale 之前就已升满本境界**，否则 `±2` 带会给出一个更低的天劫等级，「渡劫 = 突破到下一境界」的叙事随之破裂。**推论 ①：全部升级所需经验必须由篇章的常规事件段供满**，Finale 自身的 `ExperienceGrade` 取 `None` 或 `Minor`。**推论 ②：Finale 的出现条件 = 角色已达本境界巅峰**——这不需要新机制，`eventPriority` + `ifMandatory` 已能表达（与 `eventCountLimit` 达成后 Travel 封锁同批的用法同构）。见 `systems/game-progression.md`。Source: 同上。
@@ -46,7 +46,6 @@
 
 - **Finale 奖励的加厚幅度：** 形态已定（`BaseReward` 与 `RewardPoolId` 随物化定稿）；**具体取值**与 `WinMargin` 的最终数值一并归 **ch1 数值标杆专场**。→ `systems/balance.md`。
 - **非战斗形态的 Finale：** 哪些境界突破走非战斗路径、其结算形态如何，留待日后定制。
-- **1% 存活分支的叙事补白落点（08-09b 新增）。** 「渡劫 = 突破到下一境界」现有一个「失败也能突破」的分支，需一句让它读起来不像笔误的文案。归 `ux/screen-flow.md` 的篇章收口呈现，还是 `systems/services/plot-manager.md` 的叙事层？Source: `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md`。
 - **与隐藏属性的交互：** 「大限将至」等隐藏属性剧情线触发后是否转入 Finale、Finale 是否消耗 / 检定隐藏属性未定。→ `systems/services/plot-manager.md`。
 
 ## 对应

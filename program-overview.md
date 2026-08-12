@@ -53,7 +53,7 @@
 | | | ChapterManager | 篇章边界、境界存档点、重试上限（∞ / 3 / 1） |
 | | | SeedManager | cycle seed 与具名 RNG 子流派生 |
 | **future-event-service** | ① | EventOptionManager | 依 CharacterProfile 产出 eventOptions；**唯一出口** |
-| | | **PlotManager** | 隐藏剧本：key points ↔ 云端剧本服务、隐藏属性阈值 → 调制 |
+| | | **PlotManager** | 隐藏剧本：key points → 本地剧本节点（ContentRegistry）、隐藏属性阈值 → 调制。**纯本地** |
 | **combat-service** | ① | TurnManager | **定长 10 回合**循环（双方各 5；回合开始 mana 恢复至 `manaLimit`） |
 | | | CharacterManager | 玩家侧参战方：角色对战状态、其卡组、出牌通道；**监听玩家操作** |
 | | | EnemyManager | 敌人侧参战方：敌人实例与状态、其卡组、AI 行为选择与意图生成；**代理操作** |
@@ -149,7 +149,7 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 ┌────────────────────────────────────────────────────────────────────┐
 │ ① future-event-service.ComputeEventOptions(characterProfile)       │
 │      ├─▶ PlotManager：读隐藏属性(道心 / 煞气 / 寿元) + key points   │
-│      │     └─ 需要时向云端剧本服务请求分支内容（不落存档）          │
+│      │     └─ 按 key points 从 ContentRegistry 取剧本节点（纯本地）  │
 │      ├─▶ location 框定候选池（由 Travel 事件刷新）                  │
 │      └─▶ SeedManager 的 map 子流抽取                                │
 │      ──▶ eventOptions（唯一出口）                                   │
@@ -193,7 +193,7 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      ├─ ProfileManager.TryApply(产出 + lifeSpanCost(物化时已取负)    │
 │      │            + 失败时按道念差扣 lifeTotal + 等级产出 + 隐藏属性推拉)│
 │      │            隐藏属性跨档 ─▶ 附一条定性叙事（不给数字）         │
-│      ├─ 记入 CharacterProfile.List<AdventureEvent> 修行历程          │
+│      ├─ 记入 CharacterProfile.pastEvent 修行历程（PastEventEntry）  │
 │      └─ CycleStateManager 判定：                                     │
 │           寿元 ≤ 0 或 lifeTotal ≤ 0 ─▶ DefeatCharacter()  ─▶ 阶段 5 │
 │           Finale 通关          ─▶ CompleteChapter() ─▶ 阶段 5      │
@@ -253,14 +253,18 @@ IContentRepository<T> where T : Resource
 
 **所有服务经此取内容；代码中不散落 `ResourceLoader.Load`。** 新增一种内容类型 = 新增一个 `XxxData` 与一个仓储条目，不新增服务、不改调用方。**没有中性名 `All()`**——抽取与全量各有显式名字，理由见 `systems/services/content-service.md`「`AllEnabled()` 纪律的可执行化」。
 
-### 本地 / 云端分界（一条判据）
+### 一切内容都属本地内容层（08-11）
 
-| 判据 | 归属 | 内容 |
-|------|------|------|
-| 有稳定 `Id`、**被存档引用**、需启动期校验 | **本地内容层**（`res://` + overlay） | `AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表 —— **含静态展示文案** |
-| 按进度**动态请求**、一次性呈现、**不被存档引用** | **云端剧本服务** | AdventurePlot 的剧本分支文本与揭示内容 |
+**没有云端内容通道。** 全部内容——含 AdventurePlot 的剧本节点 / 分支 / 文本——都存于 `res://content/` 基线 + `user://overlay/`，经 ContentRegistry 按 `Id` 读取。**运行时内容零网络请求**；网络只在启动期用于 manifest 比对与增量下载。
 
-因此 **AdventureEvent 的定义本身属本地内容层** —— ContentRegistry 的启动期强校验模型成立；云端剧本服务只下发文本，由 PlotManager 按 `CharacterProfile` 的 key points 请求，**只在呈现期存在，不进 ContentRegistry、不落存档**。
+「是否被存档引用」仍是一条区分，但它现在只决定 **overlay 能否为该类内容新增 `Id`**：
+
+| 是否被存档引用 | 内容 | overlay 权限 |
+|---|---|---|
+| **被存档引用** | `AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表，**含静态展示文案与状态转换触发的定性文案** | **只改不增** |
+| **不被存档引用** | AdventurePlot 的剧本节点 / 分支 / 文本（`CharacterProfile` 只存 key points） | **可新增 `Id`**（唯一例外 ⇒ 新剧情可热更不发版） |
+
+理由与悬空 key point 的降级规则见 `systems/services/content-service.md` 与 `systems/services/plot-manager.md`。Source: `handoffs/2026-08-11-plot-content-localization.md`。
 
 ---
 

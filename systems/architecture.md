@@ -14,9 +14,9 @@
 - **共有属性显式化。** 每一层的共有字段抽到 `common-properties.md`：adventure-event 各子类型各自一份、adventure-event 顶层一份、systems 顶层一份（`systems/common-properties.md`）。
 
 ### 核心「类」：character-profile / player-profile
-- **PlayerProfile / 玩家信息（账号级主档，元进程层）：** 跨轮回持久，持有 `List<CharacterProfile>`、`GameSetting`、`List<PlayerPower>`、`List<PlayerItem>`、`List<Achievements>`、`AccountInfo` 等。结构权威见 `systems/player-profile/`。
-- **CharacterProfile / 角色信息（单次轮回）：** 一次轮回 / 一个角色的状态与历史（对齐 CycleState 概念）：`status`（ongoing | defeated | completed）、`chapter`、`Status`（lifeTotal / mana + 隐藏属性 道心 / 煞气 / 寿元）、`List<AdventureEvent>`、`List<CharacterItems>`、AdventurePlot key points 等。结构权威见 `systems/character-profile/`。
-- 这两者是被服务操作的**数据核心**；它们不自己驱动轮回生命周期、事件生成或剧本下发，而是被服务读写。
+- **PlayerProfile / 玩家信息（账号级主档，元进程层）：** 跨轮回持久，持有 `List<CharacterProfile>`、`GameSetting`、`List<PlayerPower>`、`List<PlayerItem>`、`achievement: List<Achievement>`、`AccountInfo` 等。结构权威见 `systems/player-profile/`。
+- **CharacterProfile / 角色信息（单次轮回）：** 一次轮回 / 一个角色的状态与历史（对齐 CycleState 概念）：`status`（ongoing | defeated | completed）、`chapter`、`Status`（lifeTotal / mana + 隐藏属性 道心 / 煞气 / 寿元）、`pastEvent: IReadOnlyList<PastEventEntry>`、`magicPack: List<CharacterItem>`、AdventurePlot key points 等。结构权威见 `systems/character-profile/`。
+- 这两者是被服务操作的**数据核心**；它们不自己驱动轮回生命周期、事件生成或剧本解析，而是被服务读写。
 
 ### 服务层：五级层次 service ⊃ manager ⊃ module ⊃ processor ⊃ handler（**已定案**）
 
@@ -69,7 +69,7 @@ Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
 
 #### 拆分轴：生命周期层 + 行为边界，**不是数据类型**（已定案）
 
-**不**按 `power` / `item` / `card` / `resource` 各开一个服务：那会**撕碎事务**（一次结算典型要同时改多种资源，已定的 `selectCost` 复合成本类型的天然消费者是**一个**统一施加点）、**横切生命周期层**（`PlayerItem` 账号级跨轮回与 `CharacterItems` 轮回级即清，持久化与清理规则完全不同）、并退化为**无规则的贫血 CRUD**。同理**不为九类 AdventureEvent 各开服务**——只有 Combat 真有状态机，其余差异在**数据**而非**代码**（Finale 复用 combat-service，Mystery 揭示后落到真实 `eventType`）。
+**不**按 `power` / `item` / `card` / `resource` 各开一个服务：那会**撕碎事务**（一次结算典型要同时改多种资源，已定的 `selectCost` 复合成本类型的天然消费者是**一个**统一施加点）、**横切生命周期层**（`PlayerItem` 账号级跨轮回与 `CharacterItem` 轮回级即清，持久化与清理规则完全不同）、并退化为**无规则的贫血 CRUD**。同理**不为九类 AdventureEvent 各开服务**——只有 Combat 真有状态机，其余差异在**数据**而非**代码**（Finale 复用 combat-service，Mystery 揭示后落到真实 `eventType`）。
 
 「同类内容的统一入口与标准操作接口」由 **content-service 的 ContentRegistry + 泛型仓储接口**满足，而非按类型开服务。
 
@@ -89,7 +89,7 @@ ContentRegistry（内存）    按 Id 索引，唯一内容读取入口
 ```
 
 - **本地内容层**（`res://` + overlay）承载**有稳定 `Id`、被存档引用、需启动期校验**的一切：`AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表，**含静态展示文案**。因此 **AdventureEvent 的定义本身属本地** —— 启动期强校验模型成立。
-- **云端剧本服务**只下发**按进度动态请求、一次性呈现、不被存档引用**的内容（AdventurePlot 分支文本），由 PlotManager 按 key points 请求，**不进 ContentRegistry、不落存档**。
+- **没有云端内容通道（08-11）。** AdventurePlot 的剧本节点 / 分支 / 文本**同属本地内容层**，经 ContentRegistry 读取；PlotManager 按 key points 在本地定位剧本节点，**运行时内容零网络请求**。剧本正文仍**不落存档**（`CharacterProfile` 只存 key points），而这一点现在只决定一件事：**overlay 对剧本内容可新增 `Id`**（「只改不增」的唯一例外，见 `services/content-service.md`）。悬空 key point → `PushWarning` + 叙事降级、不阻塞轮回。Source: `handoffs/2026-08-11-plot-content-localization.md`。
 - **档案**：云端权威 `PlayerProfile ⊃ List<CharacterProfile>`；启动时全量 pull，自动存档点 push，冲突以云端为准；本地 `user://cache/` 仅缓存，原子写 + schema 版本 + 迁移路径。归属 sync-service。
 
 ### 展示层契约：数据 / 运行时 / ViewModel 三层（**已定案**）
@@ -113,7 +113,7 @@ ContentRegistry（内存）    按 Id 索引，唯一内容读取入口
 | 形态 | 适用 | 签名形状 | 理由 |
 |------|------|----------|------|
 | **A · 同步直返** | 纯内存查询与纯本地事务（查内容、施加变更、能力查询、RNG 派生、物化） | `T Get(...)` / `ApplyResult TryApply(...)` / `bool Has(...)` | 无 I/O、单帧内完成；引入 `Task` 只会给每次查询加一次状态机分配 |
-| **B · `Task<OpResult<T>>`** | 跨客户端 ↔ 后端边界的一切（account / content update / sync push-pull / PlotManager 请求剧本） | `Task<OpResult<PlayerProfile>> PullProfileAsync(string accountId, CancellationToken ct)` | 网络失败是**常态而非异常**；`Task` 让离线 stub 变成一行 `Task.FromResult`，也让超时 / 取消 / 重试有统一挂点 |
+| **B · `Task<OpResult<T>>`** | 跨客户端 ↔ 后端边界的一切（account / content update + flags / sync push-pull） | `Task<OpResult<PlayerProfile>> PullProfileAsync(string accountId, CancellationToken ct)` | 网络失败是**常态而非异常**；`Task` 让离线 stub 变成一行 `Task.FromResult`，也让超时 / 取消 / 重试有统一挂点 |
 | **C · `Task<T>` 由信号推进** | 跨多帧的玩法长流程（`RunCombatAsync`、`AdvanceEventAsync`） | `Task<CombatResult> RunCombatAsync(...)`，内部 `await ToSignal(...)` 等玩家输入 | 调用方要的是「战斗打完给我结果」这一件事；帧级推进封在服务内部，不外泄成状态机 |
 
 #### 总则 2 —— 失败语义三分，与 null-check 规则一一对应
@@ -153,13 +153,15 @@ public readonly record struct ApplyResult(bool Success, CostKey MissingElement);
 Godot autoload 的 `_Ready` 不能 `await`，而 content-service 启动就要比对云端版本、sync-service 要 pull。「autoload 声明顺序 = 启动依赖顺序」只解决**装配**顺序，未解决**初始化**顺序。引入 **Bootstrap 屏幕场景**（`scenes/screens/BootstrapScreen.tscn`，非服务、非 autoload）作为 `main` 场景驱动异步初始化：
 
 ```csharp
-public interface IBootstrappable          // 由四个边界服务实现
+public interface IBootstrappable          // 由三个边界服务实现
 {
     Task<OpResult> InitializeAsync(CancellationToken ct);
 }
 ```
 
-顺序：`ContentService.InitializeAsync`（版本比对 + overlay 合并 + 校验，断网降级到基线）→ `LoginScreen` → `AccountService.SignInAsync` → `SyncService.InitializeAsync`（pull + 迁移）→ `ProfileService.Hydrate` → `MainMenu`。三个纯本地服务（profile / life-cycle / combat）**不实现该接口**。这给了「首启不依赖网络下载内容，但进入游戏仍需登录」一个明确落点。
+顺序：`ContentService.InitializeAsync`（版本比对 + overlay 合并 + 校验，断网降级到基线）→ `LoginScreen` → `AccountService.SignInAsync` → **`ContentService.RefreshFlagsAsync`**（首次 flags 拉取）→ `SyncService.InitializeAsync`（pull + 迁移）→ `ProfileService.Hydrate` → `MainMenu`。三个纯本地服务（profile / life-cycle / combat）**不实现该接口**。这给了「首启不依赖网络下载内容，但进入游戏仍需登录」一个明确落点。
+
+- **flags 刷新为什么另立一步、不并进 `ContentService.InitializeAsync`（08-11b）：** flags 端点**需鉴权**，而 content-service 是启动链第一步、跑在登录之前——两者对不上。排在 `SignInAsync` 之后、`SyncService.InitializeAsync` 之前：抽取池必须在轮回开始前正确，而它**失败不阻塞**，放在硬阻塞的 pull 之前不增加任何阻塞风险。语义见 `systems/services/content-service.md`「flags：`ContentEnabled` 的第三层」。Source: `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md`。
 
 #### 总则 5 —— EventBus：C# 泛型事件 + `readonly record struct` 负载
 
@@ -221,29 +223,60 @@ public sealed record EventOption(                 // 定稿实例：immutable �
 2. **`InstanceId` 与 `EventId` 并存且不可互相替代。** 同一模板可在一次轮回里被物化多次；`pastEvent` 与 `EventResolved` 负载都按 `InstanceId` 定位。
 3. **通则：** 凡「内容定义 + 情境 / 轮回内状态」的组合都是两个类型——`AdventureEventData` ↔ `EventOption`（**定稿不可变**）；`CardData` ↔ `CardInstance`（运行态**可变**）；**`EnemyData` ↔ `EnemyInstance`**（**定稿不可变**；future-event-service 取模板 → 充实 / 改写 → 指派给事件，**敌人等级即物化产物**；条目定义归 `systems/enemies/`）。共享纪律：**服务签名里传实例，不传 `Resource`**；差别只在实例是否可变。这与展示层三层切分同构，把第二层的类型形态明确了。
 
-#### 总则 7 —— 后端接口化：四个边界服务各持一个可替换后端
+#### 总则 7 —— 后端接口化：三个边界服务各持一个可替换后端
 
-把跨进程边界的调用收敛到四个窄接口，让离线 stub 是「换一个实现」而非「在服务里插 `if (offline)`」：
+把跨进程边界的调用收敛到三个窄接口，让离线 stub 是「换一个实现」而非「在服务里插 `if (offline)`」：
 
 ```csharp
 internal interface IAccountBackend  { Task<OpResult<Session>>          SignInAsync(LoginChannel c, CancellationToken ct); }
 internal interface IContentBackend  { Task<OpResult<ContentManifest>>  GetManifestAsync(CancellationToken ct); }
 internal interface IProfileBackend  { Task<OpResult<ProfileSnapshot>>  PullAsync(string accountId, CancellationToken ct);
                                       Task<OpResult<PushAck>>          PushAsync(ProfilePayload p, CancellationToken ct); }
-internal interface IPlotBackend     { Task<OpResult<PlotSegment>>      ResolveAsync(PlotRequest req, CancellationToken ct); }
 ```
+
+> **由四个降为三个（08-11）：** `IPlotBackend`（连同 `HttpPlotBackend` / `OfflinePlotBackend`、`BackendSelector.CreatePlot()`、`PlotRequest` / `PlotSegment` 报文）**整套作废**——剧本内容已属本地内容层。**由此三个后端接口全部落在服务身上，`manager` 不再有跨边界的例外**（PlotManager 曾是唯一一个）。条件编译清单同步由 6 处降为 **5 处**。Source: `handoffs/2026-08-11-plot-content-localization.md`。
 
 每个接口两份实现：`HttpXxxBackend`（后端就绪后）与 `OfflineXxxBackend`（当前阶段，读 `res://` 假数据 / 内存回显）。
 
-**选择形态（已定案）：唯一选择点 `BackendSelector` + Release 构建里离线实现根本不存在。** 四个服务**不各自持开关**——由 `src/Core/BackendSelector.cs` 的 `CreateAccount()` / `CreateContent()` / `CreateProfile()` / `CreatePlot()` 产出实现，四个 `OfflineXxxBackend` **整类包在 `#if DEBUG` 内**（阶梯第 1 级：Release 下写不出对离线实现的引用，配错连编译都不通过）；开发期的开关载体是 ProjectSettings 自定义项 `mycardgame/backend/use_offline_backend`（第 3 级兜底），**不是 `[Export]`**。落地形态、启动期审计与「条件编译共 6 处、不得扩张」的清单见 `system-overview.md` 第四节，选级理由见下方「纪律的可执行化」。Source: `handoffs/2026-08-09e-discipline-enforceability.md`。
+**选择形态（已定案）：唯一选择点 `BackendSelector` + Release 构建里离线实现根本不存在。** 三个服务**不各自持开关**——由 `src/Core/BackendSelector.cs` 的 `CreateAccount()` / `CreateContent()` / `CreateProfile()` 产出实现，三个 `OfflineXxxBackend` **整类包在 `#if DEBUG` 内**（阶梯第 1 级：Release 下写不出对离线实现的引用，配错连编译都不通过）；开发期的开关载体是 ProjectSettings 自定义项 `mycardgame/backend/use_offline_backend`（第 3 级兜底），**不是 `[Export]`**。落地形态、启动期审计与「条件编译共 5 处、不得扩张」的清单见 `system-overview.md` 第四节，选级理由见下方「纪律的可执行化」。Source: `handoffs/2026-08-09e-discipline-enforceability.md` + `handoffs/2026-08-11-plot-content-localization.md`。
 
-> **理由（承重）：** 四个字段 = 四个可能各自出错的点，最糟的失败态是「三个开了一个没开」的**半在线状态**——它比全离线更难诊断（登录成功、内容加载正常，只有存档静默写进内存回显）。收敛成一个选择点后，这个失败态在结构上不存在。这与两条唯一入口 + 唯一物化点是同一条纪律。
+> **理由（承重）：** 每个服务各持一个开关字段 = 若干个可能各自出错的点，最糟的失败态是「开了一部分没开另一部分」的**半在线状态**——它比全离线更难诊断（登录成功、内容加载正常，只有存档静默写进内存回显）。收敛成一个选择点后，这个失败态在结构上不存在。这与两条唯一入口 + 唯一物化点是同一条纪律。**接口由四个降为三个不削弱这条理由**——只要多于一个，半在线态就有可能。
 
 > **不插 `if`，也不插 `#if`：** 服务与 manager 内部一律只见 `IXxxBackend` 接口。
 
-> 这四个接口是客户端 ↔ 后端**协议契约的客户端一侧投影**；其权威在 `backend-design-documents/`。本库只定客户端的**调用形状**（方法名、参数、`OpResult` 语义），不定 HTTP 路径 / 报文字段。
+> 这三个接口是客户端 ↔ 后端**协议契约的客户端一侧投影**；其权威在 `backend-design-documents/`。本库只定客户端的**调用形状**（方法名、参数、`OpResult` 语义），不定 HTTP 路径 / 报文字段。
 
 **`IProfileBackend` 的两个返回类型都带 `revision`**（`ProfileSnapshot(Profile, Revision, SchemaVersion)` / `PushAck(NewRevision, Deduplicated)`）——`revision` 是**后端分配的账号级单调递增 `long`**，客户端持有的基线值 `baseRevision` 是**传输层元数据**（落 `user://cache/sync-envelope.json`，不进 Profile、不进存档 schema）；上行走 **CAS**，并携带幂等键 `pushId` 防「请求已达、响应丢失」时丢进度。语义、三分支表与校验点见 `systems/services/sync-service.md`。Source: `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md`。
+
+##### 后端错误码 → `OpError`：一张数据表（**已定案** · 08-11b）
+
+> 后端错误体统一为 `code` / `class` / `message` / `detail` / `requestId` 五字段（权威：`backend-design-documents/contracts/envelope.md` §5–6）。客户端侧的承接落在**共享的一处**：三个 `HttpXxxBackend` 共用 `src/Core/` 的映射表与头处理点，不各写一遍。Source: `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md`。
+
+**形态是数据表**（`code → (OpError, 处置)`），**不是 switch 语句**——与「新增内容 = 新增数据，不编辑 switch」的可加性纪律一致：新增一个后端 `code` = 表里加一行。
+
+**三条承重纪律：**
+
+1. **不得靠 HTTP 状态码分支**，业务分支一律以 `code` 为键；状态码只承担传输层语义。否则「401 到底是 token 过期还是被挤下线」永远做不干净，而这两者的客户端处置**完全不同**（静默刷新 vs 硬阻塞重登）。
+2. **不得解析 `message` 做任何分支**——措辞可随时改写，依赖它的分支会在某次后端改文案时静默失效。需要被代码消费的值一律取 `detail`。
+3. **`message` 不进玩家可见弹窗**：与 `requestId` 一起拼进 `OpResult.Detail`，随 `GD.PushError` / `GD.PushWarning` 输出。`requestId` 是**跨越进程边界的那个定位标识符**，正是日志纪律要求的东西；玩家可见文案由 UI 层决定。
+
+**处置表不含玩家文案；文案归 UI 层，键同为 `code`（已定案 · 08-12）。** 这张表跑在后端适配层，**那里没有界面上下文，也不该有**——往里塞文案会让一个网络适配器依赖 UI 层。文案表是另一张表，与本表**共用同一个键 `code`**：本表回答「怎么办」，文案表回答「怎么说」。`code` → 翻译键是**机械变换**（`ERR_` + 全大写 + `.` 换 `_`），故新增一个 `code` 只需在本表加一行、在翻译资源加一条，**不存在第二张需要同步的对照表**。形态、兜底路径与启动期审计见 `ux/error-and-blocking-ux.md`。
+
+**`OpResult.Detail` 是诊断串（已定案 · 08-12 · 推翻 07-27b 的「面向玩家的原因串」）。** `Detail` = `code` + `requestId` + 后端 `message`（本地失败则为定位上下文），**UI 永不直接渲染它**；玩家可见文案一律经 UI 层的 `ErrorText.For(code, error)`。理由是可机械检查性——若 `Detail` 兼「诊断」与「可展示」两个身份，上面三条承重纪律**一条也无法机械检查**：只要它可能被渲染，英文调试串就随时可能漏到屏上。**检查形态**：UI 层不出现把 `OpResult.Detail` 赋给任何 `Label.Text` 的写法。Source: `handoffs/2026-08-12-error-copy-and-update-prompts.md`。
+
+**默认路径**（未知 `code` → 按 `class` 降级；**未知 `class` → 当作 `Fatal` + 上报一次**）：
+
+| `class` | 默认 `OpError` | 默认处置 |
+|---|---|---|
+| `Retryable` | `Network` | 既定断线降级（进待发队列 + 退避 + 不阻塞） |
+| `Fatal` | `Validation` | 拒绝本次操作 + **上报一次** |
+| `Reauth` | `Auth` | **静默刷新一次；刷新失败视同断线**走同一缓冲通道 |
+| `Upgrade` | `Validation` | 非闸门点的非阻塞处置（见 `sync-service.md`） |
+
+- **硬阻塞仍然只有两处，且只由已知 `code` 触发**——`auth.session_revoked`（被挤下线）与登录 / 启动 pull 点的 `client.version_unsupported`。（**阻塞屏有三个变体，但阻塞点仍是这两处**：本地迁移失败落在「启动 pull」那一处之内，不新增第三处。见 `ux/error-and-blocking-ux.md`。）**一个未知 `code` 永远不得新增第三处硬阻塞**：未知 `Reauth` 走保守的静默刷新，代价是一个真失效的会话可能多跑一小会儿（下一次操作仍会被拒），收益是后端新加一条错误码不可能打断玩家进行中的轮回。
+- **`OpError.Cancelled` 与 `OpError.Migration` 不得出现在映射表的取值域里。** 前者是 `CancellationToken` 的本地语义，后者是 `MigrationManager` 的本地存档迁移失败；后端拒绝一个它不认识的 `schemaVersion` 是**上行校验失败**（`Validation`），映到 `Migration` 会让客户端去跑一条本地迁移路径，而问题根本不在本地。**这条可机械检查**（表的 `OpError` 列排除两值）。
+- **应答体无法解析为契约错误体**（网关 502、非 JSON 错误页）→ 按 HTTP 状态码降级为 `server.unavailable`（`Retryable`）；不要求网关也产出契约错误体。
+- **映射表不含 `plot` 域**——剧本内容自 08-11 属本地内容层，客户端不存在剧本的网络失败态。
 
 #### 总则 8 —— 结算阶段名取代「事件自带钩子」
 
@@ -276,18 +309,40 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
 #### 共享核心类型（`src/Core/`）
 
 ```csharp
-public sealed class ProfileChangeSpec { public IReadOnlyList<ChangeElement> Elements { get; } }
-public readonly record struct ChangeElement(CostKey Key, int BaseValue);   // 负 = 消耗，正 = 产出
-public enum CostKey        { LifeSpan, Jade, /* ⟨待定：其余 element 清单⟩ */ }
-public enum CycleStatus    { Ongoing, Defeated, Completed }
-public enum DefeatReason   { Discarded, LifeSpanExhausted, LifeTotalExhausted }   // 战斗失败本身不终结角色，只扣 lifeTotal
-public enum CapabilityFlag { RevealHiddenStats, ShowMysteryType }
-public enum HiddenStat     { Faith, MaleficQi, LifeSpan }
-public enum RngStream      { Map, Combat, Shop, Reward }
-public enum EventType      { Practice, Combat, Research, Exchange, Social, Mystery, Finale, Explore, Travel }
+public sealed class ProfileChangeSpec                                     // 三个平级只读列表（08-10c）
+{
+    public IReadOnlyList<ChangeElement>        Elements        { get; }   // 资源：带符号的量
+    public IReadOnlyList<AbilityChangeElement> AbilityElements { get; }   // 能力：按 Id 的集合成员操作
+    public IReadOnlyList<StatDelta>            Stats           { get; }   // 统计计数：纯自增
+}
+public readonly record struct ChangeElement(CostKey Key, int BaseValue);  // 负 = 消耗，正 = 产出
+public readonly record struct AbilityChangeElement(
+    AbilityChangeOp Op, AbilityKind Kind, AbilityScope Scope,
+    string AbilityId, DisableDuration Duration, Source Source, string PairKey);
+public readonly record struct StatDelta(StatKey Key, int Delta);
+
+public enum CostKey         { LifeSpan, Jade, /* ⟨待定：其余 element 清单⟩ */ }
+public enum StatKey         { CyclesCompleted, CyclesDefeated, /* ⟨待定：其余统计项⟩ */ }
+public enum AbilityChangeOp { Grant, Remove, Disable }
+public enum AbilityKind     { Power, Item }
+public enum AbilityScope    { Character, Player }                         // 取代 PowerScope / ItemScope
+public enum DisableDuration { NextEvent, ThisChapter, ThisCycle }
+public enum RarityTier      { Tier1, Tier2, Tier3, Tier4, Tier5 }         // 内容稀有度，档号越高越稀有
+public enum CycleStatus     { Ongoing, Defeated, Completed }
+public enum DefeatReason    { Discarded, LifeSpanExhausted, LifeTotalExhausted }   // 战斗失败本身不终结角色，只扣 lifeTotal
+public enum CapabilityFlag  { RevealHiddenStats, ShowMysteryType }
+public enum HiddenStat      { Faith, MaleficQi, LifeSpan }
+public enum RngStream       { Map, Combat, Shop, Reward }
+public enum EventType       { Practice, Combat, Research, Exchange, Social, Mystery, Finale, Explore, Travel }
 ```
 
 **`CostSpec` / `RewardSpec` 合并为单一 `ProfileChangeSpec`**（element 带符号：负 = 消耗，正 = 产出）。理由：「全有或全无、单点提交」本就要求成本与产出在同一事务内；两个类型会诱导出「先 `TryApply(cost)` 再 `TryApply(reward)`」这种半套写入。
+
+**为什么是三个平级列表，而不是给 `ChangeElement` 加可空字段（已定案 · 08-10c · 承重）。** 三者的**施加语义根本不同**：资源是量（可加、要钳制、**走 modifier pipeline**），能力是集合成员操作（幂等增删、无量纲、**绝不走 modifier pipeline**），统计是纯计数（不钳制、失败不阻断）。把它们压进一个带符号 `int` 是**让类型说谎**；分开还使 `ApplyResult.MissingElement: CostKey` 的语义保持完好（它只对资源列表有意义）。**事务性不受影响**——三个列表在同一次 `TryApply` 内提交，「全有或全无、单点提交」不变。否决的两个替代：`ChangeElement` 加可空 `TargetId` / 把 `Duration` 塞进 `BaseValue`（破坏带符号约定）；多态 element（`abstract record` + 子类，破坏 `readonly record struct` 的零分配与 diff / 序列化的简单形态）。
+
+**`RarityTier` 与 `Tier` 是两个东西，不得复用同一枚举、也不得互相换算。** `Tier { Narrow, Solid, Crushing }` 是战后奖励的**优势档**（道念差归一化后的碾压程度）；`RarityTier` 是**内容品质档**。类型名不写成裸 `Tier` 正是为了避免它们在 `systems/balance.md` 的同一页里造出两个含义。
+
+Source（本小节的 08-10c 部分）：`handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md`。
 
 #### EventBus 负载契约
 
@@ -340,7 +395,7 @@ public enum EventType      { Practice, Combat, Research, Exchange, Social, Myste
 | 抽取必走 `AllEnabled()` | 上线且不可见 | **1 / 2** | **删除中性名 `All()`**，只留 `AllEnabled()` + `AllIncludingDisabled()`；过渡期 `[Obsolete(error: true)] All()` 占位（第 2 级）。第二阶段前把 `AllEnabled()` 返回类型升为 `DrawPool<T>`、seeded 抽取只定义在其上（第 1 级）。见 `services/content-service.md` |
 | EventBus 订阅必退订 | 只在开发期显形 | **3** | `#if DEBUG` 订阅审计，切屏后触发（总则 5） |
 
-**「不插 `if`，也不插 `#if`」——条件编译的使用清单是穷举的，不得扩张：** `src/Core/BackendSelector.cs`、四个 `src/Services/*/Offline*Backend.cs`、`src/Autoload/EventBus.cs` 的审计块，**共 6 处**。服务与 manager 内部一律不得出现 `#if`。
+**「不插 `if`，也不插 `#if`」——条件编译的使用清单是穷举的，不得扩张：** `src/Core/BackendSelector.cs`、三个 `src/Services/*/Offline*Backend.cs`、`src/Autoload/EventBus.cs` 的审计块，**共 5 处**。服务与 manager 内部一律不得出现 `#if`。
 
 **否决记录：** Roslyn 分析器（单独项目要维护、随 Godot 生成的 `.csproj` 走易被覆盖、无 CI 前提下只在本机构建生效；`[Obsolete(error: true)]` 拿到同一份编译期保证）· 把「上线且不可见」类纪律只做到第 3 级（断言只在跑到那一步时生效，而这类违规的症状恰恰是「一切正常」）。
 
@@ -360,7 +415,7 @@ Input (touch, 横向滑动选择)
    ──▶ Screen scene (月圆之夜式菜单)  ◀── ViewModel (呈现期组装 Data + 运行时状态; 不落存档)
         ──▶ game-progression (编排顶点: 呈现 eventOptions 供选择)
              ──▶ future-event-service (物化 AdventureEvent → eventOptions; 唯一物化点 / 唯一出口)
-             │      ├─▶ PlotManager (隐藏属性阈值 → 调制; key points ↔ 云端剧本服务)
+             │      ├─▶ PlotManager (隐藏属性阈值 → 调制; key points → 本地剧本节点; 纯本地)
              │      └─▶ location (由 Travel 刷新) + SeedManager 的 map 子流
              ──▶ life-cycle-service.AdvanceEventAsync (EventOption 定稿实例; mode = Select | Skip)
                    ├─▶ profile-service.ProfileManager (唯一写入面; 原子施加成本 / 产出)
@@ -398,7 +453,7 @@ Input (touch, 横向滑动选择)
 | 1 | PlayerProfile 侧无服务 | **已闭合** → profile-service（ProfileManager / CapabilityManager / AchievementManager） |
 | 2 | 战斗内部无归属 | **已闭合** → combat-service（唯一自带状态机的事件类型；Finale 复用） |
 | 3 | 存档 / 云同步无归属 | **已闭合** → sync-service（ProfileSyncManager / LocalCacheManager / MigrationManager） |
-| 4 | 本地 / 云端内容分界未定 | **已闭合** → 有稳定 `Id` 且被存档引用 → 本地内容层；按进度动态请求、不被存档引用 → 云端剧本服务 |
+| 4 | 本地 / 云端内容分界未定 | **已闭合（08-11 重新收口）** → **没有云端内容通道，一切内容属本地内容层**；「是否被存档引用」只决定 overlay 能否为它新增 `Id`（剧本内容可新增，是唯一例外） |
 | 5 | skip 通道无结算归属 | **已闭合（08-06c：以移除该通道的方式）** → 跳过、`skipCost`、`ifMandatory`、单项补位整体删除；一批只有一次操作（择一进入），选中一个即等价于跳过其余 |
 | 6 | `selectCost` / `lifeSpanCost` 重叠 | **已闭合**（07-25b：包含关系）；ProfileManager 是其唯一消费点 |
 | 7 | 编排顶点缺失 | **已闭合** → game-progression |

@@ -27,7 +27,7 @@
 
   ```
   future-event-service.ComputeEventOptions(characterProfile)
-        ├─▶ PlotManager        (隐藏属性阈值 / key points → 调制；云端剧本服务客户端)
+        ├─▶ PlotManager        (隐藏属性阈值 / key points → 调制；本地剧本节点解析)
         ├─▶ location 框定       (由 Travel 事件刷新)
         └─▶ SeedManager 的 map 子流
         ──▶ eventOptions ──▶ characterProfile（经 profile-service.ProfileManager 写入）
@@ -126,17 +126,17 @@
 | manager | 职责 |
 |---------|------|
 | **EventOptionManager** | 依 CharacterProfile 产出 / 重算 eventOptions；location 框定与 seeded 抽取 |
-| **PlotManager** | 隐藏剧本：key points ↔ 云端剧本服务、隐藏属性阈值 → 调制。详见 [plot-manager](plot-manager.md) |
+| **PlotManager** | 隐藏剧本：按 key points 解析本地剧本节点、隐藏属性阈值 → 调制。**纯本地**。详见 [plot-manager](plot-manager.md) |
 
 ## 服务角色 / API 面（契约）
-> _总则与共享类型见 `systems/architecture.md`「API 契约总则」。物化本身是纯内存计算（形态 A）；只有 PlotManager 请求云端剧本跨进程边界（形态 B）。Source: `handoffs/2026-07-27b-service-api-contracts.md`。_
+> _总则与共享类型见 `systems/architecture.md`「API 契约总则」。**本服务纯本地，永不跨进程边界，故全部方法为形态 A**——物化是纯内存计算，PlotManager 自 08-11 剧本本地化后亦不再跨边界（此前它是全项目唯一跨边界的 manager）。Source: `handoffs/2026-07-27b-service-api-contracts.md` + `handoffs/2026-08-11-plot-content-localization.md`。_
 
 | 方法 | 形态 | 完整签名 | 失败语义 |
 |------|------|----------|----------|
 | 物化一批 | A | `EventOptionBatch ComputeEventOptions(CharacterProfile character)` | 内容池为空 = 坏数据 → `PushError` + 抛 |
 | 结算后重算 | A | `EventOptionBatch RefreshAfterEvent(CharacterProfile character, string resolvedInstanceId)` | 同上 |
 | 当前批 | A | `EventOptionBatch Current { get; }` | — |
-| 剧本分支 | **B** | `Task<OpResult> ChooseBranchAsync(string branchId, CancellationToken ct)` | 业务失败 → `OpResult`；PlotManager 的**唯一对外投影** |
+| 剧本分支 | A | `OpResult ChooseBranch(string branchId)` | 业务失败 → `OpResult`；PlotManager 的**唯一对外投影**。**08-11 由形态 B 降为 A**（剧本本地化，无远端请求） |
 
 ```csharp
 public sealed record EventOption(                 // 定稿实例：immutable 引用类型，落存档
@@ -164,7 +164,7 @@ public sealed record EventOptionBatch(
 - **`ComputeEventOptions` 的语义就是「物化」：** 取 `AllEnabled()` 候选 → location 框定 → PlotManager 调制 → map 子流抽取 → 组装定稿实例（**成本量值在此取负**）。**物化完成后本服务不再改这批实例**；一批的更新只有一种形态——`RefreshAfterEvent` 产出**一批全新的实例**。
 - **未选项摘要从「被替换的那一批」取，取用方是 life-cycle-service（已定案 · 08-09c）。** `RefreshAfterEvent` 会把当前批整批换掉；被换掉的那一批里除 `resolvedInstanceId` 之外的选项，正是要写进 `PastEventEntry.Unchosen` 的轻摘要来源。**本服务不因此新增方法、也不负责写档**——`Current` 在重算之前仍指向旧批，life-cycle-service 在组装 `PastEventEntry` 时读它即可，写入照常经 `profile-service.ProfileManager`。字段形态见 `systems/adventure-event/common-properties.md`。Source: `handoffs/2026-08-09c-past-event-trace-schema.md`。
 - **`EffectivePriority` 由本服务算好放进 batch**，而不是让 UI 自己去 `Max(o.Priority)`。呈现层只做呈现，「哪些可选」是产出侧的语义。
-- **PlotManager 的四个方法不出现在服务门面上**（manager 不被跨服务调用）：`ResolvePlot` / `ModulateEventOptions` / `OnHiddenStatThreshold` 是 `ComputeEventOptions` 物化链条内部的一环；只有 `ChooseBranch` 需要玩家输入，故投影为服务门面上的 `ChooseBranchAsync`。
+- **PlotManager 的四个方法不出现在服务门面上**（manager 不被跨服务调用）：`TryResolvePlot` / `ModulateEventOptions` / `OnHiddenStatThreshold` 是 `ComputeEventOptions` 物化链条内部的一环；只有 `ChooseBranch` 需要玩家输入，故投影为服务门面上的同名方法。
 
 **事件面：**
 

@@ -9,7 +9,7 @@
 
 借用「服务」一词的价值**不在于分布式部署**，而在于那套**边界纪律**（不读写对方字段、不伸手进对方 manager、唯一入口、既成事实经 EventBus 广播）——靠约定与代码审查执行，不靠网络强制。
 
-**唯一真实的进程边界**是客户端 ↔ 后端：七个服务中只有 `account-service`、`content-service`、`sync-service` 与 `future-event-service` 内部的 `PlotManager` 会跨越它；其余三个纯本地。工程结构、autoload 注册与代码形态见 `system-overview.md`。Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
+**唯一真实的进程边界**是客户端 ↔ 后端：七个服务中只有 `account-service`、`content-service`、`sync-service` 会跨越它；其余四个纯本地。**跨边界成分全部是服务本身——`manager` 不跨边界是无例外的**（`PlotManager` 曾是唯一例外，08-11 剧本内容本地化后不再跨边界）。工程结构、autoload 注册与代码形态见 `system-overview.md`。Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` + `handoffs/2026-08-11-plot-content-localization.md`。
 
 ## 层级：service ⊃ manager ⊃ module ⊃ processor ⊃ handler（已定案）
 
@@ -28,7 +28,7 @@
 **不**按 `power` / `item` / `card` / `resource` 各开一个服务。三条理由：
 
 1. **撕碎事务。** 本作几乎没有「只改一种资源」的操作——一次 Exchange 结算典型是 `-灵玉 -寿元 +卡牌 +道具 + 推拉隐藏属性`。按类型拆开后调用方要手动编排 N 次写，还得自己保证「付不起第三项时前两项回滚」与「N 次写只提交一次存档」。已定的 `selectCost` **复合成本类型（element 列表）**的天然消费者是**一个**统一施加点。
-2. **横切生命周期层。** `PlayerItem`（账号级、跨轮回、失败不清）与 `CharacterItems`（轮回级、`defeated` 即清）的持久化语义与清理规则完全不同；一个 `item-collection-service` 会同时管两者，边界比拆分前更糟。
+2. **横切生命周期层。** `PlayerItem`（账号级、跨轮回、失败不清）与 `CharacterItem`（轮回级、`defeated` 即清）的持久化语义与清理规则完全不同；一个 `item-collection-service` 会同时管两者，边界比拆分前更糟。
 3. **贫血 CRUD。** 只有 `Add / Remove / Get / Count` 而无规则的服务，规则仍留在调用方——服务层没有承担任何东西。
 
 **同理不为九类 AdventureEvent 各开服务。** 只有 **Combat** 真有自己的状态机；Research / Social / Explore / Exchange / Travel / Mystery 共享同一形状（呈现 → 择一进入 → 扣成本 → 应用产出 → 推拉隐藏属性 → 收口），差异在**数据**而非**代码**。为其各建服务违反可加性原则（新增内容 = 新增 `.tres`，而非新增代码 / 服务）。**Practice 与 Finale 都是 Combat 的变体**，复用 combat-service 的回合循环与参战方结构（CharacterManager + EnemyManager）——三者共用一个 `CombatEventResolver`；**Mystery** 揭示后落到真实 `eventType`。

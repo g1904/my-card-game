@@ -1,4 +1,4 @@
-# achievements / common-properties（Achievements 共有属性）
+# achievement / common-properties（Achievement 共有属性）
 
 > 所有成就条目共有的属性 / 字段与通用流程。
 
@@ -24,4 +24,4 @@
 - **进度采集方式未定：** EventBus 被动订阅 vs 各服务主动上报。→ `systems/services/profile-service.md`。
 
 ## 对应
-提炼至：`.claude/knowledge/systems/player-profile/achievements/common-properties.md`（待建）。
+提炼至：`.claude/knowledge/systems/player-profile/achievement/common-properties.md`（待建）。

@@ -31,7 +31,7 @@
 | [player-profile/](player-profile/_index.md) | 玩家档案（跨轮回的元进程）。 |
 | &nbsp;&nbsp;├ [player-item/](player-profile/player-item/_index.md) | 可购道具定义。 |
 | &nbsp;&nbsp;├ [player-power/](player-profile/player-power/_index.md) | 被动修正 / relic-joker。 |
-| &nbsp;&nbsp;├ [achievements/](player-profile/achievements/_index.md) | 分组成就与两档（60% / 90%）一次性奖励。 |
+| &nbsp;&nbsp;├ [achievement/](player-profile/achievement/_index.md) | 分组成就与两档（60% / 90%）一次性奖励。 |
 | &nbsp;&nbsp;├ [codex/](player-profile/codex/_index.md) | **图鉴族（六个）**：Enemy / CharacterPower / PlayerPower / CharacterItem / PlayerItem / Location —— 账号级静态文案知识，不含动态情报。 |
 | &nbsp;&nbsp;├ [account-info](player-profile/account-info.md) | 账号身份与状态元数据。 |
 | &nbsp;&nbsp;└ [game-setting](player-profile/game-setting.md) | 账号级常规系统设置。 |

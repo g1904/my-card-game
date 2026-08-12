@@ -77,7 +77,7 @@
 > _尚未解决，需要一次 handoff/决策。_
 
 - **计数字段是否要（遭遇 / 击败 / 败于其手次数）。** 解锁已是一次性全量，计数只服务于收集感与成就；要不要、记哪些未定。→ `common-properties.md`。
-- **是否与成就 / 奖励挂钩。** 收集完成度是否发放 PlayerPower / PlayerItem 等奖励未定。→ `systems/player-profile/achievements/`。
+- **是否与成就 / 奖励挂钩。** 收集完成度是否发放 PlayerPower / PlayerItem 等奖励未定。→ `systems/player-profile/achievement/`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/codex/enemy-codex.md`（待建）。

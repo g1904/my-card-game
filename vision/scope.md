@@ -9,7 +9,7 @@
 - **一层极简的卡牌构筑：** 一副起始 deck，外加通过 AdventureEvent 获得/移除卡牌。
 - **带 seed 的轮回**（**同一 `contentVersion` 内**可复现）以及位于篇章边界的单一**存档/记录点**。
 - **竖屏、触控**——在手机上单手可玩。
-- **前置屏幕外壳：** 登录屏（T&S + 循环视频占位 + **强制账号登录**）→ 主菜单（切换已解锁篇章、PlayerProfile / PlayerPower / Achievements / Settings 入口）。**已移除游客态**——所有玩家必须登录账号后才能游玩。见 `ux/screen-flow.md`。Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
+- **前置屏幕外壳：** 登录屏（T&S + 循环视频占位 + **强制账号登录**）→ 主菜单（切换已解锁篇章、PlayerProfile / PlayerPower / Achievement / Settings 入口）。**已移除游客态**——所有玩家必须登录账号后才能游玩。见 `ux/screen-flow.md`。Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
 - **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。见「平台与约束」。Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。
 
 ## 范围之外（暂时）

@@ -1,6 +1,6 @@
 # codex（图鉴族）
 
-> **图鉴 = 账号级的知识收集面**，共**六个**：敌人 / **神通**（CharacterPower）/ **法则**（PlayerPower）/ **法宝**（CharacterItem）/ **古宝**（PlayerItem）/ **地域**（Location）。跨轮回持久，归 PlayerProfile。它是元进程的**第三条积累线**（与法则、Achievements 的「成就」并列）。中文定名见 `terminology.md`（08-03 改写）。
+> **图鉴 = 账号级的知识收集面**，共**六个**：敌人 / **神通**（CharacterPower）/ **法则**（PlayerPower）/ **法宝**（CharacterItem）/ **古宝**（PlayerItem）/ **地域**（Location）。跨轮回持久，归 PlayerProfile。它是元进程的**第三条积累线**（与法则、Achievement 的「成就」并列）。中文定名见 `terminology.md`（08-03 改写）。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
@@ -12,7 +12,7 @@
 | **EnemyCodex** | 已遭遇的敌人（`EnemyData` 条目） | [enemy-codex](enemy-codex.md) |
 | **CharacterPowerCodex** | 角色（轮回级）能力 `CharacterPower` | ⟨待播种；对象定义见 `../../character-profile/power/`⟩ |
 | **PlayerPowerCodex** | 账号级能力 `PlayerPower` | ⟨待播种；对象定义见 `../player-power/`⟩ |
-| **CharacterItemCodex** | 角色（轮回级）道具 `CharacterItems` | ⟨待播种；对象定义见 `../../character-profile/item/`⟩ |
+| **CharacterItemCodex** | 角色（轮回级）道具 `CharacterItem` | ⟨待播种；对象定义见 `../../character-profile/item/`⟩ |
 | **PlayerItemCodex** | 账号级道具 `PlayerItem` | ⟨待播种；对象定义见 `../player-item/`⟩ |
 | **LocationCodex** | 已去过的地域（location 条目） | ⟨待播种；对象定义见 `../../game-progression.md`⟩ |
 
@@ -52,7 +52,7 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 - **「记连边」的显影粒度（08-06c 收窄 · 承重）。** **记连边已定案**（跨轮回重建整张图是设计目标）；仍待定：去过 A 之后，词条列出的是 **A 的全部邻接（含从未去过的 B，地名因此被提前看见）**，还是**只记已实际走过的那几条边**？前者才真正支持「提前两步规划路线」、也才让整张图在有限轮回内可重建；后者纯回溯、更保守。**本库现按前者理解，待确认。** Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`。
 - **LocationCodex 的其余词条深度（08-05b 新增）。** 除连边外还写什么（风物文案？该地域的事件类型倾向？敌人清单？`eventCountLimit`？）未定。**连带：它的呈现形态与其余五本不同**（一张逐步显影的图 vs 列表 / 网格），归 `ux/screen-flow.md`。Source: `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md`。
 - **各图鉴的词条深度是否一致。** EnemyCodex 已定为五项文案；能力 / 道具类的词条该写什么（效果说明？获取途径？出处传说？）未定。
-- **是否与成就 / 奖励挂钩。** 收集完成度是否发放 PlayerPower / PlayerItem 等奖励未定。→ `../achievements/`。
+- **是否与成就 / 奖励挂钩。** 收集完成度是否发放 PlayerPower / PlayerItem 等奖励未定。→ `../achievement/`。
 - **入口与浏览形态。** 六本图鉴在主菜单如何组织（一个「图鉴」入口下分六页？）、战斗内能否查阅（EnemyCodex 尤其相关）。→ `ux/screen-flow.md`、`ux/combat-ux.md`。
 
 ## 对应

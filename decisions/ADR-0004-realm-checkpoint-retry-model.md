@@ -20,6 +20,6 @@ roguelike 的轮回需要一套明确的**境界阶梯 / 篇章存档 / 重试**
 ## Consequences
 - **存档角色是有限资源。** 落过境界存档的角色在后续篇章重试有限（3 / 1；持礼包 9 / 3），耗尽即该篇章重新锁定——构成元进程压力。**付费可放宽这条压力线（∞ / 9 / 3），这是有意的口径变化**；平衡时以**免费档为「应当可通关」的基准**，付费档是宽松化而非必需品。见 `systems/monetization.md`。
 - **重试上限的读取要经一层。** 上限既然可被账号级持有状态改写，凡读取它的地方（`RetryChapter` 判定、篇章解锁 / 重新锁定、剩余次数展示）都不得硬编码常量。
-- **数据模型对齐。** PlayerProfile 持 `List<CharacterProfile>`；CharacterProfile 持 `status`、`chapter`、`Status`、`List<AdventureEvent>` 等（见 `systems/services/life-cycle-service.md`）。
+- **数据模型对齐。** PlayerProfile 持 `List<CharacterProfile>`；CharacterProfile 持 `status`、`chapter`、`Status`、`pastEvent: IReadOnlyList<PastEventEntry>` 等（见 `systems/services/life-cycle-service.md`）。
 - **存档实现须原子 + 版本化**（见 ADR-0003 与 `state-save-rules.md`）；云端权威下存档为上行云端负载。
 - **待办：** 重试上限若后续视作可调平衡项，归 `systems/balance.md`；篇章衔接的「可用结束点」具体数据表达见 `systems/game-progression.md`。

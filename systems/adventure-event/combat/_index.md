@@ -20,12 +20,15 @@
 - **Combat = 三档难度中的「大盲」（已定案 · 改写值已给）。** Practice / Combat / Finale 对位 Balatro 的 **small / big / boss blind**。**回合数与胜负判据是遭遇参数，落在 `EncounterSpec` 上**（不落 `EnemyData`）：**Practice 8 回合 `(WinMargin 0, DrawCountsAsLoss false)` / Combat 10 回合 `(1, false)` / Finale 12 回合 `(N, false)`**。**难度旋钮 = `WinMargin`，回合数 = 节奏旋钮。** **推论：10 回合与「道念高者胜」是 Combat 这一档的默认值，不是全局常量**。借的是 blind 的难度分档结构，不是它的计分结构。取值与理由见 `systems/balance.md`。Source: 同上 + `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
 - **胜负判据参数化为两个数，不做「可替换的判定对象」（已定案）。** `VictoryRule(int WinMargin, bool DrawCountsAsLoss)`：`d = 角色道念 − 敌人道念`；`d >= WinMargin` → Victory；否则 `DrawCountsAsLoss ? Defeat : Draw`。代入已陈述的全部需求（标准 Combat `(1, false)`、Practice「打平即通过」`(0, false)`、Finale「必须领先 N 点」`(N, false)`）已完全覆盖——**无需策略枚举、无需分发**。Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
 - **卡牌结算 = stack，但交互与优先权移除（已定案 · 承重 · 08-02b 收窄）。** 借入 MTG 的 **stack**（先入栈、后进先出、「打出」与「结算」分两个时刻）；**但 instant / 栈非空时出牌与优先权传递整体不借**——理由是它们**拉长时长、决策点过多、复杂度高而深度收益小**。**推论：「双方各 5 个回合、我打完换你打」的简单交替成立**，且**「定长 = 每场时长可预测」恢复成立**。规则细则见 `systems/character-profile/deck/`。Source: `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md`。
-- **回合结构 = 三步（已定案 · 08-02b）。** **开始阶段**（回合归属方 mana 恢复至 `manaLimit` → 触发「回合开始时」→ 抽牌）→ **行动阶段**（唯一出牌阶段，只有归属方出牌）→ **结束阶段**（触发「回合结束时」→ 清理回合内的非永久条目）。**中文侧统一以「阶段」收尾、英文侧统一以 `step` 收尾**（`start step` / `action step` / `end step`，08-04b 定名；`main phase` 弃用）。**出牌时机是唯一的、且是全局规则**：自己回合的行动阶段、栈为空时——`sorcery speed` 一词亦不借（08-04b 整条弃用）。**三步是回合归属方的流程，双方不同时走**：每一方在自己的回合内各走一套完整的三步，「回合开始 / 回合结束」是有归属方的时点，不是双方同步的公共时刻。**去掉战斗步骤、不设双主阶段**——**推论：没有 MTG 式的攻击阶段**，道念的产出 / 削减全部经由行动阶段打出的卡牌，不存在第二条结算通道。完整结构与步内顺序的意义见 `systems/services/combat-service.md`。Source: 同上。
+- **回合结构 = 三步（已定案 · 08-02b）。** **开始阶段**（回合归属方 mana 恢复至 `manaLimit` → 触发「回合开始时」→ 抽牌）→ **行动阶段**（唯一出牌阶段，只有归属方出牌）→ **结束阶段**（触发「回合结束时」→ 清理回合内的非永久条目）。**中文侧统一以「阶段」收尾、英文侧统一以 `step` 收尾**（`start step` / `action step` / `end step`，08-04b 定名；`main phase` 弃用）。**出牌时机是唯一的、且是全局规则**：自己回合的行动阶段、栈为空时——`sorcery speed` 一词亦不借（08-04b 整条弃用）。**三步是回合归属方的流程，双方不同时走**：每一方在自己的回合内各走一套完整的三步，「回合开始 / 回合结束」是有归属方的时点，不是双方同步的公共时刻。**去掉战斗步骤、不设双主阶段**——**推论：没有 MTG 式的攻击阶段**，道念的产出与卡牌侧削减全部经由行动阶段打出的卡牌（另一条独立通道是开始阶段抽牌触发的疲劳，见下）。完整结构与步内顺序的意义见 `systems/services/combat-service.md`。Source: 同上。
+- **先后手：剧情可指定，否则随机（已定案 · 08-11c）。** 先手方由 **`EncounterSpec.FirstSide`**（可空）承载，由 future-event-service 物化 eventOption 时写入（剧情意图经 plot-manager 调制）；**未指定时由 combat 子流掷**，同一 seed 复现同一个先后手。与「不设先后手抽牌差」并行不悖——后者说不做补偿，前者说谁先动。Source: `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md`。
+- **抽牌堆不重洗，抽空即疲劳（已定案 · 08-11c · 承重）。** 弃牌堆不回流；**抽牌堆为空后每尝试抽一张牌，抽牌方 −1 道念**（下限 0 照常截断）。**这是道念的第二条削减通道**，也让**卡组规模成为真实的构筑 / 编排取舍**（两侧皆不设规模硬限）。**卡组耗尽仍不终止战斗**——定长 10 回合不变，只是从此每回合稳定失血。Source: 同上。
+- **起始手牌 4、不设 mulligan（已定案 · 08-11c）。** 起始手牌一次发到位，没有换牌 / 调度窗口；**起始 mana = `manaLimit`**（满值开局，首回合不设例外）。数值（起手 4 / 每回合抽 2 / 手牌上限 9）见 `systems/balance.md`。Source: 同上。
 
 - **战场（battlefield）= 战斗的公共区（已定案 · 08-03 · 承重）。** 场上的**全部准确数据**（正在生效的卡牌、持续状态、等待中的触发器）落在 battlefield 上，由 combat-service 的 **BattlefieldManager** 持有；**栈**另由 **StackManager** 持有。**二者是两个区**：栈 = 等待结算的队列，战场 = 已结算并正在生效的东西——结算路径 = **打出 → 入栈 → LIFO 弹出结算 → 效果施加 →（若持续）落到战场**。**推论 ①：至今空白的「回合内效果 / 状态系统」有了承载结构**——状态即**战场上带生命周期标记的条目**，结束阶段清理标记为回合内的那些。**推论 ②：意图的合并结果须以战场为输入**（场上的持续状态会改写本回合出牌的最终结果）。**推论 ③：战场必须进入呈现层**（栈之外的第二个区）。Source: `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
 - **触发式效果的载体开放，不专属卡牌（已定案 · 08-03）。** 牌上的触发器、**场上的持续状态**、**CharacterPower（神通）** 都可能承载，**清单可再增**；「谁在监听哪个时点」的注册面坐在战场上，命中后由 StackManager 压栈。**推论：轮回级能力必须能被战斗内读到**——参战方组装时要把角色持有的神通注册进战场。Source: 同上。
 - **道念下限 0 在每一次结算时截断（已定案 · 08-03）。** 溢出的削减量不结转，故 **LIFO 顺序对最终结果有实际影响**（削减与产出交错时）。见 `systems/scoring.md`。Source: 同上。
-- **卡牌类型六分 + 异能三分 + 永久物（已定案 · 08-04b · 承重）。** 六类 = **法术 `Sorcery`** / **灵宠 `Creature`** / **阵法 `Enchantment`** / **法宝·古宝 `Item`** / **神通·法则 `Power`** / **业障 `Affliction`**；异能三分 = **静止式 / 启动式 / 触发式**（与 08-03 的「载体开放」正交：载体说「挂在谁身上」，类型说「怎么生效」）；**永久物 = 战场条目的子集**（灵宠 / 阵法 / `Power`），**永不被结束阶段清理**。**推论 ①：战斗内的来源区从一个变成三个**——卡组（受抽牌运）· 本场可用道具（不受抽牌运，需玩家动作）· 开局入场的 `Power`（不受抽牌运，无需动作）。**推论 ②：卡牌类型与意图类别正交**——前者是结算生命周期的分类，后者是敌人行为的展示分类，**不共用一套枚举**（否则「既产道念又削对方道念的牌属于哪类」无解，且意图类别一改就波及卡牌数据）。**推论 ③：灵宠是「延迟回报」型的道念产出通道**——法术即时产出、灵宠分期产出，**越接近第 10 回合灵宠越不划算**；定长战斗天然给了它一条内建的时间价值曲线，不需要额外机制支撑。规则细则见 `systems/character-profile/deck/`。Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`。
+- **卡牌类型五分 + 异能三分 + 永久物（已定案 · 承重）。** 五类 = **法术 `Sorcery`** / **阵法 `Enchantment`** / **法宝·古宝 `Item`** / **神通·法则 `Power`** / **业障 `Affliction`**；异能三分 = **静止式 / 启动式 / 触发式**（与 08-03 的「载体开放」正交：载体说「挂在谁身上」，类型说「怎么生效」）；**永久物 = 战场条目的子集**（阵法 / `Power`），**永不被结束阶段清理**，且**不再区分实体 / 非实体**。**推论 ①：战斗内的来源区从一个变成三个**——卡组（受抽牌运）· 本场可用道具（不受抽牌运，需玩家动作）· 开局入场的 `Power`（不受抽牌运，无需动作）。**推论 ②：卡牌类型与意图类别正交**——前者是结算生命周期的分类，后者是敌人行为的展示分类，**不共用一套枚举**（否则「既产道念又削对方道念的牌属于哪类」无解，且意图类别一改就波及卡牌数据）。规则细则见 `systems/character-profile/deck/`。Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`。
 - **满手时抽牌抽不进（已定案 · 08-03）。** 牌留在抽牌堆、本次抽牌无事发生；「加入手牌」类效果同理落空。**手牌上限因此是纯上界与节奏约束**，不产生弃牌堆流量。见 `systems/character-profile/deck/`。Source: 同上。
 
 ### 结算产物（已定案）
@@ -59,7 +62,7 @@
   |------|--------|------|
   | 攻击 | `Offense` | 净效果是**削减对手道念** |
   | 防御 | `Defense` | 净效果是**保护自身道念**（抵消 / 减免 / 免疫 / 清除对手场上条目） |
-  | 增益 | `Buff` | 净效果是**提升自身道念或自身后续产出**（产道念、加成、灵宠 / 阵法落场） |
+  | 增益 | `Buff` | 净效果是**提升自身道念或自身后续产出**（产道念、加成、阵法落场） |
   | 特殊 | `Special` | 不落入上述三类者：抽牌 / 过牌、mana 操作、弃牌、探查、规则改写 |
 
   - **映射 = 内容侧静态标注**：每个 `AbilityData` / 效果原语带一个 `IntentCategory` 字段（`.tres` 上的静态字段），**不从合并结果反推**（「既产道念又削对方道念的牌属于哪类」无解）。填错不崩溃，只会误导玩家 → 加载期 `PushWarning` 软检查（例：削减类效果标成 `Buff`）。
@@ -96,7 +99,7 @@ Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
 - **敌人意图三档揭示（按全局等级差）；探查为第二条信息通道** —— 已定案。Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
 - **危险度 = eventOptions 上精确标注敌人等级（否决模糊档位）；等级差因此可见** —— 已定案。Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md`。
 - **引入 battlefield（战场）及 BattlefieldManager / StackManager；触发载体开放；道念下限 0 逐次结算截断；满手抽不进** —— 已定案。Source: `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
-- **卡牌类型六分 + 异能三分 + 永久物 + 次类型体系；触发条件可跨归属方（埋伏成立）；意图 = 快照而非承诺；敌人同样持有 item 与 power 且道具计入意图** —— 已定案。Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`。
+- **卡牌类型五分 + 异能三分 + 永久物 + 次类型体系；触发条件可跨归属方（埋伏成立）；意图 = 快照而非承诺；敌人同样持有 item 与 power 且道具计入意图** —— 已定案。Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`。
 - **敌人赋级的合法区间 = 相对角色等级的 `±2` 带（取代按境界给的绝对上界，三章统一，三类战斗事件一视同仁，`±2` 为无例外的硬规则）；埋伏进入敌人卡池但不计入意图** —— 已定案。Source: `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` + `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
 - **意图三档阈值整体收紧一级、三档在带内全部可达；意图类别枚举 = `Offense / Defense / Buff / Special`（内容侧静态标注 + 20% 贡献阈值选主类别）；遭遇参数（回合数 / `VictoryRule`）落 `EncounterSpec`；enemies 升格为 `systems/enemies/`** —— 已定案。Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
 - **Combat 为分类法第二类** → `decisions/ADR-0002-adventure-event-taxonomy.md`。
@@ -107,7 +110,6 @@ Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
 - **平局已定案：** 10 回合打满道念相等 → **只发基础奖励**、不扣 lifeTotal（`CombatOutcome.Draw`）。**Practice 档 `WinMargin = 0` 使 `Draw` 在该档永不可达**——干净的退化，呈现层需知晓。
 - **卡牌产 / 削道念的量纲基准：** 一张牌该产多少、10 回合内一方总产出相对起始值的倍数——**它决定越级追分是否可能**；是否存在道念相关的状态与倍率亦未定。**已归 ch1 数值标杆专场。** → `systems/character-profile/deck/`、`systems/balance.md`。
 - **效果关键字体系与目标规则（承重 · 需一次专门 handoff）：** 效果的原子操作清单与求值管线已定（见 `systems/character-profile/deck/`），但**关键字体系**（可复用的效果词汇表）与**目标规则**（谁可以指定谁、合法性的完整判据）仍是结构占位。→ `systems/adventure-event/common-properties.md`、`systems/character-profile/deck/common-properties.md`。
-- **先后手由谁决定：** 「不设先后手抽牌差」已定案（本作不存在先手 tempo 优势，故无需补偿）；但**谁先手**本身依什么决定（固定角色先手？按等级？随机？）未定。→ `systems/services/combat-service.md`。
 - **属性模型与战斗资源共存：** 隐藏属性（道心 / 煞气 / 寿元）与 mana / 道念 / lifeTotal 如何共存与推拉未定。→ `systems/services/plot-manager.md`、`systems/services/life-cycle-service.md`。
 - **敌人 AI 的规划算法：** 「回合级一次性规划」与规划输入（卡组 + 战场 + 本场可用道具 + 对手埋伏计数）已定；具体算法、多回合行为倾向、难度旋钮落点未定义。→ `systems/enemies/`。
 - **敌人平衡：** 敌人各等级的道念**产出**能力（起始值已由 `baseMomentum` 给定）、随境界 / 篇章缩放未定。→ `systems/balance.md`。

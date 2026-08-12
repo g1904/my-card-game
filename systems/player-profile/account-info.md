@@ -12,7 +12,7 @@
   - **它不进 `SeedManager`、不进四条子流清单**，因此不触及「增删子流不 bump schema 版本」那条纪律，也**不影响轮回的可复现性**（不派生自 `CycleSeed`、不消耗任何子流 `State`）。
   - **它同时是一条客户端 ↔ 后端契约**：种子在后端，客户端掷骰、后端可离线复算任一次掷骰结果，防篡改能力不因客户端执行而丢失。下发时机、复算不一致时的处置归后端库，见 `backend-design-documents/open-questions.md`。
   Source: `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md`。
-- **本子系统为独立 markdown（已定案）。** 结构轻，不成文件夹——与 `player-item/` / `player-power/` / `achievements/` 三个文件夹子系统区分。Source: `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
+- **本子系统为独立 markdown（已定案）。** 结构轻，不成文件夹——与 `player-item/` / `player-power/` / `achievement/` 三个文件夹子系统区分。Source: `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`。
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
