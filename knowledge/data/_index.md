@@ -1,10 +1,12 @@
 # 数据索引（引用层）
 
-> **内容即系统的字段 / 内嵌类型**——不单列内容层。**权威在 `game-design-documents/systems/`**（各内容类型的字段、schema、平衡数值）与 `systems/services/content-service.md`（管线、仓储接口、增量下载与签名的完整形状）。此处只留导航与承重纪律。规则：`.claude/rules/data-resource-rules.md`。
+> **类定义与条目实例分两处**：**「这类内容怎么运作」的权威在 `game-design-documents/systems/`**（各内容类型的字段、schema、平衡数值），**「有哪些条目」的权威在 `game-design-documents/content/`**（一条内容一份文档 + 类型档案）；管线、仓储接口、增量下载与签名的完整形状在 `systems/services/content-service.md`。此处只留导航与承重纪律。规则：`.claude/rules/data-resource-rules.md`。
 
 ## 代码现状
 
 **尚未编写任何内容。** `game-feature-branch/` 无 `.tres`、无 `XxxData : Resource` 类、无 `res://content/` 目录。下表是**规划**。
+
+**内容条目的共有字段**（`ContentEnabled` · `LocalizedText` · `Rarity` · `SourceCode` + `Source` · `ExclusiveSource`）**定义只在最小公共祖先一层**，权威见 `systems/common-properties.md`「内容共有字段」——各落点只写投影，此处不复制字段表。
 
 ## 内容类型 → 权威位置
 
@@ -13,6 +15,8 @@
 | Card（卡牌） | `CardData` | `character-profile/deck/` |
 | 卡牌次类型 | `CardSubtypeData` | `character-profile/deck/`——**稳定字符串 id 的 `.tres` 注册表，不是 C# 枚举**（须能被效果筛选引用）；id 规范 `<maintype>.<name>` |
 | 异能 | `AbilityData` | `character-profile/deck/`——静止式 / 启动式 / 触发式三分，与「载体」正交，抽为可复用条目 |
+| 功法 | `CultivationTechniqueData` | `character-profile/deck/`——**卡组的构筑单位**（整组入组 / 逐层整组替换）；逐层的卡牌定义挂在它上面 |
+| 角色（模板） | `CharacterData` | `character-profile/`——有身份的角色模板（≠ 轮回态 `CharacterProfile`），自带一个神通与两门绑定功法 |
 | 法则 / 神通（Power） | `PlayerPowerData` / `PowerData` | `player-profile/player-power/`、`character-profile/power/` |
 | Enemy（敌人） | `EnemyData` ↔ `EnemyInstance` | **`systems/enemies/`**（与 adventure-event 平级）——含样本卡组、`EncounterScopes` / `PoolScope` |
 | AdventureEvent（修行事件） | `AdventureEventData` | `adventure-event/`（拆入九个子类型） |
@@ -29,7 +33,7 @@
 2. **抽取走 `AllEnabled()`。** 每个条目带共有字段 `ContentEnabled: bool`（默认 `true`），是线上灰度 / 分批放量 / 秒关开关——**秒关与灰度走 flags 通道**（按账号、轮回中途可热应用），overlay 只承担随内容一起发布的初值。**关键的不对称**：**产出侧**（eventOptions 物化、商店库存、奖励掷骰）只从 `AllEnabled()` 抽；**读取侧** `Get(id)` / `TryGet` **不过滤**——存档引用到刚被关闭的条目仍须正确解析。**仓储上没有中性名 `All()`**——全量走 `AllIncludingDisabled()`，写下 `All()` 会编译失败（`[Obsolete(error: true)]`）。漏写过滤即线上事故。
 3. **`XxxData : Resource` 是模板不是成品，运行时绝不写它。** 它是注册表里的**共享只读单例**、可被 overlay 覆写；写回会污染同一轮回的后续批次与其他角色。
 4. **「内容定义 + 情境 / 轮回内状态」= 两个类型：** `AdventureEventData` ↔ `EventOption`（物化定稿，**不可变**，落存档）、`CardData` ↔ `CardInstance`（运行态**可变**）、`EnemyData` ↔ `EnemyInstance`（物化定稿，**不可变**；**敌人等级即物化产物**，嵌 `EventOption` 落存档）。共享纪律：**服务签名里传实例，不传 `Resource`**。
-5. **静态展示文案就留在 `XxxData` 上**（可本地化、可改而不破坏引用），不为「充血模型」另建并行展示类；动态组合走呈现期 ViewModel。**运行时 / 存档态只带 `Id` + 可变状态**，不复制展示文本——文案变更不触发存档迁移。
+5. **静态展示文案就留在 `XxxData` 上**，且**类型是 `LocalizedText` 而非裸 `string`**（多语言是条目内嵌字段，加一门语言 = 在 `.tres` 里加一个键；裸 `string` 会把语言数焊进 C# 类并让线上补文案必须发版）。**`LocalizedText.Get()` 必须纯读，绝不把解析结果写回 `XxxData` / `LocalizedText`**——它是 ContentRegistry 里的共享只读单例，缓存写回会污染注册表；要缓存就缓存在 ViewModel 上。**`LocalizedText` 不落存档、不进上行负载。** → `systems/common-properties.md`「内容文本的多语言形态」。不为「充血模型」另建并行展示类；动态组合走呈现期 ViewModel。**运行时 / 存档态只带 `Id` + 可变状态**，不复制展示文本——文案变更不触发存档迁移。
 6. **校验点在合并之后。** overlay + 基线合并完再统一校验：重复 `Id`、悬空交叉引用 → 启动期 `GD.PushError`，早失败。**`ContentEnabled == false` 的条目照常参与全量校验**——它们是完整内容，只是不进抽取池。
 7. **可调数值存导出字段 / `BalanceData`**，绝不硬编码在系统逻辑里。
 8. **不散落 `ResourceLoader.Load`** ——一切内容经 ContentRegistry。

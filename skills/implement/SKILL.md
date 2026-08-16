@@ -68,4 +68,5 @@ argument-hint: [蓝图名或功能描述]
 - 提醒用户按第 4 步的验证步骤走一遍验收标准。
 - **验证通过后**（用户在本 session 内确认，或明确要求直接翻转），把 `game-design-documents/requirements/FR-<id>.md` 的 `status` 翻为 `built`，并同步 `_index.md` 中对应行。
 - 若 session 在验证前结束，把 FR 留在 `blueprinted`，并在摘要中注明"验证通过后请把 FR-<id> 翻为 built"——**台账绝不领先于事实**。
+- **源自内容条目的蓝图同理**：验证通过后把 `game-design-documents/content/<类型>/<id>.md` 的 `status` 翻为 `built`，并同步该类型档案 `_index.md` 的条目台账（内容不进 FR 台账）。
 - 同时更新 `.claude/blueprints/_index.md` 中该蓝图的状态（实现中 `implementing` → 验证通过 `built`）。

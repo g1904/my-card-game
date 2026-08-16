@@ -1,7 +1,7 @@
 ---
 name: blueprint
 description: 探查项目、校验请求、澄清未知项，并保存一份实现蓝图。
-argument-hint: <FR-<id> | 功能描述>
+argument-hint: <FR-<id> | content/<类型>/<id>.md | 功能描述>
 ---
 
 # Blueprint
@@ -17,6 +17,12 @@ argument-hint: <FR-<id> | 功能描述>
 - 把它的 **Acceptance criteria** 当作蓝图的成功条件（蓝图必须使它们可达成、且可在 Godot 编辑器中验证）。
 - 遵循它的 **Scope**（in/out）、**Data & state touchpoints**，以及 `depends-on` 顺序。
 - 若该 FR 仍为 `status: draft` 或有非空的 `## Open questions`，则标出它：它尚未签署——在设计前与用户确认，或把他们送回去解决它（`/analyze-new-ideas` → `/derive-requirements`）。
+
+若 `$ARGUMENTS` 是一份**内容条目文档**（`game-design-documents/content/<类型>/<id>.md`——内容不经 FR，直接进本技能），读取它并以它为规格：
+- 把它的 **验收断言** 当作蓝图的成功条件；**字段填写表**是要落成 `.tres` 的东西，**机制细节**是需要哪些代码支撑。
+- 一并读该类型的档案 `content/<类型>/_index.md`（字段核对清单 · 交叉引用表）与它 `class-authority` 指向的 `systems/` 类文档——**条目文档只写取值与回链，字段的语义在那一侧**。
+- 若它仍为 `status: draft`、有 `⟨待定⟩` 字段或非空 `## Open questions` → 标出来，它尚未签核；送回 `/author-content`，不要在蓝图里替用户填。
+- 若它的效果无法由既有机制表达 → 这是缺一条**类型级**设计，回退 `/analyze-new-ideas`，不要边设计边发明机制。
 
 若它是一段自由文本描述，直接使用。
 
@@ -69,5 +75,6 @@ argument-hint: <FR-<id> | 功能描述>
 ### 6. 闭环
 - 在 `.claude/blueprints/_index.md` 中新增/更新对应行（最新的置顶）：`blueprint | source-fr | date | status`，status 置为 `designed`。
 - 若本蓝图源自某个 `FR-<id>`，更新 `game-design-documents/requirements/`：把该 FR 的 `blueprint:` 设为保存路径，把它的 `status` 翻为 `blueprinted`，并更新 `_index.md` 中的对应行。（这让需求台账如实反映哪些已设计、哪些仍待处理。）
+- 若本蓝图源自一份**内容条目文档**，同样闭环：把条目的 `blueprint:` 设为保存路径、`status` 翻为 `blueprinted`，并更新 `content/<类型>/_index.md` 条目台账的对应行（内容不进 FR 台账，完成度只在那里追踪）。frontmatter 的 `source-fr:` 填条目路径。
 
 最后建议：运行 `/implement` 来构建该蓝图。

@@ -52,6 +52,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - 为每个 FR，从该库的 `_TEMPLATE.md` 创建 `<LIB>/requirements/FR-<system>-<slug>.md`（后端库的 `<system>` 即模板中的 `<service>`）。复用文档命名，使其与主题文档匹配。
 - 设 `status: draft`（等待用户签署），并列出所有 `source-docs`。
 - 若某 FR 会与既有的重复，则**增量更新它**而非创建第二个——不要覆盖先前的验收标准。
+- **FR 正文不写过程坐标、不写「已定案」**（`requirements/` 是活文档）：不出现 handoff 日期戳（`08-12` 这类）、`handoffs/*.md` 路径、「推翻 X / 取代 X / 原方案」。溯源由 frontmatter 的 `source-docs` 承担，正文里不重复；`source-docs` 指向**主题文档**，不指向 handoff。
+  增量更新既有 FR 时，删掉的旧验收标准若其否决理由承重，把**理由**写进新标准的说明，**不写它取代了哪一条、在哪一天**。全文见 `/analyze-new-ideas` 第 6b 步「溯源三条」。
 - 在 `requirements/_index.md` 中新增/更新行（最新的置顶）：`id | system | title | status | blueprint | source-docs`。
 
 ### 6. 报告并闭环

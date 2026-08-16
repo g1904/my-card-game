@@ -46,6 +46,8 @@
 - **屏幕不直接读服务内部字段。** 呈现期由 UI 层组装 `Data（静态文案，来自 ContentRegistry）+ 运行时状态 + capability 可见性 → ViewModel`。ViewModel **不落存档、不进云端负载**，单向依赖、不被服务反向依赖。
 - **呈现决策归呈现层。** `CapabilityManager` 聚合后经 EventBus 广播 `CapabilitiesChanged`（**空负载**）；**各 UI 组件自行订阅并自查** `Has(flag)` 决定可见性——业务层完全不知道这些 PlayerPower 存在。
 - **EventBus 订阅在 `_Ready`、退订在 `_ExitTree`。** 它是 C# 泛型事件，漏退订即泄漏且**不会报错**。→ `standards/signal-eventbus.md`。
+- **UI 文案一律走 `res://text/` 翻译键，全库不写任何文案字面量**（键形如 `<PARTITION>_<CONTEXT>_<NAME>`；`ERR_*` 保留给 `code` 的机械变换，不得手写）。写下字面量即绕过唯一的语言开关，切语言时那一处静默留在中文。**内容文案不走翻译键**——它走条目内嵌的 `LocalizedText`（→ `data/_index.md`）。→ `ux/error-and-blocking-ux.md`、`ux/_index.md`（四问判据）。
+- **切语言后 ViewModel 不会自己变。** 走翻译键的 `Control` 随 locale 自动重翻，而 `LocalizedText` 不经 `TranslationServer`；**ViewModel 层订阅翻译变更通知，收到即重新组装一次**，否则界面已是英文而卡面仍是中文。
 - **场景是视图，不放数值。** 玩法数值在 `.tres`，由注册表加载。→ `standards/godot-scene-conventions.md`。
 - **呈现层只认档位、不认档位的来源。** 意图三档、碾压 / 越阶两道硬门都**不自我声明**——UI 不加「不足为惧」式标注，也不为黑箱给替代线索。
 - **选目标态：唯一合法目标时不进入该态**（规则层削掉一半进入次数）；单点即确认。挂起后恢复回到该选择点、**不允许反悔**，故选目标态**必须自解释**。

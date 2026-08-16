@@ -1,13 +1,13 @@
 ---
 name: sync-knowledge
-description: 对账 .claude/knowledge/* 与两个事实来源（game-feature-branch/ 的代码现状、game-design-documents/ 的设计意图），修复知识笔记中的漂移，并把偷偷长回来的副本压回薄引用。只写知识文件，不碰代码与设计文档。
-argument-hint: [systems | scenes | data | autoloads | dictionary | standards | all]
+description: 对账**整个 .claude 的设计投影面**（.claude/knowledge/* + .claude/rules/*）与两个事实来源（game-feature-branch/ 的代码现状、game-design-documents/ 的设计意图），修复漂移，并把偷偷长回来的副本压回薄引用 / 一句话 + 回链。只写 .claude 的知识与规则文件，不碰代码与设计文档。
+argument-hint: [systems | scenes | data | autoloads | dictionary | standards | rules | all]
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 
 # Sync Knowledge
 
-`knowledge/*` 是**薄引用层**（已定案），夹在两个事实来源之间：**代码**（`game-feature-branch/`——「实际是什么」）与**设计文档**（`game-design-documents/`——「应该是什么」）。本技能把它对齐到这两者。
+本技能的对账对象是**整个 `.claude` 的设计投影面** —— `knowledge/*`（薄引用层）**与** `rules/*`（工程规则中属于设计投影的那部分），夹在两个事实来源之间：**代码**（`game-feature-branch/`——「实际是什么」）与**设计文档**（`game-design-documents/`——「应该是什么」）。本技能把这两处对齐到这两者。两层的形态判据（知识层「只留链接」、规则层「一句话 + 回链」）权威在 `game-design-documents/decisions/ADR-0005-knowledge-thin-reference-layer.md`。
 
 ## 知识层的职责（决定什么该写、什么该只留链接）
 
@@ -32,10 +32,32 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 | **本作设计的投影** | `architecture.md`、`systems/*`、`data/*`、`scenes/*`、`autoloads/*`、`dictionary.md`、`standards/{signal-eventbus,rng-determinism,save-format}.md` | **薄引用**：导航 + 代码现状 + 承重一句话，**零代码块** |
 | **C#/Godot 引擎实践** | `standards/{csharp-conventions,godot-scene-conventions,mobile-portrait-ui}.md` | **保留实质** ——它们讲的是引擎 / 语言，不是本作设计，在设计库里无权威、不是副本 |
 
+## 规则层的判定（`rules/*`）
+
+`rules/*` 与 `knowledge/*` 是同一条判据的两个刻度：知识层「只留链接」，规则层「一句话 + 回链」（因为 rules 是**前置注入**的，纯链接在注入层失效）。判据全文在 ADR-0005 的「### 2. 规则层的具体形态」，此处只写**怎么查**。
+
+**这两步顺序不能反 —— 先归属分类，再套硬边界。**
+
+**第一步 · 归属分类**（先做；漏做会把 `null-check-rules.md` 的代码块之类误报为漂移）：
+
+| 这段话讲的是 | 归属 | 参与判定 |
+|------|------|----------|
+| **游戏是什么**（机制、数值、字段语义、契约、流程） | 设计库 | **是** —— 它是设计性投影，进第二步 |
+| **代码怎么写**（命名、生命周期、热路径、null 校验、日志、原子写入、工具 / PATH、目录纪律） | `rules/*` **自身即权威** | **否** —— 直接跳过，写多长都不算漂移 |
+| **引擎 / 语言实践**（C# 语法、Godot 节点 API、`Container` 布局） | 引擎，设计库无权威 | **否** —— 直接跳过，同上 |
+
+**第二步 · 只对第一类套硬边界。** 一条设计性投影命中下列**任一**项即报为漂移：
+
+> 代码块 · 表格 · **枚举成员 / 字段清单**（两个以上并列的成员名）· **具体数值 / 阈值 / 默认值** · **完整取值域或分支穷举** · **≥3 步的编号流程** · **超过 3 行** · **无回链** · **回链经 `.claude/knowledge/` 中转的二跳**（回链须直指 `game-design-documents/...`）。
+
+修复形态：压缩为**一句祈使 + 涉及的标识符名 + 一句代价说明 + 一条直指设计库的回链**（ADR-0005 的「投影四件套」）。
+
+**已标注例外（不报为漂移）：** 带「路由用副本」标注块的内容 —— 当前唯一实例是 `design-library-routing.md` 的两库结构差异表。它是技能路由的前置信息，被本审计**覆盖**而非豁免：**当两库 README 的结构发生变更时，把它报为「待同步」**（写进报告的 `### Thinned` 段的 `rules/` 列，标注 `待同步`），而不是当作漏网或当作违规删除。未带该标注块的副本一律照第二步判定。
+
 ## 步骤
 
 ### 1. 确定对账范围
-解析 `$ARGUMENTS`：`systems` / `scenes` / `data` / `autoloads` / `dictionary` / `standards` 之一 → 只对账该领域；`all` 或空 → 全部领域。
+解析 `$ARGUMENTS`：`systems` / `scenes` / `data` / `autoloads` / `dictionary` / `standards` 之一 → 只对账 `knowledge/` 的该领域；`rules` → 只对账 `.claude/rules/*`（跳到步骤 5）；`all` 或空 → 全部领域 **+ `rules/*`**。
 
 ### 2. 采集代码现状（game-feature-branch/）
 - 场景：Glob `game-feature-branch/**/*.tscn`。
@@ -47,7 +69,8 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ### 3. 采集设计现状（game-design-documents/）
 按 `knowledge/architecture.md` 的「知识 ↔ 设计文档对照」表读权威文档：
 - `terminology.md`（根级）↔ `dictionary.md`
-- `systems/` ↔ `systems/*`、`data/*`（内容即系统的字段 / 内嵌类型；`30-content/` 已并入）
+- `systems/` ↔ `systems/*`、`data/*`（`systems/` 持有类定义）
+- `content/`（条目实例层）↔ `data/_index.md` 的导航 —— **只对账「有哪些类型开张了」，不把条目清单抄进 `knowledge/`**；条目台账的权威在各类型档案，`/audit-content` 负责它自身的一致性
 - `systems/services/` ↔ `autoloads/*`
 - `ux/` ↔ `scenes/*`
 - `decisions/ADR-*`（已 Accepted 的决策必须反映）
@@ -66,17 +89,29 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 - **决策未落**：已 Accepted 的 ADR 未反映在相关知识笔记 → 补一句 + ADR 编号。
 - **跨库契约冲突（必查）**：`game-design-documents/` 里出现了与 `backend-design-documents/contracts/` 不一致的协议契约描述 → **契约权威在后端库**。这是设计库**内部**的矛盾，**如实报告给用户，不自行裁决、不改设计库**——但知识层一律回链后端库。
 
-**范围守则：** 只写 `.claude/knowledge/*`（以及 `.claude/blueprints/_index.md` 的状态行，若发现失真）。**不**改游戏代码（那是 `/implement`），**不**改设计文档（那归用户，走 `/analyze-new-ideas`）。发现两个事实来源*彼此*矛盾（代码 ≠ 设计意图），或设计库**内部**滞后（新 handoff 已裁决、主题文档的待决清单没跟上）→ **如实报告，不自行裁决**。
+**范围守则：** 只写 `.claude/knowledge/*` 与 `.claude/rules/*`（以及 `.claude/blueprints/_index.md` 的状态行，若发现失真）。**不**改游戏代码（那是 `/implement`），**不**改设计文档（那归用户，走 `/analyze-new-ideas`）。发现两个事实来源*彼此*矛盾（代码 ≠ 设计意图），或设计库**内部**滞后（新 handoff 已裁决、主题文档的待决清单没跟上）→ **如实报告，不自行裁决**。
 
-### 5. 报告
+### 5. 对账 `rules/*` 的设计投影
+逐份读 `.claude/rules/*.md`（含 `Context.md`），对每一段按上文「规则层的判定」**先归属分类、再套硬边界**，并**直接修复**：
+
+- **设计性副本**：命中硬边界 → 压回**投影四件套**（一句祈使 + 标识符名 + 一句代价 + 直指 `game-design-documents/...` 的回链）。
+- **无回链 / 二跳回链**：补上直指设计库的回链；把经 `.claude/knowledge/` 中转的回链改为直指权威文档。
+- **过时**：规则文件里的设计结论与设计库现状不符（典型：术语、状态字段、流程边界）→ 以设计库为准改写。**工程性约束反向不成立** —— 设计库对「代码怎么写」无权威，不据此改 `rules/*`。
+- **已标注例外**：带「路由用副本」标注块的内容不修改；仅在两库 README 结构变更时报为「待同步」。
+- **已被编译器 / 类型系统强制的纪律**：rules 里的重复条款压成一句「由 X 强制」+ 回链。
+
+### 6. 报告
 ```
 ## Knowledge sync: <范围>
 
 ### Fixed
-- <knowledge 文件>: <改了什么、依据（代码路径 / 设计文档）>
+- knowledge/ · <文件>: <改了什么、依据（代码路径 / 设计文档）>
+- rules/ · <文件>: <改了什么、依据（设计文档）>
 
 ### Thinned（副本压回引用）
-- <knowledge 文件>: 删除 <什么代码形态内容> → 回链 <权威文档>
+- knowledge/ · <文件>: 删除 <什么代码形态内容> → 回链 <权威文档>
+- rules/ · <文件>: 命中 <哪条硬边界> → 压回四件套，回链 <权威文档>
+- rules/ · <文件>: <路由用副本> —— **待同步**（两库 README 结构已变更；已标注例外，未按违规处理）
 
 ### Code ≠ Design / 设计库内部滞后（需用户裁决，未改动）
 - <矛盾点>: <现状> vs <意图>

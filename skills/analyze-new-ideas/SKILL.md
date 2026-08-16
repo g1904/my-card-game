@@ -15,6 +15,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 **范围：** 本技能拥有全部权限，编辑范围**不限于**设计库。新想法本就可能牵涉工具配置（`.claude/`）、跨目录重构、乃至游戏代码——按用户意图执行。默认重心仍是设计意图捕获（`<LIB>/`），但当想法要求触及别处时，径直去做。
 - `<LIB>/` 是用户的事实来源：不要删除或重排他们既有的意图——用取代（supersede）与追加（append）的方式处理。
 - 触碰游戏代码（`game-*-branch/`）通常应留给后续的 `/blueprint` → `/implement`；仅在用户明确要求时才在本技能内直接改代码。
+- **内容条目级的草稿归 `/author-content`，不归本技能。** 判据：讲**这一类**内容的规则（「地域该有哪些字段」）→ 本技能 → `systems/`；讲**某一个具体条目**（「云梦泽这个地域是什么」）→ `/author-content` → `content/<类型>/<id>.md`。输入里两者都有 → 本技能只承接类型级那部分，并在报告中点名条目级那部分需要跑一次 `/author-content`。
 
 ## 步骤
 
@@ -126,10 +127,43 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 - 取代 / 修订一份已经 `distilled` 的 handoff → 通常新建一份新 handoff 承载新意图；但 handoff **并非仅追加**，若就地编辑更清楚（订正、去重、合并）则直接改（历史归 git；见 README）。
 
 ### 6. 提炼进设计文档
-对该 handoff 注入的每个文档，把意图折进其活跃小节（`## Intent`，以及相关时的 `Open questions`、`Decisions`）。保持增量——扩展既有条目，不要抹掉先前的意图。每条提炼出的条目都应可回溯：加上 `Source: handoffs/<id>.md`。
+对该 handoff 注入的每个文档，把意图折进其活跃小节（`## Intent`，以及相关时的 `Open questions`、`Decisions`）。保持增量——扩展既有条目，不要抹掉先前的意图。
 - 用真实内容填充空的模板占位符（`> _..._`）。
 - 当想法带有系统 / 内容 / UX 层面的含义（而不仅是愿景）时，为该库的主题文档播种（客户端：`systems/` / `art/` / `ux/`；后端：`contracts/` / `systems/` / `operations/`）。
 - 把已敲定的方向性决策记为 **ADR 候选**（除非用户要求，否则不要写 ADR——那是 `decisions/` 的步骤）。ADR 可自由编辑：要改一个决定，直接改那份 ADR，不必新开取代 ADR（历史归 git）。
+- **写入形态受下方第 6b「溯源三条」约束（强制）**——这是根约定「活文档只保留最新设计，不留考古」的可执行形态。
+
+### 6b. 溯源三条（强制 · 写入活文档时逐条自查）
+
+活文档 = `vision/` · `systems/` · `art/` · `ux/` · `content/` · `contracts/` · `operations/` · `decisions/` · `requirements/`。
+它们要**独立可读**：读者理解当前设计时，**永远不需要打开一份 handoff**。过程档案（`handoffs/` · `inbox/` · `answer-logs/` · `open-questions/`）不受这三条约束，按原样写。
+
+**① `Source:` 挂在小节，不挂在条目。**
+一份文档的一个 `##` 小节**最多一条** `Source:`，放在小节末尾；整份文档由单一 handoff 承载时上提到文档头部。
+同一个 handoff 在同一份文档里出现两次以上 ⇒ 违规，合并掉。
+> 代价：逐 bullet 挂 `Source:` 会让溯源坐标的体量追平甚至超过设计本身，读者被迫在每一句里跳过一段与设计无关的文件名。
+
+**② 正文不写过程坐标。**
+`Source:` 行**之外**的正文，不得出现：handoff 日期戳（`08-12`、`07-27b`、`08-15d` 这类）· `handoffs/*.md` 路径 · 「推翻 X / 取代 X / 由 X 降为 / 原方案 / 已作废 / 曾经是」。
+
+> **保留理由，删除坐标。** 被推翻的旧方案，若它的**否决理由仍然承重**（不写下来，日后会有人重新提出同一个方案），把**理由本身**写成正面陈述留在正文——但不写它推翻了谁、在哪一天。
+>
+> ✗ `手牌上限 7（已定案 · 08-15d · 推翻 balance.md 原写的否决论据）`
+> ✓ `手牌上限 7 —— 上限会成为常态咬合的紧约束，这个后果是被接受的设计取向，不是待修的副作用。`
+>
+> 判据：删掉这段话后，**未来的读者会不会重新提出已被否决的方案**？会 ⇒ 理由承重，改写保留；不会 ⇒ 纯坐标，直接删。
+
+**③ 不写「已定案」。**
+活文档里的每一句**默认就是当前定案**，给它加戳等于没加戳。
+只有在同一处**并置**了非定案项（暂定 / 软标准 / 待验证 / 待用户确认）需要区分时，才标注**那个非定案项**——而不是给定案项加戳。
+
+**自查（写完每份活文档后跑一次，命中即就地修）：**
+```bash
+grep -nE "已定案|推翻|取代|作废|原方案|由.*降为|\b0[0-9]-[0-3][0-9][a-z]?\b" <改动的活文档>
+grep -c "Source:" <改动的活文档>   # 应 ≤ 该文档的 ## 小节数
+```
+
+**遇到既有违规顺手修（限本次改动触及的小节）。** 不要为了守规矩而扩大改动面去重写整份文档——全库收口是独立 session 的事（见 `inbox/` 的三份收口草稿）。
 
 ### 7. 区分充实与臆造（强制）
 - **充实：** 澄清、结构化，并推演出从用户所说内容中逻辑上必然得出的含义。
@@ -143,13 +177,16 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 - **结构：** 索引 `open-questions.md` 只承载说明、`## 分片导航`、`## 当前焦点`（判据）、`## derive 就绪度`、`## 下一阶段`；**问题条目一律落在 `open-questions/<分片>.md` 中**（分片清单以该库索引的分片导航表为准——客户端为 `01-combat.md` … `deferred-content.md`，后端为 `01-contracts.md` … `06-platform-stack.md`），逐次更新摘要落在 `open-questions/update-log.md`。**不要把问题条目写回索引。**
 - **移出已答：** 本 session 被用户拍板/回答的问题，从所在分片删除，并确认已归档进对应主题文档（`## 决策` 或 `## 意图`）。**移出的条目写进本次的 answer log（见 8b），不要在分片里留「已解决」区。**
 - **并入新增：** 本 session 新产生、仍未决的 Open questions 汇总进对应主题的分片（没有合适分片时新建一份并在索引导航表中登记），并指向其所属文档。
-- 索引顶部记一句"最近更新：<日期>"，并在 `open-questions/update-log.md` **顶部**追加本次摘要（答结 / 推翻 / 新增落点 / 对应 answer log）。保持清单与各主题文档 `## Open questions` 一致（清单是导航/拾取用，主题文档是权威归属）。
+- **索引顶部的「最近更新」只写一行（硬上限）**：`最近更新：<日期> — <≤20 字主题>（详见 open-questions/update-log.md · answer-logs/log-<suffix>.md）`。**裁决摘要、逐条结论、推翻说明一律落 `update-log.md` 与 answer log，不写进索引。**
+  > 索引的职能是**导航**。一段几百字的裁决摘要压在顶部，会把分片导航表推到屏幕之外，让这份"用来快速拾起"的文件变成最难读的一份。
+  在 `open-questions/update-log.md` **顶部**追加本次摘要（答结 / 推翻 / 新增落点 / 对应 answer log）——**详细内容写在这里**。保持清单与各主题文档 `## Open questions` 一致（清单是导航/拾取用，主题文档是权威归属）。
+- **顶部说明块（`# 标题` 到 `## 分片导航` 之间）≤ 15 行，且每行 ≤ 200 字。** 判据是**渲染后的体量**而非行数——一段几百字挤在一个 markdown 行里，行数只算 1 但屏幕上是半页。超限即把内容下沉进 `update-log.md`，索引只留一行摘要 + 链接。
 - **分片过长时再拆**：某分片膨胀到难以通读，就按其内部小节拆成两份并更新索引导航表。
 - 若正文里有指向已移出条目的引用（如「见上方已解决」），改为指向对应的 `answer-logs/log-<draftSuffix>.md`。
 - **不要碰「derive 就绪度」小节（强制）。** 该小节由 `/assess-derive-readiness` 独占写入——见下方第 10 步。
 
 **8b. answer-logs/log-\<draftSuffix\>.md（每次运行新建一个文件）**
-- **`draftSuffix` 取值：** 本次处理的输入是 `inbox/draft-<suffix>.md` → 用该 `<suffix>`（例：`draft-0725_2.md` → `log-0725_2.md`）；输入是 `inbox/solution-draft-<slug>.md`（`/provide-solution-draft` 的产物）→ 用该 `<slug>`（例：`solution-draft-rng-persistence.md` → `log-rng-persistence.md`）；输入是粘贴文本或已在 `handoffs/` 的文件 → 用当天 `MMDD`；若同名文件已存在，追加 `_2`、`_3`。
+- **`draftSuffix` 取值：** 本次处理的输入是 `inbox/draft-<suffix>.md` → **原样照抄该 `<suffix>`（含序列字母）**（例：`draft-0816a.md` → `log-0816a.md`）；输入是 `inbox/solution-draft-<slug>.md`（`/provide-solution-draft` 的产物）→ 用该 `<slug>`（例：`solution-draft-rng-persistence.md` → `log-rng-persistence.md`）；输入是粘贴文本或已在 `handoffs/` 的文件 → 用当天 `MMDD`（**不加序列字母**——没有草稿序列可跟随）；若同名文件已存在，追加 `_2`、`_3`（**冲突后缀，与序列字母是两套东西，不要混用**）。
 - **每次移出新建一个文件，绝不追加进旧 log。** 本次若一个问题都没答定，则**不建文件**。
 - 文件内容：标题 `# Answer log <draftSuffix>`，然后 `日期` / `来源`（handoff 或草稿路径）/ `移出条数`，再逐条 `**<问题>** → <结论>（<归档去向文档>）`。若某问题只答定了一部分，写明剩余部分仍留在待答清单。
 - 在 `answer-logs/_index.md` 的台账表追加一行：`log 文件 | 日期 | 来源 | 移出条数`。

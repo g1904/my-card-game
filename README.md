@@ -47,7 +47,7 @@ D:\MyCardGame\
 ### 设计意图
 `game-design-documents/`（`game-design` 分支 —— 仅文档，孤儿历史）承载**客户端**的人工设计交接：游戏*应该*是什么样的事实来源。这里的 `knowledge/*` 是**指向它的薄引用层**（导航 + 代码现状 + 一句话承重纪律，不复述设计内容）。规划一个功能时，先阅读相关的设计文档。
 
-`backend-design-documents/`（`backend-design` 分支 —— 同为仅文档、孤儿历史）承载**后端**的设计意图：账号合规、协议契约、存档同步、内容分发、剧本下发。
+`backend-design-documents/`（`backend-design` 分支 —— 同为仅文档、孤儿历史）承载**后端**的设计意图：账号合规、协议契约、存档同步、内容分发。跨边界的客户端成分只有三个服务（`account-service` / `content-service` / `sync-service`）——剧本内容不跨边界，随 content-service 的 overlay 通道下发。
 
 两个设计库都归用户所有 —— Claude 读它们以做规划，只有在被要求时才编辑。
 
@@ -93,7 +93,10 @@ D:\MyCardGame\
     ├── assess-derive-readiness/ — full sweep: is any design doc ready to derive? (manual)
     ├── derive-requirements/   — detailed design → 片区级 feature requirements (FR-*)
     ├── breakdown-requirements/ — one FR → a folder of executable sub-requirements (one = one blueprint)
-    ├── blueprint/        — explore + design an implementation blueprint (from an FR or free text)
+    ├── scaffold-content-type/ — 就绪度闸门 + 开张 content/<类型>/_index.md（类型档案）
+    ├── author-content/   — 内容条目草稿 → 校验/interview → content/<类型>/<id>.md（直接喂 blueprint）
+    ├── audit-content/    — 内容条目全量对账（Id/引用/字段/池分布/文案覆盖/台账）
+    ├── blueprint/        — explore + design an implementation blueprint (from an FR, a content entry, or free text)
     ├── implement/        — implement per blueprint
     ├── review-local-changes/  — review uncommitted changes
     ├── review-feature/   — review a feature's full chain
@@ -114,12 +117,14 @@ D:\MyCardGame\
 1. `/analyze-new-ideas [--lib=…] <raw>` —— 先校验想法的**逻辑自洽性**与**同既有 ADR / 主题文档 / 承重纪律的兼容性**；有冲突或含糊即**停下来发起 interview 让用户澄清**，拿到答复后才把意图捕获为整洁的 handoff 并提炼进选定设计库的主题文档。无参数运行则扫描该库 `inbox/` 列出待处理草稿。
 2. `/provide-solution-draft <问题>` —— 取 `open-questions.md` 的**一个**待答项，基于既有决策推演 + 行业通行做法给出**提案式**方案，写到 `inbox/solution-draft-<slug>.md`。**人类评审后**再喂回 `/analyze-new-ideas` 提炼（human-in-the-loop）。它只写这一个草稿文件，不裁决问题、不动主题文档。
 3. `/assess-derive-readiness` —— **由用户手动调用**。全量扫描全部主题文档，逐份判定 ready / partial / blocked，并整体重写 `open-questions.md` 的「derive 就绪度」小节（它是该小节的**唯一写入者**）。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不评估就绪度**。**当前：全库尚未进入可 derive 的阶段。**
-4. `/derive-requirements <doc>` —— 一旦某份设计文档已充分详尽（真实意图、无遗留问题），就把**片区级**功能规格产出到 `game-design-documents/requirements/FR-*`。用户签署确认（`draft → ready`）。
+4. `/derive-requirements <doc>` —— 一旦某份设计文档已充分详尽（真实意图、无遗留问题），就把**片区级**功能规格产出到选定库的 `requirements/FR-*`。用户签署确认（`draft → ready`）。
 5. `/breakdown-requirements FR-<id>` —— 把**一份** FR 拆成同名文件夹 `requirements/FR-<id>/` 内的若干**可执行子需求**（每个小到能被 `/blueprint` 一次吃下），带**父验收标准 → 子需求覆盖映射表**。父 FR 翻为 `broken-down`；**父 FR 的签核即覆盖其子需求**。
-6. `/blueprint FR-<id>` —— 探查知识 + 代码、澄清、把一份实现蓝图保存到 `blueprints/`（其验收标准驱动设计）。首选输入是**子需求 id**；自由文本 `/blueprint <feature>` 仍然可用。
+6. `/blueprint FR-<id>` —— 探查知识 + 代码、澄清、把一份实现蓝图保存到 `blueprints/`（其验收标准驱动设计）。首选输入是**子需求 id**；**内容条目文档**（`content/<类型>/<id>.md`）与自由文本 `/blueprint <feature>` 同样可用。
 7. `/implement [blueprint]` —— 在 `game-feature-branch/` 中构建它。
 8. `/review-local-changes` 或 `/review-feature` —— 在提交前捕获 bug。
 9. `/investigate <symptom>` —— 把一个 bug 追溯到按可能性排序的根因 + 诊断步骤。
+
+**内容创作是并行的第二条路（不经 FR）：** `/scaffold-content-type <类型>` 为一个内容类型开张（带**就绪度闸门**：类定义不足以写出可实现的条目时就把话说清楚）→ `/author-content <类型> <草稿>` 把你的条目草稿校验 / interview 后写成 `game-design-documents/content/<类型>/<id>.md` → 你签核 `draft → ready` → **直接 `/blueprint`** → `/implement` → `.tres`。条目一多用 `/audit-content` 做全量对账。**字段清单的权威在设计库的类型档案里，不在技能里**——这正是「一个通用技能 + 十几份类型档案」而非「每类一个技能」的理由（ADR-0005：`.claude` 不承载设计内容）。约定见 `game-design-documents/content/_index.md`。
 
 `knowledge/` 是**指向设计库的薄引用层**（导航表 + 代码现状 + 一句话承重纪律；设计内容不在此复述，见 `decisions/ADR-0005`）—— `/implement` 会在构建时就地更新相关的 `systems/`、`scenes/`、`data/`、`autoloads/` 笔记；怀疑知识与代码/设计脱节时运行 `/sync-knowledge` 做整体对账（它同时把偷偷长回来的副本压回薄引用）。术语的权威在 `game-design-documents/terminology.md`；`knowledge/dictionary.md` 只保留通用的 roguelike 卡组构建体裁词汇，不复制本作专有术语。
 

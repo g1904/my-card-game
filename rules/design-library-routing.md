@@ -56,6 +56,10 @@
 | 知识引用层 | `.claude/knowledge/*` 覆盖 | **无**——后端尚无引用层，技能不要去 `knowledge/` 找后端背景 |
 | 代码落地分支 | `game-feature-branch/` | `backend-feature-branch/`（尚未开工，无技术栈） |
 
+> **本表是「路由用副本」（显式例外 · 已裁定 2026-08-14）。** 两库结构的权威在各自 README；此处保留一份是因为它是技能路由的前置信息，
+> 换成回链等于每次跑设计流水线技能都要先读两份 README，而路由判错的代价是把一侧的意图写进另一侧的库。
+> **两库结构变更时此表须同改**，由 `/sync-knowledge` 对账兜底。
+
 **扫描主题文档时**（`/summarize-open-questions`、`/assess-derive-readiness`、`/derive-requirements` 的候选枚举）按上表取该库的主题文档区，不要去找另一库才有的文件夹。
 
 ## 不在双库范围内的技能
@@ -66,6 +70,7 @@
 |---|---|
 | `/blueprint` · `/implement` | 产出面向 `game-feature-branch/` 的 Godot / C# 实现；后端技术栈未定，无从设计实现形态。 |
 | `/review-feature` · `/review-local-changes` · `/investigate` | 审查 / 追踪 Godot 客户端代码。 |
+| `/scaffold-content-type` · `/author-content` · `/audit-content` | 内容条目层 `content/` 只存在于 `game-design-documents/`；后端库没有这一分区。 |
 | `/sync-knowledge` | `.claude/knowledge/*` 只覆盖客户端。 |
 
 后端进入实现阶段（技术栈落定 + `contracts/` 成文）时再扩展这几项。`/update-readme` 本就按路径参数分发，不走本文件的库解析。

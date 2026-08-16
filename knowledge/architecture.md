@@ -37,7 +37,8 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 - **层级：service ⊃ manager ⊃ module ⊃ processor ⊃ handler**（现有实例止于第三级 `DeckModule`）。 七个服务以 autoload 存在，各自命中「①自有状态机 / ②事务性跨字段写 / ③外部 I/O 边界」三判据之一；manager 是服务内部的普通 C# 对象。清单见 `autoloads/_index.md`。
 - **拆分轴 = 生命周期层 + 行为边界，不是数据类型。** 不按 power / item / card 各开服务，也不为九类 AdventureEvent 各开服务——只有 Combat 真有状态机，其余差异在**数据**而非代码。
 - **两条唯一入口 + 一个编排顶点：** 内容读取 = `content-service.ContentRegistry`；档案写入 = `profile-service.ProfileManager.TryApply(spec)`；编排顶点 = game-progression（非服务，串联核心循环）。
-- **展示层三层：** 静态文案留在 `XxxData : Resource` → 运行时 / 存档态只带 `Id` + 可变状态 → 呈现期 ViewModel 组装（不落存档、不进云端负载）。
+- **展示层三层：** 静态文案留在 `XxxData : Resource`（类型 `LocalizedText`）→ 运行时 / 存档态只带 `Id` + 可变状态 → 呈现期 ViewModel 组装（不落存档、不进云端负载）。
+- **文案两条链路、一个语言开关：** 界面走 `res://text/` 翻译键（随包、发版才改），内容走条目内嵌 `LocalizedText`（overlay 可热更），二者共用 `TranslationServer.GetLocale()`。归属判据（四问）→ `ux/_index.md`。
 - **物化模型：** `AdventureEventData`（模板）→ future-event-service（**唯一物化点**）→ `EventOption`（**产出即定稿、不可变、落存档**）。同一通则也适用于 `EnemyData` → `EnemyInstance`。→ `systems/architecture.md`「总则 6」。
 - **核心循环一批只有一次操作：择一进入。** 跳过通道整体移除（08-06c）——无 `skipCost` / `ifMandatory` / `AdvanceMode`，每次选择后整批重算。选择约束只剩 `Priority` 一条轴（取值域 `{0, 1}`，future-event-service 独占置位，PlotManager 不可改）。
 - **内容三层覆盖来源：** `res://content/` 基线 < `user://overlay/` 热更（**只改不增**，剧本内容是唯一例外）< **flags**（只覆盖 `ContentEnabled` 一个布尔，只作用于产出侧取池）→ 合并后统一校验 → ContentRegistry 按 `Id` 索引。**「overlay 是唯一热更层」已不成立**（08-11b）。→ `data/_index.md`。

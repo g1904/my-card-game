@@ -21,5 +21,6 @@
     "defaultMode": "bypassPermissions"
   },
   "model": "claude-opus-5",
-  "effortLevel": "medium"
+  "effortLevel": "medium",
+  "outputStyle": "default"
 }

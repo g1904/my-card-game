@@ -21,5 +21,5 @@
 
 ## 信号 vs 直接调用
 - 场景内父→子：直接方法调用没问题。
-- 跨系统 / 解耦的事件（轮回事件、遭遇战结果、货币变动）：走 **EventBus** 自动加载，而非直接引用。参见 `.claude/knowledge/standards/signal-eventbus.md`。
+- 跨系统 / 解耦的事件（轮回事件、遭遇战结果、货币变动）：走 **EventBus** 自动加载，而非直接引用。参见 `game-design-documents/systems/architecture.md` 的「总则 5 —— EventBus」。
 - **一致地**连接信号 —— 每个场景选定代码连接或编辑器连接，不要任意混用。

@@ -1,6 +1,6 @@
 # 系统索引（引用层）
 
-> **权威：`game-design-documents/systems/`**（类模型化结构；内容即系统的字段 / 内嵌类型，不单列内容层）。已定案决策见 `decisions/ADR-*`。本索引是**导航表 + 代码现状**——设计内容不在此复述。
+> **权威：`game-design-documents/systems/`**（类模型化结构；它持有**类定义**，具体**条目实例**归平级的 `game-design-documents/content/`）。已定案决策见 `decisions/ADR-*`。本索引是**导航表 + 代码现状**——设计内容不在此复述。
 
 ## 代码现状
 
@@ -23,8 +23,8 @@
 | ├ 社交 | `adventure-event/social/` | TODO | 与 NPC / 势力的社交互动。 |
 | └ 前往某处地点 | `adventure-event/travel/` | TODO | **地图路由**：刷新角色所在 location。`eventCountLimit` 用尽即收窄为仅剩 Travel（结构性闸门），目的地取自 `locationMap` 邻接集合。 |
 | 敌人 | `enemies/` | TODO | **与 adventure-event 平级**：`EnemyData` ↔ `EnemyInstance`、样本卡组、`EncounterScopes` / `PoolScope`、`±2` 赋级带。三类战斗事件共享同一批条目。 |
-| 角色档案 | `character-profile/_index.md` | TODO | 轮回级：`status`、`chapter`、life / mana + 隐藏属性（道心 / 煞气 / 寿元）、修行历程、key points、RNG 状态。 |
-| ├ Deck | `character-profile/deck/` | TODO | draw/hand/discard 牌堆、seeded 洗牌、卡牌定义与结算。 |
+| 角色档案 | `character-profile/_index.md` | TODO | 轮回级：`status`、`chapter`、life / mana + 隐藏属性（道心 / 煞气 / 寿元）、修行历程、key points、RNG 状态。**模板 `CharacterData` ≠ 轮回态 `CharacterProfile`**（前者是内容条目，自带一个神通与两门绑定功法）。 |
+| ├ Deck | `character-profile/deck/` | TODO | draw/hand/discard 牌堆、seeded 洗牌、卡牌定义与结算。**构筑单位 = 功法 `CultivationTechnique`**（整组入组 / 整组替换），带层数 `TechniqueTier`。 |
 | ├ 道具 | `character-profile/item/` | TODO | 角色持有的道具。 |
 | ├ 神通（CharacterPower） | `character-profile/power/` | TODO | 轮回级能力，对标账号级 PlayerPower（法则）。 |
 | ├ 货币 | `character-profile/currency.md` | TODO | 轮回货币（灵玉 jade）的获取 / 花费。 |
@@ -33,7 +33,7 @@
 | 玩家档案 | `player-profile/_index.md` | TODO | 账号级元进程主档（跨轮回持久）。 |
 | ├ 玩家道具 | `player-profile/player-item/` | TODO | 账号级、有次数限制的道具。 |
 | ├ 玩家能力 | `player-profile/player-power/` | TODO | 被动修饰器 / relic-joker；capability flag + modifier pipeline。 |
-| ├ 成就 | `player-profile/achievements/` | TODO | 成就分组与档位进度（60% / 90% 两档一次性奖励）。归 AchievementManager。 |
+| ├ 成就 | `player-profile/achievement/` | TODO | 成就分组与档位进度（60% / 90% 两档一次性奖励）。归 AchievementManager。 |
 | ├ 图鉴 | `player-profile/codex/` | TODO | **图鉴族六本**：Enemy / CharacterPower / PlayerPower / CharacterItem / PlayerItem / **Location**。账号级静态文案知识，不含动态情报。`LocationCodex` 是六本里唯一词条间有拓扑关系的（记连边）。 |
 | ├ 账号信息 | `player-profile/account-info.md` | TODO | 账号级元数据。 |
 | └ 游戏设置 | `player-profile/game-setting.md` | TODO | 音频 / 显示 / 辅助功能等玩家设置。 |
