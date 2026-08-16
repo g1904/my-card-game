@@ -13,10 +13,10 @@
       "Skill"
     ],
     "deny": [
-      "Edit(./game-testing-branch/**)",
-      "Edit(./game-production-branch/**)",
-      "Edit(./backend-testing-branch/**)",
-      "Edit(./backend-production-branch/**)"
+      "Edit(game-testing-branch/**)",
+      "Edit(game-production-branch/**)",
+      "Edit(backend-testing-branch/**)",
+      "Edit(backend-production-branch/**)"
     ],
     "defaultMode": "bypassPermissions"
   },
