@@ -2,7 +2,7 @@
 
 核心幻想、基调与目标手感。保持简短稳定；当某个设计抉择模棱两可时，它就是打破僵局的裁决者。
 
-> **一句话：** 一款竖屏、**强制在线（云端权威存档）**、单人的**roguelite 卡牌构筑（deckbuilder）**游戏，设定于东方**仙侠 · 修仙**世界。_（原「离线」已被「强制在线」取代，见 `scope.md`。）_
+> **一句话：** 一款竖屏、**强制在线（云端权威存档）**、单人的**roguelite 卡牌构筑（deckbuilder）**游戏，设定于东方**仙侠 · 修仙**世界。_（联网前提见 `scope.md`。）_
 
 ## 核心幻想
 > _玩家幻想着去做什么？_
@@ -14,6 +14,8 @@
 > 炼气 (Qi Refining) → 筑基 (Foundation Establishment) → 金丹 (Golden Core) → 元婴 (Nascent Soul)
 
 一次轮回由**三个相连的篇章**组成，每个篇章是两个相邻境界之间的攀登（炼气→筑基、筑基→金丹、金丹→元婴）。篇章环环相扣：每一章都从上一章某个可用的*结束点*出发，因此你在哪里收尾，就为下一章的起点埋下伏笔。每个篇章边界都是一个**史册记录 / 存档点**（共三个）；抵达元婴则是最终的**奖杯**。_（细节与延续规则：见 `scope.md` 与 `systems/game-progression.md`。）_
+
+Source: `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md`
 
 ## 设计支柱
 > _每条一句话——它划定了什么在内、什么在外。_
@@ -39,6 +41,6 @@
 ## 反目标
 > _本作刻意*不*成为的东西。_
 
-- **不是**像 *Magic: The Gathering* 那样规则繁重的系统（不搞深度的堆栈/优先权复杂度）。**08-02b 明确落实：** stack 作为**结算模型**保留（打出 / 结算两时刻、LIFO），但**交互（instant、栈非空时出牌）与优先权传递整体移除**——它们拉长时长、决策点过多、复杂度高而深度收益小。见 `systems/services/combat-service.md`。Source: `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md`。
+- **不是**像 *Magic: The Gathering* 那样规则繁重的系统（不搞深度的堆栈/优先权复杂度）。**落实形态：** stack 作为**结算模型**保留（打出 / 结算两时刻、LIFO），但**交互（instant、栈非空时出牌）与优先权传递整体移除**——它们拉长时长、决策点过多、复杂度高而深度收益小。见 `systems/services/combat-service.md`。
 - **不是**被动观看的、把某场 D&D 冒险改编成的视觉小说——你要*玩*它，而不是*看*它。
 - **不是**像 *StarCraft* 或 *Civilization* 那样基于反应/高 APM 或庞杂的 4X 体验。

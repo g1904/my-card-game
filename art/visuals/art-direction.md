@@ -1,10 +1,6 @@
 # 总视觉方向（Art Direction）
 
-**所有 art guide 的公共约束。** 每份 guide 都继承本文档，并只在其上追加该资产特有的部分。跨资产的风格一致性由本文档承担——资产由 Midjourney 分次生成，没有共同上游必然漂移。
-
-Source: `../../handoffs/2026-08-04-art-audio-library-scaffold.md`
-
-## 一句话方向
+**所有 art guide 的公共约束。** 每份 guide 都继承本文档，并只在其上追加该资产特有的部分。跨资产的风格一致性由本文档承担——资产由 Midjourney 分次生成，没有共同上游必然漂移。## 一句话方向
 
 > _（待写：一句能直接放进 prompt 开头的风格陈述。）_
 

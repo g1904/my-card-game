@@ -7,7 +7,7 @@
 | [0005](ADR-0005-knowledge-thin-reference-layer.md) | `.claude` 是工程层，对设计只做薄引用（含冲突裁决规则） | Accepted | 2026-07-30 |
 | [0004](ADR-0004-realm-checkpoint-retry-model.md) | 境界存档 · 篇章重试模型 | Accepted | 2026-07-23 |
 | [0003](ADR-0003-online-cloud-authority.md) | 强制在线 · 云端权威（含重账号） | Accepted | 2026-07-23 |
-| [0002](ADR-0002-adventure-event-taxonomy.md) | 修行事件分类法（九类） | Accepted | 2026-07-15 |
+| [0002](ADR-0002-adventure-event-taxonomy.md) | 修行事件分类法（五类） | Accepted | 2026-08-15 |
 | [0001](ADR-0001-example.md) | 战斗/计分模型（示例，未定） | Proposed | 2026-07-12 |
 
 <!-- Next ADR: ADR-0006. Copy _TEMPLATE.md. -->

@@ -12,7 +12,9 @@
             → /blueprint → /implement
 ```
 
-**为何多一环拆解：** `/derive-requirements` 的产出是**从设计文档整片切下来的**，粒度往往仍横跨数据资源、服务逻辑、场景与接线；直接喂 `/blueprint` 会得到一份过大的蓝图。`/breakdown-requirements` 把一份 FR 拆成一个**同名文件夹**内的若干子需求，每个都小到能被 `/blueprint` 一次吃下。Source: `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md`。
+**为何多一环拆解：** `/derive-requirements` 的产出是**从设计文档整片切下来的**，粒度往往仍横跨数据资源、服务逻辑、场景与接线；直接喂 `/blueprint` 会得到一份过大的蓝图。`/breakdown-requirements` 把一份 FR 拆成一个**同名文件夹**内的若干子需求，每个都小到能被 `/blueprint` 一次吃下。
+
+Source: `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md`
 
 ## 状态词汇
 - `draft` — 已推导，但仍有未解决的 Open questions 或等待你评审。

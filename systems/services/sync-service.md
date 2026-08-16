@@ -1,7 +1,6 @@
 # sync-service（服务）
 
 > 存档与云同步服务：Profile 上下行、本地缓存原子写、schema 版本迁移。**判据 ②③ —— 事务性写入 + 外部 I/O 边界。**
-> Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
@@ -25,15 +24,15 @@
 - **schema 版本 + 迁移路径**：读取时校验版本、所引用的内容 `Id`（经 ContentRegistry）、必需字段；不匹配则**迁移或清晰拒绝**，绝不静默 null，绝不在较旧的存档上崩溃。
 - **运行时 / 存档态只带 `Id` + 可变状态**，不复制展示文本 —— 文案变更不触发存档迁移（见 `systems/common-properties.md` 的三层切分）。
 
-### 存档点与 push 解耦（已定案）
+### 存档点与 push 解耦
 
 - **「存档点」与「push」是两件事。** 逻辑存档点清单（轮回开始 / 每个 AdventureEvent 结算后 / 篇章边界 / 轮回结束）**保持不变**，每个点**立即原子写本地缓存**（毫秒级，无流量 / 电量顾虑，是崩溃恢复的第一道防线）；**受频率约束的只是网络 push**。
 - **合并窗口：push 5 秒防抖**——窗口内多次变更合成一次上行。一次 AdventureEvent 以分钟计，5 秒足以吃掉「事件结算 + 奖励 + 属性推拉」这类连续写。
 - **强制立即 flush（不受防抖约束）：** 篇章边界、轮回结束、角色 `defeated`、**进入战斗前**、**应用失焦 / 挂起**（`NOTIFICATION_APPLICATION_PAUSED` / `WM_GO_BACK_REQUEST`）。最后一条比调频率重要得多——它是**移动端被系统杀死前的最后机会**。
 - 由此 `Push(profile, reason)` 增加 **`PushPolicy { Debounced | Immediate }`**。
-- **增量 push 粒度 = 按 `CharacterProfile` 做 diff（已定案）。** `PlayerProfile` 整聚合含全部历史角色、随账号年龄**单调增长**，整体上行不可持续。粗算一次轮回约 200 事件 × ~2 KB diff ≈ **400 KB**，移动网络可接受。
-- **规则字段层与统计计数层同走一条 push 通道，只在校验强度上分开（已定案 · 08-09d）。** 账号级字段分两层（判据 = 有没有被**规则**读，通则见 `systems/player-profile/_index.md`）：**规则字段**（`PlayerPowerFragment.*`、`chapterRetry` 等）严格上行、**后端可复算校验**；**统计计数**（`TotalCyclesCompleted` 等纯读数）走宽松口径、**可容忍丢失与最终一致**。二者**在同一次 diff 里、经同一次 `ProfileManager.TryApply` 写入**，不为统计计数另开写入通道或传输通道；**宽松口径不削弱规则字段的严格上行**。**不做两层之间的交叉一致性校验**——例如「`FinaleWinOrdinal` 应约等于统计通关数」这类校验等于在实现层宣称两个已被刻意分开的数应当相等。Source: `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md`。
-- **「宽松」具体宽在哪五处（已定案 · 08-10c · 定形）。** 统计计数层的容器是 `PlayerStatistics`（见 `systems/player-profile/_index.md`）；两层同走一条 push 通道这一点不变，差异**穷举为五条**：
+- **增量 push 粒度 = 按 `CharacterProfile` 做 diff。** `PlayerProfile` 整聚合含全部历史角色、随账号年龄**单调增长**，整体上行不可持续。粗算一次轮回约 200 事件 × ~2 KB diff ≈ **400 KB**，移动网络可接受。
+- **规则字段层与统计计数层同走一条 push 通道，只在校验强度上分开。** 账号级字段分两层（判据 = 有没有被**规则**读，通则见 `systems/player-profile/_index.md`）：**规则字段**（`PlayerPowerFragment.*`、`chapterRetry` 等）严格上行、**后端可复算校验**；**统计计数**（`TotalCyclesCompleted` 等纯读数）走宽松口径、**可容忍丢失与最终一致**。二者**在同一次 diff 里、经同一次 `ProfileManager.TryApply` 写入**，不为统计计数另开写入通道或传输通道；**宽松口径不削弱规则字段的严格上行**。**不做两层之间的交叉一致性校验**——例如「`FinaleWinOrdinal` 应约等于统计通关数」这类校验等于在实现层宣称两个已被刻意分开的数应当相等。
+- **「宽松」具体宽在哪五处。** 统计计数层的容器是 `PlayerStatistics`（见 `systems/player-profile/_index.md`）；两层同走一条 push 通道这一点不变，差异**穷举为五条**：
 
   | # | 面 | 规则字段层 | 统计计数层（宽松） |
   |---|---|---|---|
@@ -43,12 +42,11 @@
   | 4 | **上行被拒（`OpError.Conflict`）** | 按既定语义以云端为准丢弃本地缓冲 | **随之一并丢弃，不做补偿重放**——统计只会偏小，且补偿机制会重新造出一份客户端权威的第二真值 |
   | 5 | **后端** | 可复算校验 | **不复算、不校验，且不得用统计数据驱动任何发放**（活动奖励 / 解锁） |
 
-  - **第 5 条是防滑坡的关键纪律：** 宽松口径成立的**全部前提**是「被篡改无玩法后果」。任何一处用统计去驱动发放都会当场推翻这个前提——**一旦这么用，它就变成了规则字段，必须整体升层**。这条须同时写进 `backend-design-documents/`。
+  - **第 5 条是防滑坡的关键纪律：** 宽松口径成立的**全部前提**是「被篡改无玩法后果」。任何一处用统计去驱动发放都会当场击穿这个前提——**一旦这么用，它就变成了规则字段，必须整体升层**。这条须同时写进 `backend-design-documents/`。
   - **推论：统计层新增字段的成本近乎为零**——宽松同步 + 老档缺字段以默认值补齐（无损）+ 不参与任何判定 ⇒ 加一项统计既不需要迁移路径也不需要后端配合。这正是「首批清单最小化」的依据。
-  Source: `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md`。
-- **08-10c 的存档 schema 影响：bump 一次，空迁移。** `CharacterProfile.disabledAbility`（老档缺字段 → 空列表）· `PlayerProfile.statistics`（→ 全 0）· `ProfileChangeSpec` 由单列表扩为三列表（已落存档于 `PastEventEntry.SelectCost` / `AppliedChange`；老档单列表 → 读为 `Elements`，另两列表空）。当前无线上存档 ⇒ **空迁移**，走既有 MigrationManager 骨架。**diff 粒度与体积估算不受影响**（禁用表条目 ≤ 数条，统计是两个 int）。Source: 同上。
-- **`pastEvent` 只追加，不修改既有条目（不变式 · 已定案 · 08-09c）。** 一次事件只新增一条尾部 `PastEventEntry`，因此它对 diff 尤其友好：**只要 diff 能表达「列表尾部追加」，增量就是这一条本身，与列表已有长度无关**。这条不变式是下面体积估算成立的前提，也给 diff 实现一条可依赖的性质。
-- **单事件 `pastEvent` 增量 ≈ 770 B（JSON 明文），落在 ~2 KB 预算内 ⇒ push 粒度不变（已定案 · 08-09c）。**
+- **能力禁用表与统计层带来的存档 schema 影响：bump 一次，空迁移。** `CharacterProfile.disabledAbility`（老档缺字段 → 空列表）· `PlayerProfile.statistics`（→ 全 0）· `ProfileChangeSpec` 由单列表扩为三列表（已落存档于 `PastEventEntry.SelectCost` / `AppliedChange`；老档单列表 → 读为 `Elements`，另两列表空）。当前无线上存档 ⇒ **空迁移**，走既有 MigrationManager 骨架。**diff 粒度与体积估算不受影响**（禁用表条目 ≤ 数条，统计是两个 int）。
+- **`pastEvent` 只追加，不修改既有条目（不变式）。** 一次事件只新增一条尾部 `PastEventEntry`，因此它对 diff 尤其友好：**只要 diff 能表达「列表尾部追加」，增量就是这一条本身，与列表已有长度无关**。这条不变式是下面体积估算成立的前提，也给 diff 实现一条可依赖的性质。
+- **单事件 `pastEvent` 增量 ≈ 770 B（JSON 明文），落在 ~2 KB 预算内 ⇒ push 粒度不变。**
 
   | 组成 | 估算 |
   |------|------|
@@ -60,13 +58,11 @@
   | **合计** | **~770 B** |
 
   `pastEvent` 约占既有粗算的三分之一，整轮回 200 事件 ≈ 150 KB。**「按 `CharacterProfile` 做 diff」的既定粒度成立，不为快照体积新增任何机制。** 估算随「`CostKey` 的 element 清单」与「每批 eventOptions 数量」两项答定需复核（本次按 element 1–3 / 3–8 条、每批 5 项计）。
-- **体积护栏 = 软上限告警（已定案 · 08-09c）。** 单个 `CharacterProfile` 的 `pastEvent` **条数 > 500 或序列化 > 512 KB** 时 `GD.PushWarning` 带 `characterId` 与实际值。理由：`PlayerProfile` 是**整聚合 pull** 的单位（启动时全量一次），失控增长首先伤的是**启动 pull**，而那条路径是**硬阻塞**的。**告警不改变行为**，只让异常在被玩家感知之前先被看到。
+- **体积护栏 = 软上限告警。** 单个 `CharacterProfile` 的 `pastEvent` **条数 > 500 或序列化 > 512 KB** 时 `GD.PushWarning` 带 `characterId` 与实际值。理由：`PlayerProfile` 是**整聚合 pull** 的单位（启动时全量一次），失控增长首先伤的是**启动 pull**，而那条路径是**硬阻塞**的。**告警不改变行为**，只让异常在被玩家感知之前先被看到。
   - **明确否决：现阶段不做 `pastEvent` 的分页 / 冷热分离 / 归档到独立存档段。** 无证据需要，且会把「云端权威 · 整聚合 pull」这条语义重新打开。
-  Source: `handoffs/2026-08-09c-past-event-trace-schema.md`。
 - **信封携带** `contentVersion` / `appVersion` / `revision`，让后端**不解 Profile** 即可做版本维度的聚合与异常检测（见 `content-service.md` 的双 `contentVersion` 记录）。**「信封」是两样东西**：前两项走 HTTP 头（**传输信封**），`baseRevision` / `pushId` / `schemaVersion` / `reason` 留 push body 顶层段（**负载信封**）。对位表见下方「传输信封的字段对位」。
-- Source: `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md`。
 
-### 断线降级（已定案）
+### 断线降级
 
 **总原则：绝不回退存档点。** 回退会抹掉玩家已打完的战斗；「云端权威」解决的是**冲突**，不是**丢进度**。
 
@@ -75,21 +71,19 @@
 | **Push（上行存档）** | **不阻塞玩家。** 变更进本地待发队列（`user://cache/pending/`，原子写，跨启动保留），指数退避重试；UI 常驻「离线 · 待同步 N」指示 |
 | **Pull（启动全量）** | **硬阻塞。** 强制在线下无权威档即不可玩；呈现「重试 / 退出」，**不提供本地缓存开局**（本地非权威，用它开局等于制造必然冲突） |
 
-> **只剩这两条通道（08-11）。** 原有的第三行「剧本请求 · 事务前置」已删除——剧本内容自 08-11 属本地内容层，读取是纯内存的 ContentRegistry 查找，**不存在网络失败态**。唯一残留的缺失情形是悬空 key point，走 `PushWarning` + 叙事降级、不阻塞轮回（见 `plot-manager.md`），不是降级通道。Source: `handoffs/2026-08-11-plot-content-localization.md`。
+> **只有这两条通道。** **表里没有「剧本请求」一行**——剧本内容属本地内容层，读取是纯内存的 ContentRegistry 查找，**不存在网络失败态**。唯一的缺失情形是悬空 key point，走 `PushWarning` + 叙事降级、不阻塞轮回（见 `plot-manager.md`），不是降级通道。
 
 - **缓冲上限（两个闸门，先到先触发）：** 未同步的**事件级存档点数 ≥ 3**，或**最早一条待发变更滞留 ≥ 180 秒**。
-  - **口径 = 事件级存档点（已定案 · 08-06）。** 计的是**轮回开始 / 每个 AdventureEvent 结算后 / 篇章边界 / 轮回结束**这四类，**不含事件推进过程中的决策点存档**。理由：决策点密度约 **31 点 / 场战斗**，按旧口径一场战斗打到第三个决策点就会撞上闸门并弹出软阻塞模态，显然不是该闸门的本意。
+  - **口径 = 事件级存档点。** 计的是**轮回开始 / 每个 AdventureEvent 结算后 / 篇章边界 / 轮回结束**这四类，**不含事件推进过程中的决策点存档**。理由：决策点密度约 **31 点 / 场战斗**，若把它们计入，一场战斗打到第三个决策点就会撞上闸门并弹出软阻塞模态，显然不是该闸门的本意。
   - **推论 ①：这把「存档点与 push 解耦」贯彻到了闸门口径上** —— **闸门计的是 push 单位，不是本地写入单位**。
-  - **推论 ②：决策点存档回归本职** = 纯本地的崩溃恢复与防重掷手段，**不驱动 push、不计入闸门、不影响断线判定**；「决策点粒度决定 push 防抖压力」这句表述**作废**，粒度只影响本地写入频率（毫秒级、无流量顾虑）。
+  - **推论 ②：决策点存档回归本职** = 纯本地的崩溃恢复与防重掷手段，**不驱动 push、不计入闸门、不影响断线判定**；**决策点粒度不构成 push 防抖压力**，它只影响本地写入频率（毫秒级、无流量顾虑）。
   - **推论 ③：两个闸门的语义齐了** —— 都以事件级 push 为单位；且软阻塞的触发时机（「不打断进行中的事件，在下一次 AdventureEvent 选择前弹模态」）与闸门口径**自动对齐**，不必各说一次。
-  Source: `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md`。
 - **超限 → 软阻塞：** 不打断进行中的事件（战斗打完），但在**下一次 AdventureEvent 选择前**弹模态「网络异常，正在重连」，提供「重试 / 退出到主界面」。退出时待发队列**保留本地**。**该模态有第二种文案变体**，用于版本过旧导致的不可恢复态，见下方「`Upgrade` 类错误在非闸门点」。
-- **限流（`rate.limited`）→ `OpError.Network`，走本表的 push 行**：进待发队列、不阻塞玩家、指数退避。**退避间隔取 `max(本地退避计算值, 服务端给的等待时间)`**——`Retry-After` 应答头或 `detail.retryAfterSeconds`；服务端值是**下界不是精确值**，本地抖动（jitter）照常叠加，避免同一批客户端齐步重试。**限流绝不映 `Conflict`**：它不改变 `cloudRevision`，原样重试即可（`pushId` 保证幂等），映成 `Conflict` 会按既定语义丢弃本地缓冲——把一次限流变成一次进度丢失。Source: `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md`。
+- **限流（`rate.limited`）→ `OpError.Network`，走本表的 push 行**：进待发队列、不阻塞玩家、指数退避。**退避间隔取 `max(本地退避计算值, 服务端给的等待时间)`**——`Retry-After` 应答头或 `detail.retryAfterSeconds`；服务端值是**下界不是精确值**，本地抖动（jitter）照常叠加，避免同一批客户端齐步重试。**限流绝不映 `Conflict`**：它不改变 `cloudRevision`，原样重试即可（`pushId` 保证幂等），映成 `Conflict` 会按既定语义丢弃本地缓冲——把一次限流变成一次进度丢失。
 - **恢复后的合并语义：** `FlushPending()` 前**先 pull**；若云端 `revision` 已领先本地基线（多设备），**以云端为准丢弃本地缓冲**，并明确告知玩家「另一设备的进度已生效，本次离线进度未保留」。**不做静默合并、不引入字段级三路合并**——那会实质削弱 `ADR-0003`。
 - **token 失效 / 被挤下线：** `RefreshToken()` 静默刷新；刷新失败**视同断线**走同一缓冲通道（不另开一套）；被后端**明确挤下线** → **硬阻塞**要求重登，重登后同样**先 pull 后 flush**。（见 `account-service.md`。）
-- Source: 同上。
 
-### `revision` 语义与幂等键（已定案 · 08-09）
+### `revision` 语义与幂等键
 
 - **`revision` = 后端分配的账号级单调递增整数（`long`）。** 分配权在**权威一侧**——「云端权威」这条决策本身就规定了它；让客户端分配版本号等于让非权威一侧决定「谁更新」，`ADR-0003` 会在这一点上被架空。
   - **排除服务端时间戳**：需要后端时钟单调且无回拨，同毫秒并发无法定序，相对整数计数器零收益。
@@ -112,9 +106,22 @@
   - **每个上行批次携带客户端生成的 `pushId`（GUID），重试时保持不变。** 后端记录最近若干已接受的 `pushId`，重复到达时**不再 +1**，直接回上次结果（`newRevision` + `Deduplicated = true`）；客户端据此把信封推进到正确的 `baseRevision`。
   - `pushId` 在**该批变更被组装时**生成一次，随待发队列条目持久化——**跨启动重试必须用同一个 `pushId`**，否则幂等键失去意义。缺 `pushId` 的队列条目按**必需缺失**处置：`PushError` + 丢弃该条目（无幂等键的重试比不重试更危险）。
   - 后端记忆窗口（记多少个 / 保留多久）属后端侧参数，本库不定。
-- Source: `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md`。
 
-### `Immediate` flush 的失败语义（已定案 · 08-09）
+### 后端主动写入的唯一情形 = 购买段，靠一条时机纪律关闭冲突窗口（承重）
+
+> **premium bundle 的购买段由后端把云端 `bundleGrantOrdinal` 与 `cloudRevision` 各 +1**（付费凭证不能只信客户端，见 `systems/monetization.md`），这是同步模型此前没有的**第四种情形：后端主动写入**。它会让 `cloudRevision` 领先客户端 `baseRevision`，而 CAS 三分支表对这种情形判 `Conflict` ⇒ **以云端为准丢弃本地缓冲**。**若购买发生在轮回中途，被丢掉的正是玩家刚打完的战斗——直接违反「绝不回退存档点」。**
+
+**解法不新增任何机制，只有一条时机纪律：**
+
+> **购买流程只能在主菜单（轮回外）发起，且进入付费流程前待发队列必须为空。**
+
+- 主菜单处无进行中的轮回变更，待发队列应为空；若非空（上一轮回残留 / 断线缓冲）→ **先 `FlushPendingAsync` 成功才允许进入付费流程**。这与礼包既有的闸 ②（购买入口不可用）合并为**同一张前置条件表**（见 `systems/monetization.md`），**不新增拦截点**。
+- 购买成功后**强制一次 pull**（而非等下一次启动），拿到新 `revision` 与新序号，再本地兑现（兑现 = 客户端掷骰 + 一次 `TryApply` + `Immediate` push，后端复算校验）。
+- 于是冲突窗口在结构上被关闭：**那一刻客户端没有任何未上行的变更，`Conflict` 分支不可能踩到。** CAS 三分支表与「冲突一律以云端为准」原样成立，不为购买开任何例外。
+- **否决「购买入口在轮回内可用 + 为它设计冲突合并」**——等于为一个可以靠时机纪律消除的问题引入字段级三路合并，而那已被 `ADR-0003` 明确排除。
+- **这条纪律同时是一条 UX 结论**：礼包入口在轮回内 / 战斗内 / 结算流程内**不存在**——不是观感取舍，是同步模型的结构要求（因此「重试耗尽时提示购买」在结构上就不可行，见 `ux/screen-flow.md`）。
+
+### `Immediate` flush 的失败语义
 
 > **flush 是一次「尝试」，闸门是一个「状态」。** `Immediate` 只声明「这一批不等防抖窗口，立刻发」，**不声明「发不出去就停下」**。它对软阻塞的**唯一**影响是：成功则清空闸门（待发队列空、滞留计时归零），失败则闸门计数**不变**。阻塞与否始终只由闸门在**既定时机**判定——下一次 AdventureEvent 选择前。
 
@@ -132,9 +139,8 @@
   - **「进入战斗前」这个 flush 点的意图**不是 flush D0 自己那点 diff（D0 本就不计闸门），而是**趁着即将进入一段长时间无事件级存档点的区间，尽力把队列里已有的事件级变更送出去**。这解释了它为什么是 `Immediate`——也正因目的是「尽力」，失败更不该有阻塞力。同理适用于**应用失焦 / 挂起**那个点（应用不在前台，也无处弹模态）。
 - **唯一不受本条影响的是既定的两处硬阻塞**：启动 pull 失败、被后端明确挤下线。它们与 push 通道无关。
 - **呈现纪律：进入战斗前 flush 失败不产生任何额外提示**，告知由既定的常驻「离线 · 待同步 N」指示承担（**该指示在战斗屏内也必须可见**）。见 `ux/combat-ux.md` 与 `ux/screen-flow.md`。
-- Source: 同上。
 
-### `Upgrade` 类错误在非闸门点（已定案 · 08-11b）
+### `Upgrade` 类错误在非闸门点
 
 > **承重纪律：`Upgrade` 类错误只在登录 / 启动 pull 构成硬阻塞，其余时机一律降级为非阻塞。** 典型情形是 `sync.payload_schema_unsupported` 在**轮回中途的 push** 上返回，且它重试**永远不会成功**。
 
@@ -143,11 +149,10 @@
 - **与「缓冲超限 → 软阻塞」的衔接：两个闸门的口径完全不变**（事件级存档点数 ≥ 3 或最早一条滞留 ≥ 180 秒），仍在下一次 AdventureEvent 选择前弹软阻塞模态。**变的只有文案与选项**——同一处模态的**第二种变体**：「需更新版本才能同步」，选项「去更新 / 退出到主界面」，**没有「重试」**。
   - 理由：同步在本会话内**永不恢复**，继续玩只会累积必然无法上行的进度——**软阻塞的本意正是拦住这一点**。冻结闸门会让玩家整轮回打完才发现全部进度无处可去。只有文案与选项该变，机制不该变。
   - 沿用既定的「不打断进行中的事件（战斗打完）」时机，不引入第三种阻塞时机。
-- **`UpgradeRequired` 的呈现落点（08-12）：** 常驻同步指示改写为 **`需更新 · 待同步 N`**（**必须换掉「离线」二字**——「离线」隐含「会自己好」，而本态在本会话内永不恢复），点按打开更新引导半屏；同时**吸收掉**「建议更新」软提示横幅。三档去重规则见 `ux/error-and-blocking-ux.md`。
+- **`UpgradeRequired` 的呈现落点：** 常驻同步指示改写为 **`需更新 · 待同步 N`**（**必须换掉「离线」二字**——「离线」隐含「会自己好」，而本态在本会话内永不恢复），点按打开更新引导半屏；同时**吸收掉**「建议更新」软提示横幅。三档去重规则见 `ux/error-and-blocking-ux.md`。
 - **UI 如何区分两种变体：** `SyncStateChanged(SyncState, OpError)` 分辨不出「`Failed` + `Validation`」是 `sync.payload_invalid` 还是 `sync.payload_schema_unsupported`。**不新增 `SyncState` 值**，改为本服务增一个只读属性 `UpgradeRequired`，UI 收到事件后**单点查询**——与 `PendingCount`（「不塞进负载，收到事件后单点查询本属性」）及 `CapabilitiesChanged` 空负载同构。置位于收到任一 `class: Upgrade` 错误，清零于重新登录后的一次成功 pull。
-- Source: `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md`。
 
-### 传输信封的字段对位（已定案 · 08-11b）
+### 传输信封的字段对位
 
 **客户端 record 一字不改；`HttpProfileBackend` 在发请求时搬字段。** 契约本就允许「报文字段名与客户端字段名不同」。
 
@@ -163,7 +168,7 @@
 - **`baseRevision` / `pushId` 不搬到头、不用 `If-Match`/ETag 表达 CAS**：CAS 前置条件与它保护的负载留在同一层面，且三分支应答本就要在 body 回 `cloudRevision`。既定 record 与三分支表原样成立。
 - **请求头组装与应答头解析收敛到 `src/Core/` 的一处**，三个 `HttpXxxBackend` 共用——与 `BackendSelector` 唯一选择点同构（多于一处就会出现「一部分带了头、另一部分没带」的半配置态）。应答头的客户端语义：`X-Flags-Version`（触发 flags 拉取，见 `content-service.md`）· `X-Min-App-Version`（**仅诊断，客户端不比较、不据此阻塞**）· `X-Recommended-App-Version`（软提示，永不阻塞）· `X-Server-Time`（**纯诊断**，不参与玩法判断，**也不用于校正本地时钟**）· `Retry-After`（退避下界）。
 - **枚举值序列化与 C# 枚举名逐字相同**（`SavePointReason.EventResolved` → `"EventResolved"`）⇒ **重命名一个跨边界枚举值即是破坏性契约变更**，必须与后端同批改，不能当作纯客户端重构。
-- Source: 同上。
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md`
 
 ## 管理器
 
@@ -175,7 +180,7 @@
 
 ## API 面（契约）
 
-> 总则与共享类型见 `systems/architecture.md`「API 契约总则」。本服务实现 `IBootstrappable`（启动链第三步：pull + 迁移）。Source: `handoffs/2026-07-27b-service-api-contracts.md`。
+> 总则与共享类型见 `systems/architecture.md`「API 契约总则」。本服务实现 `IBootstrappable`（启动链第三步：pull + 迁移）。
 
 | 方法 | 形态 | 完整签名 | 失败语义 |
 |------|------|----------|----------|
@@ -185,7 +190,7 @@
 | 同步态 | A | `SyncState State { get; }` | — |
 | 待发条数 | A | `int PendingCount { get; }` | — （既定的「离线 · 待同步 N」指示由 UI 收到 `SyncStateChanged` 后单点查询本属性，而非塞进负载——同 `CapabilitiesChanged` 的纪律） |
 | 同步版本 | A | `long BaseRevision { get; }` | — **只读诊断用**（设置屏「同步版本 #N」）；不参与玩法判断、不进玩法路径 |
-| 需更新 | A | `bool UpgradeRequired { get; }` | — UI 收到 `SyncStateChanged` 后**单点查询**，据此选软阻塞模态的第二种文案变体（08-11b）；置位于任一 `class: Upgrade` 错误，清零于重登后的一次成功 pull |
+| 需更新 | A | `bool UpgradeRequired { get; }` | — UI 收到 `SyncStateChanged` 后**单点查询**，据此选软阻塞模态的第二种文案变体；置位于任一 `class: Upgrade` 错误，清零于重登后的一次成功 pull |
 
 ```csharp
 public enum SavePointReason { CycleStarted, EventResolved, ChapterBoundary, CycleEnded, MetaChanged }
@@ -234,14 +239,15 @@ public sealed record ProfileSnapshot(PlayerProfile Profile, long Revision, int S
 
 **事件面：** `SyncStateChanged(SyncState State, OpError LastError)` —— 一个负载覆盖同步成功 / 失败、进入断线缓冲态、缓冲超限（软阻塞）、离线进度被云端覆盖（`State = Failed` + `LastError = Conflict`）；UI 据此渲染「同步中 / 离线 · 待同步 N」指示与模态阻塞。迁移发生 / 拒绝走 `OpError.Migration`。
 
-### 存档 schema 版本（已定案）
+### 存档 schema 版本
 
-- 本次新增 `rng`（见 `systems/character-profile/_index.md`）、`StartContentVersion`、`LastContentVersion`、**`activeCombat`（战斗中间态，可空；schema 见 `combat-service.md`）**、**`pastEvent` 的条目结构 `PastEventEntry`（08-09c；schema 见 `systems/adventure-event/common-properties.md`）** → **bump schema 版本**。当前无线上存档 ⇒ 空迁移。
-- **`attemptIndex` 的删除不 bump schema 版本、无迁移**——它从未落存档（只是一个派生参数）。Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
+- **`PlayerProfile.entitlement`（`PlayerEntitlement`，1 字段）⇒ bump 一次、空迁移**（老档缺字段 → `BundleGrantOrdinal = 0` = 未购买，无损）。它是规则字段层：**严格上行、后端可复算**；后端 `contracts/profile-sync.md` §5 白名单补入预留的那一行。
+- 本次新增 `rng`（见 `systems/character-profile/_index.md`）、`StartContentVersion`、`LastContentVersion`、**`activeCombat`（战斗中间态，可空；schema 见 `combat-service.md`）**、**`pastEvent` 的条目结构 `PastEventEntry`（schema 见 `systems/adventure-event/common-properties.md`）** → **bump schema 版本**。当前无线上存档 ⇒ 空迁移。
+- **战斗随机的 `attemptIndex` 派生层不落存档**，故它的有无不影响 schema 版本。
 - 当前无线上存档，故迁移为**空迁移**——**就在此刻**把 MigrationManager 的逐版迁移骨架立起来，这是最便宜的时机（等有了线上存档再补，成本高一个量级）。
-- **增删 RNG 子流不 bump schema 版本**（子流清单是 `SeedManager` 内的常量，读档时按缺失 / 多余分别 warn + 初始化 / warn + 丢弃）。Source: 同上。
+- **增删 RNG 子流不 bump schema 版本**（子流清单是 `SeedManager` 内的常量，读档时按缺失 / 多余分别 warn + 初始化 / warn + 丢弃）。
 
-### 迁移失败的「清晰拒绝」= 玩家侧两种情形（已定案 · 08-12）
+### 迁移失败的「清晰拒绝」= 玩家侧两种情形
 
 `MigrationManager` 的「无法迁移时清晰拒绝」在 UX 上落为**阻塞屏的两种变体**，先按判据分情形——绝大多数情况根本不是「存档坏了」：
 
@@ -253,7 +259,8 @@ public sealed record ProfileSnapshot(PlayerProfile Profile, long Revision, int S
 - **绝不静默降级放行。** 带着半迁移的 Profile 进入主菜单，下一次 push 会把一份**已损坏的档写回云端**——那才是不可逆的。这是「必需缺失 → 报错退出」，不是「可选缺失 → 降级」。
 - **否决「提示重装」**（存档权威在云端，重装不改变任何东西，只制造「我的进度没了」的误解）与**「回退到云端上一个可用版本」**（`revision` 严格单调递增，回退即主动丢弃已确认进度，违反云端权威）。
 - **不新增硬阻塞点**：两种变体都发生在**启动 pull** 这一既定阻塞处之内。呈现形态见 `ux/error-and-blocking-ux.md`。
-- Source: `handoffs/2026-08-12-error-copy-and-update-prompts.md`。
+
+Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md`
 
 ## 与其他服务的关系
 

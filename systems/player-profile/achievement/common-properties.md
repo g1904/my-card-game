@@ -7,12 +7,14 @@
 
 ### 共有属性 / 字段
 
-- **稳定 Id。** 每个成就条目有稳定唯一的字符串 `Id`（供存档进度记录、注册表查找、奖励发放引用）。Source: `.claude/rules/data-resource-rules.md`。
-- **分组归属。** 每个成就属于一个类别 / 组；奖励按**组内加权进度**发放（60% / 90% 两档），故条目需携带其组 key 与进度权重。Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`。
-- **可见性。** 目录中 **80% 条目可见、20% 为隐藏成就**（达成后才显示）——故条目需带一个可见性标记。Source: 同上。
-- **展示字段分层。** 成就名 / 描述 / 图标等静态展示文本留在 `XxxData : Resource` 上；存档态只带 `Id` + 进度；组合展示由 UI 层 ViewModel 装配。Source: `systems/common-properties.md`。
+- **稳定 Id。** 每个成就条目有稳定唯一的字符串 `Id`（供存档进度记录、注册表查找、奖励发放引用）。
+- **分组归属。** 每个成就属于一个类别 / 组；奖励按**组内加权进度**发放（60% / 90% 两档），故条目需携带其组 key 与进度权重。
+- **可见性。** 目录中 **80% 条目可见、20% 为隐藏成就**（达成后才显示）——故条目需带一个可见性标记。
+- **展示字段分层。** 成就名 / 描述 / 图标等静态展示文本留在 `XxxData : Resource` 上；存档态只带 `Id` + 进度；组合展示由 UI 层 ViewModel 装配。
 
 > 具体字段清单尚未设计——见待决问题。
+
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

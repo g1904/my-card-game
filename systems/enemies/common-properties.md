@@ -17,7 +17,7 @@
 | `KeyCardIds` | `string[]`，长度 **2–3** | 数量越界或为 0（词条已启用）→ `PushError`；id 不在样本卡组内 → `PushError`（带模板 `Id` + 卡牌 `Id`） |
 | 样本卡组 | `CardData.Id` 序列，**规模 15**，允许同名重复 | 含 `Pool == Character` 的条目 → `PushError`（报出违规 `Id` 与模板 `Id`） |
 | item 持有列表 | `ItemData.Id[]` | 悬空 id → `PushError` |
-| power 持有列表 | `PowerData.Id[]` | 悬空 id → `PushError`；带 `IgnoresProtection` 者须落在编排核对表内（见 `systems/balance.md` 的 1% 口径） |
+| power 持有列表 | `PowerData.Id[]` | 悬空 id → `PushError`；带 `IgnoresProtection` 者须满足两条硬准入（仅挂 boss 档载体 · 绝不挂玩家可主动获取的内容，见 `systems/balance.md` 的 ≈5% 口径） |
 | `EncounterScopes` | `EventType[]`，取值仅限 `{ Practice, Combat, Finale }` | **空数组 → `PushError`**（漏填会静默缩小抽取池） |
 | `PoolScope` | 地点 / 剧情线归属 | **允许为空**（= 通用池），不报错；非空但指向不存在的 location / 剧情线 → `PushError` |
 | `OverridesDeck` | `bool`，默认 `false` | — |
@@ -26,11 +26,11 @@
 
 ### 战斗侧引用关系
 
-- 战斗读取敌人的**等级**（`EnemyInstance.Level`）与角色等级在**全局等级序**上求差，据此决定意图揭示档位。**敌人等级同时被精确标注在 eventOptions 上**，故它既是内部判据也是对外展示字段。
+- 敌人的**等级**（`EnemyInstance.Level`）经 `baseMomentum` 表决定其战斗起始道念，即开局起跑线。**它同时被精确标注在 eventOptions 上**，故既是内部判据也是对外展示字段——**看到等级即看到起跑线**。
 - **敌人侧的战斗内量与玩家侧对称**：也是道念，同一套起手 / 抽牌 / 手牌上限数值（见 `systems/balance.md`），共用同一个 `DeckModule`，**疲劳规则一视同仁**（抽牌堆不重洗，空堆每抽一张 −1 道念）。
 - **敌人的抽牌走独立的战斗 RNG 子流**，与玩家抽牌分开——玩家侧的一次额外抽牌不会打乱敌人的牌序（desync 防护）。
 
-Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`。
+Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`
 
 ## 决策(-> ADR)
 

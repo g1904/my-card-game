@@ -14,13 +14,17 @@
 
 ## 两类草稿
 
-- `draft-<suffix>.md` —— 手写的零散想法（`<suffix>` 为 `MMDD`，同日多份追加 `b`、`c`）。
+- `draft-<suffix>.md` —— 手写的零散想法。**`<suffix>` = `MMDD` + 序列字母，从 `a` 起，同日依次 `a` · `b` · `c` …**（例：`draft-0816a.md` · `draft-0816b.md`）。
+  **当天第一份也带 `a`，不写裸 `draft-MMDD.md`。** 序列位恒定存在，`ls` 与 `log-*` 后缀才能整齐排序、一眼看出同日批次的先后；裸日期与带字母混排时，同日第一份会脱离它自己的序列。
+  归档区 `archive/` 里 08-10 之前的裸日期命名是这条约定成文之前的历史，**不追溯重命名**。
 - `solution-draft-<slug>.md` —— `/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿。它有自己的 front-matter `status` 生命周期：`awaiting-review`（待人工评审）→ `reviewed` / `decided`（已裁决，可喂给 `/analyze-new-ideas`）→ `distilled`（已提炼，移入 `archive/`）。
 
 ## 在办清单
 
 | 文件 | status | 说明 |
 |------|--------|------|
-| `draft-0812a.md` | 在办 | 手写草稿 · 2026-08-12 · **卡组构筑（deck building）**：起始卡组沿用炉石竞技场式的「多轮择一」构筑，正文写到一半（断在「now let's introduce a new concep」）。**下一步：补完正文后再跑 `/analyze-new-ideas`。** |
+| `draft-0816a.md` | awaiting-execution | **活文档收口（一）· 删「已定案」戳**（659 处）。纯机械、低风险，**三批中最先跑**。 |
+| `draft-0816b.md` | awaiting-execution | **活文档收口（二）· 正文去坐标化**（日期戳 1,408 处 · `Source:` 658 → ≈85）。需判断「否决理由是否承重」；**分 2a–2d 四个子批，一批一个 session，2a 是验证批**。跑在 (一) 之后。 |
+| `draft-0816c.md` | awaiting-execution | **活文档收口（三）· `open-questions.md` 索引瘦身**（顶部 19 条摘要与 `update-log.md` 纯双写，≈33,000 字符）。**独立，随时可跑**，改动面只有两个文件。 |
 
 清空即为「无在办草稿」。已提炼草稿 → handoff 的对应关系见 `archive/_index.md`。

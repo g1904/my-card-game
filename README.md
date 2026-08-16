@@ -4,7 +4,7 @@
 
 它**只包含文档**——独立的孤儿历史，不含游戏代码，永远不会合入 `game-feature → game-testing → game-production`。Godot 项目位于其他分支目录中（见 `../main/README.md`）。
 
-**后端的设计意图不在本库**，而在 `backend-design-documents/`（`backend-design` 分支）。本库描述客户端，包括客户端侧那四个跨越客户端 ↔ 后端边界的成分——`account-service`、`content-service`、`sync-service` 三个服务，以及 `future-event-service` 内部的 `PlotManager`；边界另一侧的账号合规、协议契约、存档同步、内容分发、剧本下发归后端库。
+**后端的设计意图不在本库**，而在 `backend-design-documents/`（`backend-design` 分支）。本库描述客户端，包括客户端侧那**三个**跨越客户端 ↔ 后端边界的服务——`account-service`、`content-service`、`sync-service`（**跨边界成分全部是服务本身，没有任何 manager 跨边界**）；边界另一侧的账号合规、协议契约、存档同步、内容分发归后端库。剧本内容**不跨边界**：它是客户端本地内容层的一员，热更走 content-service 的 overlay 通道。
 
 ## 设计意图 vs. Claude 知识库
 - **`game-design-documents/`（此处）** = 原始的人工意图与 handoff。由你掌管。设计在此*起源*。
@@ -16,13 +16,23 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
    └─▶ handoffs/<date>-<slug>.md      raw intent, one entry per handoff   (status: raw)
           └─▶ distilled into systems / art / ux living docs        (status: distilled)
                  └─▶ settled choice?  record decisions/ADR-####
-                        └─▶ once a doc is fully detailed:  /derive-requirements
-                               └─▶ requirements/FR-*.md   片区级 feature specs + acceptance criteria
-                                      └─▶ /breakdown-requirements
-                                             └─▶ requirements/FR-*/   可执行子需求（一个 = 一次 blueprint）
-                                                    └─▶ knowledge + FR → /blueprint → /implement
+                        │
+                        ├─ 系统行为 ─▶ once a doc is fully detailed:  /derive-requirements
+                        │                └─▶ requirements/FR-*.md   片区级 feature specs + acceptance criteria
+                        │                       └─▶ /breakdown-requirements
+                        │                              └─▶ requirements/FR-*/   可执行子需求（一个 = 一次 blueprint）
+                        │                                     └─▶ knowledge + FR → /blueprint → /implement
+                        │
+                        └─ 内容条目 ─▶ /scaffold-content-type ─▶ content/<类型>/_index.md（类型档案）
+                                         └─▶ 你的草稿 → /author-content → content/<类型>/<id>.md
+                                                └─▶ /blueprint → /implement → .tres
 ```
-`inbox → handoffs → systems / art / ux` 由 `/analyze-new-ideas` 承接。内容即系统的字段 / 内嵌类型，故**没有独立的内容文件夹**——内容写在 `systems/` 内。从详细设计到代码的**桥梁是两步**：`/derive-requirements` 产出片区级的 `requirements/FR-*`，`/breakdown-requirements` 再把**一份** FR 拆成同名文件夹内的**可执行子需求**——后者才是 `/blueprint` 的直接输入。两层结构、id 形态与签核语义见 `requirements/_index.md`。
+`inbox → handoffs → systems / art / ux` 由 `/analyze-new-ideas` 承接。
+
+**两条从设计到代码的路，按「系统行为 vs 内容条目」分流：**
+
+- **系统行为**的桥梁是两步：`/derive-requirements` 产出片区级的 `requirements/FR-*`，`/breakdown-requirements` 再把**一份** FR 拆成同名文件夹内的**可执行子需求**——后者才是 `/blueprint` 的直接输入。两层结构、id 形态与签核语义见 `requirements/_index.md`。
+- **内容条目**不经 FR，**直接喂 `/blueprint`**——内容最终落地就是一批 `.tres`，其可构建增量的边界天然就是条目本身。`systems/` 持有**这类内容怎么运作**（类定义），`content/` 持有**有哪些条目**（实例），二者是类 ↔ 实例关系，故平级。约定、类型登记表与依赖链见 `content/_index.md`。Source: `handoffs/2026-08-14c-content-authoring-layer.md`。
 
 **derive 就绪度由 `/assess-derive-readiness` 单独评估**（全量扫描全部主题文档，写入 `open-questions.md` 的「derive 就绪度」小节），**由用户在时机成熟时手动调用**；它是该小节的**唯一写入者**。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不**顺带评估或更新就绪度——逐次 handoff 顺带的判定会迅速过时且互相矛盾。**当前状态：全库尚未进入可 derive 的阶段。**
 
@@ -39,12 +49,13 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
 |--------|-----------------|------------|
 | `vision/` | 北极星：pillars、scope、references。 | 稳定，极少编辑。 |
 | `handoffs/` | 原始的时间线输入——大多是你的文字，每个 handoff 一个文件。 | 持续更新（时间线日志，最新置顶；可自由编辑 / 修正，非仅追加）。 |
-| `systems/` | 各玩法系统的设计意图，以**类概念**组织（每个系统一个「类」，其内容为字段/内嵌类型）。命名与 `.claude/knowledge/systems/` 沿用同一套系统名（知识侧的单系统笔记**在该系统于代码中落地后**才建，不预先占位）。 | 持续更新；**只保留最新设计**（重写替换，见下）。 |
+| `systems/` | 各玩法系统的设计意图，以**类概念**组织（每个系统一个「类」，其内容为字段/内嵌类型）。命名与 `.claude/knowledge/systems/` 沿用同一套系统名（知识侧的单系统笔记**在该系统于代码中落地后**才建，不预先占位）。**它持有「这类内容怎么运作」；具体条目归 `content/`。** | 持续更新；**只保留最新设计**（重写替换，见下）。 |
+| `content/` | **内容条目（实例层）**：`content/<类型>/<id>.md` 一条内容一份文档，`content/<类型>/_index.md` 是该类型的**档案**（字段核对清单 + id 形态 + 交叉引用表 + 条目台账）。由 `/scaffold-content-type` 开张类型、`/author-content` 写条目、`/audit-content` 对账，产出**直接喂 `/blueprint`**（不经 FR，故完成度只在各类型档案的台账上追踪）。**硬边界：本层不定义字段**——对每个字段只写「填了什么值 + 权威回链」，字段的类型 / 取值域 / 枚举 / 校验语义一律在 `systems/` 那侧。未开张的类型不预先建空文件夹——**当前尚无已开张的类型**，本层只有 `_index.md`（登记表 + 依赖链）与两份骨架 `_TEMPLATE-type.md` / `_TEMPLATE-entry.md`。 | 持续更新；随内容创作滚动增长。 |
 | `art/` | 美术与音频的设计意图与生成指导：**两个一级分区** `visuals/`（内含子分区 `animations/`，占位）与 `soundtracks/`，各含总方向 + `references/` + `guides/`。承载 vision 文本、参考登记与 art / audio guide（= 投喂生成工具的 prompt）；**生成出的二进制资产不入本库**，归 `game-feature-branch/`。 | 持续更新；**只保留最新设计**。当前为脚手架阶段。 |
 | `ux/` | 屏幕、流程、手感（文本线框图）。 | 持续更新；**只保留最新设计**。 |
 | `decisions/` | ADR 风格的已定决策。 | 可修改（软件开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
 | `requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往 `/blueprint` 的桥梁。由 `/derive-requirements` 生成、用户签核（`draft → ready`），再由 `/breakdown-requirements` 拆成同名文件夹内的可执行子需求（`FR-*/`）。含 `_index.md`（两层结构 + 覆盖核对）与两份骨架 `_TEMPLATE.md` / `_TEMPLATE-sub.md`；**当前尚无 FR**。 | 持续更新；随设计深化而重新生成/扩展。 |
-| `inbox/` | 未整理的草稿，待分流到 handoff/主题中。两类：手写的 `draft-<suffix>.md`；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。**分两层：顶层只放在办草稿，已提炼的移入 `inbox/archive/`**（判据：有无对应 `status: distilled` 的 handoff）；约定与在办清单见 `inbox/_index.md`，草稿→handoff 对应表见 `inbox/archive/_index.md`。 | 顶层自由发挥；`archive/` 只作溯源，不再改动。 |
+| `inbox/` | 未整理的草稿，待分流到 handoff/主题中。两类：手写的 `draft-<suffix>.md`（`<suffix>` = `MMDD` + 序列字母，**从 `a` 起**，例 `draft-0816a.md`）；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。**分两层：顶层只放在办草稿，已提炼的移入 `inbox/archive/`**（判据：有无对应 `status: distilled` 的 handoff）；约定与在办清单见 `inbox/_index.md`，草稿→handoff 对应表见 `inbox/archive/_index.md`。 | 顶层自由发挥；`archive/` 只作溯源，不再改动。 |
 | `open-questions/` | 跨 session 待答清单的**分片**：`01-combat.md` … `07-codex-monetization.md`（焦点区，编号即优先级）、`deferred-content.md`（已搁置的内容充实）、`update-log.md`（逐次更新摘要）。**只跟踪仍待答的问题**（无「已解决」区）；主题文档的 `## Open questions` 是权威归属，此处是导航。答定即移出到 `answer-logs/`。 | 持续更新；由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。分片过长可再拆、过短可并回，同步更新索引导航表。 |
 | `answer-logs/` | 已答定问题从待答清单移出的归档台账，一次移出一份 `log-<draftSuffix>.md`（`draftSuffix` = 对应 `inbox/draft-<suffix>.md` 的后缀 或 `solution-draft-<slug>.md` 的 `<slug>`，无草稿来源则用当天 `MMDD`）。由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入；`_index.md` 说明命名规则并汇总台账表。 | 历史台账，一次移出新建一份；与本库其余文档一样可编辑修正，非仅追加。 |
 

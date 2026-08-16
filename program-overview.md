@@ -5,7 +5,7 @@
 > 结构与边界的**权威**在 `systems/architecture.md`；本文件是它的**运行时视角**对照面。工程落地形态（进程边界、文件夹布局、autoload 注册、代码形态）见 `system-overview.md`。术语权威在 `terminology.md`。
 >
 > **注意：** 下文的「服务」指**进程内模块单例**（同一 Godot 二进制、同一进程、直接 C# 方法调用），**不是**分布式微服务。见 `system-overview.md` 第一节。
-> Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`。
+>
 
 ---
 
@@ -29,11 +29,13 @@
 
 ### 拆分轴：生命周期层 + 行为边界，**不是数据类型**
 
-不按 `power` / `item` / `card` / `resource` 各开一个服务——那会撕碎事务（一次结算典型要同时改多种资源）、横切生命周期层（账号级 vs 轮回级的持久化与清理规则完全不同），且退化为无规则的贫血 CRUD。同理不为九类 AdventureEvent 各开一个服务：只有 Combat 真有状态机，其余差异在**数据**而非**代码**。
+不按 `power` / `item` / `card` / `resource` 各开一个服务——那会撕碎事务（一次结算典型要同时改多种资源）、横切生命周期层（账号级 vs 轮回级的持久化与清理规则完全不同），且退化为无规则的贫血 CRUD。同理不为五类 AdventureEvent 各开一个服务：只有 Combat 真有状态机，其余差异在**数据**而非**代码**。
 
 「同类内容的统一入口与标准操作接口」这个诉求由 **content-service 的 ContentRegistry + 泛型仓储接口**满足（见第四节），而不是按类型开服务。
 
 ---
+
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-11-plot-content-localization.md`
 
 ## 二、服务 / 管理器职责矩阵
 
@@ -60,8 +62,8 @@
 | | | BattlefieldManager | **战场（battlefield）**：场上生效中的卡牌 / 持续状态 / **触发器注册面**，及回合内 / 跨回合的生命周期标记与清理 |
 | | | StackManager | **栈（stack）**：压栈、**LIFO 结算**、连锁触发的解决顺序 |
 
-> **卡组 = `DeckModule`（第三级），不是平级 manager**：抽 / 弃 / 洗（seeded）归参战方内部的 module，CharacterManager 与 EnemyManager 各自持有，**每个 character / enemy 一份**（敌人也出牌）。Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md`。
-> **栈与战场是两个区**：栈 = 等待结算的队列，战场 = 已结算并正在生效的东西；结算路径 = 打出 → 入栈 → LIFO 弹出结算 → 效果施加 →（若持续）落到战场。属于某一方的 mana / 道念 / 手牌 / 卡组仍归两个参战方 manager。Source: `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`。
+> **卡组 = `DeckModule`（第三级），不是平级 manager**：抽 / 弃 / 洗（seeded）归参战方内部的 module，CharacterManager 与 EnemyManager 各自持有，**每个 character / enemy 一份**（敌人也出牌）。
+> **栈与战场是两个区**：栈 = 等待结算的队列，战场 = 已结算并正在生效的东西；结算路径 = 打出 → 入栈 → LIFO 弹出结算 → 效果施加 →（若持续）落到战场。属于某一方的 mana / 道念 / 手牌 / 卡组仍归两个参战方 manager。
 
 **非服务的横切件：**
 
@@ -157,9 +159,9 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │ ② game-progression ─▶ ViewModel 组装                               │
 │      静态文案(ContentRegistry) + 运行时数值 + capability 可见性     │
 │      ──▶ 月圆之夜式菜单，横向滑动                                   │
-│          每项显示 selectCost（如实展示，不设不可选 / 置灰态）       │
+│          不设不可选 / 置灰态；selectCost 仅在寿元 Band 2 精确展示   │
 │                          ↓                                          │
-│ ③ 玩家触控：【选择】——唯一操作，无跳过通道（08-06c）               │
+│ ③ 玩家触控：【选择】——唯一操作，无跳过通道               │
 │      Priority == 1 的选项存在时，0 档本轮被封锁                     │
 │                          ↓                                          │
 │ ④ life-cycle-service.AdvanceEventAsync(chosen, ct)                  │
@@ -172,20 +174,20 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      │                                                              │
 │      ├─ event.eventStart()  ──────────────────┐                     │
 │      │                                         │ 事件自身内部流程    │
-│      │   ┌── eventType == Combat / Practice / Finale ──┤            │
+│      │   ┌── eventType == Combat（三档 combatTier）──┤            │
 │      │   │   combat-service.RunCombatAsync(encounter, ct)          │
 │      │   │     TurnManager       ↺ mana 恢复至上限 → 抽牌 → 出牌    │
 │      │   │                         → 结算 → 换手（共 10 回合）      │
 │      │   │     CharacterManager  玩家侧参战方（卡组 / 监听玩家操作）│
-│      │   │     EnemyManager      敌人侧参战方（卡组 / AI / 意图）    │
+│      │   │     EnemyManager      敌人侧参战方（卡组 / AI，无预告）  │
 │      │   │     StackManager      压栈 → LIFO 结算 → 连锁触发         │
 │      │   │     BattlefieldManager 场上生效中的牌 / 持续状态 / 触发器 │
-│      │   │       意图三档：越阶即黑箱 + 同阶差值（完整/仅类别/无）  │
+│      │   │       敌人回合逐步呈现（飘字 + ticker）= 唯一动态情报    │
 │      │   │     战斗内所有写入 ─▶ ProfileManager                     │
 │      │   │     决策点 ─▶ 存档（退出重进恢复同一局面 + RNG 状态）    │
 │      │   │     胜负判据：道念（momentum）高者胜，lifeTotal 不参与过程│
 │      │   │     └─▶ CombatResult（胜负 / 双方道念 / 剩余 lifeTotal） │
-│      │   └── 其余六类 ────────────────────────┤                     │
+│      │   └── 其余四类 ────────────────────────┤                     │
 │      │       通用结算器：数据驱动的 outcome / effect 定义            │
 │      │       （DnD 式选分支时回查 PlotManager.ChooseBranch）         │
 │      ├─ event.eventEnd() ─────────────────────┘                     │
@@ -253,7 +255,7 @@ IContentRepository<T> where T : Resource
 
 **所有服务经此取内容；代码中不散落 `ResourceLoader.Load`。** 新增一种内容类型 = 新增一个 `XxxData` 与一个仓储条目，不新增服务、不改调用方。**没有中性名 `All()`**——抽取与全量各有显式名字，理由见 `systems/services/content-service.md`「`AllEnabled()` 纪律的可执行化」。
 
-### 一切内容都属本地内容层（08-11）
+### 一切内容都属本地内容层
 
 **没有云端内容通道。** 全部内容——含 AdventurePlot 的剧本节点 / 分支 / 文本——都存于 `res://content/` 基线 + `user://overlay/`，经 ContentRegistry 按 `Id` 读取。**运行时内容零网络请求**；网络只在启动期用于 manifest 比对与增量下载。
 
@@ -264,7 +266,7 @@ IContentRepository<T> where T : Resource
 | **被存档引用** | `AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表，**含静态展示文案与状态转换触发的定性文案** | **只改不增** |
 | **不被存档引用** | AdventurePlot 的剧本节点 / 分支 / 文本（`CharacterProfile` 只存 key points） | **可新增 `Id`**（唯一例外 ⇒ 新剧情可热更不发版） |
 
-理由与悬空 key point 的降级规则见 `systems/services/content-service.md` 与 `systems/services/plot-manager.md`。Source: `handoffs/2026-08-11-plot-content-localization.md`。
+理由与悬空 key point 的降级规则见 `systems/services/content-service.md` 与 `systems/services/plot-manager.md`。
 
 ---
 

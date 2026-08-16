@@ -1,10 +1,6 @@
 # 总音频方向（Audio Direction）
 
-**所有 audio guide 的公共约束。** 每份 guide 继承本文档，只在其上追加该曲目 / 音效特有的部分。跨曲目的听感一致性由本文档承担。
-
-Source: `../../handoffs/2026-08-04-art-audio-library-scaffold.md`
-
-## 一句话方向
+**所有 audio guide 的公共约束。** 每份 guide 继承本文档，只在其上追加该曲目 / 音效特有的部分。跨曲目的听感一致性由本文档承担。## 一句话方向
 
 > _（待写：一句能直接放进 prompt 开头的风格陈述。）_
 
