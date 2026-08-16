@@ -20,6 +20,19 @@
     ],
     "defaultMode": "bypassPermissions"
   },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"D:\\MyCardGame\\.claude\\scripts\\index-size-guard.ps1\""
+          }
+        ]
+      }
+    ]
+  },
   "model": "claude-opus-5",
   "effortLevel": "medium",
   "outputStyle": "default"

@@ -33,12 +33,12 @@ D:\MyCardGame\
 ├── backend-testing-branch/      — read-only reference snapshot (git: backend-testing)
 ├── backend-production-branch/   — read-only reference snapshot (git: backend-production)
 ├── backend-design-documents/    — backend design intent, SOURCE OF TRUTH (git: backend-design)
-├── .gitignore                   — shared ignore surface for the branch checkouts
 ├── push-all.cmd                 — commit + push every branch checkout at once
+├── promote.cmd                  — merge one branch into its downstream (feature→testing→production)
 └── session-manager.cmd          — session favorites/tags entry point
 ```
 
-- **两条彼此独立的提升线：** `game-feature → game-testing → game-production`（Godot 客户端）与 `backend-feature → backend-testing → backend-production`（云端后端）。从不互相合并——唯一真实的进程边界就在这两侧之间，两者的部署节奏与技术栈都不同。
+- **两条彼此独立的提升线：** `game-feature → game-testing → game-production`（Godot 客户端）与 `backend-feature → backend-testing → backend-production`（云端后端）。从不互相合并——唯一真实的进程边界就在这两侧之间，两者的部署节奏与技术栈都不同。提升用根级 `promote.cmd -Line game -To testing`（在目标分支自己的目录里 `--no-ff` 合并 + push；目标工作区不干净就拒绝执行，绝不 force-push）。
 - **只在两个 feature 文件夹中编辑。** 四个 testing/production 文件夹是并行快照，用于把一个稳定构建与进行中的工作交叉对比（在不切换分支的情况下映射 dev/test/prod 分支模型）。
 - `settings.json` 的 permission **deny 规则**会拦截对这四个快照目录的 Edit/Write（无需钩子、不依赖 python）。Bash 写入不在拦截范围内——那部分仍是 `Context.md` 约束的约定。
 - 后端目前**尚未开工**：`backend-feature-branch/` 只有一份 README，技术栈待定。客户端的边界服务先以离线 stub 实现。
@@ -58,7 +58,7 @@ D:\MyCardGame\
 ```
 .claude/
 ├── CLAUDE.md            — entry; imports rules/Context.md
-├── settings.json        — permissions (deny 保护四个只读快照目录) + model + effortLevel (no hooks)
+├── settings.json        — permissions (deny 保护四个只读快照目录) + model + effortLevel + hooks
 ├── settings.local.json  — 本机的设置覆盖
 ├── session-tags.json    — session 收藏/标签存储 (session-manager 写入)
 ├── blueprints/          — 实现蓝图 + _index.md 台账 (gitignored, 本机)
@@ -84,8 +84,12 @@ D:\MyCardGame\
 │   └── standards/   (csharp-conventions, godot-scene-conventions,
 │                     mobile-portrait-ui, rng-determinism, save-format, signal-eventbus)
 ├── scripts/
-│   ├── session-manager*         — session favorites/tags helper
-│   └── push-all-impl.ps1        — 批量 commit/push 全部分支检出目录（经根级 push-all.cmd 调用）
+│   ├── session-manager          — bash 入口（子命令语法）
+│   ├── session-manager.cmd      — PowerShell 入口（与根级 session-manager.cmd 等价）
+│   ├── session-manager-impl.ps1 — 实现；上面两个入口都转发到它
+│   ├── push-all-impl.ps1        — 批量 commit/push 全部工作区（经根级 push-all.cmd 调用）
+│   ├── promote-impl.ps1         — 沿提升线合并 + 推送（经根级 promote.cmd 调用）
+│   └── index-size-guard.ps1     — PostToolUse 钩子：台账 > 20KB 时告警（只告警，绝不拦截）
 └── skills/
     ├── analyze-new-ideas/     — raw idea → consistency/compat review → interview → clean handoff → distill into design docs
     ├── provide-solution-draft/ — one open question → proposed solution → inbox/solution-draft-<slug>.md (human review)

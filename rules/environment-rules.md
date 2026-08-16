@@ -36,4 +36,5 @@
 
 ## 钩子
 
-- **没有 PreToolUse/SessionStart/Notification 钩子。** `settings.json` 没有 `hooks` 键。分支文件夹纪律主要由 `Context.md` 约束；此外 `settings.json` 的 permission **deny 规则**会拦截对四个只读快照目录（`game-testing-branch/`、`game-production-branch/`、`backend-testing-branch/`、`backend-production-branch/`）的文件写入。规则一律写成 `Edit(<路径>)` —— 它覆盖所有文件编辑工具（Edit / Write / NotebookEdit）；`Write(<路径>)` 形式在文件权限检查中不被匹配，是无效规则，不要添加。（Bash 写入不在拦截范围内。）
+- **只有一个钩子：PostToolUse 的台账体积告警。** `settings.json` 的 `hooks.PostToolUse` 以 matcher `Edit|Write` 挂了 `.claude/scripts/index-size-guard.ps1`：被写入的文件若命中 `*_index.md` / `open-questions/update-log.md` / `answer-logs/_index.md` 且超过 20KB，打印一行中文告警。它**只告警、永不拦截**（任何情况下 exit 0），职责是提醒「索引又在长回台账」（`game-design-documents/decisions/ADR-0005`）。调用形态固定为 `powershell -NoProfile -ExecutionPolicy Bypass -File <脚本>`。
+- **没有 PreToolUse/SessionStart/Notification 钩子。** 分支文件夹纪律主要由 `Context.md` 约束；此外 `settings.json` 的 permission **deny 规则**会拦截对四个只读快照目录（`game-testing-branch/`、`game-production-branch/`、`backend-testing-branch/`、`backend-production-branch/`）的文件写入。规则一律写成 `Edit(<路径>)` —— 它覆盖所有文件编辑工具（Edit / Write / NotebookEdit）；`Write(<路径>)` 形式在文件权限检查中不被匹配，是无效规则，不要添加。**路径不带 `./` 前缀**（`Edit(./game-testing-branch/**)` 这种写法匹配不上，规则等于失效）。（Bash 写入不在拦截范围内。）

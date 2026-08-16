@@ -46,10 +46,10 @@ allowed-tools: Bash
 ## 说明
 
 - 该封装脚本只读会话文件、只写 `session-tags.json`，不修改任何业务代码，无副作用。底层解析逻辑仍由 `session-manager-impl.ps1` 承担。
-- **入口按环境选择**（均转发到 `session-manager-impl.ps1`，路径都在 `.claude\scripts\` 下）：
+- **入口按环境选择**（三个入口，均转发到 `.claude\scripts\session-manager-impl.ps1`）：
   - Git Bash / 本 skill 的 Bash 工具 → `bash .claude/scripts/session-manager <子命令>`（子命令语法，如 `save . 标签`）。
-  - **PowerShell 提示符下手动执行（推荐）** → `.\.claude\scripts\session-manager.cmd -save . -Tags 标签1,标签2`（多个标签用逗号分隔）。`.cmd` 不受 PowerShell 执行策略约束，内部已带 `-ExecutionPolicy Bypass`，在 `Restricted` 策略下也能直接运行。
-  - PowerShell 且执行策略允许 `.ps1` 时，也可用 `.\.claude\scripts\session-manager.ps1 -save ...`（`Restricted` 策略下会被拦截，改用上面的 `.cmd`）。
-  - 常见坑：PowerShell 里不要用 `bash`（通常不在 PATH）；路径必须含 `scripts\`（脚本在 `.claude\scripts\`，不在仓库根或 `.claude\`）。
+  - **PowerShell 提示符下手动执行（推荐）** → 仓库根的 `.\session-manager.cmd -save . -Tags 标签1,标签2`（多个标签用逗号分隔）。`.cmd` 不受 PowerShell 执行策略约束，内部已带 `-ExecutionPolicy Bypass`，在 `Restricted` 策略下也能直接运行。
+  - 同一个 `.cmd` 在 `.claude\scripts\` 下也有一份（`.\.claude\scripts\session-manager.cmd`），两者等价，用哪个都行。
+  - 常见坑：PowerShell 里不要用 `bash`（通常不在 PATH）；除根目录的 `session-manager.cmd` 外，其余脚本都在 `.claude\scripts\` 下，路径必须含 `scripts\`。
 - 关键词搜索**仅匹配用户发言**（`type == user`），不搜工具输出与助手回复。
 - 收藏与保留期无关：`cleanupPeriodDays` 控制磁盘保留天数；本 skill 解决的是超出 `--resume` 列表 50 条上限后仍能检索、恢复旧会话。
