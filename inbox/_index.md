@@ -14,13 +14,14 @@
 
 ## 两类草稿
 
-- `draft-<suffix>.md` —— 手写的零散想法（`<suffix>` 为 `MMDD`，同日多份追加 `b`、`c`）。
+- `draft-<suffix>.md` —— 手写的零散想法。**`<suffix>` = `MMDD` + 序列字母，从 `a` 起，同日依次 `a` · `b` · `c` …**（例：`draft-0816a.md` · `draft-0816b.md`）。
+  **当天第一份也带 `a`，不写裸 `draft-MMDD.md`。** 序列位恒定存在，`ls` 与 `log-*` 后缀才能整齐排序、一眼看出同日批次的先后；裸日期与带字母混排时，同日第一份会脱离它自己的序列。
 - `solution-draft-<slug>.md` —— 针对某个待答问题产出的**提案式**方案草稿。front-matter `status` 生命周期：`awaiting-review` → `reviewed` / `decided` → `distilled`（移入 `archive/`）。
 
 ## 在办清单
 
 | 文件 | status | 说明 |
 |------|--------|------|
-| `draft-combat-system.md` | 未标注 | 战斗回合结构、起手 / 抓牌 / 法力、10 回合 momentum 胜负判定。**内容是客户端玩法，疑似误投本库**——下一步：确认后移交 `game-design-documents/inbox/`，或说明其后端侧诉求。 |
+| *（空）* | — | — |
 
 清空即为「无在办草稿」。已提炼草稿 → handoff 的对应关系见 `archive/_index.md`。

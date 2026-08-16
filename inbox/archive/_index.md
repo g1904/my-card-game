@@ -6,5 +6,9 @@
 
 | 草稿 | 对应 handoff | 日期 |
 |------|--------------|------|
+| `solution-draft-splitmix64-test-vectors.md` | `handoffs/2026-08-14-splitmix64-test-vectors.md` | 2026-08-14 |
+| `solution-draft-openapi-spec-timing-and-consistency.md` | `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md` | 2026-08-14 |
+| `solution-draft-profile-sync-contract.md` | `handoffs/2026-08-14-profile-sync-contract.md` | 2026-08-14 |
+| `solution-draft-auth-endpoint-contract.md` | `handoffs/2026-08-13-auth-endpoint-contract.md` | 2026-08-13 |
 | `solution-draft-contract-expression-envelope-and-error-codes.md` | `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md` | 2026-08-11 |
 | `solution-draft-content-delivery-manifest-and-flags.md` | `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md` | 2026-08-11 |

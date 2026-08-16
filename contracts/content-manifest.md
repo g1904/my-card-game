@@ -4,7 +4,7 @@
 > 客户端侧门面见 `game-design-documents/systems/services/content-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
 > Source: `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md`。
 
-> **定稿边界：字段语义与字段名均已定案。** 序列化与命名约定（lowerCamelCase · RFC 3339 UTC · 忽略未知字段）、端点风格与错误码分层归 `envelope.md`，本文件不另立一套、也不复述。
+> 序列化与命名约定（lowerCamelCase · RFC 3339 UTC · 忽略未知字段）、端点风格与错误码分层归 `envelope.md`，本文件不另立一套、也不复述。
 
 ## 意图
 

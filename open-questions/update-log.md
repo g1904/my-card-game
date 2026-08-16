@@ -2,6 +2,45 @@
 
 > 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身——条目在各分片。
 
+## 2026-08-14 — SplitMix64 测试向量填值答结（`01` 一条）
+
+- **来源**：`inbox/archive/solution-draft-splitmix64-test-vectors.md`（08-14 产出并由用户裁决）→ `handoffs/2026-08-14-splitmix64-test-vectors.md`。
+- **答结 1 条**：`01` 的「`profile-sync.md` §6 测试向量表的实际数值未填」。→ `answer-logs/log-splitmix64-test-vectors.md`。**「跨语言逐位一致」这条纪律自此有了唯一可执行的检查点**（此前不填 = 等于没有这条纪律，且失效形态是静默的作弊窗口）。
+- **归档落点**：新建 `contracts/vectors/splitmix64.json`（数值权威 · 8 组 · 含算法常量与 `streams` 冻结映射 · 64 位值走 hex16 字符串）；`contracts/profile-sync.md` 新增 **§6a**（8 组对照表 + 选取依据 + 非规范性自测提示 + 「不得单方面改表迁就实现」的承重纪律），§6 末条改为指向 §6a，Open questions 删该条，「备选方案」新增 7 条（只给 `roll` · 只给 1–2 组 · 各抄进代码 · 各自重算 · 十进制表示 · 放进 `schemas/` · 另立 `Mix()` 向量表）；`contracts/_index.md` 现状段新增一段 + 目录形态标注已落笔。
+- **一处措辞松动（用户裁决）**：填值时机由「向量值在**任一侧首次实现时**填入」改为**由独立参考实现预先算出，两侧实现后逐位对表**。松动的是时机不是复核要求——表从「实现的副产物」变成「实现的验收前置」。代价（依赖第三方参考实现的正确性）由新增的「先复核实现、再复核表，不得单方面改表」纪律接住。
+- **新增落点**：无新增待答项。`01` 余下四条（`auth.md` 三处留白 · `compliance.*` 码清单 · `bundleGrantOrdinal` · 机检承载位置）与本次无关，原样保留。
+- **未触发 interview**：输入草稿 `status: decided`，唯一取向项（填值时机）已由用户裁决，本库校验未发现新的 🔴 / 🟠。**数值经两道自检**：① `Mix` 与 `GOLDEN` 用公开的标准 SplitMix64 向量钉住；② 落盘后经一条不同的解析路径二次复算，8 组逐位比对全过。§6 独有的三参数逐级混入无外部参照，复核对象是那五行伪代码本身。
+- **跨库**：**不改动任何报文语义，客户端侧不需要承接性 handoff**。但既有跨库欠账（`handoffs/2026-08-14-profile-sync-contract.md` 七点）的**第 6 点**（`AccountRng` 换随机源）自此有了可直接消费的验收物，客户端可**先于后端**完成并自验。
+- **顺带发现（未改，归 `/update-readme`）**：`README.md` 文件夹图例中 `contracts/` 那行仍写「当前有两份」，实际已四份。
+
+## 2026-08-14 — spec 的落笔时机与一致性核对规则答结（`01` 一条）
+
+- **来源**：`inbox/archive/solution-draft-openapi-spec-timing-and-consistency.md`（08-14 产出并由用户裁决）→ `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
+- **答结 1 条**：`01` 的「`openapi.yaml` / `schemas/*.json` 尚未落笔 + 一致性核对方式未定」——**`contracts/` 的最后一项结构性欠账结清**。→ `answer-logs/log-openapi-spec-timing-and-consistency.md`。
+- **归档落点**：`contracts/envelope.md` §1（落地时机改写为「任一侧首个端点、动手方落笔、共有层 + 该端点」· markdown ↔ spec 分工改为**形态收 spec 单点** · 新增「形态的迁移」「覆盖面」「`info.version`」三行）+ Open questions 第三条中性化为待落笔项；`contracts/_index.md` 现状段 + 「约定」段新增**契约变更的完成判据**（六条 + 三条机检断言表 + 人工清单四项）与 **`schemas/` 拆分判据 + 落笔后目录形态 + `profile-visible-subset.json` 的三条纪律**；`contracts/profile-sync.md` §6 补「数值权威在 `vectors/splitmix64.json`」；`operations/_index.md` 错误码台账登记流程由「先文档后实现」扩展为**「先文档 → 后 spec → 后实现」**并接入断言②。
+- **新增落点**：`01` 的该条**降级重写**为「三条机检断言的**承载位置**待 `06`」（工程承载，非设计未决；断言与后端栈无关，不等 `06`，在此之前走人工清单）；`01` 的 SplitMix64 向量条补落点 `contracts/vectors/splitmix64.json`；索引「当前焦点」第 2 条把该承载位置并入 `06` 的承接面。
+- **⚠ 触发 interview，两项**：① **🔴 草稿自相矛盾**——第 2 条「四份 markdown 字段表**同批**瘦身」与同稿 §1 改写表「未落笔端点的字段表视为草案」互斥（首落只含共有层 + 一个端点，四份全瘦身会让未进 spec 的三个端点**形态无处承载**）⇒ 用户裁定**随 spec 覆盖面逐步瘦身**，过渡期风格不齐写明为预期状态；② **🟠 CDN 域端点是否进 `paths`** 未定（`<contentRoot>/manifest`·`.sig`·`/blobs/<hash>` 不在 `/v1/` 下，而草稿断言③ 只写了 `METHOD /v1/…`）⇒ 用户裁定**进 `paths`、以 `contentRoot` 为独立 server**，断言③ 措辞随之放宽为「每个 `METHOD 路径`」。另有一项本库校验推演：`manifest.json` 即便进 `paths` 也只被**一个** path 引用，故 `schemas/` 判据写成**两条并列款**（+「独立可被签名 / 校验、需脱离 spec 单独引用的产物」），而非给 manifest 开例外。
+- **跨库**：本次**不改动任何报文语义**，客户端侧无需承接性 handoff。但有一条跨库**操作**约定需客户端知晓：客户端若先于后端进入某端点实现（`HttpProfileBackend` 最可能），**由客户端侧发起本库 `contracts/openapi.yaml` 的落笔**，后端在同一次跨库 handoff 中确认——即客户端的第一次真实请求实现是「先落 spec、再按 spec 编码」，不是按 markdown 草案编码。
+
+## 2026-08-14 — `profile-sync.md` 成文，契约面封顶（`01` 一条 + `03` 整片五条）
+
+- **来源**：`inbox/archive/solution-draft-profile-sync-contract.md`（08-13 产出、08-14 用户裁决五项）→ `handoffs/2026-08-14-profile-sync-contract.md`。
+- **答结 6 条**：`01` 的「`profile-sync.md` 尚未成文」；`03` 的全部五条（`revision` CAS 服务端语义 · `pushId` 幂等窗口 · `AccountSeed` 下发与复算 · 上行负载版本化与合并细节 · 自动存档点频率的服务端约束）。→ `answer-logs/log-profile-sync-contract.md`。
+- **分片删除**：`open-questions/03-sync-conflict.md` **整片删除**，编号 `03` 空缺且不回填（同 `05` 的处置）；实现层面的部分并入 `06`。
+- **归档落点**：新建 `contracts/profile-sync.md`（两端点封定 · 负载信封四字段 · **diff 的顶层键浅合并** · 三分支 + 幂等命中应答 · **可见字段子集的逐 JSON path 白名单** · **SplitMix64 契约随机源** · **可复算 `roll` 不可复算阈值** · 不一致仅记账 · CAS 线性化 + 单主 · `pushId` 200 条/30 天 · 只设滥用阈值 · `compliance.*` 不进同步通道）；`contracts/envelope.md` 两处（§2 补「超 2⁵³ 整数走字符串」判据 · §8 第二段改为回链白名单）；`contracts/_index.md` 状态行转正 + 现状段；`decisions/_index.md` 增两条 ADR 候选（防作弊边界 · SplitMix64 随机源）；`handoffs/2026-08-12-grant-source-code-contract.md` 三条 open question 全部答结并转 `distilled`。
+- **新增落点**：`01` 增两条（SplitMix64 测试向量数值 · `bundleGrantOrdinal` 透明路径）并全片改承「四份齐备、只剩横切项」；`02` 的合规条补落点边界（不得选在 `/v1/profile/*`）、风控条改承已定处置 + 已知残留通道；`06` 的可观测性条增至三探针 + 透明路径缺失告警，并新增一条「同步侧语义的实现落地」承接 `03` 的实现部分。
+- **⚠ 触发 interview，两项 🔴 均推翻草稿原写法**：① **复算校验 ②③ 的形态**——草稿的双向等价会被客户端既定规则证伪（首胜 100% · 池空静默停摆 · 重置为 `Base(x+1)` 而非归 0），且**池空时不掷骰而序号照常 `+1`** 会让校验 ① 稳定失败 ⇒ 裁定为**单向蕴含 + 三条写入约定**（每次胜利必掷骰、首胜写 `10000`、不检查发放那次 `accumulated` 方向）；② **push diff 的合并语义**在两库均未定义而后端必须靠它维护整聚合 ⇒ 裁定为**顶层键粒度浅合并**（否决 RFC 7386 与段级全量替换）。另有一项本库校验推演修正：512 KB 初值的口径（客户端那条是 `pastEvent` 护栏，非整聚合）。
+- **跨库**：本次改动客户端 ↔ 后端语义，**客户端侧需另写一份 handoff（七点）**，本库不代为改动。其中 ①②⑤⑥ 与本契约**互为前提**——含一次真实的类型改动（`AccountRng.For` 返回类型 `RandomNumberGenerator` → `AccountRandom`，连带 `DrawPool.PickOne/PickMany` 参数放宽）。
+
+## 2026-08-13 — `auth.md` 成文（`01` 一条 + `02` 一条）
+
+- **来源**：`inbox/archive/solution-draft-auth-endpoint-contract.md`（08-12 产出、08-13 用户逐项裁决）→ `handoffs/2026-08-13-auth-endpoint-contract.md`。
+- **答结 2 条**：`01` 的「`auth.md` 尚未成文」（token 生命周期 + 登录渠道报文形态两部分答定，多设备触发条件仍留 `02`）· `02` 的「token 失效时的失效判定与续期窗口」（TTL 15 min / refresh 30 天滑动 / 60 秒宽限窗口）。→ `answer-logs/log-auth-endpoint-contract.md`。
+- **归档落点**：新建 `contracts/auth.md`（四端点封定 · 双 token · 渠道分形 credential · rotation + 60 s 宽限 · 强更闸门只在 `signin` · 四端点全幂等 · `session_revoked.detail` 加 `reasonKey` · `AccountSeed` 不进 auth 报文）；`contracts/envelope.md` 四处（§4a auth 例外域 · 台账两条新 `code` · `session_revoked.detail` 改形 · 承重项由三条增为四条，含「刷新失败按判据拆两条」）；`contracts/_index.md` 状态行转正；`decisions/_index.md` 增 ADR 候选④（auth 幂等 = sync 幂等）。
+- **新增落点**：`01` 改承 `auth.md` 的三处显式留白 + `refresh` 限流面（待 `06`）；`02` 的多设备条追加「同时卡着 `reasonKey` 取值表与 `deviceId` 裁决口径」；`03` 的 `AccountSeed` 条注明 **auth 侧已排除**、定稿仍在 `profile-sync.md`。
+- **未触发 interview**：输入草稿 `status: decided`，四项取向 + 一项张力已由用户逐项裁决，本次校验未发现新的 🔴 / 🟠。**两项由本库校验推演新增**（草稿未点名）：`envelope.md` 台账 `auth.token_expired` 行的旧措辞需按裁决 #5 改写；`auth.credential_invalid` 的描述需写宽以覆盖 `challenge` 的「标识符格式非法」。
+- **跨库**：本次改动客户端 ↔ 后端语义，**客户端侧需另写一份 handoff**（五点，见 handoff 的「客户端侧影响」段），本库不代为改动。其中第 3 点是一次**跨库松动**——`account-service.md`「刷新失败视同断线」的覆盖面按判据拆为两条路径。
+
 ## 2026-08-11 — 剧本服务撤销（`05` 整片作废 + `01` 一条）
 
 - **来源**：`game-design-documents/handoffs/2026-08-11-plot-content-localization.md`（客户端侧决策）→ `handoffs/2026-08-11-plot-service-retired.md`。

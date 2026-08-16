@@ -3,8 +3,8 @@
 - id: 2026-08-12-grant-source-code-contract
 - date: 2026-08-12
 - topic: contracts/profile-sync（计划中）· contracts/envelope（枚举序列化那条约定需复核）
-- status: raw
-- distilled-to:
+- status: distilled
+- distilled-to: `contracts/profile-sync.md`（§5 可见字段白名单 · §5a `sourceCode` 的线上表示 · §7a 复算不一致的处置）
 
 ## Intent（客户端侧已定 · 2026-08-12）
 
@@ -38,7 +38,14 @@
 
 `SourceCode` 落在**持有条目**上（不是内容定义上），四类各一：`PlayerPower` / `PlayerItem`（账号级，随 `PlayerProfile` 上行）· `CharacterPower` / `CharacterItem`（轮回级，随 `CharacterProfile` 上行）。**只有账号级法则那一份参与 `x` 复算**；其余三类对后端是纯透传数据，无规则用途。
 
-## Open questions
+## Open questions（三条已于 2026-08-14 全部答结）
+
+> 三条均由 `handoffs/2026-08-14-profile-sync-contract.md` 定案，结论落 `contracts/profile-sync.md`：
+> ① 枚举序列化冲突 → **收口①**（契约侧字符串名 `"FinaleWin"` + 存档侧整数 code + 客户端在序列化边界一次映射；连带「`Source` 的名与 code 双双冻结」）→ §5a。
+> ② `x` 复算的触发时机与不一致处置 → 在 **`finaleWinOrdinal` 递增的那一次 push** 上复算；不一致**仅记账 + 上报风控，不拒绝、不改写** → §7 · §7a。
+> ③ 轮回级两类的 `sourceCode` 是否进透明档 → **不进**（`characterDiffs` 整体不透明；它对后端无规则用途，而每条透明路径都要背上路径稳定性约束）→ §5。
+>
+> 以下保留原始措辞作溯源。
 
 - **⚠ 与 `contracts/envelope.md` 的枚举序列化约定正面冲突（承重 · 须先答）。** `envelope.md` 定「**枚举值一律字符串，取值与客户端 C# 枚举名逐字相同**」，理由是同名可省掉一整张最容易写漏的映射表；而客户端 08-10b 定的是「**code = 显式稳定整数，是存档 / 上行负载里实际序列化的东西**，重命名成员不破坏存档」。**两条都明写覆盖「上行负载」，不能同时成立。**
 

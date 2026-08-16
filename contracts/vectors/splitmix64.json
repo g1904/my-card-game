@@ -1,0 +1,81 @@
+{
+  "$comment": "契约定义的账号级随机源 SplitMix64 的测试向量。数值权威在本文件；contracts/profile-sync.md §6 的表格是人类可读对照。两侧测试直接读本文件，不得各抄一份进代码。实现与本表不符时：先复核实现、再复核表；两者都复核完仍不符，则重算并同批改 markdown + JSON，不得单方面改表迁就实现。",
+  "algorithm": "AccountRandom/SplitMix64",
+  "specSection": "contracts/profile-sync.md#6",
+  "constants": {
+    "golden": "9e3779b97f4a7c15",
+    "mix1": "bf58476d1ce4e5b9",
+    "mix2": "94d049bb133111eb",
+    "rollModulus": 10000
+  },
+  "streams": {
+    "PowerFragment": 0,
+    "PremiumBundle": 1
+  },
+  "vectors": [
+    {
+      "name": "zero-boundary",
+      "accountSeed": "0000000000000000",
+      "stream": 0,
+      "ordinal": 0,
+      "next": ["238275bc38fcbe91", "f89a2566b5822c54", "47200e1d9780fa44"],
+      "roll": 2433
+    },
+    {
+      "name": "zero-ordinal-1",
+      "accountSeed": "0000000000000000",
+      "stream": 0,
+      "ordinal": 1,
+      "next": ["2f101fe21496ea20", "a00624088f65d5b6", "74963fa799894ab9"],
+      "roll": 8096
+    },
+    {
+      "name": "zero-stream-1",
+      "accountSeed": "0000000000000000",
+      "stream": 1,
+      "ordinal": 0,
+      "next": ["80abe802ac1e182e", "949f48c1e9eb8a36", "20adf28678236723"],
+      "roll": 30
+    },
+    {
+      "name": "max-boundary",
+      "accountSeed": "ffffffffffffffff",
+      "stream": 0,
+      "ordinal": 0,
+      "next": ["fc042709560421da", "493384625f4330a7", "912e647564aed866"],
+      "roll": 2810
+    },
+    {
+      "name": "max-stream1-ordinal-intmax",
+      "accountSeed": "ffffffffffffffff",
+      "stream": 1,
+      "ordinal": 2147483647,
+      "next": ["df8b7d9f5d169190", "f91d71decb4077bd", "b7d36711bb7f3b48"],
+      "roll": 3120
+    },
+    {
+      "name": "sample-seed-ordinal-1",
+      "accountSeed": "9f2c1a77b30e45d1",
+      "stream": 0,
+      "ordinal": 1,
+      "next": ["b4acb5a8f93e9674", "07a278dbbd506102", "d942ab6200120920"],
+      "roll": 3028
+    },
+    {
+      "name": "sample-seed-ordinal-2",
+      "accountSeed": "9f2c1a77b30e45d1",
+      "stream": 0,
+      "ordinal": 2,
+      "next": ["e911376eb146a8e4", "0fe4a5780d1a0daa", "54bd17410ece9e6e"],
+      "roll": 8468
+    },
+    {
+      "name": "mixed-seed-stream1-ordinal-1000",
+      "accountSeed": "0123456789abcdef",
+      "stream": 1,
+      "ordinal": 1000,
+      "next": ["7834afc76f55fbbb", "c937a6eb9a750ddf", "fd01144827cb482c"],
+      "roll": 5115
+    }
+  ]
+}
