@@ -1,0 +1,17 @@
+# 行尾归一：仓库内一律存 LF，检出时按本机 core.autocrlf 还原。
+# 没有它，Windows 检出 + LF 提交会让 git 每次 add 都刷一屏
+# "LF will be replaced by CRLF" 警告，并把整文件记成改动。
+* text=auto
+
+# Git Bash 脚本必须保持 LF —— 带 CRLF 的 shebang 行会让 bash 报
+# "bad interpreter: /usr/bin/env bash^M" 而整个脚本无法运行。
+scripts/session-manager text eol=lf
+
+# 二进制：禁止任何行尾 / 文本处理（当前库内尚无二进制文件，此处为前置声明）。
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.pdf  binary
+*.zip  binary
