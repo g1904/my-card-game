@@ -28,6 +28,9 @@
 
 # 单独包一层：钩子**任何情况下都不许**以非零码退出而拦住工具调用。
 try {
+    # 告警文本是中文；默认控制台代码页会把它打成问号，固定为 UTF-8 输出。
+    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
     $raw = [Console]::In.ReadToEnd()
     if (-not $raw) { exit 0 }
 
@@ -46,11 +49,16 @@ try {
         -or ($norm -like '*answer-logs/_index.md')
     if (-not $isIndex) { exit 0 }
 
+    # update-log.md 的稳态是「保留最近 ~10 条完整条目」（约 41KB），给它单独的
+    # 宽阈值；其余索引台账仍按 20KB ——它们每行只该是「指向 + 一句话」。
     $limit = 20KB
+    if ($norm -like '*open-questions/update-log.md') { $limit = 48KB }
+
     $size = (Get-Item -LiteralPath $path).Length
     if ($size -gt $limit) {
         $kb = [math]::Round($size / 1KB, 1)
-        Write-Host ("[台账体积告警] {0} 已达 {1} KB（阈值 20 KB）——索引在长回台账了：每行只该留「指向哪份文件 + 一句话」，叙述归被索引的文件自身（见 game-design-documents/decisions/ADR-0005）。" -f $leaf, $kb)
+        $limitKb = [math]::Round($limit / 1KB, 0)
+        Write-Host ("[台账体积告警] {0} 已达 {1} KB（阈值 {2} KB）——索引在长回台账了：每行只该留「指向哪份文件 + 一句话」，叙述归被索引的文件自身（见 game-design-documents/decisions/ADR-0005）。" -f $leaf, $kb, $limitKb)
     }
 }
 catch {
