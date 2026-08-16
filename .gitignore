@@ -1,3 +1,32 @@
-# Godot 4+ specific ignores
+# ── Godot 4 (.NET) ──────────────────────────────────────────
+# Godot 编辑器缓存 / 导入产物（打开项目时重新生成）
 .godot/
+# 旧版 mono 胶水（老项目遗留）
+.mono/
+# Android 导出模板
 /android/
+# 导出产物
+build/
+export/
+*.translation
+
+# ── .NET / C# ───────────────────────────────────────────────
+# 第一份 .csproj 落地前就先放在这里，免得 bin/obj 被首次提交带进仓库
+[Bb]in/
+[Oo]bj/
+*.user
+
+# ── Rider / IDE ─────────────────────────────────────────────
+# 注意：`.idea/` **有意不整目录忽略** —— 本项目把共享的 Rider 配置
+# （encodings.xml · vcs.xml · libraries/GdSdk.xml · indexLayout.xml）
+# 纳入版本控制，机器本地的那部分（workspace.xml · projectSettingsUpdater.xml
+# · shelf/ · dataSources/ …）由 Rider 自己写的 `.idea/.gitignore` 排除。
+# 在这里加一条 `.idea/` 会让**日后新增的共享 IDE 配置**被静默忽略、永远提交不上去。
+*.sln.DotSettings.user
+
+# ── OS ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# 注：export_presets.cfg 有意**不**忽略 —— 导出预设是共享配置。
+# 若想让预设只留本机，删掉本注释并把该文件名加进来。
