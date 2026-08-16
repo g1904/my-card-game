@@ -4,7 +4,7 @@
 - date: 2026-08-09
 - topic: systems/player-profile/player-power, systems/player-profile, systems/adventure-event/finale, systems/services/life-cycle-service, systems/services/profile-service, systems/game-progression, systems/monetization, systems/common-properties, systems/balance, terminology
 - status: distilled
-- distilled-to: terminology.md, systems/player-profile/（_index.md, player-power/_index.md, account-info.md）, systems/adventure-event/finale/_index.md, systems/services/（life-cycle-service.md, profile-service.md）, systems/game-progression.md, systems/monetization.md, systems/common-properties.md, systems/balance.md, systems/scoring.md, systems/services/future-event-service.md, open-questions.md, open-questions/（06-meta-progression.md, 07-codex-monetization.md, deferred-content.md, update-log.md）, answer-logs/log-legacy-fragment-chance.md, backend-design-documents/open-questions.md
+- distilled-to: terminology.md, systems/player-profile/（_index.md, player-power/_index.md, account-info.md）, systems/adventure-event/finale/_index.md, systems/services/（life-cycle-service.md, profile-service.md）, systems/game-progression.md, systems/monetization.md, systems/common-properties.md, systems/balance.md, systems/scoring.md, systems/services/future-event-service.md, open-questions.md, open-questions/（06-meta-progression.md, 07-codex-monetization.md, deferred-content.md, update-log.md）, answer-logs/log-legacy-fragment-chance.md, backend-design-documents/open-questions.md, `systems/services/（life-cycle-service.md, profile-service.md, future-event-service.md）`, `systems/（game-progression.md, monetization.md, common-properties.md, balance.md, scoring.md）`, `answer-logs/（log-legacy-fragment-chance.md, _index.md）`
 
 ## Intent（distilled）
 
@@ -193,3 +193,7 @@ if (roll < effective)
 ## Notes / triage
 
 来源：`inbox/solution-draft-legacy-fragment-chance.md`（`/provide-solution-draft` 产出，经用户 08-09 三轮直接裁定，无剩余待决项）。草稿已移入 `inbox/archive/`。
+
+## 待答清单账
+
+新增待答 3 条

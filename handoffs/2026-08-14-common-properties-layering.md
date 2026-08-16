@@ -113,3 +113,7 @@
 
 - 输入草稿 `inbox/solution-draft-common-properties-layering.md` 已置 `status: distilled` 并移入 `inbox/archive/`。
 - 答定条目「共有属性提炼粒度」已从 `open-questions/05-service-contracts.md` 与 `systems/common-properties.md` 的 `## 待决问题` 移出，记入 `answer-logs/log-common-properties-layering.md`。
+
+## 待答清单账
+
+答结 1 条 · 新增待答 0 条

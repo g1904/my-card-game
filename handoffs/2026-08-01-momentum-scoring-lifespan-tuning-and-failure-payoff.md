@@ -4,7 +4,7 @@
 - date: 2026-08-01
 - topic: systems/scoring, systems/character-profile/life + mana, systems/adventure-event/combat, systems/services/（combat / future-event / life-cycle / plot-manager）, systems/balance, systems/game-progression, systems/player-profile/（enemy-codex / player-power）, ux/（combat-ux / screen-flow）, vision/（scope / references）, terminology
 - status: distilled
-- distilled-to: terminology.md, systems/scoring.md, systems/character-profile/（life.md, mana.md）, systems/adventure-event/（common-properties.md, combat/**, practice/**）, systems/services/（combat-service.md, future-event-service.md, life-cycle-service.md, plot-manager.md）, systems/balance.md, systems/game-progression.md, systems/architecture.md, systems/_index.md, systems/player-profile/（enemy-codex/**, player-power/_index.md）, ux/combat-ux.md, ux/screen-flow.md, vision/scope.md, vision/references.md, open-questions.md, answer-logs/log-0801.md
+- distilled-to: terminology.md, systems/scoring.md, systems/character-profile/（life.md, mana.md）, systems/adventure-event/（common-properties.md, combat/**, practice/**）, systems/services/（combat-service.md, future-event-service.md, life-cycle-service.md, plot-manager.md）, systems/balance.md, systems/game-progression.md, systems/architecture.md, systems/_index.md, systems/player-profile/（enemy-codex/**, player-power/_index.md）, ux/combat-ux.md, ux/screen-flow.md, vision/scope.md, vision/references.md, open-questions.md, answer-logs/log-0801.md, `systems/scoring.md（重写）`, `systems/character-profile/（life.md 重写, mana.md）`, `systems/services/（combat-service, future-event-service, life-cycle-service, plot-manager）`
 
 ## Intent（distilled）
 

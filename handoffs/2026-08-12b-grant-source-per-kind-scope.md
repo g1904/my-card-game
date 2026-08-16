@@ -153,3 +153,7 @@ public enum Source
 
 - 后端侧承接已就位：`backend-design-documents/handoffs/2026-08-12-grant-source-code-contract.md`（`status: raw`，待该库自行提炼）。本次运行只写客户端库。
 - 顺带修掉 `character-profile/power/common-properties.md` 与 `character-profile/item/common-properties.md` 中重复了一次的 `Source:` 行。
+
+## 待答清单账
+
+答结 1 条 · 新增待答 2 条

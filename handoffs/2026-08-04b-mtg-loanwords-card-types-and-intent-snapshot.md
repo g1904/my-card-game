@@ -4,7 +4,7 @@
 - date: 2026-08-04
 - topic: terminology.md, systems/services/combat-service.md, systems/character-profile/deck/, systems/character-profile/item/, systems/character-profile/power/, systems/player-profile/player-item/, systems/player-profile/player-power/, systems/adventure-event/combat/, systems/architecture.md, systems/balance.md, systems/monetization.md, systems/services/future-event-service.md, ux/combat-ux.md
 - status: distilled
-- distilled-to: terminology.md, systems/architecture.md, systems/services/combat-service.md, systems/services/future-event-service.md, systems/character-profile/deck/_index.md, systems/character-profile/deck/common-properties.md, systems/character-profile/item/_index.md, systems/character-profile/power/_index.md, systems/player-profile/player-item/_index.md, systems/player-profile/player-power/_index.md, systems/adventure-event/combat/_index.md, systems/balance.md, systems/monetization.md, ux/combat-ux.md, open-questions/01-combat.md, open-questions/update-log.md, answer-logs/log-mtg-loanwords-and-card-types.md
+- distilled-to: terminology.md, systems/architecture.md, systems/services/combat-service.md, systems/services/future-event-service.md, systems/character-profile/deck/_index.md, systems/character-profile/deck/common-properties.md, systems/character-profile/item/_index.md, systems/character-profile/power/_index.md, systems/player-profile/player-item/_index.md, systems/player-profile/player-power/_index.md, systems/adventure-event/combat/_index.md, systems/balance.md, systems/monetization.md, ux/combat-ux.md, open-questions/01-combat.md, open-questions/update-log.md, answer-logs/log-mtg-loanwords-and-card-types.md, `systems/character-profile/deck/（_index.md, common-properties.md）`, `systems/character-profile/life-total.md`, `systems/character-profile/mana.md`, `systems/scoring.md`, `open-questions.md`, `open-questions/（01-combat.md, deferred-content.md, update-log.md）`
 
 **一行摘要：** 借词第一批全部定名（`sorcery speed` 整条删除、三步改称 开始 / 行动 / 结束阶段、`resolve` = 结算而战斗收口改称「收口」），并由定名连带落定**卡牌类型六分**（法术 / 灵宠 / 阵法 / 法宝·古宝 / 神通·法则 / 业障）、**异能三分**（静止式 / 启动式 / 触发式）、**永久物**概念、**意图 = 快照而非承诺**、以及**战场与两个参战方 manager 的边界判据**。
 
@@ -362,3 +362,7 @@ public enum TriggerOwnerScope { Self = 0, Opponent = 1, Either = 2 } // Opponent
 ## Notes / triage
 
 来源：`inbox/solution-draft-mtg-loanwords-and-card-types.md`（`/provide-solution-draft` 产出，已人工评审，`仍需用户决定 = 无`）。答定 5 条待答问题，移出记录见 `answer-logs/log-mtg-loanwords-and-card-types.md`。
+
+## 待答清单账
+
+答结 5 条

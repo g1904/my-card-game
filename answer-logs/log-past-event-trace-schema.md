@@ -26,3 +26,9 @@
 ## 未被本次触及
 
 `ADR-0003` / `ADR-0004` 未被触及；push 粒度、断线降级、`revision` / `pushId` 契约全部原样成立；`02-event-options.md` 其余 9 条不变。
+
+## 台账原记（自 `_index.md` 归并）
+
+> 台账瘦身前，`answer-logs/_index.md` 本行记有以下内容，原样保留于此。
+
+已评审）：**`pastEvent` 痕迹 schema 的四个子问题一次答结** —— 快照字段由**判据**给出（「重算不出来的存，重算得出来的不存」，文本类一律留模板侧）+ 条目类型 **`PastEventEntry`**（含 `AppliedChange` 与写明为例外的 `LifeSpanAfter`）+ `EventOutcome` 四值 · **未选项归档轻摘要 `UnchosenOptionRef`**（只求可回溯，不求可重建）· 与 key points **零结构耦合、单向只读**（推论：两者各自定稿）· 单事件 ~770 B **落在既有预算内 ⇒ push 粒度不变**，新增「只追加」不变式与软上限告警。连带答结「**风味文案不物化，跟随模板**」

@@ -143,3 +143,7 @@ ProfileManager.TryApply(spec)
 - **纯外观付费点是否真做、做成什么。** 本次只标为「不排除」，未定案。
 - **后端侧（须另跑一次 `/analyze-new-ideas --lib=backend`，本次不写入后端库）**：验票流程与订单幂等键 · 后端主动 +1 `bundleGrantOrdinal` 的写入语义 · `PremiumBundle` 域的复算白名单补入（`contracts/profile-sync.md` §5 已预留一行）· 跨设备重复到账的处置 · 实名 / 未成年人限额与渠道分成 / 退款。
 - **工程连带（不在本库定稿）**：平台内购 SDK（Google Play Billing / App Store / 微信支付）是客户端**唯一必须引入第三方 SDK 的地方**，会牵动 Godot 导出配置与各平台构建。落在 MVP 之外，此处只作提醒。
+
+## 待答清单账
+
+答结 3 条 · 收窄 1 条 · 新增待答 2 条

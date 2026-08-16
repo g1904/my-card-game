@@ -4,7 +4,7 @@
 - date: 2026-08-09
 - topic: systems/player-profile, systems/services/life-cycle-service, systems/services/sync-service, ux/screen-flow, terminology
 - status: distilled
-- distilled-to: systems/player-profile/_index.md, systems/services/life-cycle-service.md, systems/services/sync-service.md, ux/screen-flow.md, terminology.md, open-questions.md, open-questions/（01-combat.md, 06-meta-progression.md, update-log.md）, answer-logs/log-finale-win-ordinal-vs-statistics.md
+- distilled-to: systems/player-profile/_index.md, systems/services/life-cycle-service.md, systems/services/sync-service.md, ux/screen-flow.md, terminology.md, open-questions.md, open-questions/（01-combat.md, 06-meta-progression.md, update-log.md）, answer-logs/log-finale-win-ordinal-vs-statistics.md, `systems/services/（life-cycle-service.md, sync-service.md）`
 
 ## Intent（distilled）
 

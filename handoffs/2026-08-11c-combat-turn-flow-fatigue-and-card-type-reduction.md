@@ -4,7 +4,7 @@
 - date: 2026-08-11
 - topic: systems/services/combat-service · systems/scoring · systems/balance · systems/character-profile/deck · systems/character-profile/item · systems/adventure-event/combat · systems/enemies · terminology · ux/combat-ux
 - status: distilled
-- distilled-to: systems/services/combat-service.md, systems/scoring.md, systems/balance.md, systems/character-profile/deck/_index.md, systems/character-profile/deck/common-properties.md, systems/character-profile/item/_index.md, systems/adventure-event/combat/_index.md, systems/enemies/common-properties.md, terminology.md, ux/combat-ux.md
+- distilled-to: systems/services/combat-service.md, systems/scoring.md, systems/balance.md, systems/character-profile/deck/_index.md, systems/character-profile/deck/common-properties.md, systems/character-profile/item/_index.md, systems/adventure-event/combat/_index.md, systems/enemies/common-properties.md, terminology.md, ux/combat-ux.md, `systems/enemies/_index.md`, `ux/screen-flow.md`
 
 **一句话：** 一场「战斗如何运作」的通盘复核，落定了先后手的决定权、把抽牌堆改为**不重洗 + 疲劳扣道念**、重定四项卡牌侧数值（起手 4 / 手牌上限 9 / 卡组规模不设硬限 / 储物袋 9），并**删除灵宠 `Creature`，`CardType` 由六类降为五类**。
 
@@ -83,3 +83,7 @@
 - **疲劳量是否可调。** 当前固定「每张 1 点」。是否需要成为 `EncounterSpec` 的可空覆写（与抽牌数 / 手牌上限同一档旋钮），还是保持全局常量 —— 取决于是否会出现「疲劳流」这类构筑方向，归 ch1 数值标杆专场一并回归。→ `systems/balance.md`。
 - **卡组规模不设硬限后的极端构筑。** 极小卡组（例如 6 张）在第 2 个回合即开始疲劳，是纯劣还是可被「高质量牌 + 快速积累」补偿？这与「一张牌该产多少道念」是同一个未知的两面，归 ch1 数值标杆专场。→ `systems/balance.md`、`systems/character-profile/deck/`。
 - **储物袋 9 对道具经济的回压。** 上限收紧 90% 后，道具的获取频率、商店库存与置换的对价是否需要同步下调 —— 一个满袋玩家拿到第 10 件道具时的处理（拒收？强制替换？）此前因 99 的宽裕而从未需要回答。→ `systems/character-profile/item/_index.md`、`systems/adventure-event/exchange/`。
+
+## 待答清单账
+
+答结待答 2 条 · 推翻 5 处 · 新增待答 4 条

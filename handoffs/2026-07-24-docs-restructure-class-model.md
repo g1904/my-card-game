@@ -4,7 +4,7 @@
 - date: 2026-07-24
 - topic: 全库重构（systems 结构化、30-content 并入、adventure-event/character-profile/player-profile 折叠、services 化 run-manager/adventure-plot、architecture.md、explore/travel/地域 新概念、.claude 知识库降为引用层）
 - status: distilled
-- distilled-to: terminology.md, systems/_index.md, systems/architecture.md, systems/common-properties.md, systems/game-progression.md, systems/adventure-event/**, systems/character-profile/**, systems/player-profile/**, systems/services/**, systems/balance.md, open-questions.md（.claude/knowledge/* 引用层改造随后）
+- distilled-to: terminology.md, systems/_index.md, systems/architecture.md, systems/common-properties.md, systems/game-progression.md, systems/adventure-event/**, systems/character-profile/**, systems/player-profile/**, systems/services/**, systems/balance.md, open-questions.md（.claude/knowledge/* 引用层改造随后）, `systems/**`
 
 ## Intent（distilled）
 

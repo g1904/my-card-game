@@ -4,7 +4,7 @@
 - date: 2026-08-11
 - topic: systems/services/plot-manager · systems/services/content-service · systems/architecture · program-overview · system-overview · terminology
 - status: distilled
-- distilled-to: `systems/services/plot-manager.md`, `systems/services/content-service.md`, `systems/services/future-event-service.md`, `systems/services/sync-service.md`, `systems/services/life-cycle-service.md`, `systems/services/_index.md`, `systems/architecture.md`, `systems/character-profile/_index.md`, `systems/adventure-event/finale/_index.md`, `program-overview.md`, `system-overview.md`, `terminology.md`, `open-questions/04-hidden-attributes-plot.md`, `open-questions/05-service-contracts.md`, `answer-logs/log-0811.md`
+- distilled-to: `systems/services/plot-manager.md`, `systems/services/content-service.md`, `systems/services/future-event-service.md`, `systems/services/sync-service.md`, `systems/services/life-cycle-service.md`, `systems/services/_index.md`, `systems/architecture.md`, `systems/character-profile/_index.md`, `systems/adventure-event/finale/_index.md`, `program-overview.md`, `system-overview.md`, `terminology.md`, `open-questions/04-hidden-attributes-plot.md`, `open-questions/05-service-contracts.md`, `answer-logs/log-0811.md`, `open-questions.md`, `update-log.md`
 
 ## Intent（原始提问）
 
@@ -114,3 +114,7 @@
 - `open-questions/05-plot-service.md`：**整个分片作废删除**（3 条待答项：协议 / 生成式还是预写式 / 延迟预算——第 2 条已答定为预写式，第 1、3 条随剧本服务撤销而消失）；索引的分片导航表同步。
 - `open-questions/01-contracts.md`、`README.md`：「跨越这条边界的客户端成分有四个」→ **三个**，删去 `PlotManager`。
 - `contracts/`：剧本契约不再需要；剧本内容改由已有的 `content-manifest.md` 通道承载，需在该契约中说明剧本条目也走它。
+
+## 待答清单账
+
+新增待答 2 条

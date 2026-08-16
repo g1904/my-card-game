@@ -4,7 +4,7 @@
 - date: 2026-08-10
 - topic: systems/common-properties, systems/player-profile/（player-power, player-item）, systems/character-profile/（power, item）, systems/balance, systems/monetization, systems/services/（profile-service, life-cycle-service, plot-manager）, systems/adventure-event/finale, terminology
 - status: distilled
-- distilled-to: terminology.md, systems/common-properties.md, systems/player-profile/（_index.md, player-power/_index.md, player-power/common-properties.md, player-item/_index.md, player-item/common-properties.md）, systems/character-profile/（power/_index.md, power/common-properties.md, item/_index.md, item/common-properties.md）, systems/（balance.md, monetization.md）, systems/services/（profile-service.md, life-cycle-service.md, plot-manager.md）, systems/adventure-event/finale/_index.md, open-questions.md, open-questions/（06-meta-progression.md, 07-codex-monetization.md, update-log.md）, answer-logs/log-0810b.md
+- distilled-to: terminology.md, systems/common-properties.md, systems/player-profile/（_index.md, player-power/_index.md, player-power/common-properties.md, player-item/_index.md, player-item/common-properties.md）, systems/character-profile/（power/_index.md, power/common-properties.md, item/_index.md, item/common-properties.md）, systems/（balance.md, monetization.md）, systems/services/（profile-service.md, life-cycle-service.md, plot-manager.md）, systems/adventure-event/finale/_index.md, open-questions.md, open-questions/（06-meta-progression.md, 07-codex-monetization.md, update-log.md）, answer-logs/log-0810b.md, `achievements/_index.md`
 
 ## Intent（distilled）
 

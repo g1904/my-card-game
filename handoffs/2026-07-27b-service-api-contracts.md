@@ -4,7 +4,7 @@
 - date: 2026-07-27
 - topic: systems/architecture、systems/common-properties、systems/services/**（七份服务文档 + plot-manager）、systems/adventure-event/common-properties、system-overview、terminology
 - status: distilled
-- distilled-to: systems/architecture.md, systems/common-properties.md, systems/services/_index.md, systems/services/account-service.md, systems/services/content-service.md, systems/services/sync-service.md, systems/services/profile-service.md, systems/services/life-cycle-service.md, systems/services/future-event-service.md, systems/services/plot-manager.md, systems/services/combat-service.md, systems/adventure-event/common-properties.md, system-overview.md, terminology.md, open-questions.md, answer-logs/log-service-api-contracts.md
+- distilled-to: systems/architecture.md, systems/common-properties.md, systems/services/_index.md, systems/services/account-service.md, systems/services/content-service.md, systems/services/sync-service.md, systems/services/profile-service.md, systems/services/life-cycle-service.md, systems/services/future-event-service.md, systems/services/plot-manager.md, systems/services/combat-service.md, systems/adventure-event/common-properties.md, system-overview.md, terminology.md, open-questions.md, answer-logs/log-service-api-contracts.md, `systems/services/（_index + 七份服务文档 + plot-manager）`
 
 > **一句话：** 七个服务的 API 面由「意图草图」升为**契约**——三种方法形态按边界划分、三种失败语义与 null-check 规则一一对应、EventBus 走强类型 C# 事件；同时确立 **AdventureEvent 的物化（materialize）模型**：`AdventureEventData` 是模板，future-event-service 是唯一物化点，产出的 `EventOption` 即定稿、不可改写。
 

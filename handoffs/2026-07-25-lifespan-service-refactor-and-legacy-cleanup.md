@@ -4,7 +4,7 @@
 - date: 2026-07-25
 - topic: terminology, services/life-cycle-service（原 run-manager 重命名）, services/adventure-plot-service（原 adventure-plot 重命名）, services/future-event-service（新增）, game-progression, character-profile, Context.md/README（治理约定）, open-questions
 - status: distilled
-- distilled-to: terminology.md, systems/services/life-cycle-service.md, systems/services/adventure-plot-service.md, systems/services/future-event-service.md, systems/adventure-event/common-properties.md, systems/game-progression.md, systems/character-profile/_index.md, systems/architecture.md, systems/balance.md, systems/_index.md, decisions/ADR-0002/0003/0004（重构）, decisions/_index.md, decisions/_TEMPLATE.md, .claude/rules/Context.md, README.md, open-questions.md, handoffs/_index.md, 全库活文档遗留清理
+- distilled-to: terminology.md, systems/services/life-cycle-service.md, systems/services/adventure-plot-service.md, systems/services/future-event-service.md, systems/adventure-event/common-properties.md, systems/game-progression.md, systems/character-profile/_index.md, systems/architecture.md, systems/balance.md, systems/_index.md, decisions/ADR-0002/0003/0004（重构）, decisions/_index.md, decisions/_TEMPLATE.md, .claude/rules/Context.md, README.md, open-questions.md, handoffs/_index.md, 全库活文档遗留清理, `systems/services/**`, `systems/character-profile/**`, `systems/adventure-event/**`, `systems/player-profile/**`
 
 ## Intent（distilled）
 

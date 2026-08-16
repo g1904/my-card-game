@@ -17,3 +17,9 @@
 ---
 
 **未随本次答结、仍留在待答清单的相邻项：** `RarityTier` 的分布与权重表 · `StatKey` 的完整成员清单（两条均为 08-10c 新增，落 `open-questions/01-combat.md`）；`CostKey` 的资源 element 清单与「负值施加的钳制规则」不受本次影响，仍待答。
+
+## 台账原记（自 `_index.md` 归并）
+
+> 台账瘦身前，`answer-logs/_index.md` 本行记有以下内容，原样保留于此。
+
+已裁决 · 原始意图 `draft-0810a.md`）：**「本轮回禁用」与置换型剥夺片区四条一次答结** —— **① 禁用落 `CharacterProfile.disabledAbility`**（不落 `Status`），存「施加坐标 + 时长」三档 `NextEvent / ThisChapter / ThisCycle`，**生效判据统一为「截断在进入生效面那一步」** ⇒ `Power` 入场变三条与门、可重建项依据补 `disabledAbility` · **② 置换 = 排除已有 · 同稀有度 · 同 `(Kind, Scope)` · 先看后决 · 拒绝无代价 · 四类通用**，空池 → 空操作 + 告警；新定名 `RarityTier` 五档（**与优势档 `Tier` 不得混用**） · **③ `ProfileChangeSpec` 拆为资源 / 能力 / 统计三个平级列表**，置换 = `Remove` + `Grant` 由 `PairKey` 配对；**⚠ 推翻「置换作为选择成本似乎合理」**（能力 element 在 `SelectCost` 内恒空）；`PushWarning` 对称落点归内容加载侧 · **④ `PlayerStatistics` 首批两项 + 宽松同步口径五条**；**⚠ 推翻 08-06b「首项 = 篇章重试累计」**（代价：ch1 重开次数暂无字段回答）。连带合并 `PowerScope` / `ItemScope` 为 `AbilityScope　｜移出条数原记：4（另新增 2 条）

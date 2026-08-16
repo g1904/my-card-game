@@ -4,7 +4,7 @@
 - date: 2026-08-04
 - topic: art/（新增顶层文件夹）、vision/references.md、README.md
 - status: distilled
-- distilled-to: art/**（新建）, vision/references.md, vision/pillars.md, README.md, terminology.md, open-questions.md, open-questions/deferred-content.md, .claude/rules/Context.md
+- distilled-to: art/**（新建）, vision/references.md, vision/pillars.md, README.md, terminology.md, open-questions.md, open-questions/deferred-content.md, .claude/rules/Context.md, `art/**（新建 12 份）`, `vision/（references.md, pillars.md）`, `open-questions/（deferred-content.md, update-log.md）`, `answer-logs/log-0804.md`
 
 ## Intent（distilled）
 

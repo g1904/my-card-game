@@ -4,7 +4,7 @@
 - date: 2026-08-12
 - topic: systems/services/plot-manager（权威）· systems/character-profile/_index · systems/services/life-cycle-service · systems/services/content-service · systems/balance · ux/screen-flow · ux/_index
 - status: distilled
-- distilled-to: `systems/services/plot-manager.md`, `systems/character-profile/_index.md`, `systems/services/life-cycle-service.md`, `systems/services/content-service.md`, `systems/balance.md`, `ux/screen-flow.md`, `ux/_index.md`
+- distilled-to: `systems/services/plot-manager.md`, `systems/character-profile/_index.md`, `systems/services/life-cycle-service.md`, `systems/services/content-service.md`, `systems/balance.md`, `ux/screen-flow.md`, `ux/_index.md`, `open-questions.md`, `open-questions/`, `04-hidden-attributes-plot.md`, `05-service-contracts.md`, `update-log.md`, `answer-logs/`, `log-hidden-stat-bands-and-crossing-narrative.md`
 
 ## Intent（distilled）
 
@@ -292,3 +292,7 @@ HiddenStatGrade { None 0 | Minor 2 | Standard 5 | Major 10 }
 - 答结 `open-questions/04-hidden-attributes-plot.md` 前两条 + `life-cycle-service.md` 待答项的隐藏属性钳制那一半 → `answer-logs/log-hidden-stat-bands-and-crossing-narrative.md`。
 - **ADR 候选：** 「跨档叙事挂档位不挂事件 · 档位是内容条目且档数不可热更增减」宜与 content-service 的「内容载体形态」候选合并固化（本次不写 ADR）。
 - **无跨库影响**：本方案纯本地，未触及任何后端报文字段或协议契约。
+
+## 待答清单账
+
+答结 2 条 · 新增待答 2 条

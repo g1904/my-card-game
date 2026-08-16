@@ -4,7 +4,7 @@
 - date: 2026-08-12
 - topic: ux/error-and-blocking-ux（新建）, ux/screen-flow, systems/architecture（总则 7）, systems/services/account-service, systems/services/sync-service, system-overview
 - status: distilled
-- distilled-to: `ux/error-and-blocking-ux.md`, `ux/_index.md`, `ux/screen-flow.md`, `systems/architecture.md`, `systems/services/account-service.md`, `systems/services/sync-service.md`, `system-overview.md`, `open-questions/05-service-contracts.md`, `open-questions/update-log.md`, `answer-logs/log-error-copy-and-update-prompts.md`
+- distilled-to: `ux/error-and-blocking-ux.md`, `ux/_index.md`, `ux/screen-flow.md`, `systems/architecture.md`, `systems/services/account-service.md`, `systems/services/sync-service.md`, `system-overview.md`, `open-questions/05-service-contracts.md`, `open-questions/update-log.md`, `answer-logs/log-error-copy-and-update-prompts.md`, `open-questions.md`, `deferred-content.md`
 
 > 输入：`inbox/solution-draft-error-copy-and-update-prompts.md`（`status: decided`，四项取向已由用户逐条裁决）+ `inbox/draft-0812a.md` 末尾的追加裁决两行（经本次 interview 确认属本主题）。
 
@@ -68,3 +68,7 @@
 - **⚠ 后端侧需一份对应 handoff：** 错误体 `detail` 需增一个更新地址字段（暂记 `detail.updateUrl`，字段名与是否按渠道解析由后端定）。跨库纪律下本次不写后端库。**可与 08-11b 已挂的那笔（`contracts/envelope.md` 删 `/v1/plot/…` 与 `plot.unavailable`）合并成一份后端 handoff。**
 - **本方案不因该字段未就绪而阻塞**：兜底路径 `ChannelConfig` 独立成立，后端字段到位前客户端一律走兜底，行为完全定义。
 - **不改任何存档 schema、不改任何 record、不需要迁移。** 新增的只有一份随包翻译资源、一份随包渠道配置与一个设备维度的本地缓存文件。
+
+## 待答清单账
+
+答结 3 条 · 新增待答 2 条

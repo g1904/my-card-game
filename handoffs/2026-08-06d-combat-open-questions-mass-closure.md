@@ -4,7 +4,7 @@
 - date: 2026-08-06
 - topic: systems/balance, systems/enemies（新建）, systems/adventure-event/combat·practice·finale, systems/services/（combat / life-cycle / sync / future-event）, systems/character-profile/（_index, life-total, mana, deck, item）, systems/player-profile/（player-power, codex/enemy-codex）, systems/（architecture, common-properties, scoring, game-progression, _index）, ux/（combat-ux, screen-flow）, terminology
 - status: distilled
-- distilled-to: 见文末影响面表
+- distilled-to: 见文末影响面表, `terminology.md`, `systems/enemies/（新建 _index.md + common-properties.md）`, `systems/（_index.md, architecture.md, balance.md, scoring.md, game-progression.md）`, `systems/adventure-event/combat/（_index.md, common-properties.md）`, `practice/_index.md`, `finale/_index.md`, `systems/services/（combat-service.md, life-cycle-service.md, sync-service.md, future-event-service.md）`, `systems/character-profile/（_index.md, life-total.md, mana.md, deck/_index.md, item/_index.md）`, `systems/player-profile/（player-power/_index.md, codex/enemy-codex.md）`, `ux/（combat-ux.md, screen-flow.md）`, `open-questions.md`, `open-questions/（01-combat.md, update-log.md）`, `answer-logs/（log-combat-solutions.md, _index.md）`
 
 ## 一句话
 
@@ -448,3 +448,7 @@ public readonly record struct VictoryRule(int WinMargin, bool DrawCountsAsLoss);
 ## 影响面
 
 `terminology.md` · `systems/enemies/`（新建）· `systems/_index.md` · `systems/architecture.md` · `systems/common-properties.md` · `systems/balance.md` · `systems/scoring.md` · `systems/game-progression.md` · `systems/adventure-event/combat/_index.md` · `practice/_index.md` · `finale/_index.md` · `systems/services/`（combat-service · life-cycle-service · sync-service · future-event-service）· `systems/character-profile/`（_index · life-total · mana · deck/_index · deck/common-properties · item/_index）· `systems/player-profile/`（player-power/_index · codex/enemy-codex）· `ux/combat-ux.md` · `ux/screen-flow.md` · `open-questions/01-combat.md` · `answer-logs/log-combat-solutions.md`
+
+## 待答清单账
+
+新增待答 0 条

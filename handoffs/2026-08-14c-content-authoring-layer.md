@@ -4,7 +4,7 @@
 - date: 2026-08-14
 - topic: content/（新建一级分区）· README（流水线 + 文件夹图例）· `.claude/skills/`（三个新技能）
 - status: distilled
-- distilled-to: `content/_index.md`、`README.md`、`.claude/skills/{author-content,audit-content,scaffold-content-type}/SKILL.md`
+- distilled-to: `content/_index.md`、`README.md`、`.claude/skills/{author-content,audit-content,scaffold-content-type}/SKILL.md`、`content/_TEMPLATE-type.md`、`content/_TEMPLATE-entry.md`
 
 ## Intent（distilled）
 

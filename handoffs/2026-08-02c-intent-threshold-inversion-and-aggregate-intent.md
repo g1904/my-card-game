@@ -4,7 +4,7 @@
 - date: 2026-08-02
 - topic: systems/adventure-event/combat、systems/services/combat-service、ux/combat-ux、terminology
 - status: distilled
-- distilled-to: terminology.md, systems/adventure-event/combat/_index.md, systems/services/combat-service.md, ux/combat-ux.md, open-questions.md, answer-logs/log-0802c.md
+- distilled-to: terminology.md, systems/adventure-event/combat/_index.md, systems/services/combat-service.md, ux/combat-ux.md, open-questions.md, answer-logs/log-0802c.md, `answer-logs/log-0802c_2.md`
 
 ## Intent（distilled）
 

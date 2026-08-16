@@ -4,7 +4,7 @@
 - date: 2026-08-06
 - topic: systems/balance.md, systems/services/future-event-service.md, systems/services/sync-service.md, systems/services/life-cycle-service.md, systems/adventure-event/combat/, systems/player-profile/player-power/, systems/common-properties.md, ux/combat-ux.md
 - status: distilled
-- distilled-to: systems/balance.md, systems/services/future-event-service.md, systems/services/sync-service.md, systems/services/life-cycle-service.md, systems/services/combat-service.md, systems/adventure-event/combat/_index.md, systems/player-profile/player-power/_index.md, systems/common-properties.md, systems/character-profile/_index.md, ux/combat-ux.md, open-questions/01-combat.md, open-questions/update-log.md, answer-logs/log-0806.md
+- distilled-to: systems/balance.md, systems/services/future-event-service.md, systems/services/sync-service.md, systems/services/life-cycle-service.md, systems/services/combat-service.md, systems/adventure-event/combat/_index.md, systems/player-profile/player-power/_index.md, systems/common-properties.md, systems/character-profile/_index.md, ux/combat-ux.md, open-questions/01-combat.md, open-questions/update-log.md, answer-logs/log-0806.md, `systems/services/（future-event-service.md, sync-service.md, life-cycle-service.md, combat-service.md）`, `open-questions.md`, `open-questions/（01-combat.md, update-log.md）`
 
 **一行摘要：** 08-05 留下的 ⚠ 意图阈值冲突以**放宽 ch1 赋级带（±4）+ 新增「跨大境界默认碾压」硬门**收口（阈值本身不动）；`IgnoresProtection` 的 1% 分母确认为**全部 event**，法则因此**可在战斗外被永久失去**；sync 缓冲闸门口径改为**事件级存档点**；`attemptIndex` 整层删除，改由 `CharacterProfile.chapterRetry` 承载。
 

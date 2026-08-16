@@ -4,7 +4,7 @@
 - date: 2026-07-26
 - topic: systems/adventure-event/common-properties, systems/services/future-event-service, systems/services/content-service, systems/common-properties, systems/player-profile, systems/balance, systems/architecture, ux/screen-flow, terminology
 - status: distilled
-- distilled-to: terminology.md, systems/adventure-event/common-properties.md, systems/services/future-event-service.md, systems/services/content-service.md, systems/services/life-cycle-service.md, systems/common-properties.md, systems/architecture.md, systems/balance.md, systems/player-profile/**（新增 achievements/、account-info.md、game-setting.md）, ux/screen-flow.md, open-questions.md, .claude/rules/state-save-rules.md
+- distilled-to: terminology.md, systems/adventure-event/common-properties.md, systems/services/future-event-service.md, systems/services/content-service.md, systems/services/life-cycle-service.md, systems/common-properties.md, systems/architecture.md, systems/balance.md, systems/player-profile/**（新增 achievements/、account-info.md、game-setting.md）, ux/screen-flow.md, open-questions.md, .claude/rules/state-save-rules.md、`systems/player-profile/（_index + achievements/** 新增 + account-info.md 新增 + game-setting.md 新增）`、`answer-logs/log-0726b.md`
 
 ## Intent（distilled）
 

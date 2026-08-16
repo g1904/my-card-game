@@ -4,7 +4,7 @@
 - date: 2026-08-15
 - topic: systems/adventure-event（`_index` · `common-properties` · combat / explore / exchange / research / travel）、decisions/ADR-0002、terminology.md、systems/balance.md
 - status: distilled
-- distilled-to: decisions/ADR-0002-adventure-event-taxonomy.md, systems/adventure-event/_index.md, systems/adventure-event/common-properties.md, systems/adventure-event/combat/_index.md, systems/adventure-event/combat/common-properties.md, systems/adventure-event/explore/_index.md, systems/adventure-event/exchange/_index.md, systems/adventure-event/research/_index.md, systems/adventure-event/travel/_index.md, systems/architecture.md, systems/services/combat-service.md, systems/services/life-cycle-service.md, systems/services/_index.md, systems/services/future-event-service.md, systems/game-progression.md, systems/balance.md, systems/character-profile/deck/_index.md, terminology.md, program-overview.md, systems/_index.md, systems/common-properties.md, ux/screen-flow.md
+- distilled-to: decisions/ADR-0002-adventure-event-taxonomy.md, systems/adventure-event/_index.md, systems/adventure-event/common-properties.md, systems/adventure-event/combat/_index.md, systems/adventure-event/combat/common-properties.md, systems/adventure-event/explore/_index.md, systems/adventure-event/exchange/_index.md, systems/adventure-event/research/_index.md, systems/adventure-event/travel/_index.md, systems/architecture.md, systems/services/combat-service.md, systems/services/life-cycle-service.md, systems/services/_index.md, systems/services/future-event-service.md, systems/game-progression.md, systems/balance.md, systems/character-profile/deck/_index.md, terminology.md, program-overview.md, systems/_index.md, systems/common-properties.md, ux/screen-flow.md, `practice/`, `mystery/`, `social/`, `finale/`, `systems/scoring.md`, `systems/enemies/_index.md`, `mana.md`, `life-total.md`, `systems/player-profile/`, `player-power/`, `profile-service.md`, `plot-manager.md`, `ux/combat-ux.md`, `vision/scope.md`, `art/`, `decisions/_index.md`
 
 ## Intent（distilled）
 
@@ -85,3 +85,7 @@ Practice 与 Finale 的既有设计**全部原样保留**，只是挂载点从 `
 - **寿元定价表的具体取值。** 表的形态已定（类型 × 篇章 + 条目级覆盖），**数值**仍归 ch1 数值标杆专场。
 - **Travel 的 80 / 20 是否可被剧本调制。** 掷定比例是全局常量还是可由 PlotManager 推拉，未定。
 - **每批 1–5 的区间由什么驱动。** 常态 3 已定；何时收到 1、何时放到 5（location？篇章？剧本？隐藏属性？）未定。
+
+## 待答清单账
+
+答结 6 条 · 部分答结 / 收窄 5 条 · 因前提消失作废 3 条 · 新增待答 6 条

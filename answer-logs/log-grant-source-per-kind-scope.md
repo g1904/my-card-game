@@ -20,3 +20,9 @@
 - **`Source` 在上行负载里的序列化形态**（整数 code vs `contracts/envelope.md` 的字符串枚举名）——**本次不裁决，收口归后端库**，新立于 `open-questions/05-service-contracts.md`。不阻塞扩清单落地。
 - **`EventOutcome` 与 `CombatReward` 是否终将合并**——取决于 `Spoils` 与事件 outcome 是否确为两条组装路径，新立于 `open-questions/06-meta-progression.md`。
 - **法则的第三条获取渠道**（决定校验表那三格 ※ 何时翻转）——仍挂在 `systems/player-profile/player-power/_index.md` 的既有待决项上，不阻塞。
+
+## 台账原记（自 `_index.md` 归并）
+
+> 台账瘦身前，`answer-logs/_index.md` 本行记有以下内容，原样保留于此。
+
+已裁决）→ ：**授予来源 `Source` 从「封闭三值」改为按 `(Kind, Scope)` 分域的开放清单** —— 原待答的两个收口（收窄字段到账号级两类 / 轮回级恒 `Unknown`）**全部否决**，改为**扩清单**：七值 + 兜底（`Unknown=0` · `FinaleWin=1` · `PremiumBundle=2` · `AchievementReward=3` · `EventOutcome=4` · `CombatReward=5` · `ExchangePurchase=6` · `InitialGrant=7`），**保留单一枚举不拆四个**（四类共用同一条授予通道，拆分会把 `Source` 形参逼成 `object` / `int`，撞「贯穿链路的类型一致性」；同型先例 = 08-10c 合并 `AbilityScope`），**分域差异由合法子集校验表承载而非类型系统**（静态查表、代码常量、不进 `.tres`、不走 overlay）。**⚠ 推翻 08-10b 的「成员清单已穷举、只有三条途径」与「清单是封闭的」**；「**不为置换所得预留成员**」那半句**保留并强化为禁令**（新设 `Replacement` 会立刻打破 `x` 单调不减）。校验取**入口严 / 读档宽**：`Grant` 时非法组合或 `Unknown` → `PushError` + 整批拒绝；读档遇不合法既有条目 → `PushWarning` + **保留原值**（回落 `Unknown` 会压低 `x` 并让档位回跳）。**残卷 `x` 口径与「单调不减 ⇒ 档位只降不回跳」完全不变、不 bump 存档 schema。** 同批新立通则：**一个字段不为「部分落点无规则消费点」而拆出第二套同步口径**；「唯一消费点」表述改写为**规则消费点唯一 + 非规则用途两处**（并如实写下「轮回级两类仍无规则消费点」这条代价）。**⚠ 后端侧承接已就位**（`backend-design-documents/　｜移出条数原记：1（另答定 4 项取向、新增待答 2 条）

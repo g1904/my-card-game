@@ -4,7 +4,7 @@
 - date: 2026-08-06
 - topic: systems/balance.md, systems/services/future-event-service.md, systems/adventure-event/combat/, systems/character-profile/life-total.md, systems/player-profile/player-power/, systems/monetization.md, systems/character-profile/, systems/services/life-cycle-service.md, ux/combat-ux.md
 - status: distilled
-- distilled-to: systems/balance.md, systems/services/future-event-service.md, systems/adventure-event/combat/_index.md, systems/character-profile/life-total.md, systems/character-profile/_index.md, systems/player-profile/player-power/_index.md, systems/player-profile/_index.md, systems/monetization.md, systems/services/life-cycle-service.md, ux/combat-ux.md, open-questions/01-combat.md, open-questions/update-log.md, answer-logs/log-0806_2.md
+- distilled-to: systems/balance.md, systems/services/future-event-service.md, systems/adventure-event/combat/_index.md, systems/character-profile/life-total.md, systems/character-profile/_index.md, systems/player-profile/player-power/_index.md, systems/player-profile/_index.md, systems/monetization.md, systems/services/life-cycle-service.md, ux/combat-ux.md, open-questions/01-combat.md, open-questions/update-log.md, answer-logs/log-0806_2.md, `systems/services/（future-event-service.md, life-cycle-service.md）`, `systems/character-profile/（_index.md, life-total.md）`, `systems/player-profile/（_index.md, player-power/_index.md）`, `systems/game-progression.md`, `open-questions/（01-combat.md, update-log.md）`
 
 **一行摘要：** 08-06 上午留下的三条 ⚠ 承重裁决项全部收口——**ch1 赋级带取非对称 `[−4, +2]`**（`lifeTotal` 冲突随之消失）、**法则不会被强制剥夺**（只有「玩家自愿的置换」能真正从账号移除，其余事件一律降级为**本轮回禁用**）、**`chapterRetry` = 角色级三个具名字段 + 通关后保留 + 账号级另有统计计数**；另答结两条形态项（降阶碾压**不**要独立呈现语言；赋级带分档**是内容配置**）。
 
@@ -79,3 +79,7 @@
 ## Notes / triage
 
 来源：`inbox/draft-0806.md`。逐条回应 `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` 留下的全部 Open questions。答定 5 条待答问题（其中 3 条 ⚠ 承重），移出记录见 `answer-logs/log-0806_2.md`。
+
+## 待答清单账
+
+答结 5 条 · 新增待答 5 条

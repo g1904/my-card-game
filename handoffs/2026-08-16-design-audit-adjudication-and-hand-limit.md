@@ -4,7 +4,7 @@
 - date: 2026-08-16
 - topic: systems/balance · systems/adventure-event/combat · systems/services/combat-service · systems/services/plot-manager · systems/player-profile/player-power · ux/combat-ux
 - status: distilled
-- distilled-to: `systems/balance.md`、`systems/adventure-event/combat/_index.md`、`systems/services/combat-service.md`、`systems/services/plot-manager.md`、`systems/player-profile/player-power/_index.md`、`systems/character-profile/deck/_index.md`、`ux/combat-ux.md`、`systems/architecture.md`、`open-questions/*`、`answer-logs/log-0815c.md`
+- distilled-to: `systems/balance.md`、`systems/adventure-event/combat/_index.md`、`systems/services/combat-service.md`、`systems/services/plot-manager.md`、`systems/player-profile/player-power/_index.md`、`systems/character-profile/deck/_index.md`、`ux/combat-ux.md`、`systems/architecture.md`、`open-questions/*`、`answer-logs/log-0815c.md`、`vision/scope.md`、`open-questions.md`、`01-combat.md`、`04-hidden-attributes-plot.md`、`05-service-contracts.md`、`06-meta-progression.md`、`update-log.md`
 
 **一句话：** 08-15d 全库过度设计体检留下的 12 条待答项，本次由用户**逐条裁决**——其中 **7 条判「不是过度设计」原样保留**（残卷不可见性 · 隐藏属性 12 档 · D2 决策点 · 挂起态 UX · `itemPowerRatio` · meta 层节奏 · 竖屏另开专场），**3 条判「确有问题、需改」并当场改掉**（法则闸门降格 · `IgnoresProtection` 精简 · 带内权重表三段合一），**2 条确认 08-15d 已删除**（`DrawCountsAsLoss` / `CombatOutcome.Fled`，本次只清残留考古注释）；另有一项与体检无关的新数值：**手牌上限 9 → 7**，它**推翻了 `balance.md` 原写下的否决论据**，连带改写「不是惩罚」这条承重语义。**不 bump 存档 schema · 对后端库零影响。**
 
@@ -123,3 +123,7 @@ R1–R5 五条编排规则 + 一个轮回级存档 bool，换来的量级是「�
 
 - **竖屏分区的整体排布** —— 已明确**排期为一次专门 session**，留在 `open-questions/01-combat.md`。
 - **「哪些事件推拉哪个属性、各推哪一档 `HiddenStatGrade`」** —— **允许面已答结**（全部五类事件皆可），**逐条目的映射仍待内容编排**，留在 `open-questions/04-hidden-attributes-plot.md`。
+
+## 待答清单账
+
+答结 8 条 · 部分答结 1 条 · 确认排期 1 条 · 新增待答 0 条

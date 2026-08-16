@@ -4,7 +4,7 @@
 - date: 2026-08-02
 - topic: systems/services/combat-service · systems/character-profile/（deck / mana）· systems/adventure-event/combat · systems/scoring · systems/balance · ux/combat-ux · vision/（references / pillars）· terminology
 - status: distilled
-- distilled-to: terminology.md, systems/services/combat-service.md, systems/character-profile/deck/_index.md, systems/character-profile/mana.md, systems/adventure-event/combat/_index.md, systems/scoring.md, systems/balance.md, ux/combat-ux.md, vision/references.md, vision/pillars.md, open-questions.md, answer-logs/log-0802b.md, answer-logs/log-0802b_2.md
+- distilled-to: terminology.md, systems/services/combat-service.md, systems/character-profile/deck/_index.md, systems/character-profile/mana.md, systems/adventure-event/combat/_index.md, systems/scoring.md, systems/balance.md, ux/combat-ux.md, vision/references.md, vision/pillars.md, open-questions.md, answer-logs/log-0802b.md, answer-logs/log-0802b_2.md, `systems/character-profile/（deck/_index.md, mana.md）`, `vision/（references.md, pillars.md）`, `answer-logs/（log-0802b.md, log-0802b_2.md）`
 
 ## Intent（distilled）
 

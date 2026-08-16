@@ -4,7 +4,7 @@
 - date: 2026-08-05
 - topic: systems/game-progression.md, systems/services/future-event-service.md, systems/adventure-event/common-properties.md, systems/adventure-event/travel/, systems/balance.md, terminology.md
 - status: distilled
-- distilled-to: terminology.md, systems/game-progression.md, systems/services/future-event-service.md, systems/adventure-event/common-properties.md, systems/adventure-event/travel/（_index.md, common-properties.md）, systems/balance.md, systems/player-profile/codex/_index.md, open-questions.md, open-questions/（02-event-options.md, 06-meta-progression.md, deferred-content.md, update-log.md）, answer-logs/（log-0805b.md, log-0805b_2.md）
+- distilled-to: terminology.md, systems/game-progression.md, systems/services/future-event-service.md, systems/adventure-event/common-properties.md, systems/adventure-event/travel/（_index.md, common-properties.md）, systems/balance.md, systems/player-profile/codex/_index.md, open-questions.md, open-questions/（02-event-options.md, 06-meta-progression.md, deferred-content.md, update-log.md）, answer-logs/（log-0805b.md, log-0805b_2.md）, `systems/player-profile/（codex/_index.md, codex/common-properties.md, _index.md）`, `systems/_index.md`, `art/visuals/_index.md`
 
 **一行摘要：** **location 由「抽象概念」升格为带三个字段的内容条目**（事件类型概率修正 · 敌人模板集合 · `eventCountLimit`）；**配额用尽时本批收窄为仅剩 Travel**，使 Travel 由可选路由变成结构性闸门；**跳过的两条残留细节改由产出侧保证一次性闭合**（不生成付不起 `skipCost` 的事件、不生成整批全跳的批次），**补位落空的判据由此挂在 `eventCountLimit` 上**、死局兜底随之闭合。
 

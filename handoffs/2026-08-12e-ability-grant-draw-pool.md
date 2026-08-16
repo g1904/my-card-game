@@ -246,3 +246,7 @@ spec.Add(BundleGrantOrdinal, +1);
 
 - **⚠ 跨库：后端侧需一份对应 handoff。** `AccountSeed` 的复算契约由两参数变三参数（加 `AccountStream`）。建议与既有的「`AccountSeed` 的下发与复算协议形态」那条后端待答**合并成一份**，不单开。本次只写客户端库。
 - 与在办 / 已提炼草稿的关系：`2026-08-12b`（`Source` 清单）与本次（`ExclusiveSource` 取值域）在 `spec.Add(GrantPower, id, source)` 一行交汇但互不覆盖；`Source` 清单已先行落定，提炼顺序正确。
+
+## 待答清单账
+
+答结 2 条 · 部分答结 2 条 · 新增待答 1 条

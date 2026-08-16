@@ -4,7 +4,7 @@
 - date: 2026-07-25
 - topic: services 全树（两级层次 service ⊃ manager；新增 account-service / content-service / sync-service / profile-service / combat-service；adventure-plot-service 降级为 PlotManager）, 拆分轴原则（生命周期层 + 行为边界，非数据类型）, 内容资产管线（res:// 基线 + user:// overlay + 云端版本校验）, 本地 / 云端内容分界（闭环缺口 4）, **术语修正：废弃「微服务」措辞**, program-overview.md + system-overview.md（新增两份根级总览）
 - status: distilled
-- distilled-to: program-overview.md, system-overview.md, terminology.md, systems/services/_index.md, systems/services/account-service.md, systems/services/content-service.md, systems/services/sync-service.md, systems/services/profile-service.md, systems/services/combat-service.md, systems/services/plot-manager.md, systems/services/life-cycle-service.md, systems/services/future-event-service.md, systems/architecture.md, systems/common-properties.md, systems/_index.md, systems/player-profile/_index.md, open-questions.md, README.md, handoffs/_index.md
+- distilled-to: program-overview.md, system-overview.md, terminology.md, systems/services/_index.md, systems/services/account-service.md, systems/services/content-service.md, systems/services/sync-service.md, systems/services/profile-service.md, systems/services/combat-service.md, systems/services/plot-manager.md, systems/services/life-cycle-service.md, systems/services/future-event-service.md, systems/architecture.md, systems/common-properties.md, systems/_index.md, systems/player-profile/_index.md, open-questions.md, README.md, handoffs/_index.md, `systems/services/**（_index, account, content, sync, profile, combat, plot-manager 新增；life-cycle, future-event 更新；adventure-plot-service 删除）`
 
 ## Intent（distilled）
 

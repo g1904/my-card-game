@@ -4,7 +4,7 @@
 - date: 2026-08-12
 - topic: systems/character-profile/deck · systems/character-profile/_index · systems/character-profile/power · systems/character-profile/item · systems/adventure-event · terminology
 - status: distilled
-- distilled-to: `terminology.md`, `systems/character-profile/deck/_index.md`, `systems/character-profile/_index.md`, `systems/character-profile/power/_index.md`, `systems/character-profile/item/_index.md`, `systems/adventure-event/_index.md`, `systems/player-profile/codex/enemy-codex.md`, `open-questions/`, `answer-logs/log-0812a.md`
+- distilled-to: `terminology.md`, `systems/character-profile/deck/_index.md`, `systems/character-profile/_index.md`, `systems/character-profile/power/_index.md`, `systems/character-profile/item/_index.md`, `systems/adventure-event/_index.md`, `systems/player-profile/codex/enemy-codex.md`, `open-questions/`, `answer-logs/log-0812a.md`, `systems/enemies/_index.md`, `open-questions.md`, `01-combat.md`, `02-event-options.md`, `06-meta-progression.md`, `07-codex-monetization.md`, `update-log.md`
 
 ## Intent（distilled）
 
@@ -108,3 +108,7 @@
 - 两轮 interview 共 7 项裁决，其中 **1 项推翻了草稿原文**（第 1 行的炉石竞技场式多轮择一）。
 - **不推翻任何既有 ADR 或定案**；唯一的既有内容改写是次类型 `power.technique` → `power.mystic_art`（纯定名，不动语义与结构）。
 - **纯客户端，无跨库影响**——功法与角色模板都是本地内容条目，走既有的 content-service overlay 分发面，不新增协议契约。
+
+## 待答清单账
+
+整条答结 0 条 · 部分移出 1 条 · 新增待答 7 条

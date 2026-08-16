@@ -4,7 +4,7 @@
 - date: 2026-07-30
 - topic: `.claude`（rules / skills / knowledge 的定位与主从关系）、systems/services/combat-service、ux/combat-ux、ux/screen-flow、systems/adventure-event、requirements（流水线）、open-questions（重组）
 - status: distilled
-- distilled-to: decisions/ADR-0005-knowledge-thin-reference-layer.md, systems/common-properties.md, systems/services/combat-service.md, systems/services/_index.md, systems/architecture.md, systems/_index.md, systems/adventure-event/_index.md, program-overview.md, system-overview.md, terminology.md, ux/combat-ux.md, ux/screen-flow.md, requirements/_index.md, README.md, open-questions.md, answer-logs/log-0730.md, .claude/rules/Context.md, .claude/README.md, .claude/knowledge/autoloads/_index.md, .claude/skills/breakdown-requirements/（新增）
+- distilled-to: decisions/ADR-0005-knowledge-thin-reference-layer.md, systems/common-properties.md, systems/services/combat-service.md, systems/services/_index.md, systems/architecture.md, systems/_index.md, systems/adventure-event/_index.md, program-overview.md, system-overview.md, terminology.md, ux/combat-ux.md, ux/screen-flow.md, requirements/_index.md, README.md, open-questions.md, answer-logs/log-0730.md, .claude/rules/Context.md, .claude/README.md, .claude/knowledge/autoloads/_index.md, .claude/skills/breakdown-requirements/（新增）, `requirements/_TEMPLATE-sub.md(新增)`, `.claude/skills/breakdown-requirements/(新增)`
 
 ## Intent（distilled）
 

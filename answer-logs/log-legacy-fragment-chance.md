@@ -29,3 +29,9 @@
 - **新增：Finale 失败但存活（约 1%）⇒ 篇章照常完成、境界照常突破** ⇒ **渡劫的胜负不再是篇章推进的闸门**（`systems/game-progression.md`）。
 - **口径收窄：** 08-01 的「失败侧首次有产出」对**绝大多数失败**不再成立，常规失败的产出只剩 EnemyCodex 遭遇即记与失败经验两条；`systems/scoring.md` 与 `systems/services/future-event-service.md` 的论证链已相应改写。
 - **新增待答 2 条**（分片 ⑥）：`FinaleWinOrdinal` 与统计计数的边界 · 1% 存活分支的叙事补白落点；**后端库新增 1 条**：`AccountSeed` 的下发与复算协议。
+
+## 台账原记（自 `_index.md` 归并）
+
+> 台账瘦身前，`answer-logs/_index.md` 本行记有以下内容，原样保留于此。
+
+已评审）：**道统残卷 / `PlayerPowerFragment` 整条焊到 Finale 上** —— Finale 失败累积 · Finale 胜利掷骰 · 该 Finale 的 eventReward 界面即时发放；上限 / 基础概率 / 适格篇章按已拥有法则数 `x` 分档且**闸门逐档移除**（适格 ⟺ 增量 > 0，两表合一）；**首胜 100% 优先于闸门**；掷骰走 `Hash64(AccountSeed, FinaleWinOrdinal)`、**与 `CycleSeed` 完全解耦**、序号即幂等键、客户端掷后端可复算；状态落 `PlayerProfile.PlayerPowerFragment`（5 字段，不并入统计计数）；**礼包不重置概率但压低上限**（有意的负反馈）。连带**推翻「Finale 失败后可再挑战」**、新增「失败但存活亦完成篇章」

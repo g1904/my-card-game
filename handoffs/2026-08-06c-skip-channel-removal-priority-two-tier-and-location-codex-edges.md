@@ -4,7 +4,7 @@
 - date: 2026-08-06
 - topic: systems/adventure-event/common-properties, systems/services/（future-event-service, life-cycle-service, profile-service）, systems/architecture, systems/game-progression, systems/player-profile/codex, systems/adventure-event/travel, terminology, program-overview, system-overview
 - status: distilled
-- distilled-to: terminology.md, systems/adventure-event/（common-properties.md, travel/_index.md, travel/common-properties.md）, systems/services/（future-event-service.md, life-cycle-service.md, profile-service.md, _index.md）, systems/architecture.md, systems/game-progression.md, systems/balance.md, systems/player-profile/（codex/_index.md, player-power/common-properties.md）, program-overview.md, system-overview.md, open-questions.md, open-questions/（02-event-options.md, 06-meta-progression.md, update-log.md）, answer-logs/log-0806b.md
+- distilled-to: terminology.md, systems/adventure-event/（common-properties.md, travel/_index.md, travel/common-properties.md）, systems/services/（future-event-service.md, life-cycle-service.md, profile-service.md, _index.md）, systems/architecture.md, systems/game-progression.md, systems/balance.md, systems/player-profile/（codex/_index.md, player-power/common-properties.md）, program-overview.md, system-overview.md, open-questions.md, open-questions/（02-event-options.md, 06-meta-progression.md, update-log.md）, answer-logs/log-0806b.md, `systems/services/（future-event-service.md, life-cycle-service.md, profile-service.md, combat-service.md, _index.md）`
 
 ## Intent（distilled）
 
@@ -80,3 +80,7 @@
 
 - 答结并移出待答清单：`LocationCodex` 记不记连边 · 付不起必做项 `selectCost` 的终态 · `eventPriority` 与 `ifMandatory` 的叠加规则（**以移除 `ifMandatory` 的方式消解**）· `eventPriority` 的取值域与置位方 · 已定稿批次存续期间资源下降（**前提消失而消解**）。见 `answer-logs/log-0806b.md`。
 - 本次不评估 derive 就绪度。
+
+## 待答清单账
+
+答结 5 条 · 新增待答 5 条

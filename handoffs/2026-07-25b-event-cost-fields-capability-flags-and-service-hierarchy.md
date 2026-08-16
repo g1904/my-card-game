@@ -4,7 +4,7 @@
 - date: 2026-07-25
 - topic: adventure-event/common-properties（eventType / selectCost / skipCost / ifMandatory / eventStart / eventEnd）, player-profile/player-power（status + capability flag 体系）, services/future-event-service ⊃ adventure-plot-service（从属关系）, architecture（展示层契约 + 闭环缺口）, balance / terminology（元婴 +500）, open-questions
 - status: distilled
-- distilled-to: terminology.md, systems/adventure-event/common-properties.md, systems/player-profile/player-power/common-properties.md, systems/player-profile/player-power/_index.md, systems/services/future-event-service.md, systems/services/adventure-plot-service.md, systems/services/life-cycle-service.md, systems/architecture.md, systems/common-properties.md, systems/balance.md, open-questions.md, handoffs/_index.md
+- distilled-to: terminology.md, systems/adventure-event/common-properties.md, systems/player-profile/player-power/common-properties.md, systems/player-profile/player-power/_index.md, systems/services/future-event-service.md, systems/services/adventure-plot-service.md, systems/services/life-cycle-service.md, systems/architecture.md, systems/common-properties.md, systems/balance.md, open-questions.md, handoffs/_index.md, `systems/player-profile/player-power/**`, `systems/_index.md`, `README.md`, `.claude/rules/Context.md`, `.claude/README.md`, `.claude/skills/analyze-new-ideas`, `.claude/skills/summarize-open-questions`, `.claude/skills/assess-derive-readiness(新增)`
 
 ## Intent（distilled）
 

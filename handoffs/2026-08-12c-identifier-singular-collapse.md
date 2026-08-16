@@ -4,7 +4,7 @@
 - date: 2026-08-12
 - topic: terminology.md, systems/character-profile/item/, systems/player-profile/achievement/, systems/architecture.md, systems/services/life-cycle-service.md, ux/screen-flow.md, program-overview.md, decisions/ADR-0004
 - status: distilled
-- distilled-to: `terminology.md`, `program-overview.md`, `systems/architecture.md`, `systems/_index.md`, `systems/monetization.md`, `systems/character-profile/item/`（`_index.md`, `common-properties.md`）, `systems/character-profile/power/_index.md`, `systems/player-profile/`（`_index.md`, `achievement/`, `player-item/_index.md`, `account-info.md`, `codex/_index.md`, `codex/enemy-codex.md`）, `systems/services/`（`_index.md`, `life-cycle-service.md`, `profile-service.md`）, `ux/screen-flow.md`, `vision/scope.md`, `decisions/ADR-0004-realm-checkpoint-retry-model.md`, `open-questions/`（`07-codex-monetization.md`, `deferred-content.md`, `update-log.md`）, `answer-logs/`（`log-character-item-singular-naming.md`, `_index.md`）
+- distilled-to: `terminology.md`, `program-overview.md`, `systems/architecture.md`, `systems/_index.md`, `systems/monetization.md`, `systems/character-profile/item/`（`_index.md`, `common-properties.md`）, `systems/character-profile/power/_index.md`, `systems/player-profile/`（`_index.md`, `achievement/`, `player-item/_index.md`, `account-info.md`, `codex/_index.md`, `codex/enemy-codex.md`）, `systems/services/`（`_index.md`, `life-cycle-service.md`, `profile-service.md`）, `ux/screen-flow.md`, `vision/scope.md`, `decisions/ADR-0004-realm-checkpoint-retry-model.md`, `open-questions/`（`07-codex-monetization.md`, `deferred-content.md`, `update-log.md`）, `answer-logs/`（`log-character-item-singular-naming.md`, `_index.md`）, `item/common-properties.md`, `achievements/`, `open-questions.md`
 
 ## Intent（distilled）
 
@@ -101,3 +101,7 @@ List<Achievement> achievement;
 - 输入 = `inbox/solution-draft-character-item-singular-naming.md`（`/provide-solution-draft` 产物，用户已评审并在文末「已裁决」小节定下 5 项）。本次 interview 在此之上追加两项范围扩展（见 Clarifications ① ②）。
 - 答结待答项 1 条（`CharacterItem` 单复数不一致），见 `answer-logs/log-character-item-singular-naming.md`。
 - 无跨库影响：命名是客户端存档模型的内部标识符，未触及 `backend-design-documents/contracts/` 的任何报文字段。
+
+## 待答清单账
+
+新增待答 0 条
