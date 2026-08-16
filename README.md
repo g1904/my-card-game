@@ -19,20 +19,34 @@
 
 ---
 
-## 工作区布局 —— 并行的分支文件夹
+## 工作区布局 —— 一个仓库中枢 + 十个 worktree
+
+**拓扑（2026-08-16 起）：** 十个目录**不再是十份独立 clone**，而是同一个裸仓库中枢
+`.repo.git` 的十个 **git worktree**，每个钉在一个分支上。
+
+- **一份对象库、一份 fetch 状态。** 从任意一个目录 `git fetch` 都会更新全体的
+  remote-tracking 引用；`push-all.cmd` 因此只 fetch 一次（此前是十次）。
+- **worktree 的 `.git` 是一个文件、不是目录**（内容为 `gitdir: …/.repo.git/worktrees/<name>`）。
+  任何判断「这是不是 git 目录」的脚本都必须用 `git rev-parse --git-dir`，
+  **不能**用「`.git` 是否为目录」——仓库里的脚本已按此写。
+- **一个分支只能被一个 worktree 检出。** 想在别处再看同一分支，用 `git worktree add --detach`。
+- 各目录照常 `git status` / `commit` / `push`，上游跟踪逐分支设好（`origin/<branch>`）。
+- **根目录 `D:\MyCardGame\` 本身不是仓库**，也不再有 `.gitignore`（它对子仓库从来无效，已删除；
+  其内容已并入 `game-feature-branch/.gitignore`）。根级三个 `.cmd` 包装脚本不受任何分支版本控制。
 
 ```
 D:\MyCardGame\
-├── .claude/                     — this harness (git: claude-config)
-├── main/                        — branch guidance map only (git: main)
-├── game-feature-branch/         — the Godot project; EDIT HERE (git: game-feature)
-├── game-testing-branch/         — read-only reference snapshot (git: game-testing)
-├── game-production-branch/      — read-only reference snapshot (git: game-production)
-├── game-design-documents/       — client design intent, SOURCE OF TRUTH (git: game-design)
-├── backend-feature-branch/      — the backend; EDIT HERE (git: backend-feature)
-├── backend-testing-branch/      — read-only reference snapshot (git: backend-testing)
-├── backend-production-branch/   — read-only reference snapshot (git: backend-production)
-├── backend-design-documents/    — backend design intent, SOURCE OF TRUTH (git: backend-design)
+├── .repo.git/                   — bare hub: 全部对象与引用都在这里（唯一的 fetch 状态）
+├── .claude/                     — this harness (worktree: claude-config)
+├── main/                        — branch guidance map only (worktree: main)
+├── game-feature-branch/         — the Godot project; EDIT HERE (worktree: game-feature)
+├── game-testing-branch/         — read-only reference snapshot (worktree: game-testing)
+├── game-production-branch/      — read-only reference snapshot (worktree: game-production)
+├── game-design-documents/       — client design intent, SOURCE OF TRUTH (worktree: game-design)
+├── backend-feature-branch/      — the backend; EDIT HERE (worktree: backend-feature)
+├── backend-testing-branch/      — read-only reference snapshot (worktree: backend-testing)
+├── backend-production-branch/   — read-only reference snapshot (worktree: backend-production)
+├── backend-design-documents/    — backend design intent, SOURCE OF TRUTH (worktree: backend-design)
 ├── push-all.cmd                 — commit + push every branch checkout at once
 ├── promote.cmd                  — merge one branch into its downstream (feature→testing→production)
 └── session-manager.cmd          — session favorites/tags entry point
@@ -42,7 +56,7 @@ D:\MyCardGame\
 - **只在两个 feature 文件夹中编辑。** 四个 testing/production 文件夹是并行快照，用于把一个稳定构建与进行中的工作交叉对比（在不切换分支的情况下映射 dev/test/prod 分支模型）。
 - `settings.json` 的 permission **deny 规则**会拦截对这四个快照目录的 Edit/Write（无需钩子、不依赖 python）。Bash 写入不在拦截范围内——那部分仍是 `Context.md` 约束的约定。
 - 后端目前**尚未开工**：`backend-feature-branch/` 只有一份 README，技术栈待定。客户端的边界服务先以离线 stub 实现。
-- **`.claude/` 自身也是一份检出**（分支 `claude-config`，分支根 = 本文件夹根）。它与其余九个目录一样受 `push-all.cmd` 覆盖。`.gitignore` 排除 `.idea/`、`blueprints/`、`plans/`、`session-tags.json`。
+- **`.claude/` 自身也是一个 worktree**（分支 `claude-config`，分支根 = 本文件夹根）。它与其余九个目录一样受 `push-all.cmd` 覆盖。`.gitignore` 排除 `.idea/`、`blueprints/`、`plans/`、`session-tags.json`。
 
 ### 设计意图
 `game-design-documents/`（`game-design` 分支 —— 仅文档，孤儿历史）承载**客户端**的人工设计交接：游戏*应该*是什么样的事实来源。这里的 `knowledge/*` 是**指向它的薄引用层**（导航 + 代码现状 + 一句话承重纪律，不复述设计内容）。规划一个功能时，先阅读相关的设计文档。

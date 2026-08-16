@@ -5,6 +5,26 @@
 ## 平台
 - 操作系统：Windows 11。Shell：PowerShell（主要）。Bash（Git Bash）也可用。
 
+## 仓库拓扑 —— 一个裸仓库中枢 + 十个 worktree（2026-08-16 起）
+
+十个分支目录**不再是十份独立 clone**，而是同一个裸仓库中枢 `D:\MyCardGame\.repo.git`
+的十个 **git worktree**，每个钉在一个分支上（`.claude`→`claude-config`、`main`→`main`、
+`game-*-branch`→`game-*`、`game-design-documents`→`game-design`，后端同构）。
+
+- **一份对象库、一份 fetch 状态。** 在任意一个目录里 `git fetch` 即更新全体的 remote-tracking
+  引用；`push-all.cmd` 据此按 `git rev-parse --git-common-dir` 去重，整轮只 fetch 一次。
+- **worktree 的 `.git` 是文件不是目录**（内容 `gitdir: …/.repo.git/worktrees/<name>`）。
+  写脚本判断「是不是 git 工作区」**一律用 `git rev-parse --git-dir` 的退出码**，
+  绝不能写成 `Test-Path <dir>/.git -PathType Container` —— 那在 worktree 下永远为假。
+- **一个分支同时只能被一个 worktree 检出。** 要在别处再看同一分支用 `git worktree add --detach`。
+- 每个分支的上游跟踪已逐一设为 `origin/<branch>`，各目录照常 `git status` / `commit` / `push`。
+- 增删目录用 `git -C D:\MyCardGame\.repo.git worktree add|remove`，**不要**手工 `rm -rf`
+  （会留下悬空登记；真删了就跑一次 `worktree prune`）。
+- **根目录 `D:\MyCardGame\` 本身不是仓库。** 它只放三个 `.cmd` 包装脚本
+  （`push-all` / `promote` / `session-manager`）与 `.repo.git`。根级 `.gitignore` 已删除——
+  git 从不向仓库根以上查找忽略规则，那份文件从来就没生效过；其内容已并入
+  `game-feature-branch/.gitignore`。**根级 `.cmd` 三件套不受任何分支版本控制**，改动前请自行留意。
+
 ## 可用工具（可直接使用）
 
 | 工具 | 说明 |
