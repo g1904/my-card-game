@@ -19,12 +19,22 @@
   - **定名纪律：功法的等级叫「层数 / `TechniqueTier`」，不叫 level。** 既有 `level`（境界内层级，炼气 1–13 层……）是敌人意图揭示档的判据、已登记在 `terminology.md`，**不动**；两个量必须在 UI 与文档中一眼可分。
   -
 - **轮回中的构筑变更 = 升阶 / 弃置 / 学新，且弃置不设限。** 玩家在 adventureEvent 中可**提升某门功法的层数**、**移除某门已有功法**、**学会一门新功法**；三者都是轮回级卡组变更，走 `ProfileChangeSpec` → `TryApply`，**不新增存档点**。
+  - **载体 = `ProfileChangeSpec.DeckElements`（`DeckChangeElement` 列表）。** 五个 `Op`：`LearnTechnique`（入组，`Tier = 1`）· `UpgradeTechnique`（`Tier` = **目标层数**，不是增量）· `ForgetTechnique` · `AddLooseCard`（加入一张游离散牌，**一条 element 加一张**）· `RemoveLooseCard`（移除一张游离散牌，**一条 element 移一张**——散牌是多重集）。**它绝不走 modifier pipeline**：一条法则若能把「层数 +1」放大成 +2，「进化 = 整组替换、每层一整套定义」当场失效，因为不存在「1.5 层」的卡牌定义。类型定义见 `systems/architecture.md`，施加与失败语义见 `systems/services/profile-service.md`。
+  - **三种变更的落点是闭关（Research）**：升阶 / 弃置 / 学新 / 移除散牌是它的构筑面板里的四类槽内操作，见 `systems/adventure-event/research/_index.md`。**卡组增删仍唯一归 Research**——商店不收购卡牌与功法（售出面仅对法宝开放），故不存在第二条弃卡通道。
+  - **在商店买下一门功法 = 一条 `LearnTechnique`**，与闭关学新共用同一个 `Op`、同一条施加与校验路径；差别只在成本（灵玉 vs 寿元）与候选从哪里来。见 `systems/adventure-event/exchange/_index.md`。
+  - **游离散牌入组 = `AddLooseCard`，与 `RemoveLooseCard` 严格对称。** `Id` = 卡牌 `Id`（`CardData`）· `Tier` 写 `-1` · `DeckChangeElement` 零字段增量。三条通道共用它：**业障由事件负向奖励塞进卡组** · **战斗奖励的单卡入组** · **商店 `Card` 族商品购买**（见 `systems/adventure-event/exchange/_index.md`）。
+    - **同名多张 = 提交多条 element，不设 count**（三张业障 = 三条 `AddLooseCard`），与移除向同款——一条 element ↔ 一次可重放的操作。
+    - **目标已在卡组 → 正常追加一张，不是空操作**：散牌是多重集，套用「已持有 → 空操作」的幂等语义会静默吞掉第二张。
+    - **不设「卡组已满」这一失败情形** —— 卡组规模两侧不设硬限。
+    - **不带 `Source`**，沿用 `DeckElements` 整列的形态（卡组条目无 `SourceCode` 挂载面）。**代价明写：**「这张业障是哪个事件塞的 / 这张卡是买来的还是打来的」在卡组侧查不出来，只能从 `PastEventEntry.AppliedChange` 逆查；不为本条开例外。
+    - **敌方专用牌的最后一道闸**：目标卡 `Pool == Enemy` → `PushError` + 整批拒绝，见 `systems/services/profile-service.md`。
   - **角色绑定的那两门功法同样可被弃置**——角色给的是**起手形状，不是不可动摇的底盘**，重构空间完全开放。
-  - **退化情形明写：卡组可以被弃空。** 这**不需要新规则来阻止**——既有疲劳规则（抽牌堆空后每次抽牌 −1 道念）已完整表达其后果，且「打不过也得打、输是本作的正常出口」是既定取向。是否在内容侧回避这种局面，见待决问题。
+  - **退化情形明写：卡组可以被弃空，且内容侧不做回避。** 规则层**不需要新规则来阻止**——既有疲劳规则（抽牌堆空后每次抽牌 −1 道念）已完整表达其后果，且「打不过也得打、输是本作的正常出口」是既定取向。**内容侧同样不设「只剩一门功法时不再提供弃置选项」这类回避**：构筑面板的槽默认允许拒绝（`AllowDecline = true`），玩家不会被迫弃空，再加一层内容侧特判只是把一条已有出口重复实现一遍。
   -
 - **开局构筑 = 一个强制的 buff 事件。** 形态取 **Slay the Spire 第一章**的味道：起始事件中**必有一个强制事件**，让玩家选**想要哪一种功法**与**想要哪一件法宝**——各三选一。**开局底盘 = 2 个角色绑定功法 + 1 个选来的功法 + 1 件选来的法宝**；**构筑的多轮性由 adventureEvent 承载，不由开局承载**。
   - **不需要新机制**：既有 `eventPriority` 两档已能表达「本批必须进这个」（`1` 档一出现，有效可选集即收窄为该档）。**它归 Research 类**，见 `systems/adventure-event/research/_index.md`。
-  - **三选一候选必须经 `AllEnabled()` 取抽取池、由带种子的 RNG 子流掷定**（子流归属见待决问题）。
+  - **三选一候选必须经 `AllEnabled()` 取抽取池、由带种子的 RNG 子流掷定，子流取 `RngStream.Reward`。** 不新开子流：`Reward` 已承载「候选预先掷定 + 落存档 + 绝不重抽」这一完全同构的用途，而奖励候选与构筑候选**从不并发**（一次只结算一个事件），新开一条换来零隔离收益。
+  - **候选里出现已持有的功法 → 排除，不折算为升阶。** 与 `GrantPoolPicker` 的「排除已持有」同构；折算会让「学新」与「升阶」两个操作的边界模糊——它们在构筑面板里是两类各自可被限定的槽内操作。取池链见 `systems/adventure-event/research/common-properties.md`。
   -
 - **deck 是 CharacterProfile 的一部分。** 卡组、hand、以及打出一张卡的结算，都是单次轮回 / 单角色的状态；deck 随轮回推进被增 / 删 / 升级。
 - **卡牌是道念的唯一产出途径（承重）。** 战斗的胜负标尺是道念（见 `systems/scoring.md`），而**道念由打出的卡牌产生**；卡牌**既能给自己加道念，也能削减对方道念**（削减在 0 处截断，无负道念；**截断发生在每一次结算时，溢出量不结转** —— 见 `systems/scoring.md`）。**推论：卡牌设计的第一维度是「产多少 / 削多少」**——**不是** HP 消耗战里的「打多少伤害 / 挡多少」，也是与 `manaLimit`（每回合刷满）配合出节奏的那一维。战斗**定长 10 个回合**、**起始道念按等级给**，共同框定了「一张牌该值多少道念」的量纲（基准未定，见待决问题）。
@@ -162,6 +172,10 @@ public enum CountdownSide
 
 **边界情形（须写明）**：「本场战斗内所有『符箓』费用 −1」看起来无时限，但它作用于**一个集合**而非某张牌本体 → 仍是**战场条目**（`Indefinite`）。**集合性效果一律走战场，无论有无时限。**
 
+**关键字是命名与复用的一层，不是第四层。** 可复用的效果词汇表以内容层注册表条目 `KeywordData` 表达，两种 `KeywordKind` 各自展开回上面三层——`Action` 展开为第一层的原子操作组合，`State` 展开为第二层的非永久战场条目。**它不新增第三种效果载体**，这条须写死。当前清单为空、机制完整成立，准入判据与次类型的两条同构。形态、参数化与加载校验见 `common-properties.md`「效果关键字体系」。
+
+**目标（target）与作用域（scope）是两个东西。** 「效果必须显式声明目标类别」这条纪律**只约束目标槽位**：静止式修正按筛选条件在求值瞬间动态匹配，永不需要玩家输入、永不 fizzle、不落存档。两者共用同一个筛选结构 `EntryFilter`——各写一套会让两份筛选条件各自漂移而无从发现。切分表与声明侧形态见 `common-properties.md`「目标（target）与作用域（scope）」。
+
 **触发式效果的挂载**：既定部分原样成立（触发注册面坐在战场上、命中后由 StackManager 压栈、载体开放）。**补一条落地要求：非永久条目也可以带 `AbilityData[]`**（例：一条 `ForTurns(2)` 的条目「每当你打出符箓时，产 1 点道念」）；**条目被清理时其上的触发器同时注销**——这是清理逻辑的隐含义务，须写进 BattlefieldManager 的职责。
 
 ### 信息类效果（若要建一条买信息的通道，沿用以下载体与花费纪律）
@@ -173,7 +187,7 @@ public enum CountdownSide
 - **载体 = 古宝 + 阵法双载体**（前者「关键回合一定拿得到」，后者 build 向：牺牲一次出牌与场上位置换持续的信息优势）；法则 `Power` 可有但极稀缺；**法术不做**——受抽牌运制约，**信息能力最怕「需要时抽不到」**，且一张只给信息不产道念的牌在 5 回合对局里几乎永远不该打。
 - **花费 = mana 为主 + 古宝上叠 `Charges`，明确排除弃牌**：弃牌把一条**信息成本**压在 5 回合对局里极稀缺的**手牌资源**上，代价过重且不可预测；mana 每回合刷满不结转，「花 1 点买信息 = 这回合少打一张小牌」代价即时、可感、不跨回合累积。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15-content-id-technique-shape-and-subtype-reset.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15-content-id-technique-shape-and-subtype-reset.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -182,16 +196,14 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 - **`CardData.Pool` 三值枚举（必填、无默认）：共用体系、不共用卡池**。
 - **回合内状态 = `EntryLifetime` × `CountdownSide` × `RemainingTurns` 三件套；非永久条目可被针对但效果须显式声明目标类别**。
 - **效果系统三层；求值 = 加法层 + 乘法层且「加法先于乘法」是规则；`CardInstance` 运行态判据 = 有无过期时刻；「一切增益减益都是战场条目」**。
+- **关键字体系 = `KeywordData` 内容层条目（清单归零、机制保留）；目标 target 与作用域 scope 分开建模并共用 `EntryFilter`** → `common-properties.md`。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
 - **功法的规模参数（归 ch1 数值标杆专场）。** 一门功法含几张牌、**层数上限**是几、**每层的替换幅度**多大 —— 与「一张牌该产多少道念」「起始卡组给多少张」是同一个未知的几个面。→ `systems/balance.md`。
-- **候选里出现已持有功法怎么办。** 学新功法的三选一抽取时，若候选命中卡组中已有的功法：排除？还是折算为一次升阶？输入未覆盖。
-- **卡组被弃空的内容侧态度。** 规则层允许弃空（疲劳规则已表达后果），是否在内容侧回避（例如只剩一门功法时不再提供弃置选项）未定。→ `systems/adventure-event/`、`systems/balance.md`。
-- **功法 / 法宝三选一的 RNG 子流归属。** 复用既有 `reward` 子流，还是新开一条。→ `systems/common-properties.md`。
-- **效果关键字体系与目标规则（承重 · 需一次专门 handoff）。** 效果的原子操作清单与求值管线已定；**可复用的效果关键字词汇表**与**目标规则的完整判据**（谁可以指定谁、合法目标集如何计算）仍是结构占位。→ `common-properties.md`。
-- **`CardData` 的完整字段清单与起始卡组内容。** 卡牌类型五分、异能三分、次类型、`Pool`、`Subtypes` 均已定；其余字段（费用、目标声明、效果引用、触发器）与 **starter deck 的具体内容**未设计——**起始卡组正是 ch1 数值标杆专场的切入点**。
+- **关键字与次类型的首批清单。** 两套清单当前均为空、机制完整成立；填什么条目要从「哪些组合真的重复了 ≥3 次」倒推，切入点是 starter deck 的设计过程。→ `systems/balance.md`、`common-properties.md`。
+- **`CardData` 的完整字段清单与起始卡组内容。** 卡牌类型五分、异能三分、次类型、`Pool`、`Subtypes`、**目标声明与效果引用两格**均已定；其余字段（费用、触发器）与 **starter deck 的具体内容**未设计——**起始卡组正是 ch1 数值标杆专场的切入点**。
 - **卡组规模的实际取值。** 两侧均不设硬限（规则层），故规模是内容/构筑层的问题：起始卡组该给多少张、敌人样本卡组的常用区间落在哪里——**疲劳规则使规模直接换算为后期失血速率**，归 ch1 数值标杆专场。
 - **道念产 / 削的量纲基准（承重 · 已归属专场）。** 「卡牌产道念、可互削、下限 0」已定；**一张牌该产多少**、**10 个回合内一方的总产出应达到起始 `baseMomentum` 的几倍**——**明确推迟到内容横向扩展阶段**，切入点是**设计起始角色 starter deck 的过程**，届时聚焦并定义 **ch1 的数值标杆**（一场专门的「ch1 数值模型」session）。**越级追分的结论已先给出：可能，但很难，境界差越大越难**——`baseMomentum` 跨度随境界放大正是为此。是否存在道念相关的状态与倍率仍未定。→ `systems/balance.md`、`systems/scoring.md`。
 - **出牌费用 = mana。** 每回合出牌资源为 mana，**每回合开始恢复至 `manaLimit`**（炼气基线 5/5）；`manaLimit` 由事件 cost / reward 推拉。→ 见 `../mana.md`。

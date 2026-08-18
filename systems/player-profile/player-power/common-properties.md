@@ -28,10 +28,12 @@
 **通道二 · 具名数值「修正管线 / modifier pipeline」**（平衡修正）
 - 非布尔的全局修正（`lifeSpanCost`、商店价格、掉落权重……）由 PlayerPower 注册**具名 modifier**（key + 运算 + 数值，同为 `.tres` 字段）。
 - 系统读取该数值时**统一走一个入口** `Apply(key, baseValue)`，而非各消费层写 `if (hasPowerX) value -= 1`。新增一个修正 = 新增一条数据，受影响系统零改动。
+- **作用面（承重）：** modifier 只作用于**非 element 数值**（商店价格、掉落权重、战斗内数值）与 **`ResourceElements` 表中已显式登记 `ModifierKey` 的资源 element**；它**不作用于**能力（`AbilityElements`）、统计（`Stats`）、序号与付费凭证。`Elements` 侧是 opt-in 白名单、缺省豁免——否则一条法则就能静默改写幂等键、付费凭证或元进程计数。表、缺省方向与两向分列见 `systems/services/profile-service.md`。
+- **一个 `ModifierKey` 只能有一个施加点**：判据是「该修正后的值是否需要在施加之前呈现给玩家」——需要则施加在展示 / 物化侧，不需要则施加在 `ProfileManager.TryApply`。两处都施加即打两次折。
 
 两条通道均满足 `data-resource-rules.md` 的「内容保持可加性：新增 = 新增 `.tres`，而非编辑 switch 语句」。
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md`
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

@@ -19,10 +19,23 @@
 | item 持有列表 | `ItemData.Id[]` | 悬空 id → `PushError` |
 | power 持有列表 | `PowerData.Id[]` | 悬空 id → `PushError`；带 `IgnoresProtection` 者须满足两条硬准入（仅挂 boss 档载体 · 绝不挂玩家可主动获取的内容，见 `systems/balance.md` 的 ≈5% 口径） |
 | `EncounterScopes` | `EventType[]`，取值仅限 `{ Practice, Combat, Finale }` | **空数组 → `PushError`**（漏填会静默缩小抽取池） |
-| `PoolScope` | 地点 / 剧情线归属 | **允许为空**（= 通用池），不报错；非空但指向不存在的 location / 剧情线 → `PushError` |
+| `PoolScope` | 内嵌 `Resource`，两个具名可空字段 `LocationId` / `PlotArcId`（形态见 `_index.md`） | **允许为 `null`**（= 通用池），不报错；四条校验见下 |
 | `OverridesDeck` | `bool`，默认 `false` | — |
 
-- **「关键卡牌不得被物化改写」是一条可在物化时机械检查的上界**：改写后若 `KeyCardIds` 中任一张不在最终 `DeckCardIds` 里 → `PushWarning` + 该次改写回退。**`OverridesDeck == true` 的条目显式豁免**（天劫这类定制卡组与模板样本卡组可以完全不同）。理由：图鉴词条挂模板且是静态的，改写把关键卡改掉会让图鉴与玩家实际遭遇对不上，而图鉴在意图黑箱档位下是唯一的信息来源。
+- **「关键卡牌不得被物化改写」是一条可在物化时机械检查的上界**：改写后若 `KeyCardIds` 中任一张不在最终 `DeckCardIds` 里 → `PushWarning` + 该次改写回退。**`OverridesDeck == true` 的条目显式豁免**（天劫这类定制卡组与模板样本卡组可以完全不同）。理由：图鉴词条挂模板且是静态的，改写把关键卡改掉会让图鉴与玩家实际遭遇对不上，而**图鉴是事前知识的主通道**。
+
+### `PoolScope` 的加载期校验（四条，全部带定位上下文）
+
+| 违规 | 语义 | 处置 |
+|---|---|---|
+| `PoolScope.LocationId` 非空且不在 `LocationData` 仓储内 | 悬空引用 | `PushError`（带敌人 `Id` + 悬空 `LocationId`）+ 抛 |
+| `PoolScope.PlotArcId` 非空且不在 `PlotArcData` 仓储内 | 同上 | `PushError`（带敌人 `Id` + 悬空 `PlotArcId`）+ 抛 |
+| `PoolScope` 非 `null` 但两字段皆空 | 空壳：语义等同通用池，但「填了个空壳」与「有意留通用」不可区分 | `PushWarning`（不阻断） |
+| 某 `EventType` 下的**通用池**（`PoolScope == null` 或两字段皆空）为空 | **能上线、线上不可见的死锁**：物化取不出敌人 ⇒ 「内容池为空 = 坏数据 → `PushError` + 抛」会在玩家进程里炸 | `PushError` + 报出该 `EventType`，**启动期早失败** |
+
+- **第四条只按 `EventType` 单维枚举**，不含篇章维——`EnemyData` 上尚无表达篇章的字段（见 `_index.md` 待决问题）。它与「`overlay` 双闸」「`Rarity` 缺失 → `PushError`」同族：把只在线上显形的洞提到启动期。
+- 反向的悬空（location / arc 条目引用不存在的 `EnemyData`）不存在——池归属的唯一权威在敌人条目一侧，location 条目不持敌人清单。
+- **人工审阅级（不硬校验）**：某 arc / location 的专属池非空，但其中条目的 `EncounterScopes` 与该 arc 可达的事件类型无交集 ⇒ 写了永不出现的内容 → `PushWarning` + 列举。
 
 ### 战斗侧引用关系
 
@@ -39,7 +52,7 @@ Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`
 ## 待决问题
 
 - **敌人数据 schema 的其余字段：** 立绘 / 台词 / 音效引用、道念产出能力的缩放参数、行为脚本的表达形态未定义。
-- **`PoolScope` 的数据形态**（见 `_index.md` 待决问题）。
+- **敌人池的篇章框定载体**（见 `_index.md` 待决问题）——它决定通用池空池校验能否从 `EventType` 单维扩到两维。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/enemies.md`（待建）

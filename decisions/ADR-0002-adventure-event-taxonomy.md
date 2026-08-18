@@ -42,5 +42,6 @@
 - **Practice / Finale 的既有设计整体保留**，只是挂载点从 `eventType` 移到 `combatTier`：Finale 的天劫 Enemy、`±2` 赋级带、`WinMargin` 初值、「一篇章一个 Finale、败后不可重战」、「失败但存活仍完成篇章」、残卷规则；Practice 的 small blind 参数与 `EnemyData.EncounterScopes` 两层敌人池（`[Practice]` / `[Combat]` 改为按档位取值），全部照旧。
 - **落实「并非每个事件都是战斗」**：五类中只有 `Combat` 走战斗结算，其余四类是事件 / 抉择流程；`Explore` 视其真身可能落到战斗结算上。
 - 无独立的休整节点类型；恢复必须由 Combat / Research 事件承载，或由其它系统（法宝 / 属性）提供。
-- 待办：`Explore` 揭示池的权重、`combatTier` 的字段形态（独立枚举字段还是折进遭遇参数结构），属内容与平衡设计范畴。
+- **`combatTier` 的字段形态：它是模板常量，落 `EncounterSpec.Tier`（由 future-event-service 物化时从模板代入），`EventOption` 与 `PastEventEntry` 两处都不加独立字段**——呈现与履历两个消费方本就要按 `EventId` 查模板取显示名，tier 在同一次查表里拿到。见 `systems/adventure-event/combat/_index.md`。
+- 待办：`Explore` 揭示池的权重，属内容与平衡设计范畴。
 - Source: `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md`。

@@ -11,7 +11,7 @@
 
 **可机械检查的越界信号：** 条目文档 / 类型档案里出现枚举成员表、字段取值域穷举、`GD.PushError` 级校验语义的完整表述，或一段 C# 类型定义 ⇒ 违规，压回「值 + 回链」。
 
-Source: `handoffs/2026-08-14c` · `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15-content-id-technique-shape-and-subtype-reset.md`
+Source: `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15-content-id-technique-shape-and-subtype-reset.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md`
 
 ## 三层结构
 
@@ -41,18 +41,22 @@ content/
 | `player-power/` | 法则 | `PowerData`（Player 域） | `systems/player-profile/player-power/` | 🟠 阻于效果原语 | ✗ |
 | `player-item/` | 古宝 | `ItemData`（Player 域） | `systems/player-profile/player-item/` | 🟠 阻于效果原语 | ✗ |
 | `enemy/` | 敌人 | `EnemyData` | `systems/enemies/` | 🟠 依赖卡牌（样本卡组） | ✗ |
-| `adventure-event/` | 修行事件（九子类） | `AdventureEventData` | `systems/adventure-event/<子类>/` | ⛔ **本阶段不开展** | ✗ |
-| `location/` | 地域 + 地域图 | `LocationData` / `locationMap` | `systems/game-progression.md` | 🟠 载体定名待答 | ✗ |
-| `adventure-plot/` | 隐藏剧本（四级） | AdventurePlot | `systems/services/plot-manager.md` | ⛔ 随事件类顺延 | ✗ |
+| `adventure-event/` | 修行事件（五子类） | `AdventureEventData` | `systems/adventure-event/<子类>/` | ⛔ **本阶段不开展** | ✗ |
+| `location/` | 地域 + 地域图 | `LocationData` / `LocationMapData` | `systems/game-progression.md` | 🟢 载体 + 图校验 | ✗ |
+| `plot-arc/` | 剧本线（四级层级之一） | `PlotArcData` | `systems/services/plot-manager.md` | ⛔ 随事件类顺延 | ✗ |
+| `plot-node/` | 剧本节点（叙事 + 调制 + 出边） | `PlotNodeData` | `systems/services/plot-manager.md` | ⛔ 随事件类顺延 | ✗ |
 | `hidden-stat-band/` | 隐藏属性档位 | `HiddenStatBandData` | `systems/services/plot-manager.md` | 🟢 档位表 | ✗ |
 | `achievement/` | 成就 | Achievement 条目 | `systems/player-profile/achievement/` | 🟠 奖励目录依赖法则 / 古宝条目 | ✗ |
 | `ability/` | 异能 / 效果 / 触发条件 | `AbilityData` / `EffectData` / `TriggerConditionData` | 散落 `deck/` 与 `power/` | 🔴 语法未定案 | ✗ |
 | `card-subtype/` | 卡牌次类型 | `CardSubtypeData` | `systems/character-profile/deck/` | ⛔ **清单已归零**（机制保留） | ✗ |
+| `keyword/` | 效果关键字 | `KeywordData` | `systems/character-profile/deck/` | ⛔ **清单为空**（机制保留） | ✗ |
 
 **本阶段不开展的三项（⛔）：**
 
 - **修行事件 `adventure-event/`** —— 八个子类文档仍是空占位、等各自专场（`systems/adventure-event/_index.md` 已定的流程意图）。**不要在通用文档里替它们臆造机制**，也不要先建条目。
-- **隐藏剧本 `adventure-plot/`** —— 剧本调制的是 eventOptions，没有事件条目就没有可调制的对象，随事件类顺延。
+  - **开张时须带一项 Explore 专有的台账列与一项对账：** 条目台账登记每条 Explore 的**真身 `Id` 与真身 `eventType`**，`/audit-content` 汇总三类真身的条目占比并与目标区间比对，**只报告不阻断**。理由：真身类型分布**没有运行时旋钮**（三处数据类都不为它加字段），编排口径是它唯一的控制面。目标区间与推导归 `../systems/adventure-event/explore/_index.md`，本层只登记填了什么值。
+- **隐藏剧本 `plot-arc/` + `plot-node/`** —— 剧本调制的是 eventOptions，没有事件条目就没有可调制的对象，随事件类顺延。**两个类型各需一轮 `/scaffold-content-type`**：arc 是剧本线的头（激活条件 + 入口节点），node 是树上的一步（叙事 + 调制 + 出边），条目一一对应两个 `Resource` 类型，不合建一个文件夹。
+- **效果关键字 `keyword/`** —— **清单为空，但机制保留**：`KeywordData`、`KeywordRef`、`EntryFilter.RequiredKeywords`、加载校验与准入判据全部有效，只是**当前不建任何关键字条目**。正确的清单只能从「哪些效果组合真的重复了 ≥3 次」倒推，而当前卡牌条目数为零；与次类型同批处理即可。详见 `../systems/character-profile/deck/common-properties.md`「清单归零，机制保留」。
 - **卡牌次类型 `card-subtype/`** —— **清单已归零，但机制保留**：`CardSubtypeData`、`CardData.Subtypes`、加载校验与准入判据全部原样有效，只是**当前不建任何次类型条目**（唯一存活的 `enchantment.ambush` 是埋伏机制的定名，不是清单候选）。等内容有规模后按既有准入判据（① ≥3 个条目共享 ② ≥1 处筛选引用）自然长出来。详见 `../systems/character-profile/deck/_index.md`「清单归零，机制保留」。
 
 **不单开类型的两项（已裁定）：**
@@ -71,11 +75,11 @@ ability（效果原语）
    └─▶ character-item / player-power / player-item
               └─▶ achievement（奖励目录指定条目）
    card ─▶ enemy（样本卡组）
-location（独立，只等载体定名）
+location（独立，可开张）
 hidden-stat-band（独立，档位表）
 
-⛔ adventure-event（九子类，各等专场）─▶ adventure-plot    本阶段不开展
-⛔ card-subtype                                          清单归零，机制保留
+⛔ adventure-event（五子类，各等专场）─▶ plot-arc ─▶ plot-node    本阶段不开展
+⛔ card-subtype · keyword                                 清单为空，机制保留
 ```
 
 **`ability/` 是五个类型的共同底座。** 它的语法未定案前，卡牌 / 神通 / 法宝 / 法则 / 古宝的条目只能写出风味文案与意图，**写不出可 blueprint 的效果定义**——写下的会是一份看起来完整、实则实现侧无法消费的文档。`/scaffold-content-type` 的就绪度闸门执行这条。

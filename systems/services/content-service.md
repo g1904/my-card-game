@@ -39,6 +39,19 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 
 **残留风险与其处置：** key points 是指向剧本节点的持久化锚点，所以 overlay 或客户端版本回退可使 key point 悬空。处置为 **`PushWarning` + 叙事降级、不阻塞轮回**（与本服务「读取侧不过滤」的不对称原则同构），完整规则见 `plot-manager.md`。
 
+##### 两条边界的机械形态：合并期的 `newIds` 双闸
+
+合并阶段 ContentRegistry 本就知道每个 `Id` 来自基线还是 overlay，故 **`newIds` = overlay 中不存在于基线的 `Id` 集合**是免费拿到的。两条闸跑在**合并后强校验**里，全量、非 `#if DEBUG`：
+
+| 闸 | 规则 | 违反 |
+|---|---|---|
+| **A · 只改不增** | `newIds` 中每个 `Id` 的宿主类型必须 ∈ { `PlotArcData`, `PlotNodeData` } | `PushError` 带 `Id` + 类型名 + 抛 |
+| **B · 例外的边界二** | 新增剧本条目的每一个**外部引用 `Id`**：被引用者是**非剧本类型** ⇒ 必须存在于**基线**；是剧本类型 ⇒ 允许来自 `newIds` | `PushError` 带引用方 `Id` + 悬空 / 越界的被引用 `Id` |
+
+**闸 A 是顺带的净收益：** 它让「overlay 只改不增」连同它的例外一起从一条评审级约定变成启动期硬校验。**闸 B 之所以不误伤正常编排**，是因为一条新 arc 的全部构件（arc + 若干 node + 内嵌的正文）都是剧本类型，它不需要引用任何新的非剧本 `Id` 就能自足（形态见 `plot-manager.md`）。
+
+**客户端侧的天花板是阶梯第 3 级，等价的第 2 级由打包工具承担。** 第 1 级靠类型 / 可见性、第 2 级靠编译期，而这两条闸检查的对象是 `.tres` 的**引用图**，C# 编译器与类型系统都触不到它。故按「纪律的可执行化」对内容侧纪律的通用补注（`systems/architecture.md`）：**同一份校验前移进 overlay 打包工具**——喂「基线 + 待发 overlay」跑同一个 `LoadAll()` 路径，不通过就不产出包；客户端启动期的 `PushError` 保留为兜底，处理手工塞进 `user://overlay/` 的非发布路径。发布侧的执行归属见 `backend-design-documents/open-questions/04-content-delivery.md`。
+
 ### 放量开关 `ContentEnabled`：不预埋占位 Id
 
 **否决「预埋空壳 `Id`、日后用 overlay 填充数值文案」。** 两条理由：① 与「合并后强校验」直接冲突——空壳条目要么迫使校验放宽（丢掉启动期早失败这条纪律），要么携带假数值被抽中；② 属应用商店审核灰区（随包发的是不可玩的壳）。
@@ -55,7 +68,21 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 
   因此「存档引用未知内容」的风险**依然为零**：关闭一个条目只让它不再被新抽到。
 - **合并后校验对 disabled 条目照常全量执行**（`Id` 唯一性、交叉引用不悬空）——它们是完整内容，只是不进抽取池。
-- **结构性查表的内容类型恒启用（首例 `HiddenStatBandData`）。** 有一类内容条目**不是抽取池的成员，而是被查表读取的结构**——隐藏属性档位表是首例。**这条不对称对它们的推论是「放量开关无处安放」**：档位判定走的是读取侧，关掉一档不会让它「不再被抽到」，只会在档位表上造出**空洞**、触发**假跨档**，并让 `BandIndex` 连续性校验失去意义。故：**这类条目的 `ContentEnabled == false` → 加载期 `PushError`**，字段随内容共有字段照带但无语义；它们的解析走 `AllIncludingDisabled()`，**flags 对其不生效**。与之配对的**文案条目照常参与放量**（每档 2–3 条候选，关一条只是少一个候选、结构无空洞），秒关一条措辞的运营手段因此保留。判据一句话：**能被抽取的才配有开关。**
+- **结构性查表的内容类型恒启用。** 有一类内容条目**不是抽取池的成员，而是被查表读取的结构**。**这条不对称对它们的推论是「放量开关无处安放」**：关掉一条不会让它「不再被抽到」，只会在结构上造出**空洞**。故：**这类条目的 `ContentEnabled == false` → 加载期 `PushError`**，字段随内容共有字段照带但无语义；它们的解析走 `AllIncludingDisabled()`，**flags 对其不生效**。
+
+  | 类型 | 结构身份 | 关掉一条会怎样 |
+  |---|---|---|
+  | `HiddenStatBandData` | 隐藏属性档位表的一行 | 档位表出空洞、触发**假跨档**，`BandIndex` 连续性校验失去意义 |
+  | `LocationData` | `locationMap` 的一个**顶点** | 改图 —— 而图的稳定性是对玩家的隐性承诺（改连边 = 清空一份账号级 `LocationCodex` 资产） |
+  | `LocationMapData` | 图本身（全局唯一） | 全体玩家路由崩塌 |
+  | `PlotNodeData` | 剧本树上的一个节点 | 树上出空洞，一条正在进行的 arc 卡死在缺口前 |
+
+  - **剧本内容的两个类型分野相反，同一条判据两侧都用得上：`PlotArcData` 照常参与放量**（arc 是被激活抽取的，关一条只让它不再被**新激活**；已在 key points 里的照常经 `Get(id)` 解析），**`PlotNodeData` 恒启用**。**放量的正确粒度是 arc，不是 node** —— 这也让 overlay 热更推上去的一条坏 arc 有秒关手段。形态与校验见 `plot-manager.md`；后端 flags 通道的对应表述见 `backend-design-documents/contracts/content-manifest.md`。
+
+  - **判据的完整形态：结构身份优先于抽取身份。** 「能被抽取的才配有开关」这句话在 `LocationData` 上不够用——它**双重身份**：既是 Travel 的目的地候选（看似产出侧），又是图的顶点。**取结构一侧**。
+  - **承重理由（location 一侧）：flags 是按账号解析、轮回中途可热应用、且不参与合并后强校验的通道。** 若 location 参与 flags 过滤，线上关掉若干地域可使某玩家当前 location 的邻接集合为空 ⇒ 配额闸门时产不出任何 Travel ⇒ **轮回死锁**，而 Travel 是既定的死局兜底。**这条风险加载期校验够不着**，故只能在准入上封死。
+  - **代价如实记下：地域没有「线上秒关」这条运营手段**，出问题只能改 overlay、下次冷启动生效。这是为「图恒连通、Travel 恒可产出」付的价。
+  - **与之配对的文案条目照常参与放量**（每档 2–3 条候选，关一条只是少一个候选、结构无空洞），秒关一条措辞的运营手段因此保留。
 - 为免各产出侧漏写过滤（漏写即线上事故），ContentRegistry 直接提供 **`AllEnabled()`**，让「正确」成为最短路径。**纪律条款：任何从内容集合抽取的代码必须走 `AllEnabled()`**——与「不散落 `ResourceLoader.Load`」同级，见 `.claude/rules/data-resource-rules.md`。**这条纪律不止于条款：仓储上没有中性名 `All()`**，全量走 `AllIncludingDisabled()`，见下方「`AllEnabled()` 纪律的可执行化」。
 - **加载期的「负向能力条目清单」告警。** 合并校验完成后，**逐条列举携带 `AbilityChangeElement`（`Remove` / `Disable`）的事件条目，并报出它们在全部事件条目中的占比**，`PushWarning` 输出——与既有的「战斗内法则 ≤ 1/5 配额」检查同形（**列举 + 比例，供人工审阅**，不是硬校验）。
   - **落点在内容加载侧，不在事件 outcome 侧。** 两条论证：① outcome 侧的运行时统计**样本量是 1**——1% 是**出现频次**口径，无法机械化校验，单个玩家一次轮回本就该有方差，任何阈值都会误报；② **告警要落在能被看见的地方**——内容编排的错误发生在内容侧，需在启动 / 编辑期被看见，落在玩家进程里的 `PushWarning` 等于落在没人看的地方。
@@ -184,18 +211,25 @@ IContentRepository<T> where T : Resource
 
 #### `DrawPool<T>`：抽取池独立为一个类型（已采纳，排到第二阶段开工前）
 
-命名改造让漏写过滤极难，但仍未做到不可能：`Where(...)` 或 `AllIncludingDisabled()` 的结果照样能被拿去抽取。终局形态是把 `AllEnabled()` 的返回类型换成 `readonly struct DrawPool<T>`（薄包装、零堆分配），并**只在其上定义 seeded 抽取方法**（`PickOne(rng)` / `PickMany(rng, count)` / `Filter(predicate)` —— 过滤后仍是 `DrawPool<T>`）。于是「从内容集合抽取」这个动作在语言层**只能从抽取池发起**：`AllIncludingDisabled()` 返回的 `IReadOnlyList<T>` 上根本没有 `PickOne`。顺带给 seeded 抽取一个统一落点（当前抽取逻辑散在 future-event-service 物化、商店库存、奖励掷骰三处）。
+命名改造让漏写过滤极难，但仍未做到不可能：`Where(...)` 或 `AllIncludingDisabled()` 的结果照样能被拿去抽取。终局形态是把 `AllEnabled()` 的返回类型换成 `readonly struct DrawPool<T>`（薄包装、零堆分配），并**只在其上定义 seeded 抽取方法**（`PickOne(rng)` / `PickMany(rng, count)` / `Filter(predicate)` —— 过滤后仍是 `DrawPool<T>`）。于是「从内容集合抽取」这个动作在语言层**只能从抽取池发起**：`AllIncludingDisabled()` 返回的 `IReadOnlyList<T>` 上根本没有 `PickOne`。顺带给 seeded 抽取一个统一落点（抽取逻辑散在下方五个已登记调用方）。
 
 **排期：第二阶段（内容）开工前、第一份内容 FR 之前落地；本阶段 `AllEnabled()` 仍返回 `IReadOnlyList<T>`。** 理由：彼时各抽取侧都已有真实调用方，能验证 `PickOne` / `PickMany` 的形状是否够用，此刻定死形状是纸上设计。（**原先的第二条理由已消失**：分桶留在服务端，客户端只见按账号解析后的 `disabledIds`，构造签名不必带 `bucketContext`——见上方 flags 一节。）**延后风险低**（纯加法改造，受影响的只有抽取侧），**但不可再往后拖**——抽取侧一旦写完再改返回类型，就从「纯加法」退化为「改调用方」。
 
 **同批落地的还有 `LocalizedText`：** 两者的排期理由完全相同（纯加法窗口，一旦内容写完就退化为「改全部调用方 / 全部资产」），且都是同一次 `XxxData` 面的改动，宜一并做掉。见 `systems/common-properties.md`「内容文本的多语言形态」。
 
-**调用方共四处：** future-event-service 物化 · 商店库存 · 奖励掷骰 · **账号级 / 轮回级能力的授予池**（残卷 · 礼包 · 置换共用一段抽取，宿主是 profile-service 的 `GrantPoolPicker`，见 `systems/player-profile/player-power/_index.md`）。**这加强了「第二阶段开工前落地」的排期理由。**
+**调用方共五处：** future-event-service 物化 · 商店库存 · 奖励掷骰 · **账号级 / 轮回级能力的授予池**（残卷 · 礼包 · 置换共用一段抽取，宿主是 profile-service 的 `GrantPoolPicker`，见 `systems/player-profile/player-power/_index.md`）· **闭关构筑面板的功法候选**（`CultivationTechniqueData` 加权无放回抽取，见 `systems/adventure-event/research/common-properties.md`）。**这加强了「第二阶段开工前落地」的排期理由。**
+
+**抽取原语只有两级，不设第三级（承重）。** 第一级 `DrawPool<T>`（本服务，`readonly struct`）是抽取动作在语言层的**唯一发起面**，只认内容侧的过滤（`ContentEnabled` / `ExclusiveSource` / `Rarity`）；第二级 `GrantPoolPicker`（profile-service 内 `internal`）在其上固化能力授予的四道过滤 + 排重 + 稀有度锚定，供残卷 · 礼包 · 置换共用。
+
+- **分界判据 = 这道过滤需不需要读 `Profile`。** 不需要的留第一级；需要的（排除已持有）只能在第二级——它读的是 profile-service 的自有状态。这条判据同时解释了为何其余调用方不经第二级：它们抽的不是能力条目、没有「已持有」这个概念。
+- **否决「为统一抽取再造一个通用原语」**（带策略参数的 `Draw(spec)` 之类）：两级分工已经对上判据，第三级只会给「抽取代码只有一处」这条纪律多一个绕行入口；且策略参数化无法被编译器约束——一个填错的 spec 与一个正确的 spec 类型相同。
+- **推论：全库抽取代码的落点恰好是两处**，其余调用方都是「构造一个 `DrawPool<T>` 然后 `PickOne`」的三五行。
 
 **两条契约由授予池这个调用方定死：**
 
 - **`PickMany(rng, count)` 是无放回的。** 礼包一次给 2 件古宝必须两件不同；这是 `PickMany` **唯一一处会被误实现成有放回**的地方，故无放回写进契约、不留给实现自由裁量。数量不足 `count` 时按可选缺失处理（返回 false + `PushWarning`），不静默少给。
 - **`PickOne` / `PickMany` 需要加权重载**（按内容定义上的 `Rarity: RarityTier` 取权重表）。战后奖励池的稀有度权重（`Rarity` 的消费点 ①）同样需要它。权重表本身是平衡数值，归 `systems/balance.md`，不落 `DrawPool<T>`。
+- **随机源参数是泛型约束的 `IRandomSource`**，不是 Godot 的 `RandomNumberGenerator`：`PickOne<TRng>(TRng rng, …) where TRng : IRandomSource`。账号级授予传 `AccountRandom`（契约定义的 SplitMix64），轮回级三处抽取传 `GodotRandomSource`（子流的薄适配）。**取泛型约束而非裸接口参数**——值类型经泛型特化调用，零装箱、零堆分配。类型定义见 `systems/common-properties.md`。
 
 ### 全部内容都属本地内容层
 
@@ -217,7 +251,7 @@ IContentRepository<T> where T : Resource
 | **ContentRegistry** | 合并 overlay + 基线，按 `Id` 建立索引，暴露泛型仓储接口；合并后统一校验 |
 | **ContentUpdateManager** | 读本地 manifest、比对云端 `contentVersion`、**manifest 验签**、逐文件下载进 `overlay.staging/` 并校验 hash、事务性搬入 `overlay/`、断网降级 |
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md`
 
 ## API 面（契约）
 
@@ -268,9 +302,8 @@ public interface IContentRepository<T> where T : Resource
 - **flags 拉取的频次护栏。** `X-Flags-Version` 每次应答都带；若服务端版本在短时间内连续抖动，客户端是否需要一个最小拉取间隔，或只在版本**增大**时拉？
 - **disabled 条目被存档引用时的 UX。** 读取侧不过滤，故存档能正确解析；但玩家手中一张「已被线上关闭」的卡 / 道具**是否应有任何提示**，还是完全静默照常可用，未定。→ 亦见 `ux/`。
 - **剧本内容的体积与分发粒度。** 三篇章的完整剧本树是一笔真实的包体 / 下载量成本。是否需要按篇章分包、按进度增量下载？文件级事务与逐文件 hash 已现成，未定的是**分包边界**。**语言维度不在其内**：多语言已定为全语言内嵌于同一 `.tres`、**不按语言分包**（双语封顶 ⇒ 体积上限固定为 ×2，分包的唯一实质动机消失），故这条问题回归它原本的形态——**剧本树该不该按篇章分包**，两者互不牵动。权威归 `plot-manager.md` 的同名待答项。
-- **剧本例外的可执行化。** 「新增剧本条目不得引用本次 overlay 之外的新 `Id`」需要一个可机械检查的形态（合并后校验的一条新规则），而非仅约定——选级理由见 `plot-manager.md`。
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16i-plot-data-encoding.md`
 
 ## 对应
 提炼至：`.claude/knowledge/systems/content-service.md`（引用层，待建）。

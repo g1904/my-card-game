@@ -27,6 +27,9 @@
 ### 存档点与 push 解耦
 
 - **「存档点」与「push」是两件事。** 逻辑存档点清单（轮回开始 / 每个 AdventureEvent 结算后 / 篇章边界 / 轮回结束）**保持不变**，每个点**立即原子写本地缓存**（毫秒级，无流量 / 电量顾虑，是崩溃恢复的第一道防线）；**受频率约束的只是网络 push**。
+- **commit 与 push 的粒度对位：一次 `ProfileManager.TryApply` 提交 ⇒ 一次本地原子写；push 另计（承重）。** 本地写的粒度是**提交**，push 的粒度是**存档点 + 防抖窗口**——事件内的即时提交（古宝次数、战斗中的血 / mana、逐笔交易、Exchange 刷新、事件态置值）照常立即写本地缓存，只是**不新增存档点类型、不计软阻塞闸门**。
+  - **不允许「提交了但不落盘」。** 那会开出一个「已提交但未落盘 ⇒ 退出重进即回滚」的窗口，与「绝不回退存档点」和防重掷纪律同时相抵；本地写是毫秒级、无流量与电量顾虑，省下它换不到任何东西。
+  - **推论：「不新增存档点」这句话在全库一律读作「不新增决策点 / 不新增存档点类型」**，从不表示「这一次变更不落盘」。
 - **合并窗口：push 5 秒防抖**——窗口内多次变更合成一次上行。一次 AdventureEvent 以分钟计，5 秒足以吃掉「事件结算 + 奖励 + 属性推拉」这类连续写。
 - **强制立即 flush（不受防抖约束）：** 篇章边界、轮回结束、角色 `defeated`、**进入战斗前**、**应用失焦 / 挂起**（`NOTIFICATION_APPLICATION_PAUSED` / `WM_GO_BACK_REQUEST`）。最后一条比调频率重要得多——它是**移动端被系统杀死前的最后机会**。
 - 由此 `Push(profile, reason)` 增加 **`PushPolicy { Debounced | Immediate }`**。
@@ -44,7 +47,7 @@
 
   - **第 5 条是防滑坡的关键纪律：** 宽松口径成立的**全部前提**是「被篡改无玩法后果」。任何一处用统计去驱动发放都会当场击穿这个前提——**一旦这么用，它就变成了规则字段，必须整体升层**。这条须同时写进 `backend-design-documents/`。
   - **推论：统计层新增字段的成本近乎为零**——宽松同步 + 老档缺字段以默认值补齐（无损）+ 不参与任何判定 ⇒ 加一项统计既不需要迁移路径也不需要后端配合。这正是「首批清单最小化」的依据。
-- **能力禁用表与统计层带来的存档 schema 影响：bump 一次，空迁移。** `CharacterProfile.disabledAbility`（老档缺字段 → 空列表）· `PlayerProfile.statistics`（→ 全 0）· `ProfileChangeSpec` 由单列表扩为三列表（已落存档于 `PastEventEntry.SelectCost` / `AppliedChange`；老档单列表 → 读为 `Elements`，另两列表空）。当前无线上存档 ⇒ **空迁移**，走既有 MigrationManager 骨架。**diff 粒度与体积估算不受影响**（禁用表条目 ≤ 数条，统计是两个 int）。
+- **能力禁用表与统计层带来的存档 schema 影响：bump 一次，空迁移。** `CharacterProfile.disabledAbility`（老档缺字段 → 空列表）· `PlayerProfile.statistics`（→ 全 0）· `ProfileChangeSpec` 由单列表扩为按施加语义分列的多个列表（已落存档于 `PastEventEntry.SelectCost` / `AppliedChange`；老档单列表 → 读为 `Elements`，其余各列为空）。当前无线上存档 ⇒ **空迁移**，走既有 MigrationManager 骨架。**diff 粒度与体积估算不受影响**（禁用表条目 ≤ 数条，统计是两个 int）。
 - **`pastEvent` 只追加，不修改既有条目（不变式）。** 一次事件只新增一条尾部 `PastEventEntry`，因此它对 diff 尤其友好：**只要 diff 能表达「列表尾部追加」，增量就是这一条本身，与列表已有长度无关**。这条不变式是下面体积估算成立的前提，也给 diff 实现一条可依赖的性质。
 - **单事件 `pastEvent` 增量 ≈ 770 B（JSON 明文），落在 ~2 KB 预算内 ⇒ push 粒度不变。**
 
@@ -57,7 +60,10 @@
   | 未选项轻摘要 × 4 | ~240 B |
   | **合计** | **~770 B** |
 
-  `pastEvent` 约占既有粗算的三分之一，整轮回 200 事件 ≈ 150 KB。**「按 `CharacterProfile` 做 diff」的既定粒度成立，不为快照体积新增任何机制。** 估算随「`CostKey` 的 element 清单」与「每批 eventOptions 数量」两项答定需复核（本次按 element 1–3 / 3–8 条、每批 5 项计）。
+  `pastEvent` 约占既有粗算的三分之一，整轮回 200 事件 ≈ 150 KB。**「按 `CharacterProfile` 做 diff」的既定粒度成立，不为快照体积新增任何机制。** 估算随「`CostKey` 的 element 清单」答定需复核（本次按 element 1–3 / 3–8 条计）。
+- **两个事件态字段的体积复核：+1–8 KB / 事件，不新增同步单元。** 批的规模已定（常态 3、区间 1–5），故可给出口径：`eventOption` 每事件一次**整键替换**约 1–6 KB（Exchange 批最重，含 `ExchangeStock`；`EventOption` 的 `Encounter` 格内嵌 `EnemyInstance` 后进一步上抬），`activeEvent` 额外复制其中最重的一份 option。
+  - **整键替换对 diff 友好**：批与批之间没有承接关系，diff 上就是一次顶层键替换，与 `pastEvent` 的尾部追加同属可依赖的性质。
+  - 两个字段都挂 `CharacterProfile` ⇒ **不新增同步单元**，diff 粒度不变；体积护栏（`pastEvent` > 500 条 / 序列化 > 512 KB）不受威胁。
 - **体积护栏 = 软上限告警。** 单个 `CharacterProfile` 的 `pastEvent` **条数 > 500 或序列化 > 512 KB** 时 `GD.PushWarning` 带 `characterId` 与实际值。理由：`PlayerProfile` 是**整聚合 pull** 的单位（启动时全量一次），失控增长首先伤的是**启动 pull**，而那条路径是**硬阻塞**的。**告警不改变行为**，只让异常在被玩家感知之前先被看到。
   - **明确否决：现阶段不做 `pastEvent` 的分页 / 冷热分离 / 归档到独立存档段。** 无证据需要，且会把「云端权威 · 整聚合 pull」这条语义重新打开。
 - **信封携带** `contentVersion` / `appVersion` / `revision`，让后端**不解 Profile** 即可做版本维度的聚合与异常检测（见 `content-service.md` 的双 `contentVersion` 记录）。**「信封」是两样东西**：前两项走 HTTP 头（**传输信封**），`baseRevision` / `pushId` / `schemaVersion` / `reason` 留 push body 顶层段（**负载信封**）。对位表见下方「传输信封的字段对位」。
@@ -81,7 +87,7 @@
 - **超限 → 软阻塞：** 不打断进行中的事件（战斗打完），但在**下一次 AdventureEvent 选择前**弹模态「网络异常，正在重连」，提供「重试 / 退出到主界面」。退出时待发队列**保留本地**。**该模态有第二种文案变体**，用于版本过旧导致的不可恢复态，见下方「`Upgrade` 类错误在非闸门点」。
 - **限流（`rate.limited`）→ `OpError.Network`，走本表的 push 行**：进待发队列、不阻塞玩家、指数退避。**退避间隔取 `max(本地退避计算值, 服务端给的等待时间)`**——`Retry-After` 应答头或 `detail.retryAfterSeconds`；服务端值是**下界不是精确值**，本地抖动（jitter）照常叠加，避免同一批客户端齐步重试。**限流绝不映 `Conflict`**：它不改变 `cloudRevision`，原样重试即可（`pushId` 保证幂等），映成 `Conflict` 会按既定语义丢弃本地缓冲——把一次限流变成一次进度丢失。
 - **恢复后的合并语义：** `FlushPending()` 前**先 pull**；若云端 `revision` 已领先本地基线（多设备），**以云端为准丢弃本地缓冲**，并明确告知玩家「另一设备的进度已生效，本次离线进度未保留」。**不做静默合并、不引入字段级三路合并**——那会实质削弱 `ADR-0003`。
-- **token 失效 / 被挤下线：** `RefreshToken()` 静默刷新；刷新失败**视同断线**走同一缓冲通道（不另开一套）；被后端**明确挤下线** → **硬阻塞**要求重登，重登后同样**先 pull 后 flush**。（见 `account-service.md`。）
+- **token 失效 / 被挤下线：** `RefreshToken()` 静默刷新；**刷新的失败按判据分流**——**网络失败**（发不出 / 收不到 / `server.unavailable`）**视同断线**走同一缓冲通道（不另开一套），**收到 `auth.session_revoked` 应答**则走下一条的硬阻塞、并**暂停退避重试**（重试必然失败）；被后端**明确挤下线** → **硬阻塞**要求重登，重登后同样**先 pull 后 flush**。判据与理由见 `account-service.md`，本文不复述。
 
 ### `revision` 语义与幂等键
 
@@ -116,7 +122,11 @@
 > **购买流程只能在主菜单（轮回外）发起，且进入付费流程前待发队列必须为空。**
 
 - 主菜单处无进行中的轮回变更，待发队列应为空；若非空（上一轮回残留 / 断线缓冲）→ **先 `FlushPendingAsync` 成功才允许进入付费流程**。这与礼包既有的闸 ②（购买入口不可用）合并为**同一张前置条件表**（见 `systems/monetization.md`），**不新增拦截点**。
-- 购买成功后**强制一次 pull**（而非等下一次启动），拿到新 `revision` 与新序号，再本地兑现（兑现 = 客户端掷骰 + 一次 `TryApply` + `Immediate` push，后端复算校验）。
+- 购买成功后**强制一次 pull**（而非等下一次启动），拿到新 `revision` 与新序号，再本地兑现（兑现 = 客户端掷骰 + 一次 `TryApply` + `Immediate` push，后端复算校验）。验票端点与其应答形态见 `backend-design-documents/contracts/purchase.md`（verify 只回序号 + `revision`、不内联 profile，故这一次 pull 是必须的）。
+- **购后 pull 失败 = 阻塞在主菜单重试直到成功（承重）。** 玩家已付款、后端已 `+1`，但客户端拉不到新序号 ⇒ **停在主菜单重试，不允许在未兑现状态下开始新轮回**。依据与「不收钱又不给货」那条纪律同向；且此刻玩家**本就在主菜单**（购买入口前置条件 1），阻塞代价最小——没有任何进行中的轮回被打断。
+  - 重试路径走后端的**收据幂等读**（`purchase.md`），`receiptId` 随待兑现态持久化 ⇒ **跨启动也能补查**。
+  - UI 复用既有阻塞屏的变体表（`ux/error-and-blocking-ux.md` 的一屏三变体），**不新增拦截点**。
+  - **否决「允许离开、下次启动补兑现」**：兑现被推迟到不确定的时刻，期间玩家看不到自己买的东西。**否决「本地先乐观兑现、后端复算兜底」**：等于客户端有权发货，正是购买段权威分配里已明确否决的那条。
 - 于是冲突窗口在结构上被关闭：**那一刻客户端没有任何未上行的变更，`Conflict` 分支不可能踩到。** CAS 三分支表与「冲突一律以云端为准」原样成立，不为购买开任何例外。
 - **否决「购买入口在轮回内可用 + 为它设计冲突合并」**——等于为一个可以靠时机纪律消除的问题引入字段级三路合并，而那已被 `ADR-0003` 明确排除。
 - **这条纪律同时是一条 UX 结论**：礼包入口在轮回内 / 战斗内 / 结算流程内**不存在**——不是观感取舍，是同步模型的结构要求（因此「重试耗尽时提示购买」在结构上就不可行，见 `ux/screen-flow.md`）。
@@ -167,8 +177,17 @@
 - **`X-Request-Id` 与 `pushId` 是一对反向纪律，不可混同：** `pushId` 是幂等键，**跨启动重试必须不变**；`X-Request-Id` 是日志关联键，**每次重试都必须换**。两者写在同一个请求里——写反哪一个都会静默失效：一个丢进度，一个让日志无法定位单次尝试。
 - **`baseRevision` / `pushId` 不搬到头、不用 `If-Match`/ETag 表达 CAS**：CAS 前置条件与它保护的负载留在同一层面，且三分支应答本就要在 body 回 `cloudRevision`。既定 record 与三分支表原样成立。
 - **请求头组装与应答头解析收敛到 `src/Core/` 的一处**，三个 `HttpXxxBackend` 共用——与 `BackendSelector` 唯一选择点同构（多于一处就会出现「一部分带了头、另一部分没带」的半配置态）。应答头的客户端语义：`X-Flags-Version`（触发 flags 拉取，见 `content-service.md`）· `X-Min-App-Version`（**仅诊断，客户端不比较、不据此阻塞**）· `X-Recommended-App-Version`（软提示，永不阻塞）· `X-Server-Time`（**纯诊断**，不参与玩法判断，**也不用于校正本地时钟**）· `Retry-After`（退避下界）。
-- **枚举值序列化与 C# 枚举名逐字相同**（`SavePointReason.EventResolved` → `"EventResolved"`）⇒ **重命名一个跨边界枚举值即是破坏性契约变更**，必须与后端同批改，不能当作纯客户端重构。
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md`
+- **枚举值序列化与 C# 枚举名逐字相同**（`SavePointReason.EventResolved` → `"EventResolved"`）⇒ **重命名一个跨边界枚举值即是破坏性契约变更**，必须与后端同批改，不能当作纯客户端重构。**`Source` 同受这一条**：上行走成员名、存档走整数 code，**映射就在本服务组装上行负载时做一次**（不在 profile-service 内部做，存档态始终是 code）；名与 code 双双冻结，见 `systems/common-properties.md`。
+
+### 透明路径的稳定性纪律（承重）
+
+> **Profile 里有一小撮字段是后端读得懂的**（复算与不变式校验的输入），它们的 **JSON path 本身就是契约的一部分**。逐条清单的权威在 `backend-design-documents/contracts/profile-sync.md` §5，本库不复制。
+
+- **移动或重命名任一透明路径 = 破坏性契约变更**，必须 bump `schemaVersion` 并与后端同批改——与「重命名跨边界枚举值」同一条纪律。
+- **为什么它比普通重构危险：** 把某个字段挪个位置、改个名，在客户端侧是纯重构（老档靠迁移无损通过），但**在后端侧会静默变成「这个字段消失了」**——复算退化为空操作，**且两侧都不会报错**。后端对缺失的透明路径记告警级台账、不拒绝上行，使这类漂移在线上可见，但那是事后发现，不是防线。
+- **先按人工清单执行，暂不机械化。** 落在「纪律的可执行化」阶梯的低档是有意的——不为一条**尚无实例**的纪律先行造工具。**留一条触发条件：首次真的发生透明路径漂移（后端告警台账记到第一条）时，回头把它升级为机械检查**，而不是等它攒够教训。
+- **diff 的序列化形态须与契约的顶层键浅合并逐字对齐**：`PlayerProfileDiff` 中出现的顶层键即整键替换、未出现的保持不变、空对象 = 无变化、**不表达删除**（`PlayerProfile` 只增不删，无需删除语义）。`CharacterProfileDiff` 同理，整体替换该 `characterId` 下的值。键值以下的结构对后端完全不透明——**本服务因此不得依赖后端做任何逐元素合并**。
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md`
 
 ## 管理器
 
@@ -241,11 +260,31 @@ public sealed record ProfileSnapshot(PlayerProfile Profile, long Revision, int S
 
 ### 存档 schema 版本
 
-- **`PlayerProfile.entitlement`（`PlayerEntitlement`，1 字段）⇒ bump 一次、空迁移**（老档缺字段 → `BundleGrantOrdinal = 0` = 未购买，无损）。它是规则字段层：**严格上行、后端可复算**；后端 `contracts/profile-sync.md` §5 白名单补入预留的那一行。
+- **`PlayerProfile.entitlement`（`PlayerEntitlement`，1 字段）⇒ bump 一次、空迁移**（老档缺字段 → `BundleGrantOrdinal = 0` = 未购买，无损）。它是规则字段层：**严格上行、后端可复算**，JSON path `/entitlement/bundleGrantOrdinal`，且是**后端唯一会写入的第二个字段**（验票通过时 `+1`）。
+- **`PlayerPowerFragment` 增 `LastRoll` / `LastEffectiveChance` 两个 `int`** ⇒ 同批 bump、老档补默认值（无损）。两者进透明段，供后端复算比对，见 `systems/player-profile/_index.md`。
 - 本次新增 `rng`（见 `systems/character-profile/_index.md`）、`StartContentVersion`、`LastContentVersion`、**`activeCombat`（战斗中间态，可空；schema 见 `combat-service.md`）**、**`pastEvent` 的条目结构 `PastEventEntry`（schema 见 `systems/adventure-event/common-properties.md`）** → **bump schema 版本**。当前无线上存档 ⇒ 空迁移。
 - **战斗随机的 `attemptIndex` 派生层不落存档**，故它的有无不影响 schema 版本。
+- **两层 Profile 的字段面收口 ⇒ bump 一次、一段迁移说明。** 下列改动**合并为同一次 bump**——它们同批落笔、彼此的默认值互不依赖，拆成多次只会让迁移器多几级空跳。**后续同批新增的字段追加进本清单，不另起一次 bump。**
+
+  | 对象 | 本次改动 |
+  |---|---|
+  | `ProfileChangeSpec` | 增两列 `PlotElements` / `EventStateChanges`；`ChangeElement` 增第三字段 `Op`；`ElementSpec` 增第六列 `AllowedOps`；`DeckChangeOp` 增 `AddLooseCard` ⇒ **`PastEventEntry.AppliedChange` 的形状随之变** |
+  | `CharacterProfile` | 增 `id` / `characterDataId` / `defeatReason` / `technique` / `looseCard`；增 `eventOption` / `activeEvent`；`Status` 移除 `currentMana`（移入 `activeCombat`）；`startContentVersion` / `lastContentVersion` 由 `string` 改 `int`；`rng` 片段键名对齐 camelCase（`cycleSeed` / `stream`） |
+  | `PlayerProfile` | 增六个 Codex 字段（元素 `CodexEntry`）；四类持有条目定形，条目键名取 `powerId` / `itemId`；集合字段名一律改单数 |
+  | `EventOption` | 增 `OutcomeSpec` 与 `Encounter` 两格 |
+  | `PastEventEntry` | 增 `EnemyTraceRef` 一格 |
+
+  - **老档补默认值口径：** 集合 → 空列表；`DefeatReason?` → `null`；`ChapterRetry` → 全 0；`eventOption` / `activeEvent` → `null`。当前无线上存档 ⇒ 实际为空迁移。
+  - **集合字段改单数是破坏性契约变更**（Profile 透明段字段名经序列化策略机械映射为 JSON path），故它与后端白名单同批改；成立的三个前提是「线上无真实账号数据 · 两侧同批落笔 · 一次性不设兼容期」。通则与边界见 `systems/player-profile/_index.md`。
+
 - 当前无线上存档，故迁移为**空迁移**——**就在此刻**把 MigrationManager 的逐版迁移骨架立起来，这是最便宜的时机（等有了线上存档再补，成本高一个量级）。
 - **增删 RNG 子流不 bump schema 版本**（子流清单是 `SeedManager` 内的常量，读档时按缺失 / 多余分别 warn + 初始化 / warn + 丢弃）。
+
+### JSON 序列化命名策略
+
+- **存档 / 上行负载的 JSON 一律 camelCase，命名策略配置在一处。** 客户端 C# 字段是 PascalCase，而契约里的透明路径全是 camelCase；多于一处配置必然出现「一部分转了、另一部分没转」的半配置态——与「请求头组装与应答头解析收敛到一处」同构。
+- **推论（承重）：C# 字段名与 JSON path 由这条策略机械对应。** 故**重命名任一透明段的存档字段 = 破坏性契约变更**，不需要额外纪律，透明路径稳定性纪律自动覆盖到 C# 字段名这一侧。集合字段名恒为单数这条通则由此成为跨边界通则，见 `systems/player-profile/_index.md`。
+- **`schemaVersion` 不是 `PlayerProfile` 的字段。** 它的落点是存档 / 传输的信封——`SyncEnvelope` · `ProfilePayload` · `ProfileSnapshot` 三处形态一致。理由与 `baseRevision` 逐字相同：**把版本号塞进被版本化的对象会自指**，且会被卷进它自己的迁移路径。
 
 ### 迁移失败的「清晰拒绝」= 玩家侧两种情形
 
@@ -260,7 +299,7 @@ public sealed record ProfileSnapshot(PlayerProfile Profile, long Revision, int S
 - **否决「提示重装」**（存档权威在云端，重装不改变任何东西，只制造「我的进度没了」的误解）与**「回退到云端上一个可用版本」**（`revision` 严格单调递增，回退即主动丢弃已确认进度，违反云端权威）。
 - **不新增硬阻塞点**：两种变体都发生在**启动 pull** 这一既定阻塞处之内。呈现形态见 `ux/error-and-blocking-ux.md`。
 
-Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md`
+Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17h-profile-field-schema.md`
 
 ## 与其他服务的关系
 

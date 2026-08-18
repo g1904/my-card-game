@@ -5,7 +5,66 @@
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-- **静修 / 修整语义。** Research 承载钻研 / 潜修（含并入的休养 / Rest）；具体产出字段待定（见 `_index.md`）。Source: `systems/adventure-event/_index.md`、`terminology.md`。
+- **静修 / 修整语义。** Research 承载钻研 / 潜修（含并入的休养 / Rest）。结算形态、六类操作清单、产出面边界与风险档见 `_index.md`。
+
+### 模板侧：`ResearchSlotSpec`
+
+`AdventureEventData` 上 Research 专有的一格（`ResearchSlotSpec[]`）；`eventType != Research` 时**恒空**，否则加载期 `PushError`。
+
+```csharp
+[GlobalClass] public partial class ResearchSlotSpec : Resource
+{
+    [Export] public DeckOperationKind[] AllowedOperations { get; set; }  // 该槽允许出哪几类操作
+    [Export] public int  CandidateCount { get; set; } = 3;               // 候选数
+    [Export] public bool AllowDecline   { get; set; } = true;            // 是否允许「什么都不做」
+    [Export] public bool AllowRisk      { get; set; } = false;           // 是否可掷出走火入魔风险档候选
+}
+```
+
+- **`AllowedOperations` 为空 → 加载期 `PushError`**（一个出不了任何候选的槽必是漏填）。
+- **`CandidateCount` 是上界不是保证**：候选池实际不足时给几个算几个（例：卡组只剩一门功法可升阶）。
+- **`AllowDecline` 默认 `true`（承重）。** 与置换面板的「拒绝零代价」同构，且避免「只剩一门功法却被迫弃置」这类**内容侧死结**——内容作者不必逐条保证候选恒可执行。开局构筑事件显式填 `false`。
+- **`AllowRisk` 默认 `false`**：风险档是内容作者主动开的一档，不是缺省行为。
+
+### 物化产物：`ResearchSlot` / `ResearchCandidate`
+
+进 `EventOption.ResearchSlots`，随批次落存档——属「物化产出的数值必进快照」那一侧。
+
+```csharp
+public sealed record ResearchSlot(                      // 定稿 · immutable
+    int                              SlotIndex,
+    bool                             AllowDecline,
+    IReadOnlyList<ResearchCandidate> Candidates);       // 已掷定，退出重进不重掷
+
+public sealed record ResearchCandidate(
+    DeckOperationKind Kind,      // LearnTechnique / UpgradeTechnique / ForgetTechnique /
+                                 // RemoveLooseCard / GrantItem / Recuperate
+    string            TargetId,  // 功法 Id / 卡牌 Id / 法宝 Id；Recuperate 为空串
+    int               Amount,    // Recuperate 的回复量 / Upgrade 的目标层数；不适用时 -1
+    int               ManaDelta, // 附带的 manaLimit 变动，取值 { -1, 0, +1 }（已掷定）
+    bool              IsRisky);  // 面板上标注为风险档；结果已定但不预先展示
+```
+
+- **`DeckOperationKind`（六值 · 面板层）与 `DeckChangeOp`（四值 · element 层）是两个枚举，不得合并。** 前者回答「玩家在这个槽里能选什么」，后者回答「卡组变更如何施加」；`GrantItem` 与 `Recuperate` 落 `AbilityElements` / `Elements` 两列，故不出现在后者中。类型定义见 `systems/architecture.md`「共享核心类型」。
+- **文本一律不进快照**：候选的显示名 / 描述由 UI 按 `TargetId` 现场取模板组装，与「文本类字段一律留在模板侧」一致。
+- **`ManaDelta` 在物化时即已掷定并落存档。** 这是「退出重进不能重掷」的落地点，也是风险档能够成立的技术前提——面板上只标注「有风险」，不预先展示结果。
+- **`ResolveOutcome` 不新增结构**：resolver 把玩家所选候选翻译为 `DeckElements` / `AbilityElements` / `Elements` 三份 element，照常交给 `eventEnd` 那一次 `TryApply`。
+
+### 候选取池：两条既有抽取链，零新增抽取代码
+
+| 槽内候选 | 取池链 |
+|---|---|
+| **法宝三选一** | **直接复用 `GrantPoolPicker`**：`TryPickGrantableMany(AbilityKind.Item, AbilityScope.Character, rng, 3)` —— 取池 → `(Kind, Scope)` → 去成就限定 → 排除已持有 → 按 `RarityTier` 加权 → **无放回**抽 3 条 |
+| **功法三选一（学新）** | `CultivationTechniqueData` 仓储 → `AllEnabled()` / `DrawPool<T>` → **排除卡组中已持有的功法 `Id`** → 按 `RarityTier` 加权 → `PickMany(rng, 3)`（无放回） |
+| **升阶候选** | 卡组内已持有且**未达层数上限**的功法（不足 3 门时给几门算几门；一门都没有则该操作不进候选） |
+| **弃置 / 移除散牌候选** | 卡组内已持有的功法 / 游离散牌 |
+
+- **法宝那一路是纯复用**：`GrantPoolPicker` 已是账号级 / 轮回级能力条目的**唯一抽取处**，法宝三选一恰好是 `(Item, Character)` + `count = 3`，一行调用即可。
+- **功法那一路形状与之完全同构**（`CultivationTechniqueData` 带 `Rarity`），落 `DrawPool<T>` 的第五个调用方。
+- **随机源 = `RngStream.Reward` 子流的 `GodotRandomSource`，不新开子流。** `Reward` 已承载「战后奖励候选一次性抽定」这一完全同构的用途（预先掷定 + 落存档 + 绝不重抽），而奖励候选与构筑候选**从不并发**（一次只结算一个事件）；新开子流换来零隔离收益。
+- **候选池不接 modifier pipeline，故不受 PlayerPower 影响。** 候选池的**权重**若可被法则推拉，等于开一条「账号级内容改写轮回级构筑运气」的通道，而它在 `ContentEnabled` / `ExclusiveSource` 之外无人校验。**唯一例外是 capability flag**（如「看见候选的稀有度」这类呈现向 flag）——那走呈现层，不改池。
+
+Source: `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -15,7 +74,8 @@
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **产出 / 代价字段：** 见 `_index.md`（闭关机制未定）。
+- **构筑面板的竖屏呈现形态。** 与战后奖励面板同构（候选纵向排列、点按选中、确认提交）已定方向；**风险档的视觉标注与说明通道**（不得为 hover-only）未设计。→ `ux/screen-flow.md`。
+- 数值格见 `_index.md` 的待决问题。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/research.md`（待建）

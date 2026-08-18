@@ -6,19 +6,25 @@
 
 完整前置流程:**登录屏 → 主菜单 → (切换篇章) → 轮回**。
 
-- **登录屏(应用首屏)。** 含**服务条款(T&S)**;背景是一段 **live2d 风格循环动画视频**(氛围演出,美术 TBA,先留空占位)。登录入口用于**在线存档**:**微信 / QQ / 邮箱 / 手机号**。**强制账号登录——没有游客(Guest)入口**,不支持不登录直接进入。
+- **登录屏(应用首屏)。** 含**服务条款(T&S)**;背景是一段 **live2d 风格循环动画视频**(氛围演出,美术 TBA,先留空占位)。登录入口用于**在线存档**;渠道优先级见下,**首版实现手机与微信两个入口**(两步握手与渠道呈现依据见 `ux/onboarding.md`)。**强制账号登录——没有游客(Guest)入口**,不支持不登录直接进入。
 - **主菜单(登录后)。** 核心操作是**切换篇章以开始一次轮回**——在**已解锁**篇章中择一作为该次轮回的起始篇章。首玩者**只能从炼气(第一篇章)开始**,其余篇章选项**隐藏**,后续解锁后才出现(门禁细节见 `onboarding.md`)。
-- **主菜单入口按钮**(各自是 PlayerProfile 数据模型的视图层,对应 `systems/services/life-cycle-service.md` 的账号级字段):
+- **主菜单入口按钮**(各自是 PlayerProfile 数据模型的视图层,字段名与形态的权威见 `systems/player-profile/_index.md` 的完整字段表):
 
   | 按钮 | 内容 | 对应 PlayerProfile 字段 |
   |------|------|------------------------|
-  | PlayerProfile(玩家档案) | 状态与账号信息(`AccountInfo`) | `AccountInfo` |
-  | PlayerPower(法则) | always-available 能力,带**开关(默认开启)**;QoL 或影响公平性的全局加强,不与角色绑定 | `List<PlayerPower>` |
-  | Achievement(成就) | 分组成就;玩家**只能查看进度 / 领取奖励**;奖励按**组内加权进度**发放,分 **60% / 90% 两档一次性奖励**(见下) | `achievement: List<Achievement>` |
-  | Settings(设置) | 音量等常规系统设置;**外加一行只读的「同步版本 #N」**(见下) | `GameSetting` |
-  | **Store(礼包)** | premium bundle 的详情与购买入口;**排在末位、安静呈现**(见下) | `entitlement: PlayerEntitlement` |
+  | PlayerProfile(玩家档案) | 状态与账号信息(`AccountInfo`) | `accountInfo` |
+  | PlayerPower(法则) | always-available 能力,带**开关(默认开启)**;QoL 或影响公平性的全局加强,不与角色绑定 | `playerPower` |
+  | Achievement(成就) | 分组成就;玩家**只能查看进度 / 领取奖励**;奖励按**组内加权进度**发放,分 **60% / 90% 两档一次性奖励**(见下) | `achievement` |
+  | Settings(设置) | 音量等常规系统设置;**外加一行只读的「同步版本 #N」**(见下) | `gameSetting` |
+  | **Store(礼包)** | premium bundle 的详情与购买入口;**排在末位、安静呈现**(见下) | `entitlement` |
 
 
+
+- **PlayerProfile(玩家档案)屏承载账号管理:绑定列表与昵称。**
+  - **绑定列表**:每个渠道一行,已绑显示绑定时间 + 「解绑」,未绑显示「绑定」。竖屏 `VBoxContainer`,行高满足触控目标尺寸。**只列出本版本已实现的渠道**(首版两行),依据同 `onboarding.md` 的登录屏渠道呈现。
+  - **昵称在同屏可编辑**(首版无头像):点按进入输入 → 提交 → 等待后端判定 → 失败按 `code` 出 `ErrorText`。**不做本地即时预览式改名**——后端可能拒绝,先改后回滚在观感上像 bug。
+  - **两处必须的二次确认:** ① **解绑**(不可逆地移除一条登录方式);② **绑定失败为「该渠道已绑到另一个账号」时**——必须明确告诉玩家那个渠道下有另一份进度、**绑定不会合并两份存档**,否则玩家会以为是 bug。这一条直接对应后端契约「绝不做隐式账号合并」。
+  - 字段与写入方见 `systems/player-profile/account-info.md`;方法面与失败映射见 `systems/services/account-service.md`。
 
 - **商业化入口 = 一个安静的一等入口,绝不在失败时刻推销（承重）。** 入口是主菜单的**一等入口、排在既有四项之后**,而非藏进 PlayerProfile 面板的二级页。
   - **理由反直觉但承重:** 把付费点藏进二级面板并不会让它更克制——它会因曝光不足而诱导出后续的补偿手段(弹窗、红点、限时角标),**那才是「付费才玩得下去」观感的真正来源**。一个安静、可预期、永远在同一个位置的一等入口,是打扰最少的形态。
@@ -41,6 +47,8 @@
 
   **为何加 30% 这一段:** 对第一篇章 100 点的预算而言,10% 才告警**太晚,来不及做战略调整**。30% 的定性提示复用隐藏属性的**跨档叙事**机制(见 `systems/services/plot-manager.md`),寿元只是其中一个属性。
   **`selectCost` 列(承重):** 它与红字倒数**同一个开关、同时开启**——Band 1 给方向(时日无多)、Band 2 给账本(既知道还剩多少,也知道每一步花多少)。**数字只在最后阶段给,那时它已不是优化工具而是倒计时。** 规则与代价见 `systems/adventure-event/common-properties.md`(权威)。
+
+  **同一个开关还带第三样东西:寿元回复的精确数字。** eventOption 上的回寿收益标注、回寿法宝的道具描述、结算面板的寿元行——三处**一律 Band 0 / Band 1 只给定性文案(「延年」「服之可补益寿元」),Band 2 才给精确 `+n`**。只封成本侧不封产出侧等于给寿元的绝对量纲留后门,而回寿是一次性的大数、更容易被当作标尺。**道具描述的形态**:正文恒为定性文案(它是 `LocalizedText` 静态文案,做不到按 Band 变体),精确值由 UI 在 Band 2 时**追加一行**,数值取自 ability 定义、不写进文案——翻译侧因此不必为两种 Band 各写一版。规则与代价同见上述权威文档。
 - **EventOption 选择界面上有一条常驻的角色状态条。** 寿元告警的静态标注就落在这里,本次把它明确化为一条**角色状态条 + 一行进度 / 入口**:
 
   ```
@@ -71,6 +79,44 @@
   - **视觉与其他结算行区分**:斜体 / 弱化色、**无图标、无数字、无属性名**;不做入场动画强调(与寿元告警「静态标注、不做跳动」同调)。
   - **寿元 30% 与其他属性跨档 = 同一形态**(它本就是「跨进寿元 Band 1」);**10% 的红字倒数不是叙事,而是本界面的常驻静态标注**——跨进 Band 2 时**同时**播一条叙事并开启红字标注。**两段告警是「一条叙事 + 一个常驻标注」的叠加,不是两种叙事形态。**
   - **有文案的档只有 4 个**(道心上臂极值 · 煞气极值 · 寿元两档)⇒ 全轮回 **≈ 6–10 条**,约每 9–17 个事件一条。中间档的跨越对玩家**完全无提示**,他只会察觉「摆在面前的事件变了」——**调制才是隐藏属性的主要显影通道,旁白只是极值时刻的一次强调。** 档位表与文案规则归 `systems/services/plot-manager.md`。
+- **Explore（秘境）的遮罩卡与揭示转场。**
+  - **遮罩态卡片与其余 eventOption 完全同构**：同尺寸、同触控目标、同滑动节奏，**不做异形 / 加大 / 特效卡**。异形卡会把「未知」在视觉上读成「特殊奖励」（闪光的卡 = 好东西是玩家的通行预期），而秘境有一半概率是一场架；且异形单元破坏横滑区的等宽节奏，窄屏尤甚。
+  - **卡面只取 Explore 模板自己的**显示名 / 描述 / 风味文案 / 图标；真身与目的地字段一个都不读。**遮罩态不标注敌人等级**（揭示后的战斗前展示照常精确标注）。`selectCost` 展示照既有的寿元档位表——Band 0 / Band 1 不显示，Band 2 如实展示 Explore 壳自己那一份。规则权威见 `systems/adventure-event/explore/_index.md`。
+  - **揭示是一层全屏转场，不是一个屏幕。**
+
+    ```
+    横滑选择区 ──点选──▶ [支付 · 终态判定 ①] ──▶ ┌── 揭示转场层（全屏，安全区内） ──┐ ──▶ 真身事件屏
+                                                  │  遮罩卡放大居中 → 散雾 / 翻面      │      Combat → 战斗前展示
+                                                  │  → 露出真身标题卡                  │      Travel  → 单一目的地的 Travel 结算
+                                                  │  ≈ 1.2s，全屏任意触点即跳过        │      Exchange→ 交易界面
+                                                  └────────────────────────────────────┘
+    ```
+
+    | 项 | 取值 |
+    |---|---|
+    | 载体 | 事件屏进入流程内的**全屏覆盖层**（安全区内）——非独立 `Screen`、不进屏幕栈、无返回路径 |
+    | 触发 | `eventStart` 阶段揭示之后、resolver 落屏之前 |
+    | 时长 | **≈ 1.2s**（待实测初值） |
+    | 跳过 | **全屏任意触点**；跳过即立刻落到真身屏 |
+    | 确认 | **无**（不设「确定进入」按钮） |
+    | 展示内容 | 真身的显示名 + 类型名（按 `RevealedEventId` 现场取模板）；**不展示数值** |
+    | hover | 零 hover 通道，信息全部常驻可见 |
+    | 文案 | `res://text/` 翻译键；此路径不产生 `ERR_*` 键 |
+    | 音效 / 震动 | 一次短音效，**无震动**（时长与音效均为待实测初值） |
+
+  - **不设「确定进入」按钮**：成本已支付、规则层不可回退，一个只能点「确定」的按钮是纯粹的额外操作，而这是全游戏最高频的操作路径（与「不在最高频操作上加模态」同一条纪律）。
+  - **跳过是全屏任意触点，不是角落里的小按钮**——触控目标尺寸问题在此一次性消失，且反复游玩的玩家会自然形成「点一下过场」的肌肉记忆。
+  - **不做二次揭示分层**（先揭示类型 → 再点一次揭示内容）：把一个瞬间拆成两次点击，每次秘境多一次操作，收益只有一点仪式感。
+  - **真身是 Travel 时**揭示卡直接显示目的地名（只有一个，物化时已掷定），随后照常结算——**不给「去 / 不去」的选择**（秘境把人带到别处，且 `selectCost` 已付、规则层无拒绝通道）。
+- **Exchange（交易）屏。**
+  - **offer 以纵向可滚动网格呈现**,每格 = 图标 + 名称 + 价格。竖屏一屏内可见多格,不做横滑——横滑区已是事件选择面的语汇,商店复用会让两个层级的操作读成同一件事。
+  - **买不起 → 灰显但价格保持可见**,点按给一条说明「差哪一样」的提示(由 `ApplyResult.MissingElement` 驱动)。**这与事件选择面「不设置灰态」并不矛盾**,两处出自同一条判据「明知做不到仍然去做有没有意义」:事件面有意义(明知是死路仍然走),商店里点一件买不起的商品没有任何意义。规则权威见 `systems/adventure-event/exchange/_index.md`。
+  - **售罄的 offer 保留占位并标「已售」,不从网格移除。** 移除会让布局跳动,且玩家失去「我这次买了什么」的现场记忆。
+  - **刷新按钮(若该条目开放刷新)常驻底部**,标注当前刷新价与剩余次数;首批内容一律关闭刷新,故它通常不出现。
+  - **「离开」按钮常驻**,点击即收口结算——交易已逐笔提交,离开不是「确认购买」而只是结束这次事件。
+  - **无 hover-only 可供性**:商品的完整信息(名称 / 价格 / 效果说明)靠点按展开或常驻可见,不靠悬停。触控目标尺寸照既有下限。
+  - **文案一律走 `res://text/` 翻译键**;差额提示由 `MissingElement` 机械映射,**不写文案字面量**。
+
 - **同步状态的两处呈现。**
   - **常驻「离线 · 待同步 N」指示。** `sync-service` 的既定指示:UI 收到 `SyncStateChanged` 后单点查询 `PendingCount` 渲染。**它在战斗屏内同样必须可见**——这是「进入战斗前同步失败不额外提示」那条纪律成立的前提;若战斗屏隐藏了它,静默就变成了失联。见 `ux/combat-ux.md`。
     - **第三种取值:`UpgradeRequired == true` → `需更新 · 待同步 N`,点按打开更新引导半屏。** 此时**必须换掉「离线」二字**——「离线」隐含「正在重连、会自己好」,而 `Upgrade` 态本会话内永不恢复。三种取值的完整表、去重规则与更新引导形态见 `ux/error-and-blocking-ux.md`。
@@ -79,7 +125,7 @@
 - **三种终局态共用一个阻塞屏。** 需更新(强更)、被挤下线、存档读取失败三者形态同构,收敛为一个 `BlockingNoticeScreen` + 变体表(全屏 · 无返回 · 主按钮永不是「继续游玩」 · 底部诊断编号可长按复制)。**三个变体不等于三处硬阻塞**——阻塞点仍是既定两处。见 `ux/error-and-blocking-ux.md`。
 - **美术挂点占位。** 循环视频、图标、卡面等 TBA;组合场景时为其保留可轻松替换的挂点,先用占位 / 免费资源。
 
-Source: `handoffs/2026-07-16-...` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-...` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-...` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md`
+Source: `handoffs/2026-07-16-...` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-...` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-...` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
@@ -88,6 +134,7 @@ Source: `handoffs/2026-07-16-...` · `handoffs/2026-07-16-ux-flow-login-and-dev-
 
 - **元婴界面(通关证书)的具体形态:** 展示哪些字段(最终寿元、用时、修行历程摘要、成就?)、何时弹出、是否可回看 / 分享——均未定。
 - **寿元告警是否伴随音效 / 震动:** 视觉形态已定(两段式 · 静态标注于 EventOption 选择界面);**是否附加听觉 / 触觉反馈**未陈述——「静态标注」的措辞倾向于「无强调反馈」,但未明确排除。
+- **揭示转场的时长与音效实测校准:** 形态已定(全屏覆盖层 · 任意触点跳过 · 无确认 · 无震动);**≈ 1.2s 与「一次短音效」是初值**,纯手感项,只能在真机上调。它与「寿元告警是否伴随音效 / 震动」是两条独立的问题,互不预设。
 - **成就发放的奖励内容:** 阈值(60% / 90%)、一次性、80/20 可见比例**已定**(见「意图」);仅剩**两档各发放何种奖励**(PlayerPower / PlayerItem / 账号级)待定。
 - **PlayerPower 细化:** 语义已定(全局、可开关、可获取 / 失去);但**获取 / 失去的具体触发**、是否影响 cycle seed / 计分公平性、平衡边界仍待定。→ `systems/player-profile/player-power/`。
 

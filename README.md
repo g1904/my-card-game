@@ -34,7 +34,7 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
 - **系统行为**的桥梁是两步：`/derive-requirements` 产出片区级的 `requirements/FR-*`，`/breakdown-requirements` 再把**一份** FR 拆成同名文件夹内的**可执行子需求**——后者才是 `/blueprint` 的直接输入。两层结构、id 形态与签核语义见 `requirements/_index.md`。
 - **内容条目**不经 FR，**直接喂 `/blueprint`**——内容最终落地就是一批 `.tres`，其可构建增量的边界天然就是条目本身。`systems/` 持有**这类内容怎么运作**（类定义），`content/` 持有**有哪些条目**（实例），二者是类 ↔ 实例关系，故平级。约定、类型登记表与依赖链见 `content/_index.md`。Source: `handoffs/2026-08-14c-content-authoring-layer.md`。
 
-**derive 就绪度由 `/assess-derive-readiness` 单独评估**（全量扫描全部主题文档，写入 `open-questions.md` 的「derive 就绪度」小节），**由用户在时机成熟时手动调用**；它是该小节的**唯一写入者**。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不**顺带评估或更新就绪度——逐次 handoff 顺带的判定会迅速过时且互相矛盾。**当前状态：全库尚未进入可 derive 的阶段。**
+**derive 就绪度由 `/assess-derive-readiness` 单独评估**（全量扫描全部主题文档，写入 `open-questions.md` 的「derive 就绪度」小节），**由用户在时机成熟时手动调用**；它是该小节的**唯一写入者**。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不**顺带评估或更新就绪度——逐次 handoff 顺带的判定会迅速过时且互相矛盾。**当前状态见 `open-questions.md` 的「derive 就绪度」小节**——整体仍未进入可 derive 阶段，但已有少数文档带可独立成立的就绪切片，该小节给出了建议的 derive 顺序。
 
 ## 根级关键文件
 | 文件 | 内容 |
@@ -56,7 +56,7 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
 | `decisions/` | ADR 风格的已定决策。 | 可修改（软件开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
 | `requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往 `/blueprint` 的桥梁。由 `/derive-requirements` 生成、用户签核（`draft → ready`），再由 `/breakdown-requirements` 拆成同名文件夹内的可执行子需求（`FR-*/`）。含 `_index.md`（两层结构 + 覆盖核对）与两份骨架 `_TEMPLATE.md` / `_TEMPLATE-sub.md`；**当前尚无 FR**。 | 持续更新；随设计深化而重新生成/扩展。 |
 | `inbox/` | 未整理的草稿，待分流到 handoff/主题中。两类：手写的 `draft-<suffix>.md`（`<suffix>` = `MMDD` + 序列字母，**从 `a` 起**，例 `draft-0816a.md`）；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。**分两层：顶层只放在办草稿，已提炼的移入 `inbox/archive/`**（判据：有无对应 `status: distilled` 的 handoff）；约定与在办清单见 `inbox/_index.md`，草稿→handoff 对应表见 `inbox/archive/_index.md`。 | 顶层自由发挥；`archive/` 只作溯源，不再改动。 |
-| `open-questions/` | 跨 session 待答清单的**分片**：`01-combat.md` … `07-codex-monetization.md`（焦点区，编号即优先级）、`deferred-content.md`（已搁置的内容充实）、`update-log.md`（逐次更新摘要）。**只跟踪仍待答的问题**（无「已解决」区）；主题文档的 `## Open questions` 是权威归属，此处是导航。答定即移出到 `answer-logs/`。 | 持续更新；由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。分片过长可再拆、过短可并回，同步更新索引导航表。 |
+| `open-questions/` | 跨 session 待答清单的**分片**：`01-combat.md` … `07-codex-monetization.md`（焦点区，编号即优先级）、`cross-boundary.md`（**后端已定案、本库尚未承接**的条目；不带编号，与后端库同名同形）、`deferred-content.md`（已搁置的内容充实）、`update-log.md`（逐次更新摘要）+ `update-log-archive.md`（超出保留窗口的旧条目）。**只跟踪仍待答的问题**（无「已解决」区）；主题文档的 `## Open questions` 是权威归属，此处是导航。答定即移出到 `answer-logs/`。 | 持续更新；由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。分片过长可再拆、过短可并回，同步更新索引导航表。 |
 | `answer-logs/` | 已答定问题从待答清单移出的归档台账，一次移出一份 `log-<draftSuffix>.md`（`draftSuffix` = 对应 `inbox/draft-<suffix>.md` 的后缀 或 `solution-draft-<slug>.md` 的 `<slug>`，无草稿来源则用当天 `MMDD`）。由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入；`_index.md` 说明命名规则并汇总台账表。 | 历史台账，一次移出新建一份；与本库其余文档一样可编辑修正，非仅追加。 |
 
 ## 维护约定：一切皆可改，只保留最新设计

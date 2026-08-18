@@ -18,6 +18,7 @@
   - **无 mana 费用**（它不被「打出」；启动式异能的启动费另算），且**是唯一不产生弃牌堆流量、也不产生栈上「打出」事件的类型**——触发式异能照常压栈，但它自身永远不入栈。
   - **`PowerData` 字段：** `Id` · `Scope: AbilityScope { Character, Player }` · `UsableScene`（**必填**） · `Abilities`（静止式 / 启动式 / 触发式皆可，**至少一个**，否则 `PushError`） · `Rarity: RarityTier`（**必填**，缺失 → `PushError`） · `Subtypes`。**无 `IsProtected` 字段、无 mana 费用字段**；`status` 与 **`SourceCode`（授予来源）**仍在 Profile 侧的持有条目上（见 `common-properties.md`）。
   - **敌人同样持有 power**（`EnemyData` 需要一个 power 持有列表字段）——「不可被移除的场上特性」正是 boss / 天劫最自然的表达。
+  - **`PowerData` 不得含 `LifeSpan` 产出（承重 · 两个 `Scope` 皆然）。** 加载期校验，违规条目 `PushError` + `Id`。**判据是次数**：`PowerData` 没有 `Charges` 字段，一经持有即永久可用 ⇒ 一条能产寿元的能力条目就是**无次数上限的回寿源**，直接架空「`lifeSpanCost` 是控制篇章时长的主旋钮」这条承重定案；`Scope == Player` 一侧还额外撞上付费面「付费续命」那条排除（礼包每次给 1 条随机法则）。寿元回复只挂在**有明确次数上限的一次性消费**（法宝的 `Charges`）与**占事件位的事件产出**上，通道与护栏见 `systems/adventure-event/common-properties.md`。
 - **禁用的生效判据：截断在「进入生效面」那一步（承重 · 四类通用）。** 神通 / 法则 ≈ MTG 的**静止式异能**（存在即生效），法宝 / 古宝 ≈ **启动式异能**（需主动启用）——这条分界**只用来决定禁用应当在哪一层截断，不收窄 `Abilities` 的取值域**（静止式 / 启动式 / 触发式皆可）。由它得出统一判据：**禁用一律截断在进入生效面的那一步，而不是在生效面里做例外判断**，与既定的「`status` 关闭 = 不入场，而非入场但不生效」完全同构。
 
   | 生效面 | 被禁用时 |
@@ -39,7 +40,7 @@
 - **它是轮回内 build 的一部分。** 与 deck（卡组）、CharacterItem / 法宝（角色道具）并列——一次轮回里「我这局变强了多少」由这三者共同承载，而 PlayerPower 承载的是「跨轮回我强了多少」。
 - **有自己的图鉴：CharacterPowerCodex。** 图鉴族（见 `../../player-profile/codex/`）为角色能力单列一本。**图鉴是账号级、跨轮回持久的**，而 CharacterPower 本身随轮回清理：轮回结束后能力没了，但「见过它」这条知识留下。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

@@ -63,36 +63,101 @@
 
 ### 地域 / location 与 Travel 路由
 
-- **地域 / location = 带三组字段的内容条目（承重）。** 角色当前所在地点，是介于「原始生成」与「AdventurePlot 调制」之间的一层框定。它**携带三样东西**：
+- **地域 / location = 带两组字段的内容条目（承重）。** 角色当前所在地点，是介于「原始生成」与「AdventurePlot 调制」之间的一层框定。它**携带两样东西**：
 
   | 字段 | 框定强度 | 作用面 |
   |------|----------|--------|
   | **事件类型出现概率修正**（event type possibility modifiers） | **软**（改权重，不改可及性） | 物化时的事件类型配比：荒野多 Combat、坊市多 Exchange、洞天多 Research |
-  | **敌人模板集合**（一组特定的 `EnemyData`） | **硬**（限定取池） | 战斗类事件物化时「派谁来」 |
   | **`eventCountLimit`**（事件容量上限） | **硬**（计数闸门） | 玩家在该地域最多经历几个事件 |
 
-  - **「不同地点开放不同的事件池」这句旧措辞由此收窄：** 事件侧**不是硬分池**，而是**对候选池的类型出现概率施加修正**；硬分池只发生在**敌人**那一侧。一软一硬是两种框定形态。
-  - **推论：location 已具备内容条目的形态**——携带字段集合、由内容作者编写、被物化读取，故应有稳定 `Id`、经 `ContentRegistry` 索引、受 `ContentEnabled` 与 overlay 热更管辖（见 `data-resource-rules.md`）。**数据载体的定名与形态待答**，见待决问题。
-  - **推论（承重）：敌人物化的两条轴至此正交。** **location 决定「派谁来」**（模板池），**相对角色等级的赋级带决定「有多强」**（三章统一 `±2`，见 `systems/services/future-event-service.md`）。地域的生态与风味不需要另设机制——这两个字段就是它的全部表达。
-  - **具体数值归内容制作阶段**：各 location 的类型修正取值、模板清单、`eventCountLimit` 的数字均在内容阶段定。
+  - **两侧的框定都不是分池。** 事件侧是**对候选池的类型出现概率施加修正**；敌人侧是**并集式的作用域**——通用敌人恒可在任何地域出现，某地域的专属条目在通用池之上**叠加**。**location 条目不持敌人清单**：池归属的唯一权威是 `EnemyData.PoolScope`（见 `systems/enemies/_index.md`），两侧各存一份会让「竹海的敌人」在 location 条目与每条专属敌人上各写一遍，两份表各自漂移而无机制发现。
+  - **代价明写：**「这个地域会遇到什么」不再能从一份 location 条目里一眼读全，需要反查——那是 `LocationCodex` 词条（运行时统计）的职责，不是内容编写面。
+  - **类型修正的粒度止于类型，及不到 Explore 的真身分布（承重）。** 修正表的 Explore 一行只能表达「洞天多秘境」，表达不了「洞天的秘境多半是战斗」——**秘境不需要、也不会得到条目级的子权重行**。为它开条目级粒度等于把第二套 `EventWeights` 塞进 `LocationData`，粒度与既有两组字段不一致，并立刻引出「PlotManager 能不能改它」（而 `PlotModulation` 无字段可填，两侧能力不对称本身就是漂移源）。真身分布由 Explore 条目池的组成涌现，见 `systems/adventure-event/explore/_index.md`。
+  - **数据载体 = `[GlobalClass] LocationData : Resource`，实例为 `.tres`，进 ContentRegistry 有自己的仓储。不设 C# 枚举。** 枚举会把地域数焊进程序集、新增地域必须发版，与 overlay 热更和「新增一个地域 = 新增一个 `.tres`」的可加性冲突，也与同族的 `AdventureEventData` / `EnemyData` / `HiddenStatBandData` 形态不一致。
+
+    ```csharp
+    [GlobalClass]
+    public partial class LocationData : Resource
+    {
+        [Export] public string        Id             { get; set; }   // "location.bamboo_sea"
+        [Export] public LocalizedText DisplayName    { get; set; }
+        [Export] public LocalizedText Description    { get; set; }   // LocationCodex 词条正文
+        [Export] public EventTypeModifierData[] EventTypeModifiers { get; set; } // 五类各一行，缺省 = 无修正
+        [Export] public int           EventCountLimit  { get; set; } // 硬闸门：该地域的事件容量上限
+        [Export] public bool          ContentEnabled   { get; set; } = true;   // 恒 true，false → PushError
+    }
+    ```
+
+    - **`Id` 照全库既定的两段式** `<内容类型>.<snake_case_slug>`：`location.bamboo_sea` · `location.cloudveil_fair`（约定见 `content/_index.md`）。
+    - **本作 location 是平坦集合，无层级、无区域分组，也不预留分组字段。** 层级没有承重消费方：难度不由换图承载（由赋级带承载）、图三章不变、`LocationCodex` 记的是连边而非分组。**在有消费方之前，分组字段是一个无人读的字段**；日后确需分组时加一个可空的纯风味字段即可，不改结构。
+    - **内嵌类型一律是 `Resource` 派生**（`EventTypeModifierData` / `LocationEdgeData`），因为 `[Export]` 只接受 Variant 兼容类型与 `Resource`；`EventOption` / `PastEventEntry` 那类**不导出**的运行时定稿实例照旧用 `sealed record`。
+  - **推论（承重）：敌人物化的两条轴至此正交。** **当前 location 影响「派谁来」**（经敌人条目的 `PoolScope` 叠加该地域的专属条目），**相对角色等级的赋级带决定「有多强」**（三章统一 `±2`，见 `systems/services/future-event-service.md`）。地域的生态与风味不需要另设机制。
+  - **具体数值归内容制作阶段**：各 location 的类型修正取值与 `eventCountLimit` 的数字均在内容阶段定；哪些敌人属于该地域，在敌人条目一侧编写。
 - **`locationMap`（地域图）= 一张全局不变的连通图（承重）。** 地域之间的连边由一份**独立的 `locationMap` 数据**承载——**既不挂在 Travel 事件的内容条目上，也不在运行时算**；Travel 的目的地从当前 location 在图上的**邻接集合**中取。
   - **三个篇章共用同一张图 ⇒ location 不随篇章 / 境界变化。** **难度的篇章差异不由「换一张更难的图」承载，而由敌人赋级带（相对角色当前等级）承载**——同一张图在三个篇章重走，敌人强度自动跟着角色走。这与「全局等级序是一把简单的直尺、境界鸿沟由 `baseMomentum` 承载」是同一种分工：**结构保持简单，难度放进数值。**
   - **推论：熟悉度成为跨轮回的资产。** 图不变 ⇒ 不同轮回走的是**同一片世界**，地名、地域的事件倾向、哪片区域出什么敌人都会被记住并复用。**这是把「重复游玩」转化为「越玩越懂」的结构基础**，也正是 `locationCodex` 的存在理由。
+  - **载体 = 单份 `[GlobalClass] LocationMapData : Resource`（全局唯一），持一个无向边集；不由各 location 持边。**
+
+    ```csharp
+    [GlobalClass]
+    public partial class LocationMapData : Resource      // 单份；全局唯一
+    {
+        [Export] public LocationEdgeData[] Edges { get; set; }   // 无向；A-B 只写一条
+        [Export] public bool ContentEnabled { get; set; } = true;   // 恒 true，false → PushError
+    }
+
+    [GlobalClass]
+    public partial class LocationEdgeData : Resource
+    {
+        [Export] public string FromId { get; set; }
+        [Export] public string ToId   { get; set; }
+    }
+    ```
+
+    - **对称性可机械保证。** 各 location 持边时 `A→B` 与 `B→A` 分写两处，漏写即单向边——而图的稳定性是对玩家的隐性承诺，单向边会让 `LocationCodex` 重建出的图与实际路由不符，属**能上线、线上不可见**。单份资源可在加载期一次性校验对称、无自环、无重复、无悬空 `Id`。
+    - **连通性校验需要全图视角**，各自持边拿不到。
+    - **图是无向的**（连边即双向可通行）。若日后确需单向通道，是给边加一个 `OneWay` 布尔，不改载体。
   - **推论（工程形态）：不变 + 高频读 ⇒ 只读静态数据，启动加载一次、常驻内存。** 它进 `ContentRegistry`（受 overlay 热更管辖，但**一次轮回内视为不变**），future-event-service **只读不写**；**存档不存图本身，只存「当前所在 location 的 `Id`」**。
+  - **`LocationData` 与 `LocationMapData` 都是结构性查表类内容，恒启用：`ContentEnabled == false` → 加载期 `PushError`，解析走 `AllIncludingDisabled()`，flags 第三层对它们不生效**（与 `HiddenStatBandData` 同类，判据见 `systems/services/content-service.md`）。
+    - **location 有双重身份**——既是 Travel 的目的地候选（看似产出侧），又是 `locationMap` 的**结构顶点**。**结构身份优先**：关掉一个顶点 = 改图，而改连边等于清空一份账号级 `LocationCodex` 资产。
+    - **承重理由：flags 是按账号解析、轮回中途可热应用、且不参与合并后强校验的通道。** 若 location 参与 flags 过滤，线上关掉若干地域可使某玩家当前 location 的邻接集合为空 ⇒ 配额闸门时产不出任何 Travel ⇒ **轮回死锁**，而 Travel 恰是既定的死局兜底。**这条风险加载期校验够不着。**
+    - **代价如实记下：失去「线上秒关一个问题地域」的运营手段**——地域出问题只能改 overlay、下次冷启动生效。这是为「图恒连通、Travel 恒可产出」付的价。
+  - **加载期校验（全部 `PushError` + 定位上下文）。** 图与地域的坏数据只能在加载期发现，故一次全查：
+
+    | 违规 | 理由 |
+    |---|---|
+    | `LocationMapData` 存在多份 / 零份 | 图是全局唯一对象 |
+    | 边引用了不存在的 `LocationData.Id` | 悬空目的地 |
+    | 自环（`FromId == ToId`）、重复边 | 无意义边会污染邻接计数 |
+    | 某 location 出度 **> 5** | 闸门批次规模 = 出度，会溢出批次规模区间上限 5 |
+    | 某 location 出度 **== 0**（孤立点） | 进得去出不来，配额用尽即死锁 |
+    | 图不连通 | 列出被隔离的 `Id` 集合 |
+    | `ContentEnabled == false`（两个类型皆是） | 结构性查表类恒启用 |
+    | `EventCountLimit <= 0` | 0 会让该地域一进入即触发闸门 |
+
+    **出度 ≤ 5 把「批次规模区间」从一句约定变成一条可机械校验的内容侧纪律**，副作用是正面的——它也让 `LocationCodex` 的连边词条在竖屏上一屏可读。
   - **`locationMap` 在轮回内对玩家不可见。** 「进程是逐批择一的线性推进，不是可俯瞰的分支地图」这条不变——**图存在但不呈现**。玩家可见的那一面是账号级的 **`LocationCodex`（图鉴族第六本）**，「去过即记」**且记连边**，见 `systems/player-profile/codex/_index.md`。**推论：不可见是「初见不可见」而非「永远不可见」**——跨轮回的知识可以逼近整张图，这是设计目标；两者不冲突，因为地图长在玩家脑子里（在图鉴里），不在 HUD 上。**连带：图的稳定性从设计选择升格为对玩家的隐性承诺**，改连边等于清空一份账号级资产。
 - **Travel / 前往某处地点 = 地图路由（AdventureEvent-Travel）。** Travel 是 adventure-event 的一个子类型，**功能上是一次地图路由选择**——选择 Travel 事件即**刷新角色所在的 location**，从而换掉下一批 eventOptions。即：Travel 是玩家在月圆之夜式菜单中「换图 / 换地点」的入口。子类型定义见 `systems/adventure-event/travel/`；本文档持有 location 抽象与路由语义。
 - **`eventCountLimit` 达成 → 本批只剩 Travel（承重）。** 玩家在当前 location 选够事件、达到 `eventCountLimit` 后，**最后剩下的 eventOption 是「前往另一个 location」**。
   - **承载它只需一个既有字段：** Travel 选项以**最高 `eventPriority`（= 1）**出场即可封锁同批其余选项。**没有跳过通道、也没有 `ifMandatory` 一类的强制标记**——本批的每一项本就都是必做项，闸门不需要第二个字段来封死回避通道。
-  - **闸门给多个 Travel 目的地，按 80 / 20 掷定。** **80% 的场景**列出 `locationMap` 上当前 location 的**全部邻接地域**，各为一个并列选项——**「去哪」本身是一次真实的玩家决策**；**20% 的场景**只 seeded 随机给出一个邻接地域。**该掷定对常规出场与闸门场景一律适用**，规则只有一条。**推论：闸门是逐批择一的线性进程里唯一一个带地理含义的分岔点**；结合 `LocationCodex`，它是玩家把跨轮回积累的地理知识**变现**的地方——八成的岔路口有得选，两成被命运推着走。见 `systems/adventure-event/travel/_index.md`。
+  - **闸门给多个 Travel 目的地，按 80 / 20 掷定。** **80% 的场景**列出 `locationMap` 上当前 location 的**全部邻接地域**，各为一个并列选项——**「去哪」本身是一次真实的玩家决策**；**20% 的场景**只 seeded 随机给出一个邻接地域。**该掷定对常规出场与闸门场景一律适用**，规则只有一条；**它落到批次时怎么占位**（闸门批整批归 Travel、常规批的 80% 档受本批槽位数截断）见 `systems/adventure-event/travel/_index.md`。**80 / 20 是全局常量 `TravelFullFanoutChance = 0.80`，不接受任何按剧情线 / location 的覆盖参数。****推论：闸门是逐批择一的线性进程里唯一一个带地理含义的分岔点**；结合 `LocationCodex`，它是玩家把跨轮回积累的地理知识**变现**的地方——八成的岔路口有得选，两成被命运推着走。见 `systems/adventure-event/travel/_index.md`。
   - **推论：Travel 由「可选路由」升格为结构性闸门。** 地域迁移是**被规则驱动的必经节点**，不再只是玩家想换图时才选的事件。**进程的形状由此清晰：一次篇章 = 若干 location 的串联，每个 location 内是一段定长的 eventOptions 循环，location 之间由 Travel 缝合。**
   - **推论：`eventCountLimit` 是篇章节奏的结构单位。** 篇章事件总数 ≈ 途经各 location 的容量之和，故它与时长主旋钮 `lifeSpanCost` **互相约束**，须一同反推目标时长（见 `systems/balance.md`）。
   - **计数口径：只计「选择进入并结算」的事件，Travel 不计入。** **推论：配额是「在这个地域做了几件事」的纯计数**——离开的动作本身不算做事。**一批 = 一次操作 = 一次配额消耗**，地域节奏是一条干净的计数。
+  - **计数的承载字段 = `CharacterProfile.Status.LocationEventCount`（int）。** **非 Travel 事件结算 → `+1`；Travel 事件结算 → 归 `0`**，连同 `CurrentLocationId` 一并更新，落在 `eventEnd` 那**一次** `TryApply` 内（不新增结算阶段、不新增存档点）。
+    - **归 0 恒成立，包括由 Explore 揭示而来的 Travel**——该 Explore 的 `+1` 随即被归 0 覆盖，因为计数的语义是「在这个地域做了几件事」，换了地域即作废。
+    - **闸门判定 = `LocationEventCount >= 当前 location 的 EventCountLimit`**，在**每一次整批重算**时求值（没有第二个判定时点）。
+- **换图后的第一批无特殊规则。** Travel 结算后的重算就是一次**普通的整批重算**（依角色整体历程 + 新 location 框定 + PlotManager 调制 + map 子流），数量照常常态 3 / 区间 1–5，类型配比照常由新 location 的类型修正给出。**不存在「换图首批」这个概念**——「一次选择 → 整批重算」是唯一的刷新形态。
+- **Travel 与篇章 / 境界推进不耦合（承重）。**
+  - **篇章边界由 Finale 承载，不由 Travel 承载。** Finale 的出现条件「角色已达本境界巅峰」是一条**等级条件**，与所在 location 无关。**Finale 不绑定特定 location，不设「渡劫场」地域**——否则「必须先走到某地才能渡劫」会与「Finale 之前必须升满」形成两条互相牵制的进度闸，任一条卡住即卡死轮回。
+  - **篇章切换时当前 location 继承。** 「篇章继承 = 全部继承」+「三章共用同一张图」⇒ 下一篇章从上一篇章结束时所在的 location 继续，不重置到起点，也不需要「起始地域」这个概念。这与「同一张图在三个篇章重走、敌人强度跟着角色走」完全同向。
+  - **推论：`CurrentLocationId` 是跨篇章持久的存档字段**，不随 chapter 边界清零（篇章重试时随该篇章起始存档一并回滚）。
 - **归属划分。** location 抽象、字段语义与路径导航归本文档（game-progression）；Travel 作为**事件类型**的呈现 / 数据（含非常驻出场与 80 / 20 掷定）归 `adventure-event/travel/`；二者通过「Travel 刷新 location → location 框定 eventOptions」协作。
 
 ### blind / ante 缩放
 - blind / ante 的**要求、奖励与 scaling** 归本文档（进程侧）；缩放曲线为可调数值，存入 `.tres` 并归 `systems/balance.md`（ante 曲线）。**具体 blind 要求 / 奖励 / 缩放曲线尚未陈述**，见待决问题。
 
-Source: `handoffs/2026-07-13.md` · `handoffs/2026-07-15-adventure-event-profiles.md` · `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md`
+Source: `handoffs/2026-07-13.md` · `handoffs/2026-07-15-adventure-event-profiles.md` · `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -107,11 +172,9 @@ Source: `handoffs/2026-07-13.md` · `handoffs/2026-07-15-adventure-event-profile
 - **「可用结束点」已明确**：到达下一境界所落的**存档点**即结束点，可读档开始下一 chapter。**chapter 途中死亡 → 从该 chapter 起始存档重试**；炼气（第 1 chapter）近乎无限重试，后续 chapter 有限重试（数值见 `systems/services/life-cycle-service.md`）。
 - **选择区的呈现与导航手感**：月圆之夜式菜单 + 横向滑动选择，但**每批 eventOptions 的选项数量 / 排布 / 滑动手感**尚未落定。注意进程形态是**逐批择一的线性推进**（每次从当前 eventOptions 中选一个，选完重算下一批），**不是可俯瞰、可回溯的分支地图**。
 - **eventOptions 生成 / 加权**：future-event-service 服务化已定，但**从 characterProfile 如何生成 / 加权抽取**下一批 eventOptions（策划 vs 随机权重、带种子 RNG 派生）、以及 location 框定 / AdventurePlot 调制 / seeded RNG 的**叠加顺序**未定。→ `systems/services/future-event-service.md`。
-- **location 与 `locationMap` 的数据载体与定名。** **字段与图的存在形态**（三组字段 + 一张全局不变的连通图，见「意图」）；仍待定：载体形态与定名（`LocationData : Resource` + `.tres`？枚举 + 资源两件套？`locationMap` 是单份邻接表资源还是由各 location 持边？）、稳定 `Id` 形态、是否与 `AdventureEventData` 一样受 `AllEnabled()` 与 overlay 管辖。
-- **Travel 闸门给几个候选、怎么选。** **多个并列**；仍待定：是否把当前 location 的**全部邻接**都列出、还是 seeded 抽取其中几个，候选是否受剧本调制。→ `systems/adventure-event/travel/`。
-- **`eventCountLimit` 是否随篇章 / 剧本调制而变。** **计数口径**（只计选择进入并结算的，Travel 不计入）；配额本身能否被 PlotManager 推拉未定。
-- **事件类型概率修正的形态。** 乘性权重 / 加性偏移 / 「白名单 + 权重」？某个类型能否被修正到 0（= 该地域不出这类事件，软框定退化为硬框定）？**具体数值归内容制作阶段，但形态是机制。**
-- **location 机制的其余细节（待定）：** 地域的枚举 / 层级、Travel 如何映射到具体 location、location 与 AdventurePlot 调制的叠加顺序、location 是否随篇章 / 境界变化——均**尚未陈述**。
+- **`eventCountLimit` 是否随篇章 / 剧本调制而变。** **计数口径与承载字段已给出**（只计选择进入并结算的，Travel 不计入；`LocationEventCount` 在 Travel 结算时归 0）；配额本身能否被 PlotManager 推拉未定。
+- **事件类型概率修正的形态。** 乘性权重 / 加性偏移 / 「白名单 + 权重」？**Travel 一行可被修正到 0 已确认安全**（闸门是独立通道），其余四类能否修正到 0 未定。**具体数值归内容制作阶段，但形态是机制。**
+- **location 与 AdventurePlot 调制的叠加顺序。** 三层框定（location / PlotManager / seeded RNG）的先后未定。→ `systems/services/future-event-service.md`。
 - **blind / ante 缩放（未陈述）：** 具体 blind 要求 / 奖励 / ante 缩放曲线**尚未陈述**；缩放数值最终归 `systems/balance.md`。
 
 ## 对应

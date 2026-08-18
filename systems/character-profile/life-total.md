@@ -37,9 +37,10 @@
   - **已知风险**：开局落差 ≠ 最终道念差（后者可能更大），1.1 的余量是否够取决于「一张牌产多少道念」——上表是**初值，不是安全证明**；三个基线之比（1 : 2.5 : 4）小于 `baseMomentum` 之比（约 1 : 2 : 5），故**跨境界容错率实际是收紧的**（越高越险，有意接受）。归 ch1 数值标杆专场回归校准。
 - **归 0 = `defeated`（轮回级终结）。** lifeTotal 归 0 使角色 `status = defeated`——它与**寿元归 0（大限将至）**并列，是角色终结的**第二条路径**。二者分工清晰：**寿元按事件流逝，lifeTotal 按失败流逝**。**`DefeatReason` 里没有「输掉一场战斗」这一项**——战斗失败本身不终结角色，对应项是 `LifeTotalExhausted`；**Finale 失败同样走这条通道，不新增 `FinaleFailed`**（见 `systems/adventure-event/combat/`）。
 - **恢复途径 = AdventureEvent。** lifeTotal 通过事件恢复——与等级、`manaLimit` 同属「由事件 cost / reward 推拉」的成长体系，走同一条 `ProfileChangeSpec` → `TryApply` 链路。**推论：回复类事件由此有了明确的玩法位置**——它是玩家在「继续冒险」与「补耐久」之间的常态权衡，也是「寿元 vs lifeTotal」两条资源线互相兑换的接口（花寿元买回耐久）。
+- **取值域 `[0, ∞)`，归 0 构成终态。** `lifeTotal` 在 `ResourceElements` 表中占一行 `(Min = 0, Max = null, DepletionDefeat = DefeatReason.LifeTotalExhausted, CostModifier = null, GainModifier = null)`：**下界截断到 0**（负耐久无意义，且角色在归 0 那一刻即终结），**上界明确为空**——这正是「只跟踪单值、无上限截断」在施加侧的落地，表里的 `Max = null` 不是待填项而是定值。终态判定读表而非硬编码检查本字段，见 `systems/services/life-cycle-service.md`。
 - **lifeTotal 是耐久，不是寿元。** 隐藏属性 **寿元 / lifeSpan** 是独立的**寿命预算**（炼气起始 100，递减到 0 → defeated），归隐藏属性 / PlotManager，不在本文件。
 
-Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`
+Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-16d-cost-side-closure.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

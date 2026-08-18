@@ -41,9 +41,22 @@
 
 - **法宝可被「本轮回禁用」，也可被置换。** 禁用的统一判据是「截断在进入生效面那一步」（完整表见 `../power/_index.md`）：**法宝 ≈ 启动式异能**，故被禁用 = **不进「本场可用道具」列表**——储物袋里仍在、`Charges` 分毫不动，只是本轮回 / 本篇章 / 下一事件不可启动。**同 `ItemId` 多份按 `ItemId` 整体禁用**，不区分实例。「本场可用道具」的派生规则（按 `UsableScene` 筛储物袋）因此**加一条禁用过滤**。置换与法宝同池（`(Kind, Scope)` 全同 + 同 `Rarity` + 排除已持有），见 `../../player-profile/player-power/_index.md`。禁用表字段见 `../_index.md` 的 `disabledAbility`。
 
+- **法宝是唯一可售出的一族，代价是 9 格从纯取舍位变成一个可换灵玉的位置（明写接受）。** 商店的售出面仅对 `CharacterItem` 开放（其余四族恒不可售，判据是代码级常量），因此满袋从「必须放弃一件」变成「换成灵玉」——**9 格作为「真正会咬人的构筑取舍位」的定位由此被削弱一档**。这是被接受的设计取向，缓解只靠两个数值旋钮：回收率显著低于标价（卖仍是亏，只是比丢掉强），且**折算基准取定价表的基准价而非商店标价**（否则「在打折商店卖东西更亏」，玩家读不出因果）。规则权威见 `systems/adventure-event/exchange/_index.md`。
+
+- **补天丹一类的回寿法宝 = 战斗外效果的第一个具体条目形态。** 它是寿元回复通道的载体之一（通道形态、展示门控与平衡护栏的权威在 `systems/adventure-event/common-properties.md`）：`Scope = AbilityScope.Character` · `UsableScene = OutOfCombat` · `Charges` 为有限正整数，其 ability 产出 `ChangeElement(CostKey.LifeSpan, +n)`，使用时**即时经 `ProfileManager.TryApply` 写档**（与既定的「消耗即时写、不攒到收口」同一条纪律）。它同时是 `ExchangeGoodsKind.CharacterItem` 一族的普通商品，可经商店购入。
+  - **两条加载期校验（`PushError` + 条目 `Id`）：**
+
+    | 违规 | 依据 |
+    |---|---|
+    | `ItemData.Scope == Player` 且其 abilities 含 `LifeSpan` 产出 | 付费面五项排除的第一条**付费续命**：礼包从 `(Item, Player)` 池抽 2 件古宝，池中一旦有回寿古宝，「花钱 → 抽到 → 续寿」就是它的软形态——没有「撤销一次 `defeated`」，只是让 `defeated` 更晚到来，而那条压力线被按次稀释、效果相同 |
+    | `ItemData` 含 `LifeSpan` 产出 且 `UsableScene` 含 `InCombat` | `lifeTotal` 是战斗内耐久、寿元在战斗内不参与结算 ⇒ 战斗内根本没有寿元结算通道，一件能在战斗内回寿的道具指向一条不存在的路径 |
+
+  - **能力条目一概不得产出寿元**（`PowerData` 两个 `Scope` 皆然），判据是次数——它没有 `Charges`，见 `../power/_index.md`。回寿只挂在**有明确次数上限的一次性消费**与**占事件位的事件产出**上。
+  - **储物袋的一格是它的第三道软闸**：按 `ItemId` 堆叠、多份仍占 1 格 ⇒ 它施压的是种类数这条取舍位，而这正是 9 格上限的设计意图。
+
 > 本文件夹为「每类角色道具 / 每份道具设计一个 Markdown」预留结构；具体语义见 `common-properties.md` 与待决问题。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12c-identifier-singular-collapse.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12c-identifier-singular-collapse.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -51,10 +64,11 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **角色级道具语义未设计。** **已定：战斗内形态 = `CardType.Item`、储物袋、`UsableScene` 三档、`ItemData` 字段形态、消耗即时写 Profile**（见上）。**仍未设计**：道具的种类目录、战斗外的获取途径与效果、以及「什么该做成一张卡 / 一件道具 / 一个神通」的判据。
-- **道具的获取途径与「什么该做成道具」的判据。** 战斗内形态与折价系数均已定案，**开局强制事件给一件（三选一）已定**；**其余战斗外的获取途径**（哪些事件给、给几件）与**「什么该做成一张卡 / 一件道具 / 一个神通」的判据**仍未给。→ `systems/adventure-event/`、`systems/balance.md`。
+- **角色级道具语义未设计。** **已定：战斗内形态 = `CardType.Item`、储物袋、`UsableScene` 三档、`ItemData` 字段形态、消耗即时写 Profile、以及战斗外效果的第一个具体条目形态（回寿法宝）**（见上）。**仍未设计**：道具的种类目录、其余战斗外效果、以及「什么该做成一张卡 / 一件道具 / 一个神通」的判据。
+- **道具的获取途径与「什么该做成道具」的判据。** 战斗内形态与折价系数均已定案；**获取途径已有三条**（开局强制事件三选一 · 商店购入 · 事件产出），仍未给的是**哪些事件给、给几件**与**「什么该做成一张卡 / 一件道具 / 一个神通」的判据**。→ `systems/adventure-event/`、`systems/balance.md`。
+- **战斗外道具的使用入口未设计（承重）。** 本文档只定义了**战斗内**的使用窗口（自己回合的行动阶段、栈为空时）；`UsableScene = OutOfCombat` 的道具**在哪一屏、哪一步被使用**尚无设计——它阻塞回寿法宝的定稿。**连带两问：** 使用是否单独构成一个存档点（归「决策点粒度」那一问）；以及**在事件之外使用时没有 `PastEventEntry` 可挂**，元进程的寿元曲线会出现一段无痕迹的回升，痕迹落点未定。→ `systems/services/life-cycle-service.md`、`systems/adventure-event/common-properties.md`。
 
-- **储物袋满时获得新道具的处理（承重）。** 上限收紧到 9 格后，「满袋再获得一件」从理论情形变成常态：拒收？强制择一丢弃？还是在奖励侧就过滤掉？连带**道具的获取频率、商店库存深度与置换对价是否需要同步下调**——这些此前都建立在容量近乎无限的前提上。→ 本文档、`systems/adventure-event/exchange/`、`systems/balance.md`。
+- **储物袋满时获得新道具的处理（承重）。** 上限收紧到 9 格后，「满袋再获得一件」从理论情形变成常态：拒收？强制择一丢弃？还是在奖励侧就过滤掉？连带**道具的获取频率、商店库存深度与置换对价是否需要同步下调**——这些此前都建立在容量近乎无限的前提上。**它同时阻塞「满袋时能否购买道具」**：拒收 / 强制择一丢弃 / 库存侧过滤三种处置会给出三套不同的购买前置校验。→ 本文档、`systems/adventure-event/exchange/`、`systems/balance.md`。
 
 > **储物袋的 UI 形态**（不进主菜单、滚动网格 + 筛选 chip、战斗内视图称「随身」= 角标 + 底部抽屉），见 `ux/screen-flow.md` 与 `ux/combat-ux.md`。**9 格一屏可见，筛选 chip 的必要性下降**，排布待 UX 侧回归。
 

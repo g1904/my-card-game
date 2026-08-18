@@ -72,10 +72,49 @@
   - **寿元预算不变，靠调 `lifeSpanCost` 控时长。** 预算增量（100 / +100 / +300 / +500）是**叙事与阶梯的形式量**；**事件定价才是时长旋钮**。
   - **旋钮的绝对水平由目标时长压低。** 上表的时长对着不变的寿元预算，故**单次定价的绝对值偏低、一个篇章的事件总数偏多**；**篇章之间「逐章上调」的相对关系不受影响**（第三篇章 300 点预算对 45–55 分钟，单价仍显著高于第一篇章 100 点对 30–40 分钟）。
   - 事件之间定价有差异（**闭关 Research 比常规事件耗时更长**）；**具体取值待定**，见待决问题。
-  - **定价的载体 = 本文件的一张「事件类型 × 篇章」定价表，不逐条目手写。** 内容条目**默认不填** `lifeSpanCost`，取表上的类型基准值；只在需要体现代价差异（含产出向的回寿事件）时标一个偏移 / 覆盖值。
+  - **定价的载体 = 本文件的一张「事件类型 × 篇章」定价表，不逐条目手写。** 内容条目**默认不填** `lifeSpanCost`，取表上的类型基准值；只在需要体现代价差异时标一个偏移 / **更小的**覆盖值。**表值与覆盖值一律非负**——寿元回复只走 outcome 侧，成本侧的 `LifeSpan` 恒为消耗向（两条 `PushError` 与三条理由见 `systems/adventure-event/common-properties.md`）。
+    - **每格是一个定值，表中不设区间列。** 区间掷定会让一个篇章的寿元支出成为随机变量，反推目标时长时要按期望值算并接受方差，而旋钮精度正是这张表存在的唯一理由；且 Band 0 / Band 1 完全不显示 `selectCost`，方差对玩家不可感知。条目级偏移 / 覆盖值同为定值。**本条只定形态，不动任何取值。**
     - **表的行 = `eventType` 五类，其中 Combat 一行再按 `combatTier` 三档细分**（8 / 10 / 12 三个回合数意味着战斗时长本就有三档，定价须分别计）；**列 = ch1 / ch2 / ch3**。
     - **理由：定价的判据本就是全局的目标时长，不是单个条目的风味。** 改一张表即可全局调时长，不必重扫数百个 `.tres`；也避免同类事件在不同作者手里定价漂移。**它同时让上面那条「反推链是脆的」缓解一半**——重定价现在是改一张表，不是批量重标内容。
-    - **Travel 不消耗配额但仍可有定价**：它不计入 `eventCountLimit`，与它是否扣寿元是两件事（见 `systems/game-progression.md`）；表上给不给它一行是取值问题，不是形态问题。
+    - **Travel 有它的一行，且该格必须 > 0（结构性约束，不是数值偏好）。** Travel 不计入 `eventCountLimit`（配额闸拦不住它）+ 换图 = 换 location 的类型修正 + 整批重算 ⇒ 若定价为 0 即开出一条**零成本的事件池 reroll**，「来回横跳直到刷出想要的事件」成为最优策略，而它正是本库反复否决的那类可电子表格化优化。**寿元定价是唯一能拦住它的闸。**
+      - **取值为常规事件基准的 1/3 ~ 1/2**（「赶路便宜，但不是免费的」）：换图的策略价值保住、reroll 漏洞被寿元堵死、20% 随机档也不至于显得亏（付的是小钱）。**绝对数字随本表其余格一同由目标时长反推**，这条相对关系先立，是内容侧的定价直觉。
+
+- **回寿量 = 一张与 `lifeSpanCost` 并列的「事件类型 × 篇章」小表，标定口径是「占本章 `ChapterLifeSpanBudget` 的百分比」。** 推导用百分比、落表写各篇章的绝对点数（内容侧仍写正数量值，链路不变）。
+  - **为什么不是绝对点数：** 绝对点数在三章之间失真——ch1 预算 100、ch3 预算 +300 且带结转，同一个「+10」在两章的意义差 3 倍以上。百分比口径与寿元 Band 的阈值（30% / 10%）**同量纲**，让「一颗丹能把玩家拉回几档」成为可直接读出的设计量。
+
+  | 档 | 占本章预算 | 手感目标 |
+  |---|---|---|
+  | 小 | **5%** | 缓一口气，不改变所处档 |
+  | 中 | **10%** | Band 2 中位（≈5%）→ 15%，越过 Band 1 的退出阈值 13%（10% + 回滞 δ 3 个百分点）⇒ **恰好拉回一档** |
+  | 大 | **20%** | Band 1 → Band 0，一次显著的战略续航 |
+
+  - **中档由 Band 阈值反推，且经回滞校验成立**：它使「濒死时一颗补天丹换回一档」为真，而这正是该题材词对玩家的隐含承诺。
+  - **⚠ 三档是量值口径，不是新枚举，且不得复用 `HiddenStatGrade { Minor, Standard, Major }`。** 寿元走资源 element 路径（绝对量值）；`HiddenStatGrade` 是道心 / 煞气推拉的档位映射，其映射值为 `[0,100]` 取值域标定，套不到跨章 100 / 200 / 300+ 的寿元预算上。与 `Tier` / `RarityTier` 那条硬约定同性质。
+  - **绝对点数与「回寿量折合几个事件的时间」的联合反推归 ch1 数值标杆专场**，见待决问题。通道形态与平衡护栏见 `systems/adventure-event/common-properties.md`。
+
+- **商店定价 = 一张「商品族 × 稀有度」定价表，不逐条目手写。** 与 `lifeSpanCost` 定价表完全同构：**内容条目默认不填，取表值**；需要体现风味差异时在 `ExchangeStockRule.PriceOffset` 上标一个偏移。
+
+  | 维度 | 取值 |
+  |---|---|
+  | 行 | `ExchangeGoodsKind` 五族（`Card` / `CultivationTechnique` / `CharacterItem` / `CharacterPower` / `PlayerItem`） |
+  | 列 | `RarityTier` 五档 |
+  | 格值 | 灵玉基准价（正整数） |
+  | 篇章维 | **不设** |
+
+  - **理由与 `lifeSpanCost` 表同构**：改一张表即可全局调经济、不必重扫数百个 `.tres`、避免同类商品在不同作者手里定价漂移。
+  - **不设篇章维**：灵玉随轮回清理、每章重置，与寿元的跨篇章结转不同——篇章差异应由「掉落多少灵玉」承载，而不是让同一件东西在第三篇章更贵。
+  - **每格填多少归 ch1 数值标杆专场，且在灵玉的获取渠道答定前无法反推**（见待决问题）。
+  - **该表同时是售出折算的基准**：`SellRatePercent` 作用在表上的基准价，**不作用在 `ListPrice`** 上——后者已含 `ShopPrice` modifier 与内容侧 `DiscountPercent`，按它折算会让「在打折商店卖东西更亏」，玩家读不出因果。
+  - 定价链、折扣叠加顺序与 `Clamp >= 1` 见 `systems/adventure-event/exchange/_index.md`。
+
+- **Exchange 的三组待定数值格（归 ch1 数值标杆专场）。** **刷新价参数** `RerollBaseCost` / `RerollCostStep`（首批内容一律填 0 = 关闭刷新，机制先落地、数据先留空）· **回收率 `SellRatePercent`**（建议落在 **30–50%**：卖仍是亏，只是比丢掉强，摩擦保住储物袋 9 格的取舍感）· **单个 Exchange 事件的槽位总数上界**（建议 **≤ 8**，落为加载期校验 `StockRules` 的 `SlotCount` 之和；上界的理由是快照体积——一批最多 5 项、每个 Exchange 挂若干 offer，不设上界时单事件快照会明显变胖，而 `sync-service.md` 已有体积护栏）。形态均已定，只欠取值。
+
+- **`MaxConcurrentSideArcs = 2`（全局单值）。** 同时处于 `Active` 的**支线**剧本 arc 上限（只统计 `SideChapter` / `SideStory`；Story 与 Chapter 各恒有一条，是结构不是穿插，**不占配额**）。
+  - **依据：调制是叠加的。** 三条 side arc 同时改类型权重 / 事件权重，候选池会变成谁也说不清的混合物——而调制正是隐藏属性与剧本的**主要显影通道**（玩家感知「这条线在动」主要来自摆在面前的事件变了）。上限保住的是这条通道的可读性。
+  - **超出上限走排队、不丢弃**，队列以 `State = Queued` 的 key point 落存档；语义与出队规则见 `systems/services/plot-manager.md`。
+  - **纯内容侧数值，不改任何结构**——日后实测觉得闷，改 `2` 为 `3` 即可，schema / 字段 / 校验全不动。
+
+- **`TravelFullFanoutChance = 0.80`（全局单值）。** Travel 候选 80 / 20 掷定里「列出全部邻接」那一档的概率，住平衡资源、可线上调，**但只有一份全局值，不接受任何按剧情线 / location 的覆盖参数**——与「赋级函数不接受任何区间覆盖参数」同款收口：不给这个口子，就不存在「谁有权用它」。语义与两条依据见 `systems/adventure-event/travel/_index.md`。
 
 - **`eventCountLimit` = 篇章节奏的第二个旋钮，与 `lifeSpanCost` 互相约束。** 每个 location 携带一个事件容量上限，配额用尽即由 Travel 送往下一个地域（见 `systems/game-progression.md`）。**推论：一个篇章的事件总数 ≈ 途经各 location 的容量之和**，因此**两个旋钮必须一同反推目标时长**（30–40 / 35–45 / 45–55 分钟）：`lifeSpanCost` 定「每个事件多贵」，`eventCountLimit` 序列定「一共能做几个」，各调各的会互相抵消。**具体数值（各 location 的容量、一章途经几个 location）归内容制作阶段**，与事件出现概率（event odds）一同。
 
@@ -165,6 +204,7 @@
   煞气档宽 25 ⇒ 一章净行程 50–100 点，同一组取值下同样落区间内 ✓
   ```
 
+  - **`combatTier` 三档的挂钩点（只标形态，取值归 ch1 数值标杆专场）：** `Practice` 推道心、**对位低一档**（沿用 `ExperienceGrade` 的档位偏置范式）· 默认不推煞气；`Finale` **胜利与失败施同一档**。**本表不设失败折算列**——隐藏属性推拉不套用 `FailureRatio`（理由见 `systems/adventure-event/common-properties.md`），故一个条目一个属性只需要一个档位值。
   - **校验依赖「增减触发」那条待答项**（哪些 AdventureEvent 推拉、各推哪一档）——在它答定前，上述反推只能作为验收项挂着。**但档位结构、阈值形态、文案形态均不被它阻塞**：它约束的是标定，不是结构。
   - **它是叙事密度的第一旋钮。** 跨档叙事若实测觉得太闷，先调本表的映射值（它同时也在改 eventOptions 调制的推进速度，比加文案更贴近「让这条线动起来」的真实诉求），其次才是逐档补文案；**档数永远不是该动的旋钮**（档位服务的是调制分辨率）。
   - **跨档叙事的目标密度：≈ 6–10 条 / 轮回**（寿元 4–6 · 煞气 1–2 · 道心 1–2），对约 86–102 个事件的一轮回即**每 9–17 个事件一条**；文案总量 8–12 条。
@@ -254,6 +294,7 @@
   - **权重按剩余池即时归一**（排除已持有之后再归一）。推论：老账号的池逐渐只剩高档条目，**高档占比自然上升**——与残卷的递减掉率曲线方向相反，恰好让「越往后越难拿到，但拿到的更好」，不需要为此再加任何规则。
   - **校验：任一档权重为 0 → `PushError`**，否则会出现「池非空但抽不出来」，让 `HasGrantable()` 说谎。
   - **置换候选池不用本表**（它按锚定稀有度过滤后同档等概率）；**战后奖励池另有自己的权重表**，仍待定（见待决问题）。
+  - **分表维度 = 按用途（授予 / 战后奖励），不按渠道（打 / 买）、也不按 `(Kind, Scope)`（结构结论）。** 授予与战后奖励是两个不同的分布诉求，故分表；按渠道分表等于让付费直接买到更高档强度；按 `(Kind, Scope)` 分表则让四个池各多一张要维护的表，而它们的稀有度分布诉求相同。**权重表一律住本文件、不落 `DrawPool<T>`**；抽取侧唯一的接入点是加权 `PickOne` / `PickMany` 的权重参数。
   - **连带常量 `GrantPoolMargin`（闸 ① 的编排余量）：** 内容加载期校验 `(Power, Player)` / `(Item, Player)` 通用池条目数 ≥ **支撑 K 次重复购买所需**（`K × 1` / `K × 2`）+ 本余量，不足 → `PushError`。**礼包为可重复购买**（① ② 每次都给，见 `systems/monetization.md`）⇒「礼包所需」不是一次的量，**余量的语义是「留给第 K+1 次的缓冲」**。**`K` 与余量取值待内容侧条目规模明朗后给**，结构已定。
 - **篇章重试上限 = 平衡资源里的两行，由付费凭证选行。** 重试上限是可变量，其落地形态：
 
@@ -278,7 +319,7 @@
   | 剧本预取深度 | **下一批 eventOptions 对应的 key points** | `systems/services/plot-manager.md` |
 
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md`
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
@@ -288,13 +329,17 @@ Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` 
 
 - **带边界的配置落点：** 三章的 `±2` 带边界放在平衡资源里还是服务配置里，仍未定。→ `systems/services/future-event-service.md`。
 - **`lifeSpanCost` 定价表的具体取值（承重）：** 定价方向与**表的形态**已定（「`eventType` × 篇章」表，Combat 行按 `combatTier` 细分；条目只标偏移 / 覆盖值；目标时长驱动、逐篇章上调、闭关更耗）；仍待定**每格填多少**——需以 **30–40 / 35–45 / 45–55 分钟反推**，反推出的单次定价绝对值偏低。→ `systems/adventure-event/common-properties.md`。
+- **商店定价表每格填多少 · Exchange 的三组数值格（归 ch1 数值标杆专场）：** 表的**形态**已定（「商品族 × 稀有度」、内容条目只标偏移、不设篇章维），仍待定每格取值，以及刷新基价 / 递增量、回收率、槽位总数上界。**定价表的绝对数字被灵玉的获取渠道阻塞**——产出侧一片空白时无从反推消耗侧。→ `systems/character-profile/currency.md`、`systems/adventure-event/exchange/_index.md`。
 - **道念的两组剩余数值：** **起始值已定**（`baseMomentum` 表）、**负侧换算已定**（道念差 1:1）、**胜侧换算已定**（两条支路 + 单价表）。仍待定且**已归 ch1 数值标杆专场**：卡牌的道念产出 / 削减量、敌人各等级的道念产出缩放。→ `systems/scoring.md`、`systems/adventure-event/combat/`。
 - **成本类型的 element 清单与数值分档未定：** `selectCost` 已定为**定制复合成本类型**、`lifeSpanCost` 为其一个 element（内容侧正数量值）；其余 element（jade / mana / 道具 / 隐藏属性推拉？）、各 element 的数据形态与基准分档均未定。→ `systems/adventure-event/common-properties.md`。
 - **`RarityTier` 的分布与剩余权重表：** 五档已定名并挂上 `PowerData` / `ItemData` / `CardData`；**授予池的权重表已定**（见上方 `GrantPoolWeights`），**置换候选池不需要权重表**（同档等概率）。仍待定：**战后奖励池**各档权重（按优势档 `Tier` 三档各一张表），以及内容侧「每档应有多少条目」的编排口径；另有 `GrantPoolMargin` 的具体取值（结构已定、数值待内容规模明朗）。→ `systems/services/combat-service.md`、`systems/player-profile/player-power/_index.md`。
 - **重试上限的两档数值是否再调：** **落点已定**——两行住在平衡资源、由 `HasPremiumBundle` 选行（见上方条目），故它已是可调平衡项；仍待定的只有**数值本身**是否随实测调整。
+- **回寿量三档的绝对点数（归 ch1 数值标杆专场）：** `5% / 10% / 20% × ch1 / ch2 / ch3` 折算出的点数，以及它与 `lifeSpanCost` 定价表的联合反推（一次回寿折合「几个事件的时间」）。**标定口径与三档比例已定**（见上方条目），只欠取值；**不阻塞结构**。→ `systems/adventure-event/common-properties.md`。
+- **闭关构筑面板的三个数值格（归 ch1 数值标杆专场）：** `Recuperate` 的 `lifeTotal` 回复量 · 走火入魔风险档候选的出现权重 · 开局构筑条目 `lifeSpanCost = 0` 的覆盖登记（形态是既有的条目级覆盖通道，只欠在定价表里记一笔）。形态均已定，见 `systems/adventure-event/research/_index.md`。
+- **Explore 真身占比的实测校准（归 ch1 数值标杆专场）：** 初值 **`Combat : Exchange : Travel ≈ 5 : 3 : 2`**（推导见 `systems/adventure-event/explore/_index.md`）。它**不是运行时约束而是内容编排口径**——落点是 `adventure-event` 类型档案的条目台账 + 一项 `/audit-content` 汇总报告（只报告不阻断），故这里要校准的是**目标区间本身**，不是任何一个代码里的数值。同批还有定价表的 Explore 行取值。
 - **blind / ante 缩放曲线：** 具体 ante 缩放 / blind 要求 / 奖励曲线尚未陈述（进程语义见 `systems/game-progression.md`）；一旦落定，数值归此。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md`
 
 ## 对应
 提炼至：`.claude/knowledge/data/_index.md`（引用层，待建）。

@@ -43,18 +43,47 @@
   - **战斗内随机直接用 `combat` 子流，不在其上再派生一层。** 「每场按 `(eventId, attemptIndex)` 再派生一次以防 re-roll」这条看似自然的加法**不要做**——它要防的两件事都已被别处从根上关掉：① 「退出重进重掷」由决策点存档 + RNG `State` 持久化关闭；② 篇章重试确实换一套战斗随机，但换法是**给这一次重试一套全新的随机流**，不是在既有流上叠派生。**因此没有 `attemptIndex` 这个字段**；篇章重试次数由 `CharacterProfile.chapterRetry` 承载（它是重试上限的计数器，与 RNG 无关，见 `systems/services/life-cycle-service.md`）。
   - 存档 schema 见 `systems/character-profile/_index.md`；派生方是 `life-cycle-service.SeedManager`。
 - **账号级随机与轮回随机是两条不相交的线。** 判据：**结果写 `PlayerProfile` 的随机，绝不可从 `CycleSeed` 派生**——四条子流全由 `Hash64(CycleSeed, streamName)` 得出，而**篇章重试会生成全新的 `CycleSeed`**，把账号级掉落挂上去等于让玩家靠重试换一次结果。
-  - **形态 = 具名域 + 单调序号（三参数派生）：**
+  - **形态 = 具名域 + 单调序号（三参数派生），随机源是契约定义的纯函数 SplitMix64，不是 Godot 的 `RandomNumberGenerator`：**
 
     ```csharp
-    enum AccountStream { PowerFragment, PremiumBundle }   // 成就奖励无随机，不占域
+    enum AccountStream { PowerFragment = 0, PremiumBundle = 1 }   // 成就奖励无随机，不占域
 
     // 派生一次、连续抽多条；序列由 (stream, ordinal) 完全确定 ⇒ 幂等
-    RandomNumberGenerator AccountRng.For(AccountStream stream, int ordinal);
-    // 内部：seed = Hash64(AccountSeed, (ulong)stream, (ulong)ordinal)
+    AccountRandom AccountRng.For(AccountStream stream, int ordinal);
+
+    // 内部（uint64 环上运算，>> 为逻辑右移；两侧逐位一致）
+    //   Mix(z): z = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9
+    //           z = (z ^ (z >> 27)) * 0x94D049BB133111EB
+    //           return z ^ (z >> 31)
+    //   GOLDEN = 0x9E3779B97F4A7C15
+    //   state  = AccountSeed
+    //   state  = Mix(state + GOLDEN * (ulong)((int)stream + 1))
+    //   state  = Mix(state + GOLDEN * (ulong)(ordinal    + 1))
+    ```
+
+    ```csharp
+    public interface IRandomSource { ulong NextU64(); }
+
+    public sealed class AccountRandom : IRandomSource
+    {
+        public ulong NextU64();                       // state += GOLDEN; return Mix(state)
+        public int   Roll();                          // (int)(NextU64() % 10000) —— 万分比，不做拒绝采样
+    }
+
+    // 轮回级随机走这个薄适配器，Godot RNG 本身不变
+    public readonly struct GodotRandomSource : IRandomSource { public ulong NextU64(); }
     ```
 
     `AccountSeed` 是后端下发、落 `AccountInfo` 的 `ulong`（见 `systems/player-profile/account-info.md`）。**它不进 `SeedManager`、不进子流清单**，故不触及「增删子流不 bump schema 版本」那条纪律。
-  - **为什么必须有具名域：** 若只按 `Hash64(AccountSeed, ordinal)` 派生，各渠道的序号都从 `1` 起，于是**同一 `AccountSeed` + 同一整数 ⇒ 同一 `Hash64` 输出**——礼包的第 1 次授予与残卷的第 1 次胜利掷骰会共享同一随机数。两者消费方式不同、玩家不可感知，但这是一条没有理由留着的相关性，且渠道越多越难排查。**否决「给各渠道分配不相交的序号区间」**：效果相同但更脆（区间耗尽 / 新渠道加入需重新分配，且区间约定不可机械校验）。**⚠ `AccountSeed` 的复算契约是三参数的，后端侧须一致。**
+  - **为什么账号级不用 Godot 的 `RandomNumberGenerator`（承重）：** 跨语言逐位一致是**后端复算成立的前提**，把它押在引擎实现细节上，等于让「Godot 升级」成为一次静默的作弊窗口——这与本文件为 `RandomNumberGenerator.State` 写下的那条迁移警告同源。算法与测试向量的权威在 `backend-design-documents/contracts/profile-sync.md` §6 §6a；**实现后逐位对表**（8 组向量已填，无须等后端动手），**对不上时先复核实现、再复核表，不得单方面改表迁就实现**。
+  - **轮回级 RNG 完全不受影响**——地图 / 战斗 / 商店 / 奖励四条子流继续用 Godot 的 `RandomNumberGenerator`，只有账号级掷骰跨边界。
+  - **`AccountStream` 的成员序 `PowerFragment = 0` / `PremiumBundle = 1` 自此冻结，只能追加**——它是复算输入的一部分，与 `Source` 的「名与 code 双双永不复用」同一条纪律。
+  - **`ordinal` 参数保持 `int`**（两个调用方 `FinaleWinOrdinal` / `BundleGrantOrdinal` 都是 `int`），`(ulong)` 转换在 `For` 内部做一次——链路类型一致优先，且负值在此为程序缺陷（必需缺失处置）。
+  - **抽取链的参数类型是泛型约束的 `IRandomSource`**（`PickOne<TRng>(TRng rng, …) where TRng : IRandomSource`），使账号级掷骰与轮回级抽取共用同一段取池代码。**取泛型约束而非裸接口参数**：值类型经泛型特化调用，零装箱、零堆分配，落在既有热路径纪律内。落点见 `systems/services/content-service.md` 的 `DrawPool<T>` 契约与 `systems/services/profile-service.md` 的门面签名。
+  - **为什么必须有具名域：** 若只按 `(AccountSeed, ordinal)` 两参数派生，各渠道的序号都从 `1` 起，于是**同一 `AccountSeed` + 同一整数 ⇒ 同一输出**——礼包的第 1 次授予与残卷的第 1 次胜利掷骰会共享同一随机数。两者消费方式不同、玩家不可感知，但这是一条没有理由留着的相关性，且渠道越多越难排查。**否决「给各渠道分配不相交的序号区间」**：效果相同但更脆（区间耗尽 / 新渠道加入需重新分配，且区间约定不可机械校验）。三参数逐级混入的**顺序也是契约的一部分**（先 `stream` 后 `ordinal`，各带 `+1` 的全零防御），写反即整条序列不同——测试向量里有一对专抓它。
+  - **账号级授予一律用「本次」的序号掷骰（承重 · 两条渠道同款）：先算 `ordinal = 旧值 + 1`，用它掷骰，再把同一个值随同一次 `TryApply` 写回；绝不用自增前的旧值掷骰。**
+    - **理由是一条会稳定误报的缺口，不是文风：** 后端拿到上行 profile 后，用**存档里的**序号（必然是自增后的值）复算 `roll'` 并要求它与 `LastRoll` 相等；客户端若用自增前的值掷骰，两侧永远对不上，而这条校验的用途正是抓种子篡改 / 序号刷 / 换设备重掷——它会在**每一个正常账号上**触发。复算口径见 `backend-design-documents/contracts/profile-sync.md` §7。
+    - **序号自增与「是否抽中 / 是否发放」无关**：静默停摆时照常 `+1`，否则下一次复用同一 `ordinal`、掷出完全相同的序列，幂等键当场失效。
   - **单调序号同时是幂等键**——同一 `(stream, ordinal)` 重复结算得同一结果，退出重进 / push 重放都不改变结果，与决策点存档的防重掷同一条纪律。**一次授予要抽多条时（礼包的 1 法则 + 2 古宝）共用同一个 rng 实例连续抽**，故整次授予由 `(stream, ordinal)` 完全确定。
   - **对轮回可复现性零影响**（不派生自 `CycleSeed`、不消耗任何子流 `State`）。两个用例：**道统残卷**（`PowerFragment` 域，序号 = `FinaleWinOrdinal`，见 `systems/player-profile/player-power/_index.md`）与 **premium bundle**（`PremiumBundle` 域，序号 = `BundleGrantOrdinal`，落点见 `systems/monetization.md` 的待决项）。**「持有的账号级内容不同 ⇒ 同一 seed 的轮回体验不同」不构成公平性问题**：账号状态本就是轮回的输入（deck、法则、古宝皆然），既定的确定性承诺只覆盖「同一存档恢复后能正确继续」。
 - **确定性的边界：同一 `contentVersion` 内。** 内容热更**以 overlay 更新为准**——轮回进行中 overlay 更新时新数值立即生效，**不冻结该轮回的 `contentVersion`**。因此本项目**不承诺「同一 seed 跨内容版本复现同一轮回」**：seeded RNG 的目的是消除未加种子的随机、保证存档恢复后能正确继续，而非提供跨版本的绝对可复现性。数值可随时线上修正的价值高于跨版本复现。详见 `systems/services/content-service.md`。
@@ -98,7 +127,7 @@
 - **rules 里那份摘要的合法形态 = 一句祈使 + 标识符名 + 一句代价 + 一条直指本库的回链**——**越界清单、归属分类与三条机械规则见 `decisions/ADR-0005` 的「### 2. 规则层的具体形态」，本处不复述**。违反即制造第二权威：两份表会各自漂移，而本库没有任何机制能发现它们不一致。
 
 
-Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-14b-claude-rules-design-content-thinning.md`
+Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-14b-claude-rules-design-content-thinning.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md`
 
 ## 内容共有字段
 
@@ -191,8 +220,13 @@ public partial class LocalizedText : Resource
 - **落在持有条目上，不落在 `PowerData` / `ItemData` 上。** 这是物化模型的直接推论：`XxxData : Resource` 是 ContentRegistry 里的**共享只读单例**，而同一条法则可由不同渠道获得——**来源是「这一次获取」的属性，不是内容定义的属性**。它与 `status` 同层，属持有条目的运行态 / 存档态字段。
 - **写入时刻 = 授予时刻，此后不变。** 条目被移除后再次获得 = 一次新的获取，写新的 `SourceCode`。
 - **`Source` 是单一的 C# 枚举，不按类拆成四个。** 四类共用**同一条授予通道**（`AbilityChangeElement` 的 `Op == Grant` 与 `ProfileManager.Grant*`），一个 `Source` 形参贯穿全链；每类各一枚举会把它逼成 `object` / `int` / 泛型，直接撞上本文件「贯穿整条链路的类型一致性」。同型判断的先例是 `AbilityScope`——它同样把按类分裂的枚举合成一个。**分域差异由校验表承载，不由类型系统承载**（见下）。
-- **成员带 code 与 value：** **code** = 显式的稳定整数，是存档里实际序列化的东西（**重命名成员不破坏存档；已删成员的 code 永不复用**）；**value** = 展示文案，与 code 分离、可本地化、**不落存档**（走翻译键；但 `SourceCode` 当前不对玩家可见，翻译键暂不铺开）。与既定纪律同构——capability flag 的载体是 `enum CapabilityFlag` 而非字符串 key，显示字符串一律与键分离（见上方「稳定 Id 键」）。**⚠ 上行负载的序列化形态未收口**，见下方「待决问题」。
-- **成员清单 = 七值 + 兜底：**
+- **成员带 code 与 value：** **code** = 显式的稳定整数，是**存档**里实际序列化的东西；**value** = 展示文案，与 code 分离、可本地化、**不落存档**（走翻译键；但 `SourceCode` 当前不对玩家可见，翻译键暂不铺开）。与既定纪律同构——capability flag 的载体是 `enum CapabilityFlag` 而非字符串 key，显示字符串一律与键分离（见上方「稳定 Id 键」）。
+- **上行负载走字符串成员名（`"FinaleWin"`），映射发生在序列化边界。** 契约侧一律字符串、与 C# 成员名逐字相同（通则不开例外，权威在 `backend-design-documents/contracts/envelope.md` §2 与 `contracts/profile-sync.md` §5a）；存档侧仍是整数 code。
+  - **映射只在 `sync-service` 组装上行负载时做一次，不在 `profile-service` 内部做**——存档态与内存态始终是 code，避免同一个值在内存里有两种形态。
+  - **连带纪律（承重）：成员名与 code 双双冻结。** 存档侧靠 code、契约侧靠名，**两者各自都是稳定键**：重命名一个成员在**两侧都是**破坏性变更，已删成员的名与 code **同样永不复用**。
+  - **未知取值：记录原值、不改写、不拒收。** 归一为 `Unknown` 会压低 `x`、让残卷档位回跳，推翻「`x` 单调不减 ⇒ 档位只降不回跳」这条承重不变式。
+  - **`(Kind, Scope) → 允许的 Source 集合` 那张静态表只约束客户端组装，后端不复制**——后端只做取值识别与 `x` 复算。
+- **成员清单 = 八值 + 兜底：**
 
   | 成员 | code | 语义 | 计入残卷的 `x` |
   |---|---|---|---|
@@ -200,12 +234,19 @@ public partial class LocalizedText : Resource
   | `FinaleWin` | 1 | 渡劫成功时由道统残卷掷中并发放 | **是（唯一计入者）** |
   | `PremiumBundle` | 2 | 付费礼包给予 | 否 |
   | `AchievementReward` | 3 | 成就奖励给予 | 否 |
-  | `EventOutcome` | 4 | 非战斗类 AdventureEvent 的 outcome 授予 | 否 |
-  | `CombatReward` | 5 | 战斗类遭遇的 `Spoils` 授予（`Standard` / `Practice` 档；`Finale` 档的残卷那一路走 `FinaleWin`） | 否 |
+  | `EventOutcome` | 4 | 由**通用结算器**从物化后的 `EventOption` 的 outcome / effect 定义算出的授予（Research / Explore / Travel，以及 Exchange 的非购买 outcome） | 否 |
+  | `CombatReward` | 5 | 由 **combat-service** 在 `RunCombatAsync` 收口段算定、经 `CombatResult.Spoils` 交出的授予（含强制与可选两类；`Finale` 档的残卷那一路仍走 `FinaleWin`） | 否 |
   | `ExchangePurchase` | 6 | Exchange（交易）事件中购买所得 | 否 |
   | `InitialGrant` | 7 | 开局初始持有（角色创建时随 `CharacterProfile` 初始化的起手配置） | 否 |
+  | `ExchangeSell` | 8 | Exchange 中被玩家**卖给**商店（**唯一一个只出现在 `Op == Remove` 上的成员**） | 否 |
 
   **清单是开放的，不封闭在账号级那几条途径上**：神通 / 古宝 / 法宝各有真实存在的来路，字段应如实记录它们，否则轮回级两类只能一律落 `Unknown`。**`FinaleWin = 1` / `PremiumBundle = 2` / `AchievementReward = 3` 的 code 已冻结**——后端复算 `x` 依赖它们。
+- **成员的分野判据 = 谁组装出这条 element**（承重 · 不看它属于哪类事件、也不看它最后被谁写进去）。出自 `CombatResult.Spoils` → `CombatReward`（`Finale` 胜利的残卷那一路例外，走 `FinaleWin`）；出自通用结算器的 outcome / effect 定义 → `EventOutcome`；出自购买流程 → `ExchangePurchase`。
+  - **施加路径不构成判据。** 上述三者今天就已走同一条施加链路——都收敛为 `ProfileChangeSpec`、都在 `eventEnd` 由同一次 `TryApply` 写入；若「施加路径同一 ⇒ 应合并」成立，`InitialGrant` 也该一并合并，而清单不是按这条轴切的。**清单的粒度轴是渠道 / 组装路径**：Exchange 是非战斗类事件而其购买所得单列 `ExchangePurchase`，即是这条轴的直接体现。
+  - **按事件类型表述会被两处打穿，故不采用。** ① `EventOption.EventType` 在 Explore 时恒为 `Explore` 本身、真身在 `RevealedEventId`——一个揭示出战斗真身的 Explore 选项按事件类型判会写成 `EventOutcome`，而它实际出自 combat-service 交出的 `Spoils`；② Exchange 的非购买 outcome（对话结果、赠礼）在事件类型轴上无归属，按组装者判则唯一：**只有走购买流程的那一条走 `ExchangePurchase`，其余走 `EventOutcome`**。
+  - **`EventOutcome` 与 `CombatReward` 分立，不合并为一个成员。** 合并会让 `TryApply` 的可追溯性日志与客服 / 数据侧的账号溯源同时失去「战斗掉落 vs 事件产出」这条区分，而持有条目上**没有任何字段能事后补出它**（`SourceInstanceId` 是另一个字段，见下）——这个维度一旦不写就永久消失。对价只是一个零维护成本的枚举成员（不进 `.tres`、不走 overlay、后端不复制校验表）。在「名与 code 双双永不复用」的冻结纪律下，粒度选择本就不对称：**细了可以永远不用（成本恒为零），粗了要补回来得追加新成员且老数据无法回填**。
+  - **两者在 `(Kind, Scope)` 表中逐格相同（❌ ❌ ✅ ✅）不构成合并理由。** 同表中 `PremiumBundle` 与 `AchievementReward` 同样逐格相同（✅ ✅ ❌ ❌）。**行相同只说明挂载面相同**（能出现在哪类持有条目上），渠道说的是**由哪条路径给出**——两个正交维度。
+  - **重开条件（可观察）：** 仅当 combat-service 的奖励计算被并入通用结算器时重新评估两者是否合并——具体即以下任一发生：① `RunCombatAsync` 不再自算 `Spoils`；② 战后可选奖励选择步骤被取消；③ 奖励厚度不再由道念差决定。三者任一都会在 `systems/services/combat-service.md` 的「意图」节留下痕迹，故无须定期主动复核。
 - **⚠ 不为「置换所得」设成员（禁令）。** 清单开放不意味着这一条也能加：新设一个 `Replacement` 成员会立刻打破 `x` 的单调不减，重开「用置换刷回高掉率」的通道。
 - **合法取值域按 `(Kind, Scope)` 分域。** `(Kind, Scope)` 是全库既有的分类键（置换同池判据即它全同），四类 = 该二元组的四个取值：
 
@@ -218,15 +259,19 @@ public partial class LocalizedText : Resource
   | `CombatReward` | ❌ | ❌ | ✅ | ✅ |
   | `ExchangePurchase` | ❌ ※ | ✅ | ✅ | ✅ |
   | `InitialGrant` | ❌ | ❌ | ✅ | ✅ |
+  | `ExchangeSell` | ❌ | ❌ | ❌ | ✅ |
   | `Unknown` | ✅（仅读档兜底） | ✅（同左） | ✅（同左） | ✅（同左） |
 
   - **账号级不接 `CombatReward` / `InitialGrant`：** 账号级授予唯一的战斗入口就是残卷，而它已有专用成员 `FinaleWin`；「开局初始持有」是角色创建时的行为，账号级两类不随角色创建发放。
   - **轮回级不接 `PremiumBundle` / `AchievementReward`：** 二者按定义是账号级发放——发一件随轮回清理的东西作为付费 / 成就回报，与「付费内容不会被游戏销毁」正面冲突。
   - **`Unknown` 只作读档兜底，不是授予时的合法入参**（授予侧传 `Unknown` = 调用方漏填，与「不设默认值」同一条纪律）。
   - **※ 三格 ❌ 是「暂不开放」，不是「语义上不可能」。** 它们取决于尚未设计的「法则的第三条获取渠道」（见 `systems/player-profile/player-power/_index.md` 的待决项）；在那条答定前一律 ❌，**日后开放 = 在校验表里翻一格，无任何结构改动**。
+  - **`ExchangeSell` 是清单里唯一一个「怎么没的」而非「怎么来的」的成员，故它只出现在 `Op == Remove` 上。** 买与卖在履历、成就与诊断上是两件事：复用 `ExchangePurchase` 会让「购买次数」这类统计永远算不准，而 `Source` 的既定职责本就是「这件东西怎么来的 / 怎么没的」。**校验相应扩一格**：`Op == Grant` 且 `Source == ExchangeSell` → **必需缺失**，`PushError` + 整批拒绝（与「`(Kind, Scope, Source)` 不在合法子集表内」同档）。**它不落在任何持有条目的 `SourceCode` 上**（那件东西已经不在了），只出现在 `AppliedChange` 的那条 `Remove` element 里——账里因此读得出「这件法宝是卖掉的，不是被事件剥夺的」。**售出面仅 `CharacterItem` 一族开放**，规则权威见 `systems/adventure-event/exchange/_index.md`；表中其余三格 ❌ 是规则层的封死，不是「暂不开放」。
+  - **它本身不单独 bump schema**（字段形状不变，仍是一个整数 code，仅值域扩大——与下方那条通则一致）；但**它随同批的 `EventOption` 两个新物化字段一起落在一次 bump 内**，当前无线上存档 ⇒ **空迁移**。
   - **合法子集表落为一张静态查表**（`(Kind, Scope) → 允许的 Source 集合`），与置换同池判据共用 `(Kind, Scope)` 键；它是**代码常量，不是内容资源**——它约束的是代码组装而非内容编写，**不进 `.tres`、不走 overlay**。
 - **授予通道必须带上来源：** 凡授予 power / item 的 element（`AbilityChangeElement`，`Op == Grant`）**必须携带 `Source`，不设默认值**——省略即产生来源未知的条目，而 `x` 直接读这个字段。`ProfileManager` 的授予签名相应带上来源（`GrantPower(string powerId, Source source)`，见 `systems/services/profile-service.md`）。
 - **校验：入口严、读档宽。** `Op == Grant` 且 `(Kind, Scope, Source)` 不在合法表内、或 `Source == Unknown` → **必需缺失**，`GD.PushError` + **整批拒绝**（与 `PairKey` 配对不成立同档）。读档遇不合法的**既有条目** → **可选缺失**，`GD.PushWarning` + **保留原值**，不阻塞、不改写。**这条非对称是唯一安全的方向**：读档回落 `Unknown` 会把一条 `FinaleWin` 法则改判为非 `FinaleWin`，压低 `x` 并让档位回跳，违背单调不减。缺失字段 / 无法识别取值仍归入 `Unknown`（老档迁移即补 `Unknown`，当前无线上账号，迁移成本为零）。
+  - **组装者判据另有一条单向校验**，落在 life-cycle-service 合并 `eventEnd` 事务处（未走过 combat-service 的事件出现 `CombatReward` → 整批拒绝；反向不判非法），见 `systems/services/life-cycle-service.md`。
 - **不 bump 存档 schema。** 字段形状不变（仍是一个整数 code），仅值域扩大；老档中的 `Unknown` 原样保留，无迁移动作。
 - **置换不改变来源：置换所得条目继承被换出条目的 `SourceCode`。** 目的是**关死「用置换刷回高掉率」的通道**——若置换产物记为一条新来源，换掉一条 `FinaleWin` 法则即使 `x` 下降、档位回跳。**推论：置换对 `x` 完全中性，「`x` 单调不减 ⇒ 档位只降不回跳」因此成立**；代价是来源字段记的是「这条能力最初从哪条途径进入账号」而非「上一次易手的方式」，这是有意的取舍。
 - **消费点分两层：**
@@ -251,7 +296,7 @@ public partial class LocalizedText : Resource
 - **选 `Source?` 而非新开一个布尔（如 `AchievementExclusive`）**：同一诉求日后必然重演（活动限定、剧情限定条目），复用既有枚举让「限定给谁」成为一次数据填写，而非每次新增一个布尔字段——与「新增内容 = 新增 `.tres`，不改 switch」同一条纪律。取值域随 `Source` 清单扩张而自然扩大。
 - **不落存档**（它是内容定义的属性，不是持有条目的属性），故不 bump schema。
 
-Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-14-common-properties-layering.md`
+Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-14-common-properties-layering.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -262,10 +307,7 @@ Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **⚠ `Source` 在上行负载里的序列化形态未收口（承重 · 收口归后端库）。** 本文件上方写「code 是**存档**里实际序列化的东西」，未覆盖上行负载；而 `backend-design-documents/contracts/envelope.md` 要求「**枚举值一律字符串，取值与客户端 C# 枚举名逐字相同**」——若上行也走整数 code，两条不能同时成立。**倾向的收口：契约侧走字符串名 · 存档侧走整数 code · 客户端在序列化边界做一次映射**（通则不开例外），若如此则须补一条「**成员名与 code 双双冻结、永不复用**」的纪律。**不阻塞成员清单落地**——它只决定线上表示形态。裁决归后端库。
-- **`EventOutcome` 与 `CombatReward` 是否终将合并。** 二者分立的前提是「战斗类遭遇的 `Spoils`」与「非战斗事件 outcome」确为两条组装路径（当前文档支持这一判断）。若最终合流为同一条链路，两个成员应合并为一个——**合并时 `CombatReward = 5` 的 code 就此弃用、永不复用**，不得改判为别的语义。→ `systems/services/combat-service.md`、`systems/services/future-event-service.md`。
-
-Source: `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `backend-design-documents/handoffs/2026-08-12-grant-source-code-contract.md`
+*（无）*
 
 ## 对应
 提炼至：`.claude/knowledge/standards/`（ADR-0005：设计投影的三份 `signal-eventbus` / `rng-determinism` / `save-format` 为**薄引用**，回链本库；`csharp-conventions` / `godot-scene-conventions` / `mobile-portrait-ui` 讲 C#/Godot 引擎实践，在本库无权威，**保留实质**）。

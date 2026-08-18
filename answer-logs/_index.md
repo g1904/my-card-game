@@ -23,6 +23,25 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-draw-pool-and-instance-shapes.md` | 2026-08-17 | `inbox/archive/solution-draft-draw-pool-and-instance-shapes.md` → `handoffs/2026-08-17k-draw-pool-and-instance-shapes.md` | 3 完整 + 1 部分 |
+| `log-event-option-derived-persistence.md` | 2026-08-17 | `inbox/archive/solution-draft-event-option-derived-persistence.md` → `handoffs/2026-08-17j-event-option-derived-persistence.md` | 1 |
+| `log-event-option-materialized-fields.md` | 2026-08-17 | `inbox/archive/solution-draft-event-option-materialized-fields.md` → `handoffs/2026-08-17i-event-option-materialized-fields.md` | 4 |
+| `log-profile-field-schema.md` | 2026-08-17 | `inbox/archive/solution-draft-profile-field-schema.md` → `handoffs/2026-08-17h-profile-field-schema.md` | 10 |
+| `log-element-carrier-gaps.md` | 2026-08-17 | `inbox/archive/solution-draft-element-carrier-gaps.md` → `handoffs/2026-08-17g-element-carrier-gaps.md` | 4 |
+| `log-lifespan-gain-paths.md` | 2026-08-17 | `inbox/archive/solution-draft-lifespan-gain-paths.md` → `handoffs/2026-08-17f-lifespan-restoration-paths.md` | 1 |
+| `log-combat-finale-and-hidden-attributes.md` | 2026-08-17 | `inbox/archive/solution-draft-combat-finale-and-hidden-attributes.md` → `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` | 2 |
+| `log-exchange-mechanics.md` | 2026-08-17 | `inbox/archive/solution-draft-exchange-mechanics.md` → `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` | 4 |
+| `log-explore-mechanics.md` | 2026-08-17 | `inbox/archive/solution-draft-explore-mechanics.md` → `handoffs/2026-08-17c-explore-reveal-mechanics.md` | 4 |
+| `log-research-mechanics.md` | 2026-08-17 | `inbox/archive/solution-draft-research-mechanics.md` → `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` | 5 |
+| `log-0817.md` | 2026-08-17 | 无草稿——`open-questions/cross-boundary.md` 待承接项直接落笔 | 3（均为承接项） |
+| `log-plot-data-encoding.md` | 2026-08-16 | `inbox/archive/solution-draft-plot-data-encoding.md` → `handoffs/2026-08-16i-plot-data-encoding.md` | 2 |
+| `log-event-outcome-vs-combat-reward.md` | 2026-08-16 | `inbox/archive/solution-draft-event-outcome-vs-combat-reward.md` → `handoffs/2026-08-16h-grant-source-assembler-criterion.md` | 1 |
+| `log-travel-mechanics.md` | 2026-08-16 | `inbox/archive/solution-draft-travel-mechanics.md` → `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` | 4 |
+| `log-elements-modifier-pipeline-rule.md` | 2026-08-16 | `inbox/archive/solution-draft-elements-modifier-pipeline-rule.md` → `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` | 1 |
+| `log-account-identity-model.md` | 2026-08-16 | `inbox/solution-draft-account-identity-model.md` | 1 |
+| `log-cost-side-closure.md` | 2026-08-16 | `inbox/archive/solution-draft-cost-side-closure.md` → `handoffs/2026-08-16d-cost-side-closure.md` | 3 |
+| `log-effect-keywords-and-targeting.md` | 2026-08-16 | `inbox/archive/solution-draft-effect-keywords-and-targeting.md` → `handoffs/2026-08-16c-effect-keywords-and-targeting.md` | 1 |
+| `log-cross-library-alignment.md` | 2026-08-16 | `inbox/archive/solution-draft-cross-library-alignment.md` → `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` | 1 |
 | `log-0815c.md` | 2026-08-16 | `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` | 8 |
 | `log-0815b.md` | 2026-08-15 | `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` | 4 |
 | `log-0815a.md` | 2026-08-15 | `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` | 6 |

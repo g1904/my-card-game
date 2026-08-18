@@ -38,7 +38,7 @@
   - **成就奖励同款处理**：`AchievementReward` 得来的法则同样不计入 `x`，不压低残卷掉率（见 `player-profile/achievement/`）。
 - **① ② 的「随机」= 与残卷 / 置换共用的那一段抽取。** 取池链、加权与无放回语义的权威在 `player-profile/player-power/_index.md`；此处只记礼包侧的口径：
   - **① 从 `(Power, Player)` 池抽 1 条、② 从 `(Item, Player)` 池抽 2 件**，均已**排除已持有**（故第二次礼包不可能给到与第一次相同的条目）、已**排除成就限定条目**（`ExclusiveSource != null`）、按 `RarityTier` **加权**（与残卷**共用同一张权重表**——分表等于让付费直接买到更高档强度，与「礼包净强度已上升是被接受的」叠加两次）。② 的 2 件走**无放回**抽取，保证两件不同。
-  - **掷骰走账号级 RNG 的 `PremiumBundle` 域**：`AccountRng.For(AccountStream.PremiumBundle, BundleGrantOrdinal)`，一次派生、3 条连续抽 ⇒ 整次授予由 `(域, 序号)` 完全确定，退出重进 / push 重放不改变结果。**`BundleGrantOrdinal` 的形状已定**（账号级、单调递增、不清零、随授予事务同一次持久化），**落点依赖「持有状态的存档表达」那条待答**。
+  - **掷骰走账号级 RNG 的 `PremiumBundle` 域**：`AccountRng.For(AccountStream.PremiumBundle, BundleGrantOrdinal)`，一次派生、3 条连续抽 ⇒ 整次授予由 `(域, 序号)` 完全确定，退出重进 / push 重放不改变结果。随机源是契约定义的纯函数 SplitMix64（`AccountStream.PremiumBundle = 1` 已冻结），见 `systems/common-properties.md`。`BundleGrantOrdinal` 落 `PlayerEntitlement`，JSON path `/entitlement/bundleGrantOrdinal`（账号级、单调递增、不清零、随授予事务同一次持久化）。
   - 授予时照常携带 `Source.PremiumBundle`（授予通道强制带来源，见 `systems/common-properties.md`）。
 - **空池 = 三道闸 + 不补发（承重）。** 礼包与残卷 / 置换有本质区别：**它是玩家付过钱的**。静默少发一条法则 = 收了钱没给货，是客诉与退款级别的问题，且在「强制在线 · 云端权威」下后端必须能看见这件事。既定的「付费内容不会被游戏销毁」讲的是**已授予**的不被拿走；本条补的是**未授予**的不被吞掉。
 
@@ -60,7 +60,7 @@
 - **一次授予 = 一次 `TryApply`，序号先算后写。**
 
   ```
-  ordinal = profile.Entitlement.BundleGrantOrdinal + 1     ← 先取「本次」的序号
+  ordinal = profile.Entitlement.BundleGrantOrdinal + 1     ← 先取「本次」的序号（通则见 systems/common-properties.md）
   rng     = AccountRng.For(AccountStream.PremiumBundle, ordinal)
   picked  = TryPickGrantable(Power, Player, rng) + TryPickGrantableMany(Item, Player, rng, 2)
   spec    = { Elements:        [ BundleGrantOrdinal := ordinal ],
@@ -70,7 +70,7 @@
 
   - 随机在 **spec 组装之前掷完**（既定纪律：`AbilityChangeElement` 只承载已定稿的 `Id`）。
   - **序号自增与「是否抽中」无关。** 闸 ③ 真发生时（理论不可达）该项计未兑现、不补发，但 `BundleGrantOrdinal` **照常 +1**——否则下一次购买复用同一 `ordinal`、掷出完全相同的序列，幂等键当场失效。
-  - **该 element 显式豁免 modifier pipeline**（理由同统计层豁免，只是后果严重得多：经 pipeline = 一条法则能改写付费凭证）。
+  - **该 element 在 `ResourceElements` 表中两个修正列均为空**，故不经 modifier pipeline——这不是本系统的个案例外，而是**通则的缺省**（`Elements` 缺省豁免、只有表中显式登记 `ModifierKey` 的那一行才经）。判据在此处最尖锐：**经 pipeline = 一条法则能改写付费凭证**。通则、表与逐行取值见 `systems/services/profile-service.md`。
   - `SavePointReason` 取 `MetaChanged`、`PushPolicy` 取 `Immediate`，均为既有枚举。
 - **购买段后端权威 · 兑现段客户端演算，且整条流程只在主菜单发起（承重）。**
 
@@ -78,6 +78,9 @@
   |---|---|---|
   | **① 购买段** | 平台 SDK + 后端 | 唤起平台内购 → 收据 → 上行验票 → **后端**把云端 `bundleGrantOrdinal` +1、`cloudRevision` +1 |
   | **② 兑现段** | 客户端（后端复算） | 客户端 **pull** 到新序号 → 用 `(PremiumBundle, ordinal)` 掷骰抽 3 条 → 一次 `TryApply` → `Immediate` push；后端以同一 `(AccountSeed, stream, ordinal)` 复算校验 |
+
+  - **验票端点的报文、幂等口径与服务端保证的权威在 `backend-design-documents/contracts/purchase.md`**（验票由后端向平台校验、写入只由 verify 承担、渠道回调只作对账；平台收据 id 是幂等键，同一张票重复提交绝不重复 `+1`）。本文件只写客户端这一半，不复述报文。
+  - **购后 pull 失败 ⇒ 阻塞在主菜单重试直到成功**，不允许在未兑现状态下开始新轮回；重试走该契约的收据幂等读，`receiptId` 随待兑现态持久化、跨启动可补查。形态与否决项见 `systems/services/sync-service.md`。
 
   - 「谁有权把 `BundleGrantOrdinal` 从 n 推到 n+1」**只能是后端**，否则整套防篡改归零。**否决客户端自行置位 + 后端事后校验**（客户端置位 = 客户端有权发货；事后发现不一致时玩家已拿到东西，回收比不发更糟），**否决兑现也放后端做**（`AccountRng` / `GrantPoolPicker` 要在两侧各实现一遍，与既定的「客户端掷、后端复算」分裂成两条路径）。
   - **⚠ 它引入同步模型此前没有的第四种情形：后端主动写入。** 时机纪律与它关闭冲突窗口的机理见 `systems/services/sync-service.md`；本系统侧只承接其结果——**购买入口在轮回内 / 战斗内 / 结算流程内不存在**。
@@ -99,7 +102,7 @@
 
   | 排除项 | 理由 |
   |---|---|
-  | **付费续命 / 复活**（花钱撤销一次 `defeated`） | **最强的一条**：ADR-0004 明写「存档角色是一种会被耗尽的有限资源、构成元进程压力」。付费续命不是放宽这条压力线（③ ④ 那样、有档、有上限），而是**按次取消**它——pay-to-win 滑坡的教科书形态 |
+  | **付费续命 / 复活**（花钱撤销一次 `defeated`） | **最强的一条**：ADR-0004 明写「存档角色是一种会被耗尽的有限资源、构成元进程压力」。付费续命不是放宽这条压力线（③ ④ 那样、有档、有上限），而是**按次取消**它——pay-to-win 滑坡的教科书形态。**它的软形态已被结构性关死**：礼包两个抽取池的条目一概不得产出寿元（`ItemData.Scope == Player` 与 `PowerData` 各一条加载期 `PushError`），否则「花钱 → 抽到 → 续寿」等价于按次稀释同一条压力线——没有「撤销一次 `defeated`」，只是让它更晚到来。见 `systems/character-profile/item/_index.md`、`systems/character-profile/power/_index.md` |
   | **抽卡 / 扭蛋 / 随机付费箱** | 本作的随机授予是**买断式一次授予**（付了钱必得 1+2、排重、三道闸保兑现），与「反复付费抽同一个池」形态相反；且概率公示 / 未成年人限额的合规成本高 |
   | **消耗型货币 / 硬通货** | 已被「本作没有账号级可支配货币」关死；「为兜底引入一条」等于新开一套经济，已否决 |
   | **体力 / 付费加速** | 本作无体力、无 grind、无等待——没有可被加速的对象 |
@@ -111,7 +114,7 @@
   - **重试次数耗尽时不提示购买**，两条独立理由——① 那是玩家刚失去一个角色的时刻，此处推销正是「付费才玩得下去」观感的经典成因，且会把 ③ ④ 从「宽松化」在观感上变成「解锁继续游玩」；② **它在结构上本就不可行**（购买只在主菜单发起、待发队列为空，而重试耗尽是轮回内 / 结算流程内的时刻）。
   - **允许的全部呈现穷举为两处**：主菜单入口本身；礼包详情页内如实列出四项权益（及第二次起的删减说明）。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

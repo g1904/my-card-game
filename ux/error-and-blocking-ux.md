@@ -26,15 +26,21 @@
   // UI 层（不在 src/Core/：那里无界面上下文）
   public static class ErrorText
   {
-      /// code 优先；缺翻译条目 → PushWarning + 按 OpError 回落到四条通用文案之一。
-      public static string For(string code, OpError error);
+      /// 二级键优先（reasonKey 非空且有翻译条目）→ 一级键（code）→ 按 OpError 回落到四条通用文案之一。
+      /// 二级键缺条目时静默走一级键（后端可随时新增 reasonKey，那不是缺陷）；
+      /// 一级键缺条目才 PushWarning。
+      public static string For(string code, string reasonKey, OpError error);
 
       /// "auth.session_revoked" → "ERR_AUTH_SESSION_REVOKED"。纯机械变换，无手写对照表。
       internal static string ToTranslationKey(string code);
 
+      /// 一级键 + reasonKey 按大写字母切分转 UPPER_SNAKE。
+      /// ("auth.session_revoked", "SignedInElsewhere") → "ERR_AUTH_SESSION_REVOKED_SIGNED_IN_ELSEWHERE"。
+      internal static string ToTranslationKey(string code, string reasonKey);
+
       /// 启动期审计（双向，见下方「键命名规范」）：
       ///   正向 —— 遍历处置表全部已知 code，缺翻译条目者一次性 PushWarning 列出；
-      ///   反向 —— 扫 errors.csv，出现无对应 code 的 ERR_* 行者一次性 PushWarning 列出。
+      ///   反向 —— 扫 errors.csv，凡不以任何已知 code 的像为前缀的 ERR_* 行，一次性 PushWarning 列出。
       public static void AuditTranslations();
   }
   ```
@@ -50,8 +56,33 @@
 
   这四条正是总则 7 那张 `class` 默认路径表在文案侧的镜像（`Retryable`→`Network`、`Reauth`→`Auth`、`Fatal` / `Upgrade`→`Validation`），**无需另立一套判据**。
 - **启动期审计（「纪律的可执行化」阶梯第 2 级）。** `ErrorText.AuditTranslations()` 遍历处置表的全部已知 `code` 逐个查翻译条目，缺失者一次性 `PushWarning` 列出。成本一个 `foreach`，把「上线后某个错误弹出一串大写英文键」挡在开发期。与 `system-overview.md` 第四节的 BootstrapScreen 断言、`content-service` 的启动期校验同构。**它是双向的**——反向那一半的理由见下方「键命名规范」的 `ERR_` 禁令。
-- **`OpResult.Detail` 是诊断串，UI 永不直接渲染它。** `Detail` = `code` + `requestId` + 后端 `message`（本地失败则为定位上下文）。玩家可见文案一律经 `ErrorText.For(code, error)`。**可机械检查**：UI 层不出现「把 `OpResult.Detail` 赋给任何 `Label.Text`」的写法。若 `Detail` 兼两个身份，总则 7 那三条承重纪律**一条也无法机械检查**——只要它可能被渲染，英文调试串就随时可能漏到屏上。
+- **`OpResult.Detail` 是诊断串，UI 永不直接渲染它。** `Detail` = `code` + `requestId` + 后端 `message`（本地失败则为定位上下文）。玩家可见文案一律经 `ErrorText.For(code, reasonKey, error)`。**可机械检查**：UI 层不出现「把 `OpResult.Detail` 赋给任何 `Label.Text`」的写法。若 `Detail` 兼两个身份，总则 7 那三条承重纪律**一条也无法机械检查**——只要它可能被渲染，英文调试串就随时可能漏到屏上。
 -
+
+### `detail.reasonKey`：二级措辞的键，且必须有兜底
+
+有几个 `code` 的玩家侧含义**不由 `code` 单独决定**——后端在 `detail` 里给一个 `reasonKey` 区分同一个 `code` 下的不同情形（会话吊销的触发源、合规拦截的规则、昵称被拒的理由）。三条纪律：
+
+- **一级文案仍按 `code` 取**，`reasonKey` 只驱动二级措辞。这保证任何一个 `code` 在 `reasonKey` 缺失或不认识时仍有话可说。
+- **未知 `reasonKey` 必须回落到该 `code` 的一级文案**，不得留空、不得把键本身显示出来。这与「未知 `code` → 按 `class` 降级」同构，理由也同源：后端新增一个 `reasonKey` **不应要求客户端同批发版**。
+- **`reasonKey` 的取值集合由后端契约给出，客户端不维护第二份清单。** 客户端只维护「已知取值 → 二级措辞」的翻译条目，未列出的一律走上一条。
+  取值表与形态的权威在 `backend-design-documents/contracts/auth.md` §10（`auth.session_revoked` 七值 · `auth.nickname_rejected` 三值 · 形态 PascalCase 锁死）与 `backend-design-documents/contracts/compliance.md` §5（`compliance.*` 四条码各自的取值）。**本库不复述取值**——复述即制造第二权威，而这份表按契约设计**会持续扩张**。
+
+**二级文案键同样是机械变换，不是第二张手写表。** 一级键（`code` 的像）+ `_` + `reasonKey` 按大写字母切分转 UPPER_SNAKE：
+
+| `code` + `reasonKey` | 二级翻译键 |
+|---|---|
+| `auth.session_revoked` + `SignedInElsewhere` | `ERR_AUTH_SESSION_REVOKED_SIGNED_IN_ELSEWHERE` |
+| `compliance.playtime_blocked` + `MinorDailyLimit` | `ERR_COMPLIANCE_PLAYTIME_BLOCKED_MINOR_DAILY_LIMIT` |
+
+与上方 `code → ERR_*` 是同一条纪律的第二次兑现，理由也同源：手写对照表引入「后端加了个 `reasonKey`、文案表忘了加」这一失效面，机械规则下它不存在——只可能是翻译条目缺失，而那走未知回落。**`ErrorText.For` 因此吃三个参数**（见下方代码块）。
+
+**连带：反向审计的判据必须放宽为「前缀匹配」，否则每个二级键都会被误报。** `errors.csv` 的一行合法当且仅当它**等于**某个已知 `code` 的像，**或**以某个已知 `code` 的像为前缀、其后为 `_` + 一段 UPPER_SNAKE 后缀。
+
+- **这仍然挡住了禁令要防的那件事**：手写 `ERR_LOGIN_FAILED` 在没有 `code = "login.failed"` 时不匹配任何已知 `code` 的像，照样被报出。
+- **且它不要求客户端持有 `reasonKey` 清单**——放宽到「前缀 + 任意 UPPER_SNAKE 后缀」正是为了让上一条（不维护第二份清单）成立。二者若都要，反向审计就只能校验到一级键这一层，这是**刻意接受的精度损失**：二级键写错一个后缀的后果是该条文案走未知回落，属可降级失败；而撞键是静默显示错文案，属不可见失败。**挡住不可见的那个，放过可降级的那个。**
+
+**另一类不参与文案的 `detail` 字段：渠道原始错误码。** 它随渠道版本漂移，**客户端不解析、只随日志上报**——文案按 `code` 取，不因它分叉。这与「客户端不解析 `message`」是同一条。
 
 ### 翻译资源：全库统一走翻译键，随包分发
 
@@ -103,7 +134,7 @@
 
 `ERR_*` 与其余分区有一条**本质差别**：它的键不是人取的，是 `code → ERR_ + 全大写 + `.`→`_`` 的**像**。若允许有人手写一个 `ERR_LOGIN_FAILED`，而后端某天新增 `code = "login.failed"`，两者会**撞进同一个键**——一条后端错误会静默显示成一句为别处写的文案。这类 bug 发版后才显形，且现场看不出异常。
 
-- **`errors.csv` 的每一行都必须是某个已知 `code` 的像。** 故 `ErrorText.AuditTranslations()` **是双向的**：正向查「已知 `code` 缺不缺条目」，**反向扫 `errors.csv`，出现无对应 `code` 的 `ERR_*` 行 → `PushWarning` 列出**。成本同样是一个 `foreach`，把撞键挡在开发期。
+- **`errors.csv` 的每一行都必须是某个已知 `code` 的像，或该像加一段 `reasonKey` 后缀**（二级键，见上方「`detail.reasonKey`」）。故 `ErrorText.AuditTranslations()` **是双向的**：正向查「已知 `code` 缺不缺条目」（**只查一级键**——客户端不持有 `reasonKey` 清单，二级键无从正向枚举），**反向扫 `errors.csv`，凡不以任何已知 `code` 的像为前缀的 `ERR_*` 行 → `PushWarning` 列出**。成本同样是一个 `foreach`，把撞键挡在开发期。
 - **非错误场景要表达失败**（如「储物袋已满」这类**本地业务拒绝**，它没有后端 `code`）→ 走所属分区的普通键（`PROFILE_MAGICPACK_FULL`），**不占 `ERR_` 前缀**。
 -
 
@@ -246,7 +277,7 @@ public readonly record struct BlockingNoticeSpec(
 - **非模态提示与 toast 级提示不放**——那是高频呈现，加编号是噪音。
 - **纪律：它是诊断展示，不是玩法数据。** ViewModel 只读一次，不进任何玩法路径、不参与判断（与「同步版本 #N」同条纪律）。
 
-Source: `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md`
+Source: `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
@@ -256,6 +287,7 @@ Source: `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026
 - **Godot 4.7 上 `Control` 自动翻译（`auto_translate_mode`）的默认行为。** 若默认即生效，`.tscn` 里把 `text` 直接写成键就够了、UI 代码里连 `tr()` 都不必出现；否则显式 `tr()`。**两种情况下键的形态、分区表、两条审计完全相同**，故不阻塞任何已定案内容；宜与 `#if DEBUG` 判据的实测合并到同一次 `.csproj` 生成后的实测。
 - **`res://text/` CSV 侧英文占位符的具体形态。** 「英文文案全部预设占位符」已定；占位符取键名本身、`TODO`、还是机翻初稿，未陈述。**范围仅剩 CSV 一侧**——内容层一侧已答定为「缺 `en` 键即未翻译」，由静默回落承接。定下来时须回看 `AuditTranslations()` 的覆盖率口径：**若取键名本身，审计得能识别它，否则英文覆盖率恒读作 100%。**
 - **四条兜底文案与各 `ERR_*` 的实际措辞。** 结构与键已定，**逐条中文措辞待文案定稿**（属内容充实，不阻塞结构落地）。
+- **`reasonKey` 二级措辞的逐条文案。** 结构、形态、机械变换与兜底规则均已定，三处的取值集合也已由后端契约填表（见「意图」的回链）——**仅剩逐条中文措辞待文案定稿**，与「四条兜底文案与各 `ERR_*` 的实际措辞」同属内容充实，不阻塞结构落地。
 
 ## 提供给
 提炼进:`.claude/knowledge/scenes/_index.md`

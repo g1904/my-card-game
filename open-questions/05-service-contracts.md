@@ -1,5 +1,6 @@
 # ⑤ 服务契约 / 工程侧残留（焦点，但均为下一层细节）
 
+
 > 本分片属 `../open-questions.md` 的当前焦点区。
 >
 > 「七个服务的 API 面未定义」已答结（八条契约总则、共享核心类型、逐服务签名骨架、EventBus 负载 schema 均已定案，权威在 `systems/architecture.md`「API 契约总则」；移出记录见 `../answer-logs/log-service-api-contracts.md`）。
@@ -16,10 +17,16 @@
 >
 > **`.claude/rules/*` 中夹带的设计性表述如何处理**已于 08-14b 答结：形态合法、**不**瘦身到纯链接（依据 = knowledge 主动读 vs rules 前置注入的加载模型差异），改为补上量化阈值（投影四件套 + 七条硬边界 + 三条机械规则）与执行者（扩 `/sync-knowledge` 的对账范围到 `rules/`）。权威在 `decisions/ADR-0005` 的「### 2. 规则层的具体形态」，`systems/common-properties.md` 只留一段投影；移出记录见 `../answer-logs/log-claude-rules-design-content-thinning.md`。
 >
+> **`Source` 在上行负载里的序列化形态**已于 08-16 答结：契约侧走字符串成员名 · 存档侧走整数 code · 客户端在 `sync-service` 组装上行负载时做一次映射，并补上「名与 code 双双冻结、永不复用」纪律。权威在 `systems/common-properties.md` 与 `backend-design-documents/contracts/profile-sync.md` §5a；移出记录见 `../answer-logs/log-cross-library-alignment.md`。
+>
 > **三条「靠约定执行」的工程纪律**（离线开关发布期防护 / EventBus 退订可执行性 / `AllEnabled()` 可执行性）已于 08-09 一次答结——统一判据「纪律的可执行化」四级阶梯落在 `systems/architecture.md`，三处形态分别落在 `system-overview.md` 第四节、总则 5、`systems/services/content-service.md`；移出记录见 `../answer-logs/log-discipline-enforceability.md`。
 
+- **`monetization.md` 内部相抵——`BundleGrantOrdinal` 究竟由谁施加（08-17 新增 · 承重）。** 该文档的购买伪码由**客户端**组装 `Elements: [BundleGrantOrdinal := ordinal]` 并 `TryApply`，而同文档的购买段定案写「只能由**后端** +1，客户端 pull 到新序号后只做兑现」。它决定 `ResourceElements` 里 `BundleGrantOrdinal` 那一行的 `AllowedOps = Set` 是否存在客户端施加路径。**归 monetization / sync 专场；可能跨库**（后端 `contracts/purchase.md` 是验票写入的权威）。→ `systems/monetization.md`、`systems/services/sync-service.md`。
+- **`activeCombat` 的写入通道未明写（08-17 新增 · 承重）。** `activeEvent` 已定走 `ProfileChangeSpec.EventStateChanges`（整块绝对置值），而形态完全相同的 `activeCombat` 至今没有任何列可落、写入路径来路不明 ⇒ 两个同形的事件内中间态各长一套写入纪律。现成方案是把它收进同一列，范围落在战斗存档段，本轮明确不动。→ `systems/services/combat-service.md`、`systems/services/profile-service.md`。
+- **RNG 状态的写入通道形态未定（08-17 新增 · 承重）。** 已落不变式「凡消耗了子流随机的提交，该子流 `State` / `DrawCount` 必须在同一次原子写内更新」+ 一条恢复自校验，但 `Rng` 块目前没有任何 `ProfileChangeSpec` 列可落 ⇒ 该不变式暂由组装方自律兑现、无机械保证。是否纳入 `EventStateChanges` / 另开一列，牵动 `activeCombat` 与四条子流的全部写入点。→ `systems/services/life-cycle-service.md`、`systems/services/profile-service.md`。
+- **`pastEvent` 的追加同样没有 `ProfileChangeSpec` 列（08-17 新增 · 承重）。** `profile-service.md` 明写「`pastEvent` 写入经 life-cycle-service 组装 → `ProfileManager`」，但各列里没有一列装得下 `PastEventEntry`，而结算流程把「记入 pastEvent」画在收口那次 `TryApply` 之外。这是与 `activeCombat` 同类的第三处「有纪律、无通道」缺口。→ `systems/services/profile-service.md`、`systems/adventure-event/common-properties.md`。
 - **`#if DEBUG` 判据的实测确认（08-09 新增）。** 离线后端「Release 构建里根本不存在」这一主闸依赖「Godot 的 .NET 集成在 Release 导出配置下不定义 `DEBUG`」。`game-feature-branch/` 当前**尚无 `.csproj`**，无从验证；**首次生成 `.csproj` 后需实测一次**。若不成立，改用显式 `<DefineConstants>MYCARDGAME_OFFLINE_OK</DefineConstants>`，方案形态不变。→ `system-overview.md`。
   - **同批实测（08-13 新增）：Godot 4.7 上 `Control` 自动翻译（`auto_translate_mode`）的默认行为。** 若默认即生效，`.tscn` 里把 `text` 直接写成键就够了、UI 代码里连 `tr()` 都不必出现；否则显式 `tr()`。**两种情况下键的形态、分区表、两条审计完全相同**，故不阻塞任何已定案内容——纯属落地写法确认，宜与上一条合并到同一次 `.csproj` 生成后的实测。→ `ux/error-and-blocking-ux.md`。
 - **`/breakdown-requirements` 的两项形态确认（07-30 新增）：** ① **子需求是否需要用户逐个签核**——当前技能取「**父 FR 签核即覆盖其子需求**」、子需求直接产出为 `ready`，需确认符合意图；② **拆解粒度判据**——当前定为「一次 `/blueprint` 能一口吃下的薄纵切片，1~5 条验收标准，且可在 Godot 中跑出来」，粒度上下界（最多改几个文件 / 是否允许纯数据资源型子需求）仍偏经验。→ `requirements/_index.md`。
-- **⚠ `Source` 在上行负载里的序列化形态（08-12b 新增 · 承重 · 收口归后端库）。** 客户端 08-10b 定「**code = 显式稳定整数，是存档 / 上行负载里实际序列化的东西**」；`backend-design-documents/contracts/envelope.md`（08-11 成文，晚于 08-10b）定「**枚举值一律字符串，取值与客户端 C# 枚举名逐字相同**」（理由：同名可省掉一整张最易写漏的映射表）。**两条都明写覆盖「上行负载」，不能同时成立。** 倾向收口：**契约侧走字符串名 · 存档侧走整数 code · 客户端在序列化边界做一次映射**（通则不开例外），若如此则须补一条「**成员名与 code 双双冻结、永不复用**」，并改写 `systems/common-properties.md` 那句表述。**不阻塞 `Source` 扩清单落地**——只决定线上表示形态。裁决在 `backend-design-documents/handoffs/2026-08-12-grant-source-code-contract.md`。→ `systems/common-properties.md`、`backend-design-documents/contracts/envelope.md`。
+- **`architecture.md` 的三条结构残留（08-16b 采集 · 此前未进清单）。** 三条都登记在 `systems/architecture.md` 的待决问题里，但从未进过本清单：① **断线降级的具体行为**——push / pull 失败时阻塞玩家、本地缓冲重试、还是回退存档点？（剧本请求那一支已随云端剧本服务撤销而消失）② **热更「只改不增」的连带项**——是否需要「预埋占位 `Id`」策略绕开审核周期、是否在存档中记录 `contentVersion` 以便诊断；范围边界与确定性张力本身已定案。③ **ViewModel 层是否单列一份文档**（或归 `ux/`）——三层切分已显式化，文档落位未定。→ `systems/architecture.md`、`systems/services/sync-service.md`、`systems/services/content-service.md`。
 - **第四 / 第五级层级词（processor / handler）是否过早（08-15d 体检登记 · 轻）。** 两级均明确「暂不落实例，保持空是健康的」，判据先于实例而定。既有辩护（「先有判据、后有实例」比反过来安全）成立，故本条只作登记：**首次真要拆一个 processor 时，回头验证那三条与门判据是否还适用**，而不是照着填。→ `systems/architecture.md`。

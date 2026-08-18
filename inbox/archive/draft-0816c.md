@@ -3,7 +3,8 @@ type: draft
 date: 2026-08-16
 topic: 活文档收口（三）—— open-questions.md 索引瘦身
 scope: open-questions.md（索引，唯一写入目标）· open-questions/update-log.md（接收下沉内容）
-status: awaiting-execution
+status: obsolete
+closed: 2026-08-16 — 核查后目标形态已达成，未执行即关闭。`open-questions.md` 实测 56 行 / 5,324 字符、说明块 14 行且无超长行、`更早：` 与 `上一次更新` 计数为 0 —— 草稿验收全项达成。且在 `ac9ff34`（本草稿被写入并提交的那次提交）中该文件就已是 5,112 字符 / `更早：` 计数 0，即草稿描述的「≈36,000 字符 · 19 条摘要」状态在草稿写下时就已不存在。
 batch: 3 of 3
 order: **完全独立，随时可跑**——与 `draft-0816a.md` / `draft-0816b.md` 无依赖，改动面只有两个文件
 effort: 小（预计一个 session 内完成，且风险低——见下方「已核实：是纯双写」）

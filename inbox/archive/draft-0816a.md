@@ -3,9 +3,10 @@ type: draft
 date: 2026-08-16
 topic: 活文档收口（一）—— 删「已定案」戳
 scope: vision/ · systems/ · art/ · ux/ · content/ · decisions/ · requirements/
-status: awaiting-execution
+status: obsolete
 batch: 1 of 3
 order: 本批**最先跑**（纯机械、低风险），再跑 `draft-0816b.md`（去坐标化，需判断），`draft-0816c.md` 独立、随时可跑
+closed: 2026-08-16 — 核查后无实质待办，未执行即关闭。活文档中「已定案」实测 63 处（草稿声称 659），且 63 处全部落在本草稿自己定义的豁免类：39 处模板占位行 `> _已定案的决定链接到 decisions/ADR-####。_`（修饰名词「决定」）、3 处「已定案的准确措辞」（正文点名保留）、其余约 21 处是「A 已定案；B 仍待定」的并置对比句（处置 ③ 要保留戳的语境）。草稿的 659 疑为统计时误纳 `handoffs/` 等过程档案所致（全库口径 222，仍对不上）。
 ---
 
 # 收口批次一 — 删「已定案」戳

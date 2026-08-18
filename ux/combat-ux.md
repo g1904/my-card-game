@@ -15,6 +15,7 @@
 - **敌人回合的逐步执行呈现是硬要求（承重）。** 原理由是「快照与执行的偏差必须可解释」;偏差不再存在,但**敌人回合现在是玩家获取动态情报的唯一时刻**——看不清就完全不可读。既有形态**整体保留**:
   - **飘字为主 + 一条日志 ticker 为辅,两者都要**:飘字**注意力跟随对象**(敌人打出牌 → 牌面飞出 + 道念条上 `+5`;玩家侧被削减 → `−3`),不需要阅读但转瞬即逝;ticker 可回看。**ticker 默认显示最近一行**,点按展开本回合完整日志(半屏,可上滑)——**藏在按钮后等于取消这条硬要求**(玩家不会主动开日志)。**一条 ticker 同时解决「栈与战场的连锁可读性」那条待答。**
   - **截断量必须被说明**:一次结算的效果标称量与实际量不等时(道念下限 0 的饱和减法),ticker 给出「削减 8(对方仅剩 5,溢出 3 未结转)」。数据由 `PlayResult.MomentumDelta` 的 `Declared` / `Actual` 一对承载——**这里的 `Declared` 是效果的标称量**,见 `systems/services/combat-service.md`。
+  - **目标落空(fizzle)必须被说明**:结算时逐槽位重检,已选定的目标可能已被拆掉。**部分槽位落空 → ticker 写明是哪一半没生效;全部槽位落空 → ticker 明写「目标已不存在」**,而不是让玩家看到一张牌打出去后什么也没发生。规则侧见 `systems/services/combat-service.md`。
   - **节奏(原样保留)**:单个敌人回合演出**总时长 ≤ 4 s**(一场合计 ≤ 20 s;若每回合演出 8 秒,一场就是 40 秒纯观看,在 30–40 分钟篇章预算下不可接受)· 单步节拍 **0.35–0.5 s** · **超过 4 步后压到 0.2 s** 并**合并同来源、同类型、同符号的连续增量**(跨来源不合并——跨来源正是玩家需要区分的)· 点按屏幕任意处 **3× 加速**(**只能加速不能跳过**,「逐步可见」是硬要求)· 永久快速演出为设置项(默认关,开启后基线节拍 0.2 s)。
   - **删除的只有偏差那一拍**:`≈` 前置与虚线底纹、`≈12 → 8` 的对照标记、「该步额外停 0.4 s 且加速无效」整条移除——**演出中不再有不可跳过的节拍**。(节奏参数原始出处)。
 - **ticker 在敌人回合常驻,占用固定预留高度(承重)。**
@@ -63,12 +64,14 @@
   - **敌人回合 / 结算中:角标置灰、抽屉入口禁用** —— 使用窗口是全局规则,UI 应把它表达为**可供性的有无**,而不是让玩家点了才被拒。
   - **⚠ 竖屏分区压力**:己方战场区左右两侧同时挂法则条与随身角标会挤压战场本身的可用宽度,**需在实际排版时验证**。
   - 元进程侧的储物袋落位与全屏面板形态见 `ux/screen-flow.md`。
+- **关键字在卡面只印名字,完整定义走长按。** 竖屏卡面装不下一段定义,而 `ui-input-rules.md` 禁止 hover-only 可供性 ⇒ 触控等价物只能是长按,展开 `KeywordData.ReminderText`。**永远长按,首次出现不自动展开**:「首次」这件事要记账(落哪个 Profile？跨轮回还是轮回内？),**为一条呈现便利新增一个存档字段不划算**。若实测新手看不懂,自动展开一次是现成的退让位(属实测调整)。关键字的形态见 `systems/character-profile/deck/common-properties.md`。
+- **多目标槽位的询问顺序 = 卡面文案顺序 = `slotIndex`。** 一张牌有多个目标槽位时,UI **在打出前按 `slotIndex` 顺序逐个问、一次收齐**,并且卡面文案必须按同一顺序点名各槽位的类别(「摧毁目标阵法」而非「摧毁目标」)——否则玩家不知道自己现在在选哪一个。
 - **战斗内可查阅敌人图鉴,入口挂敌人立绘。** 点按敌人立绘 → 半屏 bottom sheet(与「随身」抽屉**同一套控件语言**);**结算过程中 / 选目标态中禁用入口**、不暂停战斗、只读。**⚠ 点按语义冲突须在实现时明确优先级**:立绘同时可能是选目标态的合法目标——**选目标态中立绘的点按语义被该态独占**,非选目标态时点按 = 开图鉴。词条内有一条**动态页眉**「本次遭遇:筑基后期」(只在战斗内出现,只写境界名 + 层级、不写方向标记)。写作规格见 `systems/player-profile/codex/enemy-codex.md`。
 - **静默退出的告知责任落在战斗屏。** 玩家主动退出**不做二次确认弹窗**(手感优先,不在最频繁的操作上加模态);代价是「进度保留在当前决策点、成本不退还」这条规则玩家看不见——**须由战斗屏的常驻措辞或首次退出时的一次性提示承担告知,不是弹窗流程**。
 - **进入战斗前的同步失败不产生任何额外提示。** 告知由**常驻的「离线 · 待同步 N」指示**承担——**该指示在战斗屏内必须可见**(这是本条成立的前提)。理由:断线期间**每一场**战斗的入口都会命中这条路径,在此弹 toast 等于把一次性的网络状态变成**逐场重复的打扰**,且时机恰是玩家最专注处。**这与「静默退出的告知责任」是同一条纪律的第二个实例**:不在最高频操作上加提示,告知由别处的常驻呈现承担。**边界**:真正需要打断玩家的情形仍由既定机制承担——缓冲超限的软阻塞模态(下一次事件选择前)与两处硬阻塞(启动 pull 失败、被挤下线)。规则侧见 `systems/services/sync-service.md`「`Immediate` flush 的失败语义」。
 - **寿元红字倒数不进战斗内。** 寿元告警的呈现位置已定为 **EventOption 选择界面**的静态标注,**不常驻战斗屏幕**、不做全局 HUD。见 `ux/screen-flow.md`。
 
-Source: `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md`
+Source: `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

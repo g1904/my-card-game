@@ -3,7 +3,8 @@ type: draft
 date: 2026-08-16
 topic: 活文档收口（二）—— 正文去坐标化 + Source 合并到小节级
 scope: vision/ · systems/ · art/ · ux/ · content/ · decisions/ · requirements/ · 根级三个横切文件
-status: awaiting-execution
+status: obsolete
+closed: 2026-08-16 — 核查后无实质待办，未执行即关闭。活文档正文日期戳实测 7 处（草稿声称 1,408），且 7 处全在 `open-questions.md` —— 那是本草稿自己明令不动的过程档案，是验收脚本 ① 误把根级 `*.md` 纳入范围所致；1,408 接近**全库含过程档案**的口径（1,510），即统计范围与声明范围不一致。`handoffs/` 路径残留 4 处全在 `README.md`（讲文件夹图例）；考古动词残留 2 处是 `ADR-0003` 与 `decisions/_index.md` 里「决策可被推翻 / 不必新开 ADR 取代」的治理原则正面陈述。`Source:` 硬规则（每 `##` 小节 ≤1 条 handoff Source）逐文件核对无违规 —— 115 的计数混入了行内 `Source: .claude/rules/*.md` 工程规则回链，那是另一类引用，`systems/common-properties.md` 第 97 行已解释其含义。
 batch: 2 of 3
 order: 在 `draft-0816a.md`（删「已定案」）**之后**跑——那批先清掉与坐标缠在一起的空戳，本批的判断面才干净
 note: 本批工作量最大，**按下方四个子批分多个 session 执行**，不要一次吃完
