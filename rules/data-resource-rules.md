@@ -4,7 +4,8 @@
 
 ## 定义
 - 每种内容类型都是一个 `[GlobalClass] partial class XxxData : Resource`，带 `[Export]` 字段。实例以 `.tres` 文件的形式在项目的数据文件夹下编写。
-- **每个条目都有一个稳定、唯一的字符串 `Id`。** id 是其他一切引用的键（存档文件、注册表查找、relic→卡牌交互）。绝不用场景路径、数组索引或显示名来作为内容的键。
+- **每个条目都有一个稳定、唯一的字符串 `Id`**，它是其他一切引用的唯一键（存档、注册表查找、交叉引用）。绝不用场景路径、数组索引或显示名作键——那三者都会随重构静默改变，而存档里的旧值不会跟着改。
+  `Id` 形态与各类型的命名规范见 `game-design-documents/systems/common-properties.md` 与 `game-design-documents/content/_index.md`。
 - 显示字符串（名称、描述）是资源上的字段、与 `Id` 分离，且**类型写 `LocalizedText`，不写裸 `string`**；`Get()` 只读、绝不把解析结果写回条目。
   裸 `string` 把语言数焊进 C# 类、线上补一句文案就得发版；写回则污染 ContentRegistry 里的共享只读单例。
   形态与失败语义见 `game-design-documents/systems/common-properties.md`「内容文本的多语言形态」。

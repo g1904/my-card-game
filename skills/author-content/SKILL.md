@@ -188,3 +188,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 ### 下一步
 - 请签核：把 status 改 `draft → ready` 后即可 `/blueprint content/<类型>/<id>.md`
 ```
+
+## 批量模式（worker 契约）
+
+本技能有批量版 **`/batch-author-content`**（多分片并行 / 波次编排，合并 interview）。被其派为 worker 运行时，按 `.claude/rules/batch-orchestration.md` 的「worker 契约」执行三点覆盖：① interview / 澄清门不调用 `AskUserQuestion`——Phase A 把问题写进 run 目录并停止，Phase B 把 `answers.md` 视同用户当面裁决；② 共享台账（各 `_index.md`、`open-questions*`、`update-log`）不写，台账行随报告交回由 orchestrator 代笔；③ 范围锁定在派单分片，越界发现只记报告。其余步骤原样执行。直接被人运行时本节不适用。

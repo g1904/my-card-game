@@ -78,3 +78,7 @@ argument-hint: <FR-<id> | content/<类型>/<id>.md | 功能描述>
 - 若本蓝图源自一份**内容条目文档**，同样闭环：把条目的 `blueprint:` 设为保存路径、`status` 翻为 `blueprinted`，并更新 `content/<类型>/_index.md` 条目台账的对应行（内容不进 FR 台账，完成度只在那里追踪）。frontmatter 的 `source-fr:` 填条目路径。
 
 最后建议：运行 `/implement` 来构建该蓝图。
+
+## 批量模式（worker 契约）
+
+本技能有批量版 **`/batch-blueprint`**（多分片并行 / 波次编排，合并 interview）。被其派为 worker 运行时，按 `.claude/rules/batch-orchestration.md` 的「worker 契约」执行三点覆盖：① interview / 澄清门不调用 `AskUserQuestion`——Phase A 把问题写进 run 目录并停止，Phase B 把 `answers.md` 视同用户当面裁决；② 共享台账（各 `_index.md`、`open-questions*`、`update-log`）不写，台账行随报告交回由 orchestrator 代笔；③ 范围锁定在派单分片，越界发现只记报告。其余步骤原样执行。直接被人运行时本节不适用。

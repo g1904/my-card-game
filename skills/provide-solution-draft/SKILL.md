@@ -19,7 +19,7 @@ open-questions.md 中的待答项
   → /analyze-new-ideas inbox/solution-draft-<slug>.md   （提炼进主题文档 + 移出待答项）
 ```
 
-**范围守则（强制）：** 只写 `<LIB>/inbox/solution-draft-<slug>.md` 这一个草稿文件（**本次选定的那一个库**），外加在 `<LIB>/inbox/_index.md` 的「待处理」表登记一行（见第 6b 步）。**不**改 `open-questions.md` 与 `open-questions/`（移出待答项归 `/analyze-new-ideas` / `/summarize-open-questions`）、**不**改任何主题文档（客户端 `systems/` / `art/` / `ux/` / `vision/`；后端 `contracts/` / `systems/` / `operations/` / `vision/`）、**不**写 ADR、**不**碰 `handoffs/`、**不**碰代码。**不评估 derive 就绪度**（归 `/assess-derive-readiness`）。
+**范围守则（强制）：** 只写 `<LIB>/inbox/solution-draft-<slug>.md` 这一个草稿文件，外加在 `<LIB>/inbox/_index.md` 的「待处理」表登记一行（见第 6b 步）。**若问题本身横跨客户端 ↔ 后端边界**，按 `.claude/rules/design-library-routing.md` 的「跨库纪律」，**允许在对侧库同样落一份草稿 + 台账行**（两份草稿各写自己那一半、互相回链，见第 6c 步）。**不**改 `open-questions.md` 与 `open-questions/`（移出待答项归 `/analyze-new-ideas` / `/summarize-open-questions`）、**不**改任何主题文档（客户端 `systems/` / `art/` / `ux/` / `vision/`；后端 `contracts/` / `systems/` / `operations/` / `vision/`）、**不**写 ADR、**不**碰 `handoffs/`、**不**碰代码。**不评估 derive 就绪度**（归 `/assess-derive-readiness`）。
 
 ## 步骤
 
@@ -28,7 +28,9 @@ open-questions.md 中的待答项
 
 选定后，**下文所有写作 `game-design-documents/` 的路径一律读作 `<LIB>/` 下的同名路径**。在报告开头点明本次作用的库。
 
-**问题的归属先于方案。** 若锁定的问题实际属于另一库（判据见路由规则的归属表——由谁实现），**停下并指出**，不要在当前库里给它写草稿。
+**问题的归属先于方案。** 若锁定的问题实际**整个**属于另一库（判据见路由规则的归属表——由谁实现），**停下并指出**，不要在当前库里给它写草稿。
+
+**若问题横跨边界**（一半归客户端、一半归后端——典型：协议契约不一致、一侧定案给另一侧新增义务），**不要拆成两次运行**：确定主库后，按第 6c 步在**两侧各写一份草稿**，每份只承载归属判据判给它的那一半，互相回链。理由见路由规则「跨库纪律」的改写说明——拆成两次运行时，第二次经常不会发生。
 
 ### 1. 锁定问题
 解析 `$ARGUMENTS`：
@@ -129,6 +131,15 @@ status: awaiting-review
 - 若表中当前是 `*（空）*` 占位行，用你这一行替换掉它。
 - **只动这张表**：不要碰同文件的「已归档」表（那是 `/analyze-new-ideas` 归档时才写的）。
 
+### 6c. 跨边界问题：对侧库的配套草稿（仅当问题横跨边界）
+在对侧库写 `<对侧LIB>/inbox/solution-draft-<slug>.md`（**slug 与主库那份相同**，便于成对识别），并同样登记进该库的 `inbox/_index.md` 待处理表。两份草稿的分工：
+
+- **每份只写归属判给它的那一半**：报文 / 端点 / 服务端兑现 → 后端库；客户端字段 / 存档 / 服务调用形态 → 客户端库。
+- **front matter 增加一行 `counterpart: <另一库>/inbox/solution-draft-<slug>.md`**，两份互指。
+- **绝不复述对方那一半的内容**——需要引用时写路径回链。抄过去等于制造第二权威。
+- 两份的 `## 前置依赖` 中互相列出对方：「本方案的 X 部分须与 `counterpart` 的 Y 部分同时采纳，单侧采纳即两侧不一致」。
+- **两份都是提案**，不在任一侧替用户拍板。
+
 ### 7. 报告并交回人类
 ```
 ## 方案草稿：<问题一行摘要>
@@ -151,3 +162,7 @@ status: awaiting-review
 以提炼进主题文档并把该问题移出待答清单。
 ```
 - 若最终判定该问题**不适合**本技能（纯用户取向、或信息不足）→ **不建草稿文件**，直接报告为什么，并列出需要用户先提供的信息。
+
+## 批量模式（worker 契约）
+
+本技能有批量版 **`/batch-provide-solution-draft`**（多分片并行 / 波次编排，合并 interview）。被其派为 worker 运行时，按 `.claude/rules/batch-orchestration.md` 的「worker 契约」执行三点覆盖：① interview / 澄清门不调用 `AskUserQuestion`——Phase A 把问题写进 run 目录并停止，Phase B 把 `answers.md` 视同用户当面裁决；② 共享台账（各 `_index.md`、`open-questions*`、`update-log`）不写，台账行随报告交回由 orchestrator 代笔；③ 范围锁定在派单分片，越界发现只记报告。其余步骤原样执行。直接被人运行时本节不适用。

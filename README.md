@@ -31,8 +31,8 @@
   **不能**用「`.git` 是否为目录」——仓库里的脚本已按此写。
 - **一个分支只能被一个 worktree 检出。** 想在别处再看同一分支，用 `git worktree add --detach`。
 - 各目录照常 `git status` / `commit` / `push`，上游跟踪逐分支设好（`origin/<branch>`）。
-- **根目录 `D:\MyCardGame\` 本身不是仓库**，也不再有 `.gitignore`（它对子仓库从来无效，已删除；
-  其内容已并入 `game-feature-branch/.gitignore`）。根级三个 `.cmd` 包装脚本不受任何分支版本控制。
+- **根目录 `D:\MyCardGame\` 本身不是仓库**，也没有根级 `.gitignore`（git 从不向仓库根以上查找忽略规则；
+  客户端的忽略面在 `game-feature-branch/.gitignore`）。根级三个 `.cmd` 包装脚本不受任何分支版本控制。
 
 ```
 D:\MyCardGame\
@@ -72,12 +72,13 @@ D:\MyCardGame\
 ```
 .claude/
 ├── CLAUDE.md            — entry; imports rules/Context.md
-├── settings.json        — permissions (deny 保护四个只读快照目录) + model + effortLevel + hooks
-├── settings.local.json  — 本机的设置覆盖
-├── session-tags.json    — session 收藏/标签存储 (session-manager 写入)
+├── settings.json        — permissions (allow + deny 保护四个只读快照目录 + defaultMode)
+│                          + model + effortLevel + outputStyle + hooks + attribution
+├── session-tags.json    — session 收藏/标签存储 (session-manager 写入; gitignored)
 ├── blueprints/          — 实现蓝图 + _index.md 台账 (gitignored, 本机)
 ├── README.md            — this file
 ├── .gitignore
+├── .gitattributes
 ├── rules/
 │   ├── Context.md               — always-on conventions + knowledge nav (keep < ~250 lines)
 │   ├── design-library-routing.md — 设计技能的双库入参解析 (game-design ↔ backend-design)
@@ -87,7 +88,8 @@ D:\MyCardGame\
 │   ├── data-resource-rules.md   — Resource-driven data (.tres)
 │   ├── state-save-rules.md      — cycle state, seeded RNG, save atomicity
 │   ├── ui-input-rules.md        — mobile portrait layout + touch input
-│   └── null-check-rules.md      — validate GetNode / ResourceLoad / lookups
+│   ├── null-check-rules.md      — validate GetNode / ResourceLoad / lookups
+│   └── batch-orchestration.md   — batch-* 技能的公共契约（两阶段、合并 interview、共享台账单写者）
 ├── knowledge/
 │   ├── architecture.md          — scene tree, autoloads, render/resolution
 │   ├── dictionary.md            — game glossary
@@ -103,7 +105,8 @@ D:\MyCardGame\
 │   ├── session-manager-impl.ps1 — 实现；上面两个入口都转发到它
 │   ├── push-all-impl.ps1        — 批量 commit/push 全部工作区（经根级 push-all.cmd 调用）
 │   ├── promote-impl.ps1         — 沿提升线合并 + 推送（经根级 promote.cmd 调用）
-│   └── index-size-guard.ps1     — PostToolUse 钩子：台账 > 20KB 时告警（只告警，绝不拦截）
+│   └── index-size-guard.ps1     — PostToolUse 钩子：台账超阈值告警（一般 20KB，
+│                                   open-questions/update-log.md 放宽到 48KB；只告警，绝不拦截）
 └── skills/
     ├── analyze-new-ideas/     — raw idea → consistency/compat review → interview → clean handoff → distill into design docs
     ├── provide-solution-draft/ — one open question → proposed solution → inbox/solution-draft-<slug>.md (human review)
@@ -121,7 +124,10 @@ D:\MyCardGame\
     ├── investigate/      — trace a bug to ranked root causes
     ├── sync-knowledge/   — reconcile knowledge/* against code + design docs
     ├── update-readme/    — realign every README.md with what it describes
-    └── session-manager/  — session favorites/tags
+    ├── session-manager/  — session favorites/tags
+    └── batch-*/          — 批量编排版（provide-solution-draft / analyze-new-ideas / author-content /
+                            derive-requirements / breakdown-requirements / blueprint / implement /
+                            review-feature）：并行 worker + 一场合并 interview；契约见 rules/batch-orchestration.md
 ```
 
 ---
@@ -134,13 +140,15 @@ D:\MyCardGame\
 
 1. `/analyze-new-ideas [--lib=…] <raw>` —— 先校验想法的**逻辑自洽性**与**同既有 ADR / 主题文档 / 承重纪律的兼容性**；有冲突或含糊即**停下来发起 interview 让用户澄清**，拿到答复后才把意图捕获为整洁的 handoff 并提炼进选定设计库的主题文档。无参数运行则扫描该库 `inbox/` 列出待处理草稿。
 2. `/provide-solution-draft <问题>` —— 取 `open-questions.md` 的**一个**待答项，基于既有决策推演 + 行业通行做法给出**提案式**方案，写到 `inbox/solution-draft-<slug>.md`。**人类评审后**再喂回 `/analyze-new-ideas` 提炼（human-in-the-loop）。它只写这一个草稿文件，不裁决问题、不动主题文档。
-3. `/assess-derive-readiness` —— **由用户手动调用**。全量扫描全部主题文档，逐份判定 ready / partial / blocked，并整体重写 `open-questions.md` 的「derive 就绪度」小节（它是该小节的**唯一写入者**）。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不评估就绪度**。**当前：全库尚未进入可 derive 的阶段。**
+3. `/assess-derive-readiness` —— **由用户手动调用**。全量扫描全部主题文档，逐份判定 ready / partial / blocked，并整体重写 `open-questions.md` 的「derive 就绪度」小节（它是该小节的**唯一写入者**）。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不评估就绪度**。**当前结论以各库 `open-questions.md` 的「derive 就绪度」小节为准**（两库各一份，互不合并）。
 4. `/derive-requirements <doc>` —— 一旦某份设计文档已充分详尽（真实意图、无遗留问题），就把**片区级**功能规格产出到选定库的 `requirements/FR-*`。用户签署确认（`draft → ready`）。
 5. `/breakdown-requirements FR-<id>` —— 把**一份** FR 拆成同名文件夹 `requirements/FR-<id>/` 内的若干**可执行子需求**（每个小到能被 `/blueprint` 一次吃下），带**父验收标准 → 子需求覆盖映射表**。父 FR 翻为 `broken-down`；**父 FR 的签核即覆盖其子需求**。
 6. `/blueprint FR-<id>` —— 探查知识 + 代码、澄清、把一份实现蓝图保存到 `blueprints/`（其验收标准驱动设计）。首选输入是**子需求 id**；**内容条目文档**（`content/<类型>/<id>.md`）与自由文本 `/blueprint <feature>` 同样可用。
 7. `/implement [blueprint]` —— 在 `game-feature-branch/` 中构建它。
 8. `/review-local-changes` 或 `/review-feature` —— 在提交前捕获 bug。
 9. `/investigate <symptom>` —— 把一个 bug 追溯到按可能性排序的根因 + 诊断步骤。
+
+> **批量版：** 上述多数阶段各有 `batch-*` 编排版（`/batch-provide-solution-draft`、`/batch-analyze-new-ideas`、`/batch-author-content`、`/batch-derive-requirements`、`/batch-breakdown-requirements`、`/batch-blueprint`、`/batch-implement`、`/batch-review-feature`）：一次覆盖一批输入，并行 / 波次分派 worker（worker 执行对应的单会话技能），把所有 🔴/🟠/取向问题**合并去重成一场大 interview**再落笔——批量提效，但**不吞掉任何人工决策**。公共契约（两阶段、共享台账单写者、写入面分区）见 `rules/batch-orchestration.md`。`/assess-derive-readiness`、`/summarize-open-questions`、`/audit-content`、`/sync-knowledge`、`/update-readme` 本就是全量扫描形态，无需批量版。
 
 **内容创作是并行的第二条路（不经 FR）：** `/scaffold-content-type <类型>` 为一个内容类型开张（带**就绪度闸门**：类定义不足以写出可实现的条目时就把话说清楚）→ `/author-content <类型> <草稿>` 把你的条目草稿校验 / interview 后写成 `game-design-documents/content/<类型>/<id>.md` → 你签核 `draft → ready` → **直接 `/blueprint`** → `/implement` → `.tres`。条目一多用 `/audit-content` 做全量对账。**字段清单的权威在设计库的类型档案里，不在技能里**——这正是「一个通用技能 + 十几份类型档案」而非「每类一个技能」的理由（ADR-0005：`.claude` 不承载设计内容）。约定见 `game-design-documents/content/_index.md`。
 

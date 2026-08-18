@@ -12,7 +12,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 | 运行链路 | `program-overview.md`（端到端运行时视角）、`system-overview.md`（工程形态：文件夹布局、autoload 注册、代码形态） |
 | `dictionary.md` | `terminology.md`（根级术语表） |
 | `systems/*` | `systems/`（类模型化结构） |
-| `data/*` | `systems/`（内容即各系统的字段 / 内嵌类型） |
+| `data/*` | `systems/`（类定义：字段 / 内嵌类型）+ `content/`（条目实例层：一条内容一份文档 + 类型档案） |
 | `scenes/*` | `ux/`（screen-flow、combat-ux、onboarding） |
 | `autoloads/*` | `systems/services/`（七服务 + 层级词表 + 各服务 API 契约表） |
 | 美术 / 音频（知识层无对应文件） | `art/`（`visuals/` · `soundtracks/`；只存 vision / 参考登记 / guide，**生成出的二进制资产归 `game-feature-branch/`**——目前一件都还没有） |
@@ -35,23 +35,23 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 ## 结构骨架（一句话版，细节见权威）
 
 - **层级：service ⊃ manager ⊃ module ⊃ processor ⊃ handler**（现有实例止于第三级 `DeckModule`）。 七个服务以 autoload 存在，各自命中「①自有状态机 / ②事务性跨字段写 / ③外部 I/O 边界」三判据之一；manager 是服务内部的普通 C# 对象。清单见 `autoloads/_index.md`。
-- **拆分轴 = 生命周期层 + 行为边界，不是数据类型。** 不按 power / item / card 各开服务，也不为九类 AdventureEvent 各开服务——只有 Combat 真有状态机，其余差异在**数据**而非代码。
+- **拆分轴 = 生命周期层 + 行为边界，不是数据类型。** 不按 power / item / card 各开服务，也不为五类 AdventureEvent 各开服务——只有 Combat 真有状态机，其余差异在**数据**而非代码。
 - **两条唯一入口 + 一个编排顶点：** 内容读取 = `content-service.ContentRegistry`；档案写入 = `profile-service.ProfileManager.TryApply(spec)`；编排顶点 = game-progression（非服务，串联核心循环）。
 - **展示层三层：** 静态文案留在 `XxxData : Resource`（类型 `LocalizedText`）→ 运行时 / 存档态只带 `Id` + 可变状态 → 呈现期 ViewModel 组装（不落存档、不进云端负载）。
 - **文案两条链路、一个语言开关：** 界面走 `res://text/` 翻译键（随包、发版才改），内容走条目内嵌 `LocalizedText`（overlay 可热更），二者共用 `TranslationServer.GetLocale()`。归属判据（四问）→ `ux/_index.md`。
 - **物化模型：** `AdventureEventData`（模板）→ future-event-service（**唯一物化点**）→ `EventOption`（**产出即定稿、不可变、落存档**）。同一通则也适用于 `EnemyData` → `EnemyInstance`。→ `systems/architecture.md`「总则 6」。
-- **核心循环一批只有一次操作：择一进入。** 跳过通道整体移除（08-06c）——无 `skipCost` / `ifMandatory` / `AdvanceMode`，每次选择后整批重算。选择约束只剩 `Priority` 一条轴（取值域 `{0, 1}`，future-event-service 独占置位，PlotManager 不可改）。
-- **内容三层覆盖来源：** `res://content/` 基线 < `user://overlay/` 热更（**只改不增**，剧本内容是唯一例外）< **flags**（只覆盖 `ContentEnabled` 一个布尔，只作用于产出侧取池）→ 合并后统一校验 → ContentRegistry 按 `Id` 索引。**「overlay 是唯一热更层」已不成立**（08-11b）。→ `data/_index.md`。
-- **一切内容都在本地，没有云端内容通道**（08-11）。剧本文本也是本地内容层的一员，随 overlay 分发；跨进程边界因此收敛为**鉴权 · 进度同步 · 内容分发**三处，玩法回路全程零网络请求。
+- **核心循环一批只有一次操作：择一进入。** 跳过通道整体不存在，别为「跳过」写任何分支；选择约束只剩 `Priority` 一条轴，future-event-service 独占置位。→ `systems/game-progression.md`
+- **内容三层覆盖来源：** 基线 < overlay < flags → 合并后统一校验 → ContentRegistry 按 `Id` 索引。→ `data/_index.md`
+- **一切内容都在本地，没有云端内容通道**：跨进程边界收敛为**鉴权 · 进度同步 · 内容分发**三处，玩法回路全程零网络请求。→ `systems/services/plot-manager.md`
 - **启动契约：** `main` 场景 = `BootstrapScreen.tscn`，按序驱动**三个**边界服务的 `InitializeAsync`，并在登录之后插入一次 `RefreshFlagsAsync`。→ `autoloads/_index.md`。
 
 ## 承重纪律（写代码时会改变写法的那几条）
 
-> **上位判据 —— 纪律的可执行化**（已定案 · **ADR 候选**，与八条 API 契约总则同层）。遇到「这条约定该怎么强制」时直接套四级阶梯：**1 写不出来 / 2 编译不过 / 3 大声失败 / 4 评审清单**。两条选级判据：**能上线且线上不可见 → 必须第 1 或第 2 级**（第 3 级不够——断言只在跑到那一步时生效，而这类违规的症状恰恰是「一切正常」）；**只在开发期显形且会累积 → 第 3 级足够**。已应用三处：离线后端删类（1）、删掉中性诱饵名 `All()`（1 / 2）、EventBus 订阅审计（3）。**别用注释和评审清单去挡会上线的错误。** → `systems/architecture.md`「纪律的可执行化」。
+> **上位判据 —— 纪律的可执行化。** 遇到「这条约定该怎么强制」时套四级阶梯（**写不出来 / 编译不过 / 大声失败 / 评审清单**）：**能上线且线上不可见的违规必须落在前两级**——断言只在跑到那一步时生效，而这类违规的症状恰恰是「一切正常」。**别用注释和评审清单去挡会上线的错误。** → `systems/architecture.md`「纪律的可执行化」。
 
 1. **确定性的边界 = 同一 `contentVersion` 内。** 随机性一律经 SeedManager 的具名子流，**不用未加种子的 `GD.Randi()`**；已明确**放弃跨内容版本复现**（overlay 即时生效、不冻结版本）。→ `standards/rng-determinism.md`
 2. **抽取走 `AllEnabled()`；仓储上没有中性名 `All()`**（全量走 `AllIncludingDisabled()`，写下 `All()` 会编译失败）。读取侧 `Get(id)` **不**过滤（存档引用不能悬空）。→ `data/_index.md`
-3. **档案写入只经 `ProfileManager.TryApply(spec)`：** 全量校验 → 全有或全无 → 单点提交。成本与产出在**同一次** `TryApply` 内（无 `CostSpec`/`RewardSpec` 两个类型）；`ProfileChangeSpec` = **资源 / 能力 / 统计三个平级列表**，只有资源那条带符号并走 modifier pipeline（08-10c）。
+3. **档案写入只经 `ProfileManager.TryApply(spec)`**（全量校验 → 全有或全无 → 单点提交），成本与产出在**同一次** `TryApply` 内。**modifier pipeline 对 `Elements` 是 opt-in 白名单、缺省豁免**——缺省若取「经 pipeline」，一条法则可静默改写幂等键 / 付费凭证。→ `systems/architecture.md`
 4. **运行时绝不写 `XxxData : Resource`** ——它是注册表里的共享只读单例，写回会污染同一轮回的后续批次与其他角色。服务签名里**传实例，不传 `Resource`**。
 5. **方法形态看签名即知边界：** B（跨后端）/ C（跨多帧长流程）**带 `Async` 后缀并返回 `Task`**，A（纯内存 / 纯本地事务）**不带**。三者不许混用。
 6. **业务失败不抛异常**（付不起成本、网络不通、token 失效 → 返回 `OpResult` / `ApplyResult`）；只有「必需缺失 = 程序缺陷 / 坏数据」才 `GD.PushError` + `throw`。→ `.claude/rules/null-check-rules.md`

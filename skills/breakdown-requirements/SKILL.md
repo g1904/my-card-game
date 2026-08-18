@@ -15,7 +15,7 @@ systems/ux 主题文档 → /derive-requirements → FR-*（片区级）
                        → /blueprint → /implement
 ```
 
-**范围守则：** 你**只**写入 `<LIB>/requirements/`（父 FR 文件、新建的拆解文件夹、`_index.md` 台账），且只写**本次选定的那一个库**。**不要**编辑源设计文档（客户端 `vision/` / `systems/` / `art/` / `ux/` / `decisions/`；后端 `vision/` / `contracts/` / `systems/` / `operations/` / `decisions/`）——那是 `/analyze-new-ideas`。**不要**触碰代码（`game-*-branch/` / `backend-*-branch/`）——那是 `/blueprint` → `/implement`。
+**范围守则：** 你**只**写入 `<LIB>/requirements/`（父 FR 文件、新建的拆解文件夹、`_index.md` 台账）。**FR 与其台账两库各自独立、永不合并**，故本技能仍只写主库的 `requirements/`（跨边界的落笔归 `/analyze-new-ideas` 与 `/provide-solution-draft`，见 `.claude/rules/design-library-routing.md`）。**不要**编辑源设计文档（客户端 `vision/` / `systems/` / `art/` / `ux/` / `decisions/`；后端 `vision/` / `contracts/` / `systems/` / `operations/` / `decisions/`）——那是 `/analyze-new-ideas`。**不要**触碰代码（`game-*-branch/` / `backend-*-branch/`）——那是 `/blueprint` → `/implement`。
 
 **充实 vs. 臆造（强制）：** 拆解是**重排与细化父 FR 已有的内容**，不是补设计。任何新增的验收标准都必须能从父 FR 逻辑推出；推不出来的**放入该子需求的 `## Open questions`**，绝不断言为需求。父 FR 自身的 Open questions 按相关性下发到对应子需求（并在父 FR 中保留）。
 
@@ -117,3 +117,7 @@ requirements/
 ### Next
 - /blueprint FR-<id>-01-<subslug>
 ```
+
+## 批量模式（worker 契约）
+
+本技能有批量版 **`/batch-breakdown-requirements`**（多分片并行 / 波次编排，合并 interview）。被其派为 worker 运行时，按 `.claude/rules/batch-orchestration.md` 的「worker 契约」执行三点覆盖：① interview / 澄清门不调用 `AskUserQuestion`——Phase A 把问题写进 run 目录并停止，Phase B 把 `answers.md` 视同用户当面裁决；② 共享台账（各 `_index.md`、`open-questions*`、`update-log`）不写，台账行随报告交回由 orchestrator 代笔；③ 范围锁定在派单分片，越界发现只记报告。其余步骤原样执行。直接被人运行时本节不适用。

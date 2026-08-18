@@ -1,25 +1,25 @@
 # 标准 —— RNG 与确定性（引用层）
 
-`.claude/rules/state-save-rules.md`（RNG 章节）的配套。**权威：`game-design-documents/handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` 第 5 节**与 `systems/services/life-cycle-service.md`——**`rng` 的 JSON schema、字段类型去那边看**，此处不复制。
+`.claude/rules/state-save-rules.md`（RNG 章节）的配套。**权威：`game-design-documents/systems/services/life-cycle-service.md`**（SeedManager、子流清单、`rng` schema 与字段类型）与 `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` 第 5 节。**子流清单、schema、字段类型去那边看，此处不复制。**
+
+## 代码现状
+
+**尚无 SeedManager、无任何随机源代码。** 下列全是规划中的纪律。
 
 ## 确定性的边界（已定案）
 
-每局轮回有一个存储的 **`CycleSeed`**（u64），所有游戏随机性由它派生。**可复现性只在同一 `contentVersion` 内成立** ——相同 seed + 相同内容版本 + 相同玩家选择 ⇒ 相同轮回。
+每局轮回有一个存储的 `CycleSeed`，一切玩法随机性由它派生；**可复现性只在同一 `contentVersion` 内成立**——overlay 热更在轮回进行中即生效、不冻结版本，跨内容版本复现已明确放弃。存档记两个版本号用于事后归因。**每日种子 / 排行挑战不在中期路线内，不为其预留冻结结构。** → `systems/services/life-cycle-service.md`、`standards/save-format.md`。
 
-**已明确放弃跨内容版本的可复现性。** overlay 热更在轮回进行中即生效、**不冻结** `contentVersion`：「线上随时修正数值」的价值高于「跨版本复现」。存档记 `StartContentVersion` / `LastContentVersion` 两个版本号用于事后归因（→ `save-format.md`）。
+## 承重纪律（写代码时会改变写法的那几条）
 
-**每日种子 / 排行挑战不在中期路线内，不为其预留冻结结构。** 若将来引入，正确做法是让该模式内的轮回绑定一个冻结的 `contentVersion` 快照，把例外**局部化**，而非回退全局决策。
-
-## 承重纪律
-
-1. **不用未加种子的 `GD.Randi()` / `GD.Randf()` / `System.Random()`** 决定任何影响游戏结果的事。它们仅可用于永不需要复现的纯装饰性抖动。
-2. **按具名子流取随机，不从单个全局生成器抽。** 否则不相关的系统会互相错位（多抽一张卡会移动地图生成）。子流枚举 `RngStream { Map, Combat, Shop, Reward }`；派生式 **`streamSeed = Hash64(CycleSeed, streamName)`**。
-3. **经 `life-cycle-service.Stream(RngStream)` 取 `RandomNumberGenerator`**（而非 `int Next()`）——Godot 的 `RandomNumberGenerator` 自带可序列化的 `Seed` / `State`，正是持久化形态的载体。派生与持有归 SeedManager。
-4. **恢复用 `State`，诊断用 `DrawCount`。** `State`（u64）回填即 O(1) 恢复，不必重放；`DrawCount`（int）是迁移保险——`State` 是引擎实现细节，Godot 升级可能改其语义，届时用 `seed + drawCount` fast-forward 重放。读档时**在任何抽取发生之前**先恢复各状态。
-5. **战斗内随机不直接用 `combat` 子流**，每场再派生一层 `Hash64(combatStreamSeed, eventId)`。否则「退出重进」会重掷战斗随机——在强制在线 + 云端权威下这是**最易被发现的漏洞**。**`attemptIndex` 那一层已整层删除**（08-06）：篇章重试 = `RetryChapter` 内部生成一个**全新 seed**、换一整套随机流，与首次 `StartCycle` 走同一条生成路径——「重开一局」说的是随机流，不是角色（角色仍按 ADR-0004 全部继承）。次数计在 `CharacterProfile.chapterRetry`，它是计数器容器、不参与派生。
-6. **账号级掉落的掷骰绝不走 `SeedManager` 的子流**（明示例外，08-09b）。四条子流全由 `Hash64(CycleSeed, streamName)` 派生，而**篇章重试会生成全新的 `CycleSeed`**——把账号级掉落挂上去等于让玩家靠重试换一次掷骰结果。道统残卷（`PlayerPowerFragment`）改用 `Hash64(AccountSeed, FinaleWinOrdinal)`：`AccountSeed` 由后端下发、落 `AccountInfo`，**不进 `SeedManager`、不进子流清单**（故不触及纪律 6 的 schema 约定）；`FinaleWinOrdinal` 单调递增且**本身就是幂等键**——同一序号重复结算得同一结果，退出重进 / push 重放都不改变掉落。**对轮回可复现性零影响**：不从 `CycleSeed` 派生、不消耗任何子流的 `State`，两者不相交。客户端掷、后端可复算。→ `systems/player-profile/player-power/_index.md`。
-7. **子流清单是 SeedManager 内的常量。** 读档遇存档中没有的**新**子流 → `PushWarning` + 按 `Hash64(CycleSeed, name)` 全新初始化；遇清单里已不存在的**旧**子流 → 警告并丢弃。**增删子流不 bump schema 版本。**
+1. **绝不用未加种子的 `GD.Randi()` / `GD.Randf()` / `System.Random()` 决定任何影响游戏结果的事**——它们只能用于永不需要复现的装饰性抖动。
+2. **一律经具名子流取随机，不从单个全局生成器抽**：不隔离会让不相关的系统互相错位（多抽一张卡移动地图生成）。子流清单是 SeedManager 内的常量。→ `systems/services/life-cycle-service.md`
+3. **经 `life-cycle-service.Stream(RngStream)` 取 `RandomNumberGenerator`**（而非返回 `int`）——它自带可序列化的 `Seed` / `State`，正是持久化形态的载体。→ `systems/services/life-cycle-service.md`
+4. **恢复用 `State`（O(1) 回填），诊断用 `DrawCount`（迁移保险）；读档时在任何抽取发生之前先恢复各状态。** → `systems/services/life-cycle-service.md`
+5. **战斗内随机直接用 `combat` 子流，不在其上再派生一层**——防 re-roll 已由决策点存档 + `State` 持久化封住；篇章重试整个换一套新随机流（`RetryChapter` 生成全新 seed）。→ `systems/services/life-cycle-service.md`
+6. **账号级掉落的掷骰绝不走 SeedManager 的子流**（否则玩家能靠篇章重试换一次掷骰结果）——残卷改用 `Hash64(AccountSeed, FinaleWinOrdinal)`，序号本身即幂等键。→ `systems/player-profile/player-power/_index.md`
+7. **增删子流不 bump 存档 schema**：读档遇未知子流 `PushWarning` + 全新初始化，遇已删子流警告并丢弃。→ `systems/services/life-cycle-service.md`
 
 ## 验证小贴士
 
-廉价的确定性测试：**在同一 `contentVersion` 下**用脚本化输入以同一 seed 跑两次，断言得到的 `CharacterProfile` 完全一致。若 / 当存在测试框架时加入（默认不要求）。
+廉价的确定性测试：**在同一 `contentVersion` 下**以同一 seed 跑两次脚本化输入，断言得到的 `CharacterProfile` 完全一致。若 / 当存在测试框架时加入（默认不要求）。

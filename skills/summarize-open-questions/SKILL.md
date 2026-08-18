@@ -11,7 +11,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 
 `/analyze-new-ideas` 在收尾时会顺手刷新此文件；本技能是它的**专职、可独立运行**版本——不引入新想法，只做归集与整理，用于清单变脏、积压或与主题文档漂移时的一次性重整。
 
-**范围守则：** 只写 `<LIB>/open-questions.md`、`<LIB>/open-questions/` 与 `<LIB>/answer-logs/`——**只写本次选定的那一个库**，另一库一字不改。**不**改各主题文档（它们是权威归属，编辑归用户/`/analyze-new-ideas`），**不**裁决任何问题（拍板归用户）。若发现某主题文档的 `## Open questions` 本身有错漏或与 `## 决策` 矛盾，如实报告给用户，不擅自改动主题文档。
+**范围守则：** 只写 `open-questions.md`、`open-questions/` 与 `answer-logs/`。**默认只写主库**；但当对账发现**一条跨边界的承接项在对侧库缺失**（一侧已定案、另一侧零承载），按 `.claude/rules/design-library-routing.md`「跨库纪律」**允许在对侧库的对应分片补登一条待答项**（写成待答形态、注明来源与回链，**不替对侧拍板**），并在该库的 `update-log.md` 记一笔。**两库的索引 / 台账 / 就绪度结论永不合并。****不**改各主题文档（它们是权威归属，编辑归用户/`/analyze-new-ideas`），**不**裁决任何问题（拍板归用户）。若发现某主题文档的 `## Open questions` 本身有错漏或与 `## 决策` 矛盾，如实报告给用户，不擅自改动主题文档。
 
 ## 步骤
 

@@ -27,6 +27,7 @@
 | 领域 | 文件 |
 |------|------|
 | 设计流水线技能的双库入参（选客户端库还是后端库、跨库纪律、两库结构差异） | `.claude/rules/design-library-routing.md` |
+| batch-* 批量技能的编排契约（两阶段、合并 interview、共享台账单写者、写入面分区） | `.claude/rules/batch-orchestration.md` |
 | C#↔Godot 互操作（命名、`[Export]`、热路径分配、信号、生命周期） | `.claude/rules/csharp-godot-rules.md` |
 | 场景与节点（组合、`PackedScene` 实例化、节点路径） | `.claude/rules/scene-rules.md` |
 | 数据即资源（`.tres`、id、注册表、平衡配置） | `.claude/rules/data-resource-rules.md` |

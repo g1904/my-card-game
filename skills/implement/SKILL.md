@@ -70,3 +70,7 @@ argument-hint: [蓝图名或功能描述]
 - 若 session 在验证前结束，把 FR 留在 `blueprinted`，并在摘要中注明"验证通过后请把 FR-<id> 翻为 built"——**台账绝不领先于事实**。
 - **源自内容条目的蓝图同理**：验证通过后把 `game-design-documents/content/<类型>/<id>.md` 的 `status` 翻为 `built`，并同步该类型档案 `_index.md` 的条目台账（内容不进 FR 台账）。
 - 同时更新 `.claude/blueprints/_index.md` 中该蓝图的状态（实现中 `implementing` → 验证通过 `built`）。
+
+## 批量模式（worker 契约）
+
+本技能有批量版 **`/batch-implement`**（多分片并行 / 波次编排，合并 interview）。被其派为 worker 运行时，按 `.claude/rules/batch-orchestration.md` 的「worker 契约」执行三点覆盖：① interview / 澄清门不调用 `AskUserQuestion`——Phase A 把问题写进 run 目录并停止，Phase B 把 `answers.md` 视同用户当面裁决；② 共享台账（各 `_index.md`、`open-questions*`、`update-log`）不写，台账行随报告交回由 orchestrator 代笔；③ 范围锁定在派单分片，越界发现只记报告。其余步骤原样执行。直接被人运行时本节不适用。

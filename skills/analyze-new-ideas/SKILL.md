@@ -24,7 +24,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 
 选定后，**下文所有写作 `game-design-documents/` 的路径一律读作 `<LIB>/` 下的同名路径**；两库的结构差异（主题文档区、根级横切文件、有无知识引用层）见该规则文件的差异表。在报告开头点明本次作用的库。
 
-**跨边界的意图不跨库承载**：若输入同时改动客户端与后端（典型：协议契约变更），只产出选定库的 handoff 与提炼，并在报告中点名「另一侧需要一份对应的 handoff」，不要一次写两库。
+**跨边界的意图允许跨库承载**（2026-08-16b 解除单库限制，见 `.claude/rules/design-library-routing.md`「跨库纪律」）：若输入同时改动客户端与后端（典型：协议契约变更），**在两侧各产出一份 handoff 与提炼**，每侧只写归属判据判给它的那一半、互相回链、绝不复述对方语义。**不允许只改一侧就宣称收口**——旧规则要求拆成两次运行，实践中第二次经常不会发生（客户端 08-15b 的购买段定案在后端库空悬了一整周即是一例）。报告按主库 / 对侧库分区，逐条列出改动文件。
 
 ### 1. 定位原始输入
 解析 `$ARGUMENTS`：
@@ -248,3 +248,7 @@ grep -c "Source:" <改动的活文档>   # 应 ≤ 该文档的 ## 小节数
 ```
 
 > 输出中**不含** derive 就绪度 / 下一阶段建议——见第 10 步。
+
+## 批量模式（worker 契约）
+
+本技能有批量版 **`/batch-analyze-new-ideas`**（多分片并行 / 波次编排，合并 interview）。被其派为 worker 运行时，按 `.claude/rules/batch-orchestration.md` 的「worker 契约」执行三点覆盖：① interview / 澄清门不调用 `AskUserQuestion`——Phase A 把问题写进 run 目录并停止，Phase B 把 `answers.md` 视同用户当面裁决；② 共享台账（各 `_index.md`、`open-questions*`、`update-log`）不写，台账行随报告交回由 orchestrator 代笔；③ 范围锁定在派单分片，越界发现只记报告。其余步骤原样执行。直接被人运行时本节不适用。

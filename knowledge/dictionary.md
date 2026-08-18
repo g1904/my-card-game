@@ -1,30 +1,29 @@
 # 术语表 —— 游戏词汇
 
-> **权威来源：`game-design-documents/terminology.md`**（设计分支根级）。所有**本作专有**的领域术语——中文领域词 ↔ 英文/代码标识符（修行事件/AdventureEvent、**九类分类法**（07-24 加入 Explore 探索秘境 / Travel 前往某处地点）、**location 地域**、境界阶梯、PlayerProfile/CharacterProfile 等）——以该文件为准，此处不再复制。改动术语时先改那里，再回来核对本表是否有过时的通用词。
+> **权威来源：`game-design-documents/terminology.md`**（设计分支根级）。所有**本作专有**的领域术语——中文领域词 ↔ 英文 / 代码标识符——以该文件为准，此处不复制。改动术语时先改那里，再回来核对本表是否有过时的通用词。
 
-本文件只保留**通用的 roguelike 卡组构建体裁词汇**（沿用 Balatro / Slay the Spire 惯例），供阅读代码/知识笔记时快速对照。凡与 `terminology.md` 冲突之处，以 `terminology.md` 为准。
+本文件只保留**通用的 roguelike 卡组构筑体裁词汇**（沿用 Balatro / Slay the Spire 惯例），供阅读代码 / 知识笔记时快速对照：每行 = 体裁通称 + 本作对应词的**指路**，不展开本作的机制说明。凡与 `terminology.md` 冲突之处，以 `terminology.md` 为准。
 
-| 术语 | 含义 |
-|------|---------|
-| **Cycle（轮回）** | 从开局到胜/负的一次完整游玩。可从存储的 **seed** 复现。体裁通称 *run*，本作定名为**轮回 / cycle**，与 life-cycle-service 同词根；权威见 `terminology.md`。 |
-| **Seed** | 确定性地驱动整局轮回所有随机性的数字（本作 `CycleSeed`，u64）。**可复现性只在同一 `contentVersion` 内成立**——已明确放弃跨内容版本复现（overlay 热更即时生效，不冻结版本）。见 `standards/rng-determinism.md`。 |
-| **Ante / Floor** | 轮回内部的一个进程层级（Balatro 称 *ante*；StS 称 *act/floor*）。难度随之提升。本作对应概念见 `terminology.md` 的「篇章 / Chapter」与境界阶梯。 |
-| **Map / Node** | 轮回的分支路径；每个 **node** 是一次事件节点。本作的节点单元已定名为 **修行事件 / AdventureEvent**（原 encounter），见 `terminology.md`。地图路由与地域（**location**）切换由 **Travel** 修行事件驱动，归 `systems/game-progression.md`。 |
-| **Blind** | 一场战斗的胜利条件 / 关卡门槛（Balatro 的 small/big/boss blind）。本作对应 **Practice / Combat / Finale** 三档：**借难度分档，不借出现节律**；回合数与胜负判据都是遭遇参数（`EncounterSpec`）。 |
-| **Deck** | 玩家本局轮回拥有的全部卡牌。 |
-| **Draw pile / Hand / Discard pile** | 运行时的卡牌区域。体裁通常是 draw → hand → discard →（重洗）→ draw 的环流，**本作没有重洗**：弃牌堆不回流，一场战斗内只在参战方组装时初洗一次；抽牌堆抽空后继续抽即触发**疲劳**（每张 −1 道念）。定名与规则权威见 `terminology.md`。 |
-| **Hand** | 本回合当前可打出的卡牌。 |
-| **Energy / Mana** | 每回合用于打出卡牌的资源。 |
-| **Jade（灵玉） / Currency** | **轮回级**货币，用于交易（Exchange）事件中购买。归 `character-profile/currency.md`，随轮回结束而清；跨轮回的账号级资产另归 player-profile。 |
-| **Checkpoint / 重试** | 篇章通关后在所达**境界**落存档点；失败（`defeated`）清理该角色并扣减该篇章重试次数，耗尽则该篇章重新锁定。归 ChapterManager；**次数与规则的权威见 `decisions/ADR-0004`**。 |
-| **Relic / Joker** | 一种持久的被动修饰器，通过触发式效果改变规则（Balatro 称 *joker*；StS 称 *relic*）。 |
-| **Scoring** | 体裁通称两路：Balatro 的 chips × mult，或 StS 的伤害 / HP。**本作两路都不采用**——计分模型 = **道念 / momentum**：可互相削减、下限 0 饱和减法，**固定 10 回合后道念高者胜**（它既是胜利点数也是胜负判据）。**削减有两条通道**：卡牌（行动阶段打出）与**疲劳**（开始阶段抽空牌堆，08-11c 松动了「只有卡牌一条结算通道」）。`lifeTotal` **不参与战斗内结算**，只承受战斗外的耐久损失（道念差 1:1 转换）。权威见 `systems/scoring.md`。 |
-| **Upgrade / Remove** | 提升某张卡牌，或将其从 deck 中删除（通常在商店/事件处进行）。 |
-| **Event** | 提供风险/回报选择的非战斗 node。本作分类见 `terminology.md` 九类（社交/交易/闭关/探索秘境/前往某处地点……）。 |
-| **Boss** | 一个 ante/act 的收尾遭遇。本作对应 **Finale（境界突破 / 天劫）**——复用 combat-service；**失败不直接 `defeated`**，走既有 `LifeTotalExhausted`，失败后可再挑战。 |
-| **Reward** | 遭遇结束后的选择（卡牌、jade、relic）。本作分两类：**强制自动计入**（如经验）+ **可选择一**（固定 3 项）。可选项**预先算定并落存档、不重抽、无放弃通道**，故**不是决策点**。**失败侧仍发 `baseReward`**；额外惩罚以负向条目包在 reward 内，不另立结构。 |
-| **CycleState** | 所有 per-cycle 数据的内存持有者。**本作已定名为 `CharacterProfile`**（轮回级），由 `PlayerProfile ⊃ List<CharacterProfile>` 持有；状态机归 life-cycle-service 的 CycleStateManager。见 `terminology.md`。 |
-| **ContentRegistry** | 启动时合并 `res://content/` 基线与 `user://overlay/` 热更、以 `Id` 为键的全部内容资源索引。隶属 content-service，是**全游戏唯一内容读取入口**。读取侧 `Get(id)` **不**按 `ContentEnabled` 过滤；**一切抽取走 `AllEnabled()`**。 |
-| **Materialize（物化）** | `AdventureEventData` 模板 → future-event-service 依情境代入 → 定稿 `EventOption`。体裁无对应通称；**产出即定稿、不可改写、落存档**。权威见 `terminology.md`。 |
+| 体裁术语 | 体裁含义 | 本作对应 |
+|------|---------|---------|
+| **Run** | 从开局到胜 / 负的一次完整游玩，可从 seed 复现。 | **轮回 / Cycle**；状态持有者 `CharacterProfile`，状态机归 life-cycle-service。→ `terminology.md` |
+| **Seed** | 确定性驱动整局随机性的数字。 | `CycleSeed`；**复现只在同一 `contentVersion` 内成立**。→ `standards/rng-determinism.md` |
+| **Ante / Act / Floor** | 轮回内部的进程层级，难度随之提升。 | **篇章 / Chapter** 与境界阶梯。→ `terminology.md` |
+| **Map / Node** | 分支路径与其上的事件节点。 | **修行事件 / AdventureEvent**；地图路由由 Travel 事件驱动，`locationMap` 对玩家不可见。→ `terminology.md`、`systems/game-progression.md` |
+| **Blind** | 一场战斗的胜利条件 / 关卡门槛。 | `combatTier` 三档（Practice / Standard / Finale）——**借难度分档、不借出现节律**；回合数与胜负判据都是遭遇参数。→ `systems/adventure-event/combat/` |
+| **Deck** | 玩家本局拥有的全部卡牌。 | 构筑单位是**功法 `CultivationTechnique`**（整组入组 / 整组替换）。→ `systems/character-profile/deck/` |
+| **Draw pile / Hand / Discard pile** | 运行时卡牌区域，体裁通常是「弃牌重洗回流」的环流。 | **本作没有重洗**：抽空后继续抽即触发**疲劳**。→ `systems/services/combat-service.md` |
+| **Energy / Mana** | 每回合用于打出卡牌的资源。 | 法力，归 `systems/character-profile/mana.md`。 |
+| **Currency** | 局内货币。 | **灵玉 / jade**，轮回级、随轮回结束而清。→ `systems/character-profile/currency.md` |
+| **Checkpoint** | 进度存档点与失败重试规则。 | 篇章通关后在所达境界落点，归 ChapterManager。→ `decisions/ADR-0004-realm-checkpoint-retry-model.md` |
+| **Relic / Joker** | 持久的被动修饰器，以触发式效果改变规则。 | 账号级**法则 PlayerPower** / 轮回级**神通 CharacterPower**。→ `systems/player-profile/player-power/` |
+| **Scoring** | 体裁两路：chips × mult（Balatro）或伤害 / HP（StS）。 | **两路都不采用**——计分模型 = **道念 / momentum**，既是胜利点数也是胜负判据。→ `systems/scoring.md` |
+| **Upgrade / Remove** | 提升某张卡牌或将其移出 deck。 | 归闭关（Research）事件的构筑面板。→ `systems/adventure-event/research/` |
+| **Event** | 提供风险 / 回报选择的非战斗节点。 | 五类分类法之一，见 ADR-0002（Combat / Exchange / Research / Explore / Travel）。→ `terminology.md` |
+| **Boss** | 一个 act 的收尾遭遇。 | **Finale（境界突破 / 天劫）**——复用 combat-service，全部 Finale 均为战斗。→ `systems/adventure-event/combat/` |
+| **Reward** | 遭遇结束后的选择（卡牌 / 货币 / relic）。 | 强制自动计入项 + 固定可选项择一；**预先算定并落存档、不重抽，故不是决策点**。→ `systems/adventure-event/combat/` |
+| **CycleState** | 所有 per-run 数据的内存持有者。 | **`CharacterProfile`**（轮回级），由 `PlayerProfile` 持有。→ `systems/character-profile/_index.md` |
+| **Content registry** | 按 id 索引全部内容资源的启动期注册表。 | `ContentRegistry`，隶属 content-service，**全游戏唯一内容读取入口**。→ `data/_index.md` |
+| **Materialize（物化）** | 体裁无对应通称：模板 → 依情境代入 → 定稿实例。 | `AdventureEventData` → future-event-service → `EventOption`，**产出即定稿、不可改写、落存档**。→ `terminology.md` |
 
-> **本作大量借用 MTG 术语**（栈 / 结算 / 触发 / 永久物 / 卡牌类型六分 / 次类型），但**只借结算模型与词汇，不借其胜负模型、mana 曲线、交互与优先权**——瞬间牌、栈非空时出牌、优先权轮转全部**不借入**。借词的中英定名权威在 `terminology.md`。
+> **本作大量借用 MTG 术语**（栈 / 结算 / 触发 / 永久物 / 卡牌类型 / 次类型），但**只借结算模型与词汇，不借其胜负模型、mana 曲线、交互与优先权**。借词的中英定名权威在 `terminology.md`。
