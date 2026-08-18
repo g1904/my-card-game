@@ -8,8 +8,7 @@
 > 此清单**只跟踪仍待答的问题**（不留已解决区），是导航 / 拾取清单，**权威归属在各主题文档**；
 > 一旦答定就从分片中移除、归档进对应主题文档，并在 `answer-logs/log-<draftSuffix>.md` 记一笔。
 >
-> **最近更新：2026-08-14** —— SplitMix64 测试向量填值答结：`01` 一条移出；
-> `contracts/vectors/splitmix64.json` 落笔，「跨语言逐位一致」自此有可执行检查点。
+> **最近更新：2026-08-17** —— 透明路径集合字段改单数 + `ordinal` 口径确认（移出 2 条 · 新增 0 条 · 跨库同批）。
 > （逐次更新摘要见 `open-questions/update-log.md`；答结归档见 `answer-logs/`。）
 
 ## 分片导航
@@ -21,13 +20,14 @@
 | `open-questions/02-account-compliance.md` | **② 账号与合规**（现焦点之首）：展开见表下 |
 | `open-questions/04-content-delivery.md` | **④ 内容分发（CDN）**：展开见表下 |
 | `open-questions/06-platform-stack.md` | **⑥ 技术栈 · 托管 · 运维**：选型、区域合规、环境分层、可观测性、成本模型。 |
+| `open-questions/cross-boundary.md` | **跨边界承接**：客户端已定案、本库尚未落笔的条目。**不是待答问题**——答案已有，等的只是落笔；形态与关闭条件见分片抬头，机制设计见客户端库同名分片。 |
 
 分片展开（承接上表）：
 
-- **`01`** —— 四份契约全部成文（→ `contracts/envelope.md`、`content-manifest.md`、`auth.md`、`profile-sync.md`）；
-  余下全是横切项——`auth.md` 的三处留白、`compliance.*` 码清单、`bundleGrantOrdinal` 透明路径、三条机检断言的承载位置（待 `06`）。
-- **`02`** —— 自建 vs 第三方、PIPL / 实名 / 防沉迷 / 注销 / 导出（**落点不得选在 `/v1/profile/*`**）、
-  多设备并发裁决（**卡着 `auth.md` 的 `reasonKey` 取值表**）、风控系统与异常账号处置。
+- **`01`** —— 六份契约全部成文（→ `contracts/envelope.md`、`content-manifest.md`、`auth.md`、`profile-sync.md`、`purchase.md`、`compliance.md`）；
+  余下全是横切项——`refresh` 的限流形态（待 `06`）、合规域端点自身的错误码（随报文本体落笔）、三条机检断言的承载位置（待 `06`）。
+- **`02`** —— 敏感词词表与审核口径、未过审昵称的存量扫描、风控系统与异常账号处置、合规能力的上线分级。
+  身份模型、合规落地与多设备裁决均已答结（→ `contracts/auth.md`、`contracts/compliance.md`）；余下各条共用 `account.status` 作挂接点。
 - **`04`** —— 协议四条已答结（→ `contracts/content-manifest.md`）；
   余下 flags 运营形态、签名私钥保管、多区域一致性、**剧本内容的体积与分包**。
 
@@ -39,26 +39,28 @@
 > （五条全部答结或被契约覆盖，实现层面的部分并入 `06`，见 `handoffs/2026-08-14-profile-sync-contract.md`）。
 > 同样不回填、不重排。
 
-## 当前焦点：契约面已封顶，焦点转向 `02` 与 `06`
+## 当前焦点：`06`，其次 `02`
 
-**四份契约全部成文**——
+**六份契约全部成文**——
 
 - `envelope.md`（边界层，08-11）
 - `content-manifest.md`（内容分发，08-11）
 - `auth.md`（登录与会话，08-13）
-- `profile-sync.md`（存档同步，08-14）。
+- `profile-sync.md`（存档同步，08-14）
+- `purchase.md`（付费验票与后端权威写入，08-16）
+- `compliance.md`（实名 / 防沉迷 / 注销 / 导出，08-16）。
 
-**契约面无第五份**（剧本契约已撤销）。焦点顺序因此变为：
+**已成文契约上再无取值留白**——`reasonKey` 三处与 `compliance.*` 码清单已于 08-16 全部填表。焦点顺序因此换位：
 
-1. **`02` 账号与合规** —— 现在是唯一还卡着**已成文契约取值**的分片：
-   `auth.session_revoked.detail.reasonKey` 的取值集合、`compliance.*` 的具体码清单与其在 `signin` 的分支形态
-   （**落点边界已定：不得选在 `/v1/profile/*`**）。**报文形状不受影响**，落定时只补取值表。
-   风控系统的有无与形态也在此——`profile-sync.md` 已把复算不一致的处置指向风控。
-2. **`06` 技术栈 · 托管** —— 现在是 `operations/` 落地的**唯一前置**，
-   且已承接同步侧的全部实现层问题（CAS 存储、幂等记录、限流实现、跨区域拓扑、可观测性三探针），
-   以及**契约一致性三条机检断言的承载位置**。与 `02` 的合规托管耦合，可与之并行。
+1. **`06` 技术栈 · 托管** —— `operations/` 落地的**唯一前置**，且已承接全部实现层问题：
+   同步侧（CAS 存储、幂等记录、限流实现、跨区域拓扑、可观测性三探针）· 会话侧（会话记录存储、同事务吊销、`signin` 幂等回放记录）·
+   合规侧（可信服务端时钟、`complianceTicket` 与冷静期状态机、导出产物与链接签发）· **契约一致性三条机检断言的承载位置**。
+2. **`02` 账号与合规** —— 余下的是**运营口径与风控**，不再卡任何契约：
+   敏感词词表与审核口径 · 未过审昵称的存量扫描 · 风控系统的有无与形态（`profile-sync.md` 已把复算不一致的处置指向它）· 合规能力的上线分级（与 `06` 的托管 / 备案排期耦合）。
+   各条共用 `account.status` 作挂接点，不再各立一套「是否可玩」的真值。
 3. **`01` 余下条目** —— 全是横切项，不挡任何契约：
-   `bundleGrantOrdinal` 透明路径（待客户端）· 三条机检断言的承载位置（待 `06`，在此之前走人工清单）。
+   `purchase.md` 的 `receipt` 字段渠道形态与错误码映射（待支付渠道选型，归 `06`）· `refresh` 的限流形态（待 `06`）·
+   合规域端点自身的错误码（随 `compliance.md` 报文本体落笔）· 三条机检断言的承载位置（待 `06`，在此之前走人工清单）。
    **spec 的落笔时机与一致性核对方式**已于 2026-08-14 答结（→ `contracts/_index.md` + `envelope.md` §1）；
    **SplitMix64 测试向量**同日填值答结（→ `contracts/profile-sync.md` §6a + `contracts/vectors/splitmix64.json`）。
 4. **`04` 内容分发** —— 协议已答结，余下是运营形态与私钥保管（与 `06` 耦合）。
@@ -75,20 +77,58 @@
 
 > 本小节由 `/assess-derive-readiness` **独占写入**（`/analyze-new-ideas` 与 `/summarize-open-questions` 均不得改动）。就绪度需基于全库一次性全量扫描才有意义，顺带评估会迅速过时且互相矛盾。
 
-**最近全量评估：尚未运行。** 本库的主题文档区（`contracts/` · `systems/` · `operations/`）尚未建立任何设计文档，`vision/` 之外无可评估对象——**全库尚未进入可 derive 的阶段**。
+**最近全量评估：2026-08-16（由 `/assess-derive-readiness` 产出）。**
+
+**全局结论：仍无一份可直接 derive，但卡点的性质已经变了——0 份 ready、3 份 partial、10 份 blocked。** 契约面**六份全部成文且再无取值留白**，跨边界欠账**已清零**（`open-questions/cross-boundary.md` 的「待承接」为空，客户端侧的对位改动已于 08-16 同批落笔）。挡在 partial 与 ready 之间的**只剩一件事，且它是待落笔而非设计未决：全库零 ADR**——七条候选全部停在 `decisions/_index.md` 的候选表里，而就绪判据第 3 条要求「约束它的 ADR 均为 Accepted」，故对每一份契约都不成立。其余卡点分两类：**`06` 技术栈**（挡住 `systems/` 与 `operations/` 的全部展开、`purchase.md` 的 `receipt` 形态、`refresh` 的限流形态）与 **`02` 运营口径**（敏感词判定输入、风控形态），两者都不再挡任何一份契约的**报文本体**。
+
+| 文档 | 判定 | 卡点 / 就绪切片 |
+|---|---|---|
+| `vision/scope.md` | blocked | 非 FR 面（北极星文档，只陈述边界与硬约束，不含可验证行为）。其 `## Open questions` 指向 `01` 与 `06`，后者未闭合 |
+| `vision/pillars.md` | blocked | 非 FR 面（裁决原则）。它作为其他文档的判据成立，自身不产出需求 |
+| `contracts/_index.md` | blocked | 索引 / 台账，非 derive 对象。其「六份 + 分域判据 + 完成判据 + 三条机检断言」的内容已与实际一致，无失真 |
+| `contracts/envelope.md` | blocked | 共有层，**不存在独立可构建的增量**（无端点即无「请求 → 应答」的验收断言）。另有两条 Open questions：合规域端点自身的错误码随 `compliance.md` 报文本体落笔 · 三条机检断言的**承载位置**待 `06`。ADR 候选③（OpenAPI 单点 / 不共享 DTO）未固化为 Accepted |
+| `contracts/content-manifest.md` | **partial** | **就绪切片 = CDN 域三端点的协议面**（`manifest` / `manifest.sig` / `blobs/<sha256>`）：三条服务端保证、`manifestSchema: 1` 字段表、ES256 detached 签名与 `keyId` 轮换、`contentVersion` 严格单调（回滚即前滚）、三版本号分工——验收可写成栈中立断言（blob 先于 manifest 可读；manifest 原始字节可被 `keyId` 对应公钥验签；同 hash URL 字节不可变）。**其余卡于**：`/v1/content/flags` 的分桶与数据源运营形态（`04`+`06`）· ES256 私钥保管与 CI 签名步骤（`04`，反向约束 `06` 选型）· 多区域 `contentVersion` 是否同步推进（`04`+`02`）· 剧本本地化后的体积与分包边界（`04`，**客户端侧同题待答**）· 发布侧内容校验闸的运维形态（`04`，08-16 新承接）· ADR 候选①②未 Accepted · 对位的 `systems/content-delivery.md` 与 `operations/content-delivery-ops.md` 均未建立 |
+| `contracts/auth.md` | **partial**（较上次由 blocked 上调） | 上次的首要卡点「账号系统自建还是接第三方」**已于 08-16b 答结**（身份主体自建、account↔identity 一对多），三处 `reasonKey` 留白也已于 08-16c 填表。**就绪切片 = 会话与身份的语义面**：§1a 身份模型（绝不隐式合并）· §2 双 token · §4 rotation + 60 秒宽限窗口 · §4a 会话裁决（`sid` · `(accountId, deviceId)` 唯一约束 · 活跃会话上限 1 · `signin` 60 秒幂等回放）· §7 七端点全幂等 · §9 五个错误码 · §5 §5a 闸门与合规拦截只在 `signin`——全部可写成栈中立的请求 → 应答断言，`Failure & retry semantics` 段材料充足。**其余卡于**：`refresh` 的限流形态（`06`；一旦认定必须限流即需回改 §8 报文并给客户端第三条路径，**这是切片内唯一可能回改报文的点，故 derive 时须排除 `refresh` 的错误面**）· `nickname` 的敏感词判定输入（`02`，验收断言写不实）· 短信 / 实名核验服务商与微信资质（`06`）· token 签名密钥保管与会话存储（`06`）· ADR 候选④未 Accepted · 对位的 `systems/account.md` 未建立 |
+| `contracts/profile-sync.md` | **partial**（较上次由 blocked 上调） | 上次的首要卡点「跨边界未闭合」**已清零**：§6 SplitMix64 · §7 两个写入约定 · `accountSeed` 的 hex 表示 · §3a 顶层键浅合并 · `bundleGrantOrdinal` 白名单行，客户端侧全部已于 08-16 同批落笔（见 `open-questions/cross-boundary.md` 的对账基线）。**就绪切片 = 两端点的完整协议面**：pull / push 报文、§3a 浅合并、§4 三分支 + 幂等命中、§5 逐 JSON path 白名单与后端写入封闭四行表、§6 SplitMix64（**`vectors/splitmix64.json` 提供唯一可执行的验收检查点**）、§7 §7a 复算边界与「仅记账不拒绝」、§8 §9 §10 CAS / 幂等 / 限流的服务端语义。**其余卡于**：风控事件的落地形态（`02`/`06`）· CAS 存储 / 幂等记录 / 限流实现 / 跨区域拓扑（`06`，契约已明写**不回头改契约**，故不影响报文面验收）· ADR 候选（SplitMix64 · 防作弊边界）未 Accepted · 对位的 `systems/profile-store.md` 未建立 |
+| `contracts/purchase.md` | blocked | **`receipt` 字段的内部形态与平台错误码映射未定**，待**支付渠道**选型（`06`；与登录渠道不同轴，账号侧答结**不解锁**本条）——它是 `POST verify` 请求体的核心字段，缺它写不出完整的 `Contract touchpoints`。§2 权威分配、§6 四条服务端保证、收据幂等读的语义已可用，**支付渠道一落定即转 partial**。另：幂等记录存储与对账补偿任务归 `06` · ADR 候选（写入只由 verify 承担）未 Accepted |
+| `contracts/compliance.md` | blocked | **六端点的报文字段表尚未落笔**（请求 / 应答字段、`taskId` 形态、导出任务状态机取值），**端点自身的错误码亦未落笔**（ticket 过期 / 已消费、核验拒绝、冷静期已过、导出任务不存在）——两者都属待落笔，应由一次正式契约变更承担。此外可信服务端时钟、`complianceTicket` 存储与一次性消费、冷静期长时状态机、导出产物与链接签发全部待 `06`。已定的端点集、`complianceTicket` 机制、拦截只在 `signin`、四条 `compliance.*` 与防沉迷复用 `session_revoked` 不足以支撑逐端点的验收断言 |
+| `contracts/vectors/splitmix64.json` | blocked | 非 derive 对象（机器可读的对表产物，不是报文形态，三条机检断言不覆盖它）。它已落笔，作用是给 `profile-sync.md` 的就绪切片提供可执行检查点 |
+| `systems/_index.md` | blocked | **尚无设计意图**——三份计划中的服务文档（`account.md` · `profile-store.md` · `content-delivery.md`）均未建立，前置为 `06` 技术栈。（索引正文的「协议契约四份已成文」为陈述失真，实为六份；不影响判定） |
+| `operations/_index.md` | blocked | **尚无文档**——六份计划中的文档均未建立。索引内已有实质要求（发布顺序、缓存 TTL、错误码台账登记流程、版本兼容矩阵、统计计数禁令），但全部以「栈落定后展开」为条件，前置 `06` |
+| `decisions/_index.md` | blocked | **本库尚无一份 ADR**（七条全部停在「ADR 候选」）。就绪判据第 3 条要求「约束它的 ADR 均为 Accepted」——当前对每一份契约都不成立。**这是全库唯一横亘在 partial 与 ready 之间、且不依赖任何未决设计的卡点** |
+
+**跨边界闭合（强制检查项）的结论：本库当前无欠账。** `open-questions/cross-boundary.md` 的「待承接」为空；上次评估点名的三处（购买段的新边界 · `profile-sync` 七点客户端对位 · 身份模型）均已于 08-16 落笔，`contracts/_index.md` 与 `profile-sync.md` §5 已按后端写入封闭表重写。**球在对侧的三条**（登记在客户端库自己的 `cross-boundary.md`，本库不催办、不代为决定）：三处 `reasonKey` 的玩家可见措辞落 `ux/error-and-blocking-ux.md` · `ComplianceManager` 的覆盖面切分 · `deviceId` 的生成与持久化落点。**两侧同题待答的一条**：剧本本地化后的分包边界——契约形态归本库、分包边界由内容规模决定，两侧须一致。
+
+### 建议的 derive 顺序
+
+**先做一件不需要任何新设计的事：把 `decisions/_index.md` 的七条 ADR 候选写成 ADR 正文并置 Accepted。** 它是三份 partial 转 ready 的唯一共同前置，且方向已由用户裁决、材料齐备（每条候选都带 Context / Decision / Consequences 的来源回链）。
+
+其后按「被依赖的契约先于依赖它的系统」：
+
+1. `contracts/profile-sync.md` —— 协议面最完整、跨边界已闭合、且有 `vectors/splitmix64.json` 这个可执行检查点；其 Open questions 全部明写「不回头改契约」，报文面不会返工。
+2. `contracts/auth.md` —— **derive 时排除 `refresh` 的限流 / 错误面与 `nickname` 的敏感词判定**，其余（身份模型 · 双 token · 会话裁决 · 七端点幂等）可独立成立。
+3. `contracts/content-manifest.md` —— 仅 CDN 域三端点的协议切片；`flags` 端点留到 `06`/`04` 落定。
+
+`envelope.md` 不单独 derive（共有层，随上述任一份的首个 FR 一并兑现其信封与错误体）。`purchase.md` / `compliance.md` 等各自的落笔前置。
+
+### 解锁顺序（最短路径）
+
+1. **七条 ADR 候选 → ADR 正文（Accepted）** —— 纯落笔，无设计未决。三份 partial 的第 3 条判据即刻满足。
+2. **`06-platform-stack.md`** —— 解锁 `systems/` 与 `operations/` 的全部展开、`purchase.md` 的 `receipt` 形态（支付渠道）、`refresh` 的限流形态、三条机检断言的承载位置、CAS / 幂等 / 限流 / 会话 / 合规状态机的存储语义。
+3. **`compliance.md` 六端点的报文字段表与其错误码** —— 一次正式契约变更即可（含 `envelope.md` §6 台账登记），不待 `06`。
+4. **`02-account-compliance.md`** —— 敏感词判定输入（解锁 `nickname` 的验收断言）与风控形态（解锁 `profile-sync.md` §7a 的处置面）。
 
 ## 下一阶段
 
-后端尚未开工，但**契约骨架已经完整**（四份，2026-08-14 封顶）：
-客户端侧已定的三组同步语义（`revision` CAS · `pushId` 幂等 · `AccountSeed` 与掷骰复算）自此全部有处可依。
+后端尚未开工，但**契约骨架已经完整**（六份）且**再无取值留白**：
+客户端侧已定的四组语义（`revision` CAS · `pushId` 幂等 · `AccountSeed` 与掷骰复算 · 购买段验票与权威写入）全部有处可依，
+三处 `reasonKey` 与 `compliance.*` 码清单也已填表——客户端的 `ErrorText` 自此可以机械落地。
 
-本库的下一步是**技术栈落定（`06`）与合规路线落定（`02`）**——
-`systems/` 与 `operations/` 的展开、以及 `requirements/` 的推导都以它们为前置，见 `README.md` 的文件夹图例。
+本库的下一步是**技术栈落定（`06`）**，它已是唯一的结构性前置：
+`systems/` 与 `operations/` 的展开、以及 `requirements/` 的推导都以它为条件，见 `README.md` 的文件夹图例。
+`06` 现背着四组承接：同步侧实现语义 · 会话记录的存储与同事务吊销 · 合规侧（可信时钟 / ticket / 冷静期状态机 / 导出产物）· 三条机检断言的承载位置，
+外加三项选型（支付渠道，**与登录渠道不同轴** · C 层原子能力的服务商与灾备 · 微信开放平台资质，**首个玩家建号前必须完成**）。
+`02` 余下的是运营口径与风控，可与 `06` 并行。
+`systems/account.md` 的开篇材料已备齐（三层切分 + identity 模型 + 会话裁决），只等 `06` 落定。
 
-**同时有一份跨库欠账：客户端侧需一份对应 handoff**
-（七点，见 `handoffs/2026-08-14-profile-sync-contract.md` 的「客户端侧影响」段），
-其中 `AccountRng` 换随机源、两个新字段与两条写入约定、`sourceCode` 的边界映射与本契约**互为前提**——
-它们未落地则复算协议在客户端侧无对应实现。
-
-**其中第 6 点（`AccountRng` 换随机源）自 2026-08-14 起已有可直接消费的验收物**：
-`contracts/vectors/splitmix64.json` 的 8 组向量已填，客户端实现后跑一遍即可，**无须等后端动手**。
+**尚未落笔的两块契约面欠账**（属待落笔，不是设计未决）：`contracts/compliance.md` 六端点的报文字段表与它们自身的错误码 · `openapi.yaml` 与 `schemas/*.json`（触发点 = 任一侧首个端点进入实现）。

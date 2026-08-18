@@ -2,6 +2,70 @@
 
 > 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身——条目在各分片。
 
+## 2026-08-17（`/batch-analyze-new-ideas` 跨库同批 · 移出 2 条 · 新增 0 条）
+
+- **来源**：`inbox/solution-draft-profile-field-schema.md`（本库那一半，`awaiting-review`）→ `handoffs/2026-08-17-profile-field-naming.md`。它是客户端 5 份草稿批量提炼的**对侧承接**，两侧同批落笔、互相回链；客户端那一半见 `game-design-documents/handoffs/2026-08-17h-profile-field-schema.md`。移出记录见 `../answer-logs/log-profile-field-schema.md`。
+- **答结 2 条**（均出自草稿的「仍需用户决定」，本库分片零对应条目）：
+  - **透明路径改名的切换时序取 A** —— 线上无真实账号数据 ⇒ **直接切，不写迁移、不设兼容期**。兼容期在此处不是安全网：按 §7a 的处置语义（复算不一致仅记账 + 上报风控，不拒绝、不改写），兼容期内**没有任何信号**能告诉任一侧「对方还没改」，不一致会变得永久不可见。
+  - **残卷 `ordinal` 口径确认** —— §7 现有措辞（「在 `finaleWinOrdinal` **递增的那一次** push 上」）已蕴含自增后口径，与客户端本批明写的「先算 +1 → 掷骰 → 同一次写回」一致。**零改动关闭**，只在客户端伪码那一行做了一句措辞消歧。
+- **§5 白名单四条路径由复数改单数**（`/playerPower[*]/powerId` · `/playerPower[*]/sourceCode` · `/playerPower[*]/status` · `/playerItem`），条目键名随客户端全族收口 `id → powerId`；新增 **§5b 集合命名通则**并写明**一次性切换的三个成立前提**（线上无真实账号数据 · 两侧同批落笔 · 一次性不设兼容期），缺一即不成立。`schemaVersion` 并入客户端那一次 bump（清单权威在客户端 `sync-service.md`）。
+- **`characterDiffs` 一格不动** —— 它是 diff 报文结构键，不在集合命名通则的约束面内；该划界由客户端侧同批钉死，本库只在 §5 排除清单旁注一句。
+- **`envelope.md` §8 的可见性表路径示例一并同步** —— 它是本库内唯一复述白名单路径的第二处，只改一处会留下相反表述，正是「路径是契约的一部分」要防的漂移。
+- **§6 算法与 §6a 的 8 组测试向量零改动**（已三重自查：diff 不含任何向量值 / 向量表逐行核对 / `contracts/vectors/splitmix64.json` 未被触碰）。三参数派生的输入是 `(accountSeed, stream, ordinal)`，与字段名无关。
+- **新增待答 0 条。** `cross-boundary.md` 的「对账基线」区新增 2 条留痕（两侧字段命名同批落笔无欠账 · `ordinal` 口径两侧已对齐），**均不进「待承接」区**——待承接的语义是「客户端已定、本库尚未落笔」，本次落笔已完成。
+
+## 2026-08-16f（`/analyze-new-ideas` 跨库同批 · 移出 0 条 · 新增 1 条）
+
+- **来源**：`game-design-documents/inbox/solution-draft-plot-data-encoding.md` → 对侧 handoff `game-design-documents/handoffs/2026-08-16i-plot-data-encoding.md`；本库 handoff `handoffs/2026-08-16d-plot-content-shape-adoption.md`。客户端把剧本内容收口为 `PlotArcData` + `PlotNodeData` 两个内容类型，**本库只承接跨边界的两半**。
+- **改写 `contracts/content-manifest.md`「剧本文本」一节的一条推论**：原写「flags 通道对剧本条目无作用点」，其前提（剧本条目只由 key point 定位读取）在 arc / node 分层后对 **arc 不再成立**。改为按分野表述——**arc 进 `disabledIds` 生效**（停止新激活，已在 key point 里的照常解析、不悬空），**node 进 `disabledIds` 无效且危险**（客户端 `PushError`）。**服务端仍不感知这一分野，报文层零改动、无新增字段。** 连带把运营后果的措辞收精确：flags 能做的是**停止新激活**（分钟级），**撤回一整段剧情仍是「回滚即前滚」**（冷启动级）。
+- **新增待答 1 条**（`04-content-delivery.md`）：**发布侧内容校验闸的运维形态**——客户端定的两条 overlay 合并期闸只能做到启动期 `PushError`（检查对象是 `.tres` 引用图，编译期够不着），等价的更强形态是**产包前跑同一份校验、不通过不产包**；执行时点在发布流程上故落本库，校验逻辑本身归客户端。与「签名私钥保管与 CI 签名步骤」多半是同一条流水线，共同前置 `06-platform-stack.md`。
+- **零改动面**：端点、schema、错误码、签名形态、`decisions/`、其余五份契约。
+
+## 2026-08-16e（`/analyze-new-ideas` · 合规域成文 · 移出 2 条 · 契约面 五 → 六）
+
+- **来源**：`inbox/solution-draft-compliance-codes-and-reason-keys.md` + `inbox/solution-draft-multi-device-session-arbitration.md`（两份均 `status: decided`）→ `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`。**两份必须同批提炼**——补强稿承载的会话机制正是主稿 `SessionSuperseded` 这个取值的产生源，分开提炼会让取值在契约里没有机制。
+- **答结 2 条**（→ `answer-logs/log-compliance-and-session-arbitration.md`）：`02` 的「合规落地」（分级排期外全部）与「多设备并发登录的裁决语义」。
+- **新建 `contracts/compliance.md`（第六份）**：六端点 · `complianceTicket` 解无 token 态死锁 · 拦截**只在 `signin`**（推演唯一解，另两个落点已被 §7b 与 `profile-sync.md` §11 排除）· 四条 `compliance.*` 与各自 `reasonKey` · 防沉迷时段中途到点**复用 `auth.session_revoked`**（TTL 卡在时段边界，不新增任何通道）· 时段口径落配置不进契约 · 冷静期 15 天 / ticket 10 分钟 / 导出保留 7 天 · 数据导出首版必做取最简 JSON。**单开而非并入 `auth.md`** 的判据仍是 `_index.md` 那条：合规域有两条与 auth 域相反的承重纪律（长时状态机 / 不可逆）。
+- **`auth.md` 三处 `reasonKey` 留白一次填满**：形态 **PascalCase 锁死**（客户端二级文案键由 `code` + `reasonKey` 机械变换、未知取值退回一级键）· `session_revoked` **七值** · `nickname_rejected` **三值**。其中 `TokenReuseDetected` 与 `CredentialChanged` **填的是既有漏洞**——§4 与 §7 都会产生 `session_revoked`，此前只举了两例，落到实现玩家会在刚绑定渠道后看到「已在另一台设备登录」。
+- **新增 `auth.md` §4a 会话裁决**：`sid` claim（`signout` 的前提，否则只能退化为吊销全部会话）· 会话表 `(accountId, deviceId)` 唯一约束 · **活跃会话上限 1** · 同设备重登**原地替换** · **`signin` 幂等 = 60 秒回放窗口**（与 §4 同值同理由，且是「替换」得以成立的前提）· `deviceId` 永不参与鉴权。
+- **一次 interview 裁决改写了护栏形态**：`envelope.md` §4a 的「无鉴权例外仅限 auth 域」与合规域的两个 ticket 端点冲突（**两份草稿的后果表都没列它**）。裁定**扩为两个例外域，并把点名式枚举升级为一条判据**——例外只允许给「玩家此刻不可能持有 access token」的端点。护栏因此**更严而非更松**：`GET /v1/compliance/status` 同属合规域却不够格。
+- **第二次 interview**：`auth.md` §5a 新纪律的措辞范围收窄为**只约束「拦截」**，不约束 `compliance.` 前缀本身——否则会禁掉合规域表达 ticket 过期一类自有语义，而那批码本就被推迟到一次正式契约变更。
+- **两处草稿内部计数笔误按三方互证取大者**（非 interview 项）：端点集 **6 个**（主稿正文写「五个」却列了 6 行）· `session_revoked` **7 值**（主稿后果表写「六值」却列了 7 行）。
+- **`_index.md` 的「②断言不下探到 `reasonKey`」一条新立**：它是 `detail` 内的取值集合，spec 只能表达 `detail` 是对象，正确性归人工清单第 1 项；漏项的后果不是静默走错分支而是回落一级文案。
+- **新增待答**：`01` 一条（合规域端点自身的错误码，随报文本体落笔）· `06` 三条（可信服务端时钟 · 合规域存储与导出产物 · 会话记录存储与同事务吊销）。
+- **对侧库**：`game-design-documents/open-questions/cross-boundary.md` 立一条承接项（三处 `reasonKey` 取值与机械变换规则 → 客户端 `ux/error-and-blocking-ux.md` 与 `account-service.md`）。**本库不代为决定客户端的呈现切分。**
+- **未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）。
+
+## 2026-08-16d（`/analyze-new-ideas` 跨库同批 · 移出 1 条 · 部分移出 1 条）
+
+- **来源**：`inbox/solution-draft-account-identity-model.md`（`status: decided`）→ `handoffs/2026-08-16b-account-identity-model.md`。**与客户端库同批运行**（counterpart：`game-design-documents/handoffs/2026-08-16c-account-identity-client-adoption.md`）。
+- **答结 1 条**：`02` 的「账号系统自建还是接第三方」——**拆成三层后没有一层是取向**：A 身份主体自建 · B 登录凭据两类并存（契约早已封定）· C 原子能力一律外接。→ `answer-logs/log-account-identity-model.md`。
+- **连带填掉 `auth.md` 的三处显式留白**（本就不是清单条目，故不计移出）：绑定 / 解绑端点 · 换 openid 的三条后端义务与两类错误映射 · 绑定列表的下行路径。端点集由四扩到**七**（+ `bind` / `unbind` / `nickname`），新增三个 `code`。
+- **一次纪律松动（用户已裁决）**：`profile-sync.md` §5 后端写入表由两行扩到**四行**（+ `/accountInfo/identities`、`/accountInfo/createdAtUtc`）。护栏同批**加固而非放松**：措辞仍是例外式「除表内四项外」、写入时机在表内写死、并新立**「够格进表」两条判据**（真值只可能在服务端产生 ∧ 客户端无其他通道），使「引先例扩表」变成一次必须逐条通过的检验。
+- **三次 interview**：① 昵称由**客户端写、后端只判定**（按新判据它不够格进写入表；改包可绕过的代价如实记在 `auth.md` §8，残留风险面由 `02` 的存量扫描承接）；② `status` **不进客户端**、只加 `createdAtUtc`（推翻了 counterpart 草稿把 `Status` 列进 `AccountInfo` 的那一行）；③ 改名端点**同批落契约**，而非只记一条承接项。
+- **一处指向纠错**：`purchase.md` 的 `receipt` 形态此前挂在本条下，实为**支付渠道**（与登录渠道不同轴）→ 改指 `06`。
+- **新增待答**：`02` 三小项（实名是否建号前置 · `nickname_rejected.reasonKey` 与词表口径 · 未过审昵称的存量扫描）· `06` 两条（服务商选型与灾备 · 微信开放平台资质，**首个玩家建号前必须完成**）。
+- **未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）。
+
+## 2026-08-16c — 购买域成文（第五份契约）· 移出 2 条 · 新增 `cross-boundary` 分片
+
+- **来源**：`inbox/solution-draft-cross-library-alignment.md`（`status: decided`）→ `handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`。**与客户端库同批运行**（counterpart：`game-design-documents/handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md`）。
+- **答结 2 条**（→ `answer-logs/log-cross-library-alignment.md`）：`01` 的「购买段的新边界尚无契约承载」与「`bundleGrantOrdinal` 的透明路径未定」。
+- **新建 `contracts/purchase.md`**：`POST /v1/purchase/verify` + `GET /v1/purchase/receipt/{receiptId}`；写入只由 verify 承担（渠道回调降为对账 / 补偿通道）· 平台收据 id 作幂等键 · 序号与 `revision` 同事务自增 · verify 不走 CAS 且不内联 profile · 复算回链 §6 · 四条栈中立的服务端保证。**单开而非并入 `profile-sync.md`** 的判据已写进 `_index.md`：承重纪律相反的域必须独立成文。
+- **一次纪律松动（用户已裁决）**：`profile-sync.md` §2 §5 的「后端对透明段只读，唯一写入是 `accountSeed`」→ **封闭两行表** + 「本表封闭，加行是破坏性契约变更、须两侧同批评审」的护栏；被接受的代价（未来会被引作先例）如实写在 §5 的引述块里。同批补入 `/entitlement/bundleGrantOrdinal` 白名单行。
+- **「契约面四份，无第五份」三处断言一并改写**（`contracts/_index.md` · `profile-sync.md` §1 · `README.md`）；`profile-sync.md` 文末的「跨库待办七点」改为一句客户端对位回链——七点已由客户端同批落笔。
+- **新增分片 `cross-boundary.md`**（不带编号，与客户端库同名同形）：专装「客户端已定案、本库尚未承接」的条目。当前「待承接」为空，只留对账基线。机制设计写在客户端库那一份，本库不重复。
+- **未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）。
+
+## 2026-08-16b — `/summarize-open-questions` 全量对账（采集 3 条 · 推翻 1 条断言 · 无移出）
+
+- **来源**：无草稿、无 handoff——纯归集整理。对账口径：`vision/` + `contracts/**` + `systems/_index.md` + `operations/_index.md` + `decisions/_index.md` 的 Open questions 小节 ↔ 4 个分片。
+- **本次无移出**：逐条比对后，四个分片现存条目在其权威契约文档中均无定论（本库自 08-14 起无新决策）。**未建 answer log。**
+- **⚠ 推翻一条断言：「契约面四份齐备，无第五份」作废。** 客户端 `game-design-documents/systems/monetization.md`（08-15b）已定案**购买由后端验票**、验票通过后**后端把云端 `bundleGrantOrdinal` 与 `cloudRevision` 各 +1**，客户端 `sync-service.md` 称其为同步模型此前没有的**第四种情形：后端主动写入**。本库对此**零承载**——无验票端点、`profile-sync.md` §5 仍写「`accountSeed` 是后端唯一写入的字段」、`contracts/_index.md` 仍宣称封顶四份。已在 `01-contracts.md` 立为首条待答项（含三个具体分叉：验票报文与渠道回调形态 · **后端主动写入如何与 `revision` CAS 共存**——客户端此时并未持有新 `revision`，下一次 push 必然 CAS 失败，需明确走 pull 还是走新的通知路径 · 同票据重复验证的幂等口径），并在索引的「当前焦点」与分片导航同步改正。**需一份本库 handoff 承接，本技能不代为裁决。**
+- **采集 2 条漏网项**（在契约文档里登记过、从未进过本清单）：① **第三方渠道换取 openid 的具体报文**与渠道错误码到 `auth.channel_rejected.detail` 的映射 ⇒ `01`（与 `auth.md` 三处留白同源，待 `02` 的自建 vs 第三方）；② **token 签名密钥的保管与轮换 + 会话存储形态** ⇒ `06`（`auth.md` 已把它们归 `06` 落 `operations/`）。**②须与 `04` 的 ES256 内容签名私钥区分**——两把钥匙、两套轮换窗口，混为一谈会在轮换设计上出错。
+- **未动分片结构**（四片体量均正常），**未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占，原样保留 08-16 那份全量评估）。
+- **未发现需报告的契约文档自身错漏**：四份契约的 Open questions 与其正文决策无矛盾。
+
 ## 2026-08-14 — SplitMix64 测试向量填值答结（`01` 一条）
 
 - **来源**：`inbox/archive/solution-draft-splitmix64-test-vectors.md`（08-14 产出并由用户裁决）→ `handoffs/2026-08-14-splitmix64-test-vectors.md`。

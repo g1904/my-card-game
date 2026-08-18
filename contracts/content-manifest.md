@@ -141,16 +141,19 @@ res://基线  <  user://overlay/  <  flags（仅覆盖 ContentEnabled，不改�
 
 ## 剧本文本：一类普通内容文件
 
-> Source: `handoffs/2026-08-11-plot-service-retired.md`（客户端侧决策见 `game-design-documents/handoffs/2026-08-11-plot-content-localization.md`）。
+> Source: `handoffs/2026-08-11-plot-service-retired.md` · `handoffs/2026-08-16d-plot-content-shape-adoption.md`（客户端侧决策见 `game-design-documents/handoffs/2026-08-11-plot-content-localization.md` 与 `.../2026-08-16i-plot-data-encoding.md`）。
 
 剧本内容自 2026-08-11 起是**客户端本地内容层的一员**，不再有云端剧本服务、不再有剧本端点。它以 `.tres` 内容文件的形态出现在 `files[]` 中，与卡牌 / 事件 / 敌人条目**在报文层完全同形**——服务端不区分内容类别，上述三条服务端保证原样覆盖它。**契约层为此无需任何新增字段。**
 
 两条承重的推论：
 
 - **「overlay 可对剧本新增 `Id`」是客户端侧的合并纪律，不是契约条款。** manifest 本就是全量文件清单，新增文件是它天然支持的形态；「哪类内容允许新增 `Id`」由客户端合并后的强校验裁决，**服务端不感知、不校验、不需要标注文件的内容类别**。
-- **flags 通道对剧本条目无作用点。** `ContentEnabled` 的唯一作用点是产出侧 `AllEnabled()` 取抽取池，而剧本条目不进任何抽取池（它由 `CharacterProfile` 的 key point 定位读取，走不过滤的读取侧）。把剧本 `Id` 放进 `disabledIds` **不产生任何效果**——flags 不是撤回一段已发布剧情的手段。撤回剧情只能靠发布更大的 `contentVersion` 移除该文件，即本文件已定的「回滚即前滚」。
+- **flags 通道对剧本条目的作用面按 arc / node 分野，报文层无差别。** 客户端把剧本内容分成**剧本线的头**（`PlotArcData`，被激活抽取 ⇒ 产出侧）与**树上的节点**（`PlotNodeData`，由 key point 查表定位 ⇒ 结构性读取）：
+  - **arc 的 `Id` 放进 `disabledIds` 生效**——它使该 arc **不再被新激活**；已在 `CharacterProfile` key point 里的 arc 照常解析（客户端读取侧不过滤），**不会因此悬空**。这使一条 overlay 热更推上去的问题剧本线有**分钟级**的止血手段。
+  - **node 的 `Id` 放进 `disabledIds` 无效且危险**——客户端对被关闭的节点直接 `PushError`（关掉一个中间节点会在剧本树上造出空洞、让正在进行的 arc 卡死）。
+  - **服务端不感知这一分野**：`disabledIds` 只是一串 `Id`，语义与准入由客户端裁决。归属与校验形态见 `game-design-documents/systems/services/plot-manager.md` 与 `.../content-service.md`。
 
-**运营后果需明写：** 剧本的撤回速度因此是 **overlay 的冷启动级**，而非 flags 的分钟级。玩家若已在被撤回的剧本 arc 下存过 key point，客户端侧已定的降级规则（悬空 key point → `PushWarning` + 跳过该段叙事 + 轮回照常继续）承接这一情形，**后端无需为此提供任何补偿报文**。
+**运营后果需明写：** **撤回一整段已发布剧情**（让它连同文件一起消失）仍只能靠发布更大的 `contentVersion`，速度是 **overlay 的冷启动级**；flags 能做的是**停止新激活**，不是撤回。玩家若已在被撤回的剧本 arc 下存过 key point，客户端侧已定的降级规则（悬空 key point → `PushWarning` + 跳过该段叙事 + 轮回照常继续）承接这一情形，**后端无需为此提供任何补偿报文**。
 
 ## 与客户端 `OpError` 的映射
 

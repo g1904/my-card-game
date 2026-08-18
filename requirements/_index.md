@@ -4,7 +4,7 @@
 
 ## 现状
 
-**当前尚无 FR，且暂不具备推导条件。** 前置是 `contracts/` 的契约骨架与 `systems/` 的服务文档——两者都尚未建立（见 `open-questions.md` 的「下一阶段」）。
+**当前尚无 FR。** 各主题文档的推导就绪度以 `open-questions.md` 的「derive 就绪度」小节为唯一权威（由 `/assess-derive-readiness` 全量评估后写入）——此处不另作判断。
 
 > **工具说明：** `.claude/` 下的设计流水线技能（`/analyze-new-ideas`、`/provide-solution-draft`、`/summarize-open-questions`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）**已支持本库**：调用时加 `--lib=backend`，或直接给 `backend-design-documents/` 开头的路径。解析规则见 `.claude/rules/design-library-routing.md`。
 > `/blueprint` 与 `/implement` 仍只面向客户端——后端技术栈未定，无从设计实现形态。
