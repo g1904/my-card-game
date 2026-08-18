@@ -35,7 +35,7 @@ backend-feature  →  backend-testing  →  backend-production   (云端后端)
 `game-design`、`backend-design` 和 `claude-config` **独立**于这两条线 —— 孤儿历史、无产品代码、从不合并进发布。
 `game-design` 携带客户端设计文档（意图的事实来源）；`backend-design` 携带后端设计文档；`claude-config` 携带 Claude Code 工具配置。
 
-十个检出目录（含 `.claude/`）各自是同一个远程仓库的一份检出、各钉在一条分支上。`.\push-all.cmd` 一次性把它们全部提交并推送。
+十个检出目录（含 `.claude/`）是同一个裸仓库中枢 `.repo.git` 的十个 **git worktree**，各钉在一条分支上——一份对象库、一份 fetch 状态，一个分支同时只能被一个 worktree 检出。`.\push-all.cmd` 一次性把它们全部提交并推送（四个只读快照目录只推不提交）；`.\promote.cmd -Line game|backend -To testing|production` 沿提升线做 `--no-ff` 合并 + push。
 
 ### 为什么客户端与后端分线
 
