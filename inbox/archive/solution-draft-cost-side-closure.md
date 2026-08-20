@@ -48,7 +48,7 @@ decided: 2026-08-16 —— 三项取向（T1 / T2 / T3）与 mana 张力的澄�
 三条推演支撑它：
 
 1. **本库已有的唯一钳制案例就是逐条的。** `PowerFragmentAccumulated` 钳制到 `[0, 10000]`——上界 10000 是它自己的万分比语义，不可能来自任何通则。既然第一个案例就带自定义区间，形态本就是表。
-2. **已经存在必然违反「截断到 0」的 element。** `HiddenStat` 三项里的道心 `Faith` 与煞气 `MaleficQi` 是**双向量**：`life-cycle-service.md` 的跨档叙事判据写作 `|newBand| > |oldBand|`，**绝对值写法证明 band 带符号**，即这两项可以落到常态的两侧。若它们进 `CostKey`（成本侧可推拉隐藏属性，见「前置依赖」），`Min = 0` 对它们直接是错的。**一条通则一旦定下，第一个例外就在门口。**
+2. **已经存在必然违反「截断到 0」的 element。** `HiddenStat` 三项里的道心 `Faith` 与煞气 `Bloodlust` 是**双向量**：`life-cycle-service.md` 的跨档叙事判据写作 `|newBand| > |oldBand|`，**绝对值写法证明 band 带符号**，即这两项可以落到常态的两侧。若它们进 `CostKey`（成本侧可推拉隐藏属性，见「前置依赖」），`Min = 0` 对它们直接是错的。**一条通则一旦定下，第一个例外就在门口。**
 3. **终态性与钳制是同一张表的两列。** 「归 0 是不是终态」逐 element 不同（寿元是、灵玉不是），而终态判定 ① / ② 现在要么硬编码检查两个字段，要么查表。查表使「新增一个终态资源 = 表里加一行 + `DefeatReason` 加一个成员」，与「新增一张卡 = 新增一个 `.tres`」的可加性同向。
 
 **表的落点建议 = 代码常量静态表，不进 `.tres`。** 它与 `(Kind, Scope, Source)` 合法子集表、`RngStream` 子流清单同类：**是规则语义而非平衡旋钮**——改一行会改变终态判据与存档取值域，属于「须两侧同批评审」那一档，不是策划可以随手调的数值。（这一条是取向，见「仍需用户决定」T2。）
@@ -207,7 +207,7 @@ internal static readonly IReadOnlyDictionary<CostKey, ClampSpec> ResourceClamps 
 ## 前置依赖
 
 - **「cost element 清单（资源族）」未定** → 钳制表只能先填 `LifeSpan` / `Jade` / `LifeTotal` 三行 + 逐条配表的**形态**。形态可立即定稿并 derive，行数随该问答定逐条补。
-- **道心 `Faith` / 煞气 `MaleficQi` 是否进 `CostKey`** → 决定表中是否出现双向区间行。**不阻塞本方案**——它们的存在只是「必须配表、不能定通则」这条结论的论据之一，即使最终不进 `CostKey`，`PowerFragmentAccumulated` 的 `[0, 10000]` 单独也足以支撑该结论。
+- **道心 `Faith` / 煞气 `Bloodlust` 是否进 `CostKey`** → 决定表中是否出现双向区间行。**不阻塞本方案**——它们的存在只是「必须配表、不能定通则」这条结论的论据之一，即使最终不进 `CostKey`，`PowerFragmentAccumulated` 的 `[0, 10000]` 单独也足以支撑该结论。
 - **Exchange 专场未开** → `CanAfford` 的**呈现形态**（灰显 / 弹窗 / 价格标注）待该专场；本方案只定「保留它、唯一消费点在 Exchange」。
 - **`lifeSpanCost` 定价表取值（ch1 数值标杆专场）** → Explore 行**填多少**待定；本方案只定「Explore 自成一行、不由真身推导」。
 

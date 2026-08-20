@@ -61,7 +61,7 @@ public readonly record struct PlotKeyPointAssignment(
 ### 连带
 
 - **`ProfileChangeSpec` 本轮共增两列**（`PlotElements` + 事件态的 `EventStateChanges`），与 `ChangeElement` 增第三字段、`ElementSpec` 增第六列**一次落笔**。成本侧恒空断言逐列独立写，不合并成通则。
-- **`Experience` / `Faith` / `MaleficQi` 本批登记为 `CostKey` 成员**，三者 `AllowedOps` 取 `Add`；`Faith` / `MaleficQi` 的两个修正列留空——一条法则能伪造隐藏属性，即等于伪造整条剧本线的触发条件。
+- **`Experience` / `Faith` / `Bloodlust` 本批登记为 `CostKey` 成员**，三者 `AllowedOps` 取 `Add`；`Faith` / `Bloodlust` 的两个修正列留空——一条法则能伪造隐藏属性，即等于伪造整条剧本线的触发条件。
 - **`PlotArcState` 登记进 `systems/architecture.md` 的共享核心类型枚举清单**，`plot-manager.md` 与 `character-profile/_index.md` 两处改为回链。
 - **bump 存档 schema 版本一次**（`AppliedChange` 形状随 `ProfileChangeSpec` 变；当前无线上存档 ⇒ 空迁移），与同批其余草稿合并为同一次。
 - Profile 的**字段**不因本次增减——三条改动全在变更规格（spec）一侧。

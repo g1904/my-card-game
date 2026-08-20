@@ -166,10 +166,13 @@ internal interface IEventResolver          // 按 eventType 注册
   → 【eventStart 阶段】选 resolver、Explore 揭示
   → resolver.ResolveAsync(activeEvent.Option, ct)      ← 传派生后的那一份
   → 【eventEnd 阶段】合并 ResolveOutcome + lifeSpanCost + 隐藏属性推拉
-                     + EventStateChanges[ActiveEvent = null, EventOption = 新一批] 为**一次** TryApply
-  → 记入 pastEvent（按 InstanceId，快照取自 activeEvent.Option）
+                     + TraceElements[本次 PastEventEntry]（快照取自 activeEvent.Option）
+                     + EventStateChanges[ActiveEvent = null, ActiveCombat = null, EventOption = 新一批]
+                     + RngElements[本次事件内消耗过的子流终态] 为**一次** TryApply
   → 终态判定 ②（结算后）→ EventBus 广播 → 自动存档点
 ```
+
+**「记入 `pastEvent`」在收口那一次事务之内。** 痕迹经 `ProfileChangeSpec.TraceElements` 与其余各列同批提交，故「收口是一次事务、一个存档点」由结构兑现，而不依赖两步被写在一起。收口内部的组装顺序（先投影、后补两列）见 `systems/services/life-cycle-service.md`。
 
 **结算期间的读取权威是 `activeEvent`（承重）。** `CharacterProfile.activeEvent != null` 时，本次结算涉及的 `EventOption` **一律读 `activeEvent.Option`**——它是派生后的那一份；当前批里的原实例只用于**呈现尚未开始的那些选项**与组装 `Unchosen` 轻摘要。收口时 `PastEventEntry` 的定稿实例快照同样取自它，否则履历会记下 `IsRevealed = false` 与刷新前的旧库存，而「同一个事件在呈现、结算、记入历程三处看到的是同一份数据」正是定稿纪律要买的东西。`activeEvent` 与当前批 `eventOption` 两个字段的形态、生命周期与七条读档校验见 `systems/character-profile/_index.md`。
 
@@ -252,11 +255,13 @@ public enum EventOutcome { Resolved, CombatWon, CombatLost, Aborted }
 - **`AppliedChange` 是核心，也是唯一真正新增的东西。** 有了它，「这个角色一路上到底发生了什么」是一条可直接重放的账；没有它，履历 / 剧本 / 诊断三个消费方各自去猜。它**复用既有的 `ProfileChangeSpec`，不引入新类型**。
 - **`AppliedChange` 的语义 = 本次事件的最终账，不是某一次 `TryApply` 的入参（承重）。** 事件内部的主动消费即时提交（见上方事务纪律），故它们不在收口那一次里；**由 life-cycle-service 在组装痕迹时把逐笔已提交的 spec 累加进来——记账，不再施加**（它不是第二个写入点）。不这样做，履历 / 剧本 / 诊断就读不出玩家在商店里做了什么，而这正是引入 `AppliedChange` 要消除的坏状态。
   - **代价明写：** `AppliedChange` **不再与「收口那一次 `TryApply` 的入参」逐字段相等**，两者的一致性**不能再机械断言**。诊断与回放读它时一律以「最终账」为准；需要区分「哪些是收口施加的」时，靠逐笔提交自身的可追溯性日志，不靠比对这两者。
-  - **可重放性不受影响**：累加后的 spec 仍是一串已定稿的 element，重放一次仍得同一结果——这正是「element 只承载已定稿的 `Id`」那条纪律买到的东西。
+  - **可重放性不受影响**：累加后的 spec 仍是一串已定稿的 element，重放一次仍得同一结果——这正是「element 只承载已定稿的 `Id`」那条纪律买到的东西。**RNG 子流终态照常入账**（`RngElements` 不被剔除），故这条账连随机状态一起重放得出。
+  - **累加时的列剔除清单（承重）：账记的是变更，不记账本本身。** 逐笔已提交的 spec 累加进来时，**装的是整块状态快照而非一笔变更的列一律剔除**——当前即 `EventStateChanges`（`activeEvent` / `eventOption` / `activeCombat` 三个中间态字段）。**不剔除的后果是可算的**：一次战斗事件在 D0–D5 各提交一次整块 `ActiveCombat`（单点 2–4 KB），全部累加即让单条痕迹胖到几十上百 KB，与本节「战斗类痕迹只存 `EnemyId` + `Level` 轻摘要」的体积纪律正面相抵——否决存 `DeckCardIds` 的理由（最胖的物化产物 + 痕迹侧的体积护栏）在这里逐字适用。
+  - **`AppliedChange` 恒不含 `TraceElements`（不变式）。** 否则一条痕迹的账里装着一条痕迹，自指。落为 `ProfileManager` 入口断言。**它只覆盖这一列**——剔除清单（上一条）与自指防呆（本条）是两件事，前者按「是不是账本本身」判，后者按「会不会自指」判。
 - **战斗类痕迹只存敌人的轻摘要（`EnemyId` + `Level`），不存整份 `EnemyInstance`。** 等级是物化赋级产物、重算不出来 ⇒ 必存；模板 `Id` 是 EnemyCodex 与履历显示名的溯源键。**不存 `DeckCardIds` / `ItemIds` / `PowerIds`** 三条理由：① 事件已结算，这三项永不会再被任何流程消费（与未选项同款论证）；② 它们是本作最胖的物化产物（每条痕迹一份完整卡组 `Id` 序列），而痕迹侧本就有体积护栏与增量 push 的顾虑；③ 三个消费方（EnemyCodex 遭遇即记 · 角色履历「这一步打了谁」· 诊断的越阶分布）要的都只是「打了谁、几级」。
   **如实记下代价**：日后若要做战斗回放，缺卡组序列就重放不出来——彼时正确的做法是给回放单独存一份，而不是让每条痕迹都胖一整副牌。
   字段名取 `EnemyId` 与 `EnemyInstance.EnemyId` 一致，全库一个名字指同一个东西。
-- **`Seq` 是时序坐标，不是内容键。** 「绝不用数组索引作内容的键」约束的是内容键；`Seq` 显式写出来才能在日志、履历展示与诊断中安全提及。角色内单调递增、不复用、不因迁移重排。
+- **`Seq` 是时序坐标，不是内容键。** 「绝不用数组索引作内容的键」约束的是内容键；`Seq` 显式写出来才能在日志、履历展示与诊断中安全提及。角色内单调递增、不复用、不因迁移重排。**首条为 `0`**，此后每条 `+1`；起始值与 `PlotKeyPoint.EnteredAtSeq` 的下界校验（`< 0` 即坏档）同源——那一格引用的正是本字段。追加时的连续性由 `ProfileManager` 入口校验（`Seq != 末条 Seq + 1`，空列表时 `!= 0` → 整批拒绝），是读档侧「`Seq` 不连续 / 重复」校验的对偶。
 - **`LifeSpanAfter` 是上述判据的明示例外。** 它可由 `AppliedChange` 全序列重放得出，按判据本不该存；但它**已在 `EventResolved` 负载里**（`LifeSpanRemaining`），且元进程的角色履历要画寿元曲线。**成本 4 字节 × 200 条 = 800 字节，换掉一次全序列重放。** 它是**写明的例外，不是先例**——不得据此放宽判据。
 - **结算中被派生改写的两族字段不进痕迹（`ExchangeStock` / `RerolledCount`）。** 它们重算不出来，但事件收口后**永无消费方**——本次买下的东西已在 `AppliedChange` 里，未选项只要四字段轻摘要——故按判据的完整口径「重算不出来**且有消费方**」不存，与 `plotKeyPoint`「不记已走分支路径」同款处置。`IsRevealed` 同理，`RevealedEventId` 本就恒存。**故派生实例的承载不给痕迹侧带来任何 schema 增量。**
 - **`EventType` 存、`combatTier` 不存 —— 这条口径不对称是有理由的，不是遗漏。** `EventType` 存的是**当时呈现给玩家的口径**：Explore 时它等于 `Explore` 本身而与真身不同，这是一条独立事实，模板重建不出来。`combatTier` 没有这种分叉——**一个内容条目只有一个档**，按 `EventId` 查一次模板即得，故按判据不存。履历与呈现两个消费方本就要按 `EventId` 取显示名 / 描述 / 图标，tier 在同一次 `ContentRegistry.Get()` 里免费拿到。
@@ -280,7 +285,7 @@ public enum EventOutcome { Resolved, CombatWon, CombatLost, Aborted }
 
 - **本次落定 `pastEvent` 结构 → bump 存档 schema 版本**；当前无线上存档 → **空迁移**，走既有 MigrationManager 骨架。只追加不变式与体积护栏见 `systems/services/sync-service.md`。
 - **加载时校验：** `EventId` 经 `ContentRegistry` 解析不到 → **可选缺失** → `GD.PushWarning` + 该条降级为「仅标识可读」（履历显示为未知条目），**不阻断读档**——历程是历史记录，一条读不出的旧条目不该让整个角色无法进入。`InstanceId` 缺失 / `Seq` 不连续 / `Seq` 重复 → **必需缺失** → `GD.PushError` 带 `characterId` + `seq`。
-- **写入点不新增。** 上方结算流程里「记入 `pastEvent`」这一步的语义具体化为：**由 life-cycle-service 组装 `PastEventEntry`（含从被替换的当前批取未选项摘要），经 `profile-service.ProfileManager` 写入**——与「档案写入的唯一入口」一致，不绕过。
+- **写入点不新增。** 上方结算流程里「记入 `pastEvent`」这一步的语义具体化为：**由 life-cycle-service 组装 `PastEventEntry`（含从被替换的当前批取未选项摘要），放进收口 spec 的 `TraceElements` 列，经 `profile-service.ProfileManager` 写入**——与「档案写入的唯一入口」一致，不绕过，且与收口的其余各列落在同一次事务里。**`Aborted` 那一条同样如此**：支付后终态判定 ① 短路的那一路由失败流程组装**一次**提交，同时承载这条痕迹与 `activeEvent` / `activeCombat` 的清空、轮回结束的统计计数，**不新增存档点**。
 
 
 ### 通用流程
@@ -291,7 +296,7 @@ public enum EventOutcome { Resolved, CombatWon, CombatLost, Aborted }
 - **结算与后果。** 事件结束后其后果影响玩家及未来状态（隐藏属性推拉、eventOptions 重算、location 刷新等）；结算规则因子类型而异——**仅 Combat 走战斗结算**（三个 `combatTier` 档共用同一回合循环与参战方结构，差异在遭遇参数），其余四类为事件式结算，Explore 视其真身而定。
 - **自动存档边界。** 事件为合理的自动存档点之一（每场遭遇战 / 地图节点之后）。Source: `state-save-rules.md`。
 
-Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md`
+Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

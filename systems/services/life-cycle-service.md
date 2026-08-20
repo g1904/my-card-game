@@ -7,7 +7,7 @@
 
 - **两层持有模型（大局骨架，细节未定）。** 账号级的 **玩家信息 / PlayerProfile** 跨轮回持久，持有一组 **角色信息 / CharacterProfile**；每个 CharacterProfile 是一次轮回 / 一个角色的状态与历史，对齐 CycleState 概念。life-cycle-service 是操作这两层的服务。
   - **PlayerProfile（元进程层）：** 持有一组 `CharacterProfile`，以及账号级的能力 / 道具 / 成就 / 图鉴 / 统计 / 设置 / 账号信息等——它们**独立于任何单次轮回**。**完整字段表见 `systems/player-profile/_index.md`**，本文件不复述字段清单。
-  - **CharacterProfile（单次轮回）：** 一次轮回 / 一个角色的状态与历史——`status`（**ongoing | defeated | completed**）、当前篇章与境界、数值型运行状态 `Status`（含**隐藏属性** 道心 / faith、煞气 / malefic qi、寿元 / lifeSpan）、修行历程 `pastEvent`（存的是定稿实例快照 + 本次结算的最终账，不是 `Resource`）、储物袋、以及 **AdventurePlot 进度锚点**（剧本正文不落存档，作为本地内容条目经 ContentRegistry 读取，见 `systems/services/plot-manager.md`）等。**完整字段表见 `systems/character-profile/_index.md`**，本文件不复述字段清单。
+  - **CharacterProfile（单次轮回）：** 一次轮回 / 一个角色的状态与历史——`status`（**ongoing | defeated | completed**）、当前篇章与境界、数值型运行状态 `Status`（含**隐藏属性** 道心 / faith、煞气 / Bloodlust、寿元 / lifeSpan）、修行历程 `pastEvent`（存的是定稿实例快照 + 本次结算的最终账，不是 `Resource`）、储物袋、以及 **AdventurePlot 进度锚点**（剧本正文不落存档，作为本地内容条目经 ContentRegistry 读取，见 `systems/services/plot-manager.md`）等。**完整字段表见 `systems/character-profile/_index.md`**，本文件不复述字段清单。
 - **角色状态分类法。** `status` 收敛为单一终态集 `ongoing | defeated | completed`：`discarded`（主动弃置）是 `defeated` 的一个**原因子类型**。`defeated` 与 `completed` 数据都会在轮回结束时被清理。
 - **寿元按 AdventureEvent 扣减、归 0 → defeated。** 隐藏属性 **寿元 / lifeSpan** 是独立于 `lifeTotal` 的寿命预算（炼气起始 100、抵达筑基 +100、抵达金丹 +300、抵达元婴 +500——元婴为游戏终点，该增量无可消耗预算，仅作最后一次数值更新并存档），初始隐藏；**30% 起给定性叙事提示、10% 起给红字数值倒数**（见 `ux/screen-flow.md`）。**每完成一个 AdventureEvent，life-cycle-service 按该事件的 `lifeSpanCost` 扣减寿元**（内容侧为正数量值，物化时已取负）；递减到 **0** 即触发「大限将至」，角色置 `status = defeated`。`lifeSpanCost` 是 AdventureEvent 的共有字段（见 `systems/adventure-event/common-properties.md`），其分档是**控制篇章时长的主旋钮**（见 `systems/balance.md`）。
 - **剩余寿元跨篇章结转。** 篇章突破时**不清空剩余寿元**：下一篇章的可用预算 = **该篇章增量 + 上一篇章的剩余**（例：第二篇章 = `+100 + 第一篇章剩余`）。因此「省着花」有**跨篇章回报**，寿元成为一条贯穿整个轮回的资源线，而非每章重置的计时器。它是 ChapterManager 在篇章边界的一项明确职责。
@@ -35,7 +35,7 @@
   - **PlayerPower：** always-available 能力，带**开关（默认开启）**；可为 **QoL** 或**影响公平性的一定加强**（需衡量平衡），**通常全局、不与角色绑定**；获取越多后续越易，但 **AdventureEvent 过程中也可能失去**已获取的 PlayerPower。**定位 = 轻度提升（light improvement）：** 承认它影响平衡，但因**本作无 PvP、纯 PvE**，让 power 带来一定强度是**可容忍的**，并**打开更大的设计空间**。
   - **PlayerItem：** 有**使用次数限制**的道具。
   - **Achievement：** 玩家**只能查看进度 / 领取奖励**；奖励按**组内加权进度**发放（见 `ux/screen-flow.md`）。
-- **属性模型 = 隐藏。** 借鉴 **Reigns** 的属性模型，但**与 Reigns 相反：属性隐藏、不作可见仪表**，在背后影响 AdventureEvent。隐藏属性（**道心 / faith**、**煞气 / malefic qi**、**寿元 / lifeSpan**）落在 `CharacterProfile.Status` 内，随轮回推进被 AdventureEvent 推拉；达阈值驱动 **AdventurePlot（隐藏剧本层）**——见 `systems/services/plot-manager.md`。
+- **属性模型 = 隐藏。** 借鉴 **Reigns** 的属性模型，但**与 Reigns 相反：属性隐藏、不作可见仪表**，在背后影响 AdventureEvent。隐藏属性（**道心 / faith**、**煞气 / Bloodlust**、**寿元 / lifeSpan**）落在 `CharacterProfile.Status` 内，随轮回推进被 AdventureEvent 推拉；达阈值驱动 **AdventurePlot（隐藏剧本层）**——见 `systems/services/plot-manager.md`。
 
 Source: `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md`
 
@@ -96,12 +96,30 @@ public readonly record struct AdvanceResult(
   → resolver.ResolveAsync(activeEvent.Option, ct)   ← 传派生后的那一份；Combat/Finale 转 combat-service
        Exchange 刷新（玩家主动按下）：
          TryApply( Elements[Jade, -刷新价] + EventStateChanges[ActiveEvent = 刷新后的那一份] )
-  → 【eventEnd 阶段】Project(收口 spec) → RefreshAfterEvent(投影 profile) 算出新一批
-       合并 ResolveOutcome + lifeSpanCost + 隐藏属性推拉
-       + EventStateChanges[ActiveEvent = null, EventOption = 新一批] 为**一次** TryApply
-  → 记入 pastEvent（按 InstanceId，快照取自 activeEvent.Option）
+  → 【eventEnd 阶段】五步组装（见下）→ **一次** TryApply
   → CycleStateManager 终态判定 ②（结算后）→ EventBus 广播 → sync 自动存档点
 ```
+
+**`eventEnd` 的五步组装顺序（承重）：**
+
+```
+① 组装收口 spec 的全部「重算依据」列：
+     Elements(ResolveOutcome + lifeSpanCost) · AbilityElements · Stats
+     · StatusChanges(三个 band + 两个 location，绝对值由本服务算出)
+     · DeckElements · PlotElements
+     · EventStateChanges[ActiveEvent = null, ActiveCombat = null]
+     · TraceElements[本次 PastEventEntry]      ← 快照取自 activeEvent.Option；
+                                                  LifeSpanAfter 由「前值 + 本次账」纯函数算出并钳制
+② projected = Project(spec)                    ← 其 pastEvent 已含本条、Status 已是结算后值
+③ 新一批 = RefreshAfterEvent(projected)        ← 消耗 map 子流
+④ 以 with 派生补齐两列（且只补这两列）：
+     EventStateChanges[EventOption = 新一批]
+     RngElements[本次事件内消耗过的全部子流的终态]
+⑤ 一次 TryApply(spec) → 终态判定 ② → EventBus 广播 → 自动存档点
+```
+
+- **`PastEventEntry` 必须在投影之前进入 spec。** 「整批重算的依据 = 角色的整体历程，重度依赖 `pastEvent`」要求新一批看得见刚走完的这个事件；痕迹若留在事务之外，新一批依据的是一份**少一条**的历程。
+- **闭合性条件（承重）：`Project` 之后只允许追加「不构成重算依据」的列。** 恰有两列符合——新一批不依赖自己，重算读的是随机源而不是 `State` 字段。**任何新增列默认落在 ① 之前**；要放进 ④ 必须显式论证它不是重算依据。落为 `#if DEBUG` 断言：投影视图记下投影时的列指纹，`TryApply` 时若 ① 类列发生变化 → `PushError`。**这一条取纪律阶梯第 3 级即可**——「投影之后改了 ① 类列」是组装代码的静态形状，开发期必现；投影视图本身的「不跨 `await` 持有」则做到第 1 级（`ref struct`），见 `systems/services/profile-service.md`。
 
 ```csharp
 internal interface IEventResolver          // 按 eventType 注册，共 2 个实现
@@ -158,10 +176,24 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
   - **判据取 `DestinationLocationId != ""`，不取 `EventType == Travel`（承重）。** 前者一次性覆盖「Explore 揭示出的 Travel 也归 0」——该情形下 `EventType` 恒为 `Explore`，按类型判会漏；且它不需要在 `EventOption` 上再加一个 `RevealedEventType` 字段，也不需要回查模板（消费侧被明令禁止的动作）。这与 `eventEnd` 组装校验取「是否走过 combat-service」而非取 `EventType` 是同一条纪律。
 - **两个事件态字段由本服务组装写入，与 band / location 字段同款。** `activeEvent` 在 `TryApply(SelectCost)` 那一次一并创建（值 = 当批那一项的原样拷贝），Explore 揭示与 Exchange 刷新各是一次对它的整体置值，`eventEnd` 置空；当前批 `eventOption` 在 `StartCycle` 写第一批、此后每次收口整块替换。载体是 `ProfileChangeSpec.EventStateChanges`（绝对置值），resolver **只描述结果、不自行写档**的边界原样成立。字段形态与读档校验见 `systems/character-profile/_index.md`。
   - **`activeEvent` 与 `SelectCost` 同一次提交的代价明写：** 终态判定 ① 判负而短路的那一路会留下一个非 `null` 的 `activeEvent`，**必须由失败流程一并清理**（失败流程本就要拆解整个 CharacterProfile，清理是免费的）。换来的是零新增提交，且「这一项已被选中」与支付落在同一笔——与「`selectCost` 不回滚、已经发生的事就是发生了」同向。
-  - **收口时先投影后提交。** 新一批必须依**更新后的** profile 算出（`pastEvent` 是 future-event-service 的一等输入），故本服务先用 `profile-service.Project(收口 spec)` 得到一份未提交的只读视图交给 `RefreshAfterEvent`，再把算出的批放回同一次 `TryApply`。**收口仍是一次事务、一个存档点**，且两次读取之间不存在决策点。
+  - **收口时先投影后提交。** 新一批必须依**更新后的** profile 算出（`pastEvent` 是 future-event-service 的一等输入），故本服务先用 `profile-service.Project(收口 spec)` 得到一份未提交的只读视图交给 `RefreshAfterEvent`，再把算出的批以 `with` 派生回同一份 spec、一次 `TryApply`。**收口仍是一次事务、一个存档点**，且两次读取之间不存在决策点。投影视图**只在这一段同步代码内使用**，不存字段、不跨 `await` 传递；语义面与机械保证见 `systems/services/profile-service.md`。
+  - **投影判负不改变流程。** 一份「已判负」的投影照常交给重算方、照常提交，`RefreshAfterEvent` 不多一个分支；短路要动的是「`Key == EventOption` 不得置空」这条承重校验，而白算一批只是一次纯内存物化，随失败流程一并拆解。
+  - **`activeCombat` 与 `activeEvent` 在收口那一次一并置空**，两者共用 `EventStateChanges` 这一条通道。
 - **凡消耗了子流随机的提交，该子流的 `State` / `DrawCount` 必须在同一次原子写内更新（不变式 · 承重）。** 两侧不同步各自都是可利用的漏洞：`State` 落了而结果没落 ⇒ 再做一次得到**不同**结果，等于绕过决策点存档的重掷通道；结果落了而 `State` 没落 ⇒ 下一次从同一 `State` 起掷、重复同一批结果，且 `DrawCount` 的诊断口径失真。
   - **恢复路径自校验：** `DrawCount` 与本次提交声明的消耗数不一致 → `PushWarning` 带 `characterId` + 子流名（可降级——它是诊断保险，不是恢复权威）。
-  - **它同样约束 `activeCombat`**（`combat` 子流），不是事件态引入的新约束。`Rng` 块目前没有任何 spec 列可落 ⇒ 这条不变式暂由组装方自律兑现，形态收口见待决问题。
+  - **它同样约束 `activeCombat`**（`combat` 子流），不是事件态引入的新约束。
+  - **载体是 `ProfileChangeSpec.RngElements`，不变式由结构兑现。** SeedManager 是唯一持有四条子流的地方，它按下面三条把「忘了带 RNG」变成可检出的：
+
+    ```
+    ① 每条子流记一个「自上次清账以来的消耗计数」pending[stream]
+    ② 唯一组装路径 SeedManager.AttachRngState(spec) —— 把全部 pending != 0 的子流
+       以当前 (State, DrawCount) 派生进 spec.RngElements，并清账；它是纯函数，返回新的 spec
+    ③ #if DEBUG：决策点持久化 / 收口提交之前，组装方比对 SeedManager 的 pending 与 spec.RngElements，
+       有未清账的子流没进 spec → PushError 带 characterId + 子流名（纪律阶梯第 3 级）
+    ```
+
+  - **③ 的检查点落在组装方（本服务 / combat-service 的决策点持久化前），不落 `ProfileManager` 入口。** 落入口要求 profile-service 认识 SeedManager，与「服务之间不读写对方字段」相反。**也不落在「取用子流之前」**：敌人整个回合内部不落决策点，其间数十次随机消耗之间没有任何提交，按取用时刻判会在每一场战斗里连续误报。
+  - **`StartCycle` 的子流初始化与篇章重试的整流重置不走本列**（它们是附带写入 / 换一套新随机流），故 `DrawCount` 单调不减的入口校验不需要任何例外口子。
 
 **事件面：**
 
@@ -187,6 +219,7 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
   **不新增存档点**——两个时点本就是既定的存档边界。字段定义见 `systems/character-profile/_index.md`。
 - **置换 / 禁用的施加落在 outcome 侧，是一个事件内决策点。** 能力 element **恒不出现在 `selectCost`**；置换候选在 `eventEnd` 之前走 `reward` 子流掷定并**落决策点存档**（否则退出重进可重掷），玩家接受则 `Remove` + `Grant` 两条 element 并入 `eventEnd` 那一次 `TryApply`，拒绝则零 element、零代价。**形状与战后奖励面板完全同构，不新增结算阶段、不新增存档点。** 见 `systems/adventure-event/common-properties.md`。
 - **轮回结束时顺带写账号级统计计数。** `SavePointReason.CycleEnded` / 角色 `defeated` 那一次 `TryApply` 带上 `StatDelta(+1)`（`TotalCyclesCompleted` 或 `TotalCyclesDefeated`），**与规则字段同批、同事务**，不新增写入通道。字段见 `systems/player-profile/_index.md`。
+- **终态判定 ① 判负短路的那一路也留一条痕迹，且与轮回结束的收尾落在同一次 `TryApply`。** 失败流程组装**一次**提交，同时承载 `TraceElements[Outcome = Aborted 的那一条]` + `EventStateChanges[ActiveEvent = null, ActiveCombat = null]` + `StatDelta(+1)` + 本次已消耗子流的 `RngElements`。**不新增存档点**——这一步「成本已施加、事件未结算」的事实必须留痕且必须与正常结算可区分，而把它拆成两笔就重新制造了「同一个逻辑事件两次提交」，正是痕迹进事务要消掉的东西。
 - **战斗内随机直接用 `combat` 子流，不在其上再派生一层。** 「每场按重试次数再派生一次以防 re-roll」这条加法不要做：退出重进已由决策点存档 + RNG `State` 持久化封住，篇章重试则整个换一套新的随机流。见 `systems/common-properties.md`。
 - **状态机（CharacterProfile.status）：** `ongoing → completed`（篇章通关）或 `ongoing → defeated`（主动弃置 / 寿元归 0 / lifeTotal 归 0）。`completed` 解锁下一篇章可挑战角色；`defeated` 清理数据并消耗重试次数。
 
@@ -212,7 +245,7 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
 - **未覆盖**：Godot 编辑器停止 / 强杀——无 `ct`、无 flush，靠最近决策点的本地缓存，与崩溃同路径。
 - 取消不产生任何回滚，与「`SelectCost` 不回滚，视同已结算」一致。
 
-Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md`
+Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -228,8 +261,6 @@ Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-02-
 - **后端 / 账号合规落地：** 已定**强制在线 · 云端权威 + 重账号**（`decisions/ADR-0003`）；仅剩实现级待决：后端 / 账号系统具体选型、合规落地（PIPL / 实名 / 防沉迷 / 渠道审核 / 注销 / 数据导出）——这些归**后端库**，见 `backend-design-documents/open-questions.md`。
 - **隐藏属性细节：** 属性隐藏、`faith` = 道心、寿元按 `lifeSpanCost` 扣减 / 归 0 → defeated 均已定案；**取值域、档位表、阈值与回滞、跨档叙事形态已定案**（归 `systems/services/plot-manager.md`）。仍待定：**隐藏属性完整清单**（道心 / 煞气 / 寿元之外是否还有第四项）、**增减触发**（哪些 AdventureEvent 推拉、各推哪一档）、AdventurePlot 树的数据编码。**寿元的回复通道已定案**（存在，只走 outcome 侧；载体、展示门控与平衡护栏见 `systems/adventure-event/common-properties.md`）。
 - **`experiencePoint` 的阈值曲线与产出分布。** 载体（新字段、每级一个阈值、事件发经验、失败也给）；仍待定：**各级阈值曲线**、单次事件的经验给予量、在事件池中如何分布、失败给的比胜利少多少。**它与寿元预算的花法互相约束**——事件总数少则单次给予必须更厚。→ `systems/game-progression.md`、`systems/balance.md`。
-- **RNG 状态的写入通道形态未定。** 「凡消耗了子流随机的提交，该子流 `State` / `DrawCount` 必须在同一次原子写内更新」这条不变式已落，但 `Rng` 块没有任何 `ProfileChangeSpec` 列可落 ⇒ 暂无机械保证。是否纳入 `EventStateChanges` 或另开一列，牵动 `activeCombat` 与四条子流的全部写入点。→ `systems/services/profile-service.md`、本文档。
-- **只读投影 `Project(spec)` 的语义面未定。** 它与 `Evaluate(spec)` 的复用关系、投影是否同样做钳制与终态判定、投影视图的生命周期。→ `systems/services/profile-service.md`。
 - **重试上限可变后的存档表达。** 上限由付费礼包改写为「无限 / 9 / 3」（见 `systems/monetization.md`），故 `RetryChapter` 的判定要读 PlayerProfile 上的持有状态。它落成什么——一个 `CapabilityFlag`、modifier pipeline 的一条具名修正，还是一个独立的 `Entitlement` 字段？→ `profile-service.md`、`systems/player-profile/`。
 
 Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`

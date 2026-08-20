@@ -18,16 +18,15 @@
 
 ## 元进程持久化与内容开关
 
-- **元进程持久化字段结构：** `PlayerPower` / `PlayerItem` / `Achievement` / `GameSetting` 语义已澄清、服务归属已定（profile-service）、文档落位已定；但**各自字段 schema 与解锁 / 获取 / 失去触发**待定（`AccountInfo` 已于 08-16 收口，见 `systems/player-profile/account-info.md`，仅余合规字段待后端）；`status`（启用 / 禁用）与「拥有 / 失去」两态的存档表达未定。→ `systems/services/profile-service.md`、`systems/player-profile/`。
+- **元进程持久化字段结构：** `PlayerPower` / `PlayerItem` / `Achievement` 语义已澄清、服务归属已定（profile-service）、文档落位已定；但**各自字段 schema 与解锁 / 获取 / 失去触发**待定（`AccountInfo` 已于 08-16 收口，见 `systems/player-profile/account-info.md`，仅余合规字段待后端；`GameSetting` 与六本 Codex 的字段 schema 已各自收口，见 `systems/player-profile/game-setting.md` 与 `systems/player-profile/codex/common-properties.md`）；`status`（启用 / 禁用）与「拥有 / 失去」两态的存档表达未定。→ `systems/services/profile-service.md`、`systems/player-profile/`。
 - **PlayerPower 获取 / 失去触发与公平性：** 方向已定为**轻度提升、PvE-only 可容忍**，且**道统残卷已给出一条获取渠道**（Finale 胜利时掷定并即时发放的概率掉落，规则已定案，见 `systems/player-profile/player-power/_index.md`）；具体在哪些 AdventureEvent 获取 / 失去、是否影响 cycle seed / 计分公平仍待定。→ `systems/player-profile/player-power/`。
 - **capability flag 的叠加 / 冲突规则：** 两个 power 授予同一 flag 如何处理；多个 modifier 作用于同一 key 的**运算顺序**（加法先于乘法？声明序？优先级字段？）。→ `systems/player-profile/player-power/common-properties.md`。
 - **AchievementManager 的触发采集面：** 成就进度靠订阅 EventBus 被动采集（解耦但易漏）还是各服务主动上报（可靠但反向依赖）？→ `systems/services/profile-service.md`。
-- **GameSetting 的设备本地项 vs 账号级项切分：** 画质 / 震动等设备强相关设置是否应留在本地 `user://` 而不上行云端。→ `systems/player-profile/game-setting.md`。
 - **disabled 条目被存档引用时的 UX：** 读取侧不过滤故存档能正确解析；但玩家手中一张「已被线上关闭」的卡 / 道具是否应有提示，还是完全静默照常可用？→ `systems/services/content-service.md`、`ux/`。
 
 ## UX 呈现细节（随内容一同搁置）
 
-- **英文占位符的具体形态与错误文案的实际措辞（08-12 新增 · 08-13 缩范围）：** 「全库 UI 文案走翻译键、中文为默认与优先制作列、**英文列全部预设占位符**」已定；占位符取键名本身、`TODO` 还是机翻初稿未陈述，各 `ERR_*` 与四条兜底文案的**逐条中文措辞**同属文案定稿。**范围仅剩 `res://text/` 的 CSV 一侧**——内容层一侧已于 08-13 答定为「**缺 `en` 键即未翻译**」，由静默回落承接。定下来时须回看覆盖率审计：**若取键名本身，`AuditTranslations()` 得能识别它，否则英文覆盖率恒读作 100%。** → `ux/error-and-blocking-ux.md`。
+- **各 `ERR_*` 与四条兜底文案的逐条中文措辞（08-12 新增 · 08-19 缩范围）：** 属文案定稿，随内容一同搁置。（未翻译的英文形态已答定为「`en` 单元格留空 + `fallback = "zh"` 回落」，覆盖率由 `TranslationAudit.AuditCoverage()` 独立入口审计。）→ `ux/error-and-blocking-ux.md`。
 - **元婴界面（通关证书）的具体形态：** 用途已定（读取并显示最终寿元）；展示哪些字段（最终寿元、用时、修行历程摘要、成就？）、何时弹出、能否回看 / 分享未定。→ `ux/screen-flow.md`。
 - **寿元告警是否伴随音效 / 震动：** 视觉形态已定（**静态标注于 EventOption 选择界面**）；是否附加听觉 / 触觉反馈未陈述。→ `ux/screen-flow.md`。
 - **战斗屏幕的其余形态：** 出牌手势（拖拽 vs 点按）、目标指定、手牌布局、回合节奏与动画时长、竖屏下的敌我分区、**敌方出牌的呈现方式**（敌人也持有卡组）、**战后奖励面板的形态**（强制项与可选项如何同屏区分、候选数量与竖屏排布、能否反悔）、**stack 是否需要进入呈现层**（响应窗口移除后读栈不再是决策必需，与「栈深何时 > 1」绑定）、**三步结构的呈现细节**（开始阶段的 mana 刷满 / 抽牌节拍、结束阶段的回合内状态消散、"轮到谁"的常驻指示）——待后续战斗 UX 专场。→ `ux/combat-ux.md`。（注：**信息面**在 08-15d 意图机制整条移除后收敛为**敌人图鉴（事前）+ 结算 ticker / 战场（战斗内）**，「意图三档 + 探查 + 图鉴」三通道的旧表述作废；**主视觉**已在 08-01 定案为「双方道念对比」、lifeTotal 退居次要。二者的残留细节留在焦点区 ①。）

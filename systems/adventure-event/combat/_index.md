@@ -58,7 +58,7 @@
 - **隐藏属性对五类事件的输入与输出两侧全开，Combat 三档不例外。** 产出侧走 `HiddenStatGrade`（可选字段、不填 = 不推），输入侧走**调制通道**（Band 触发 arc → `PlotModulation`）与**结算输入通道**（数据驱动 outcome 求值读取当前值）。**输入侧全开不等于把隐藏属性接进胜负判定**——`VictoryRule` 仍是单字段，隐藏属性影响一场遭遇的路径是**拧参数**（更凶的模板、更高的 `WinMargin`、更差的起手），不是加一条并列的判定条件。权威见 `systems/services/plot-manager.md`。
 - **三档的默认推拉口径**（内容编排口径，逐条目可覆盖）：
 
-  | 档位 | 道心 faith | 煞气 malefic qi |
+  | 档位 | 道心 faith | 煞气 Bloodlust |
   |---|---|---|
   | `Practice` | 推（正向为主），**对位低一档** | **默认不推** |
   | `Standard` | 逐条目编排 | 推（杀伐类条目） |

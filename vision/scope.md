@@ -11,8 +11,9 @@
 - **竖屏、触控**——在手机上单手可玩。
 - **前置屏幕外壳：** 登录屏（T&S + 循环视频占位 + **强制账号登录**）→ 主菜单（切换已解锁篇章、PlayerProfile / PlayerPower / Achievement / Settings 入口）。**已移除游客态**——所有玩家必须登录账号后才能游玩。见 `ux/screen-flow.md`。
 - **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。见「平台与约束」。
+- **premium bundle 端到端。** 支付接入（Google Play Billing / App Store / 微信支付三渠道）+ Store 屏 + 购后兑现。它是客户端唯一必须引入第三方 SDK 的地方，牵动 Godot 导出配置与各平台构建。形态见 `systems/monetization.md`。
 
-Source: `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md`
+Source: `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md`
 
 ## 范围之外（暂时）
 > _明确推迟——先泊车，以免蔓延进来。_
@@ -21,7 +22,7 @@ Source: `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-0
 - 支撑“Reigns”式平衡张力的完整**属性模型**。
 - 超出足以奠定 grimdark 基调之外的深度叙事/剧情内容。
 - 元进程解锁、外观装饰、每日/seeded-轮回分享。
-- **商业化的落地**（支付接入、商店 UI、地区定价）——形态已给出方向（**premium bundle**，见 `systems/monetization.md`），但不属 MVP 切片。
+- **地区定价**——单一 SKU、单一价格档起步；价格与货币由平台商店按 SKU 返回，客户端不硬编码任何金额（见 `systems/monetization.md`）。多档 SKU 会立刻牵出「哪档给什么」的内容编排。**支付接入与商店 UI 本身已在 MVP 内。**
 - 本地化打磨（让展示字符串与 id 分离，以免日后受阻）。
 
 ## 平台与约束

@@ -43,11 +43,14 @@
   - **Travel 压最低档**——揭示出的 Travel 会强制换图并把该地域计数归 0，频率一高就打乱「一次篇章 = 若干 location 串联」的地域节奏，且玩家无从选择目的地（必走随机档），连续几次会读成「系统在踢我走」。
   - **Exchange 居中作为正向面**——三类都必须有非零占比，否则「未知」在几次之后就不再未知；Exchange 是唯一纯正向的那一类，它让秘境不是纯粹的风险赌注。与 `Standard` / `Minor` 的经验档位偏置自洽：秘境是中等产出，不该被编排成战斗浓度更高的伪 Combat。
   - **口径是「条目池加权后的期望占比」：** 不做配额保证、不做「连续 N 次未出 Exchange 则保底」——保底是一套新机制，且它把「未知」变成可推算的。
+  - **取池期过滤会轻微偏移实际占比**（被关闭的真身、库存池不足的 Exchange 真身，其壳都被移出候选池），**不为此设任何补偿**——占比本就是期望值而非配额。方向也是正确的：一个此刻产不出内容的事件，不该靠遮罩偷渡上场。
   - 落点：`adventure-event` 内容类型开张时，其类型档案的 Explore 分区台账登记每条的真身 `Id` 与真身 `eventType`；`/audit-content` 汇总三类占比与目标区间比对，**只报告不阻断**（它是编排口径，不是校验）。
 
 ### 取池与校验
 
-- **取池期附加一条过滤：真身被 `ContentEnabled == false` 关闭 ⇒ 该 Explore 壳本次不进候选池（承重）。** 判定发生在 future-event-service 的取池阶段，与 `AllEnabled()` 同一档。
+- **取池期附加一条过滤，两个分支同形同档（承重）：真身被 `ContentEnabled == false` 关闭，**或**真身是 Exchange 且其库存池前置不通过 ⇒ 该 Explore 壳本次不进候选池。** 判定发生在 future-event-service 的取池阶段，与 `AllEnabled()` 同一档。
+  - **第二个分支拦的是同一形状的第二个洞：** Exchange 是可被遮罩的三类真身之一，而它的库存池会在运行期收缩（flags 秒关、能力族取池链排除已持有）。壳自己是 enabled 的、真身也是 enabled 的，于是玩家照常付掉壳的 `lifeSpanCost`、揭示之后撞上一个**空商店**——**失败点落在付费之后**，且直接违反「两处都不能留空面板」。判据与 `ContentEnabled` 那条一字不差地成立，故不单列为一种新机制。前置的计数口径与三道闸的层次见 `systems/services/future-event-service.md`。
+  - **Research 不在真身取值域内**，故构筑面板那一侧无需穿透。
   - **不加这条就有一个能上线、线上不可见的洞：** 线上用 flags 关掉一个坏掉的 Combat 条目后，指向它的 Explore 壳仍在 `AllEnabled()` 池里（壳自己是 enabled 的），玩家照常选中、照常付费，揭示后落到那个被关闭的条目上（读取侧不过滤，能解析、不崩）——**放量开关对这条路径静默失效**。
   - **它是抽取侧过滤，不违反「读取侧不过滤」纪律**：过滤只决定「这次能不能抽到它」；`pastEvent` 回溯与图鉴解析照常解析 disabled 条目，历史痕迹不受影响。
   - **代价明写接受：** 关掉一个 Combat 条目会连带压低 Explore 的实际出场率（壳被排除）。这是正确的方向——一个被判定为坏掉的事件，不该靠遮罩偷渡上场。**否决的替代是「揭示后降级为空结算」**：玩家已付费却什么也没发生是最坏的观感，且会在 `pastEvent` 上留下一条「结算了但什么也没产出」的诡异记录。
@@ -89,7 +92,7 @@
 - **这不是缺陷，正是 Explore 的定价**——元类型出售的就是「不知道」。若为它补一条「秘境内的战斗不得越级」之类的保护，等于用规则把风险抹平，Explore 随之失去存在理由；且它会成为 `±2` 带那条**无例外硬规则**的一个例外，而该规则明写不接受例外。
 - **风险的界仍由 `±2` 带给出**（赋级规则挂在 Enemy 上、`combatTier` 三档一视同仁），已经足够：秘境里的战斗不会比常规战斗更超纲，只是玩家事前不知道有没有。它与「打不过也得打是正常出口」自洽——产出侧本就不欠可战胜保证。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -97,7 +100,7 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 - **Explore 为五类分类法之一，且是唯一的元类型** → `decisions/ADR-0002-adventure-event-taxonomy.md`。
 - **遮罩一个固定 AdventureEvent（非点击时生成）；真身取值域 = Combat / Travel / Exchange**。
 - **遮罩下只存在 Explore 壳一份 `selectCost`；Explore 自成定价行且禁用条目级成本覆盖**。
-- **真身类型分布不设第二套权重机制**（三处数据类均不加字段）；**取池期附加「真身须同样 enabled」一条过滤**；**不给任何部分线索**。
+- **真身类型分布不设第二套权重机制**（三处数据类均不加字段）；**取池期附加一条壳过滤（真身须同样 enabled，且真身为 Exchange 时其库存池前置须通过）**；**不给任何部分线索**。
 - **揭示后的派生实例落 `CharacterProfile.activeEvent`，随后续第一个决策点写盘，不新增揭示专属存档点。**
 
 Source: `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md`

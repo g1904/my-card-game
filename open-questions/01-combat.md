@@ -13,7 +13,6 @@
 > 「本轮回禁用」与置换型剥夺片区的**四条并列待答已全部答结**（承载字段 `disabledAbility` · 三档时长与生效判据 · 置换候选池与对价 · `ProfileChangeSpec` 三列表 element 形态 · `PlayerStatistics` 与首批两项 · 宽松同步口径五条 · `PushWarning` 对称落点归内容加载侧），见 `../answer-logs/log-ability-deprivation-and-player-statistics.md`。
 
 - **`RarityTier` 的分布与权重表（08-10c 新增）。** 五档已定名并挂上 `PowerData` / `ItemData` / `CardData`；**结构面已答定**——授予池权重表已给出结构与初值，置换候选池不需要权重表（同档等概率），分表维度按**用途**（授予 / 战后奖励）而非渠道、亦非 `(Kind, Scope)`。仍待定：**战后奖励池**各档权重（按优势档 `Tier` 三档各一张表）、内容侧「每档应有多少条目」的编排口径、`GrantPoolMargin` / `K` 的取值。→ `systems/balance.md`、`systems/services/combat-service.md`。
-- **`StatKey` 的完整成员清单（08-10c 新增 · 轻）。** 首批两项已定；随统计项增长的命名与登记方式、如何在书写上与 `CostKey` 明确分开未定。→ `systems/services/profile-service.md`。
 
 ## 结构与配置的残留
 
@@ -37,9 +36,8 @@
 
 ## 信息面的残留（意图移除后 · 08-16b 采集，此前未进清单）
 
-> 意图机制整条移除后，事前知识只剩**敌人图鉴**一条主通道（战斗内的动态情报归 ticker，见下方「呈现的残留」）。这两条决定那条主通道够不够宽。
+> 意图机制整条移除后，事前知识只剩**敌人图鉴**一条主通道（战斗内的动态情报归 ticker，见下方「呈现的残留」）。图鉴侧的慷慨度已定（关键卡 3 张，含退让阶梯），剩下这条决定要不要再开第二条通道。
 
-- **敌人图鉴的慷慨度是否该上调（承重）。** 图鉴现为**事前知识的主通道**；「一次遭遇即解锁全部词条」是否够、是否该给出**样本卡组的完整列表**而非只给关键卡牌，未定。它与 `07-codex-monetization.md` 的「其余四本图鉴的词条深度」是同一问题在 EnemyCodex 上的一面，宜一并答。→ `systems/player-profile/codex/enemy-codex.md`。
 - **是否要一条「花代价买信息」的通道。** 当前没有这样的通道（探查随意图一并作废）。若要建，须先定义标的（敌人抽牌堆顶 N 张 / 敌人本场可用道具 / 其他）与代价形态。→ `systems/adventure-event/combat/_index.md`、`systems/character-profile/deck/`。
 
 ## 呈现的残留

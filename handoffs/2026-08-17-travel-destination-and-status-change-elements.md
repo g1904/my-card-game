@@ -56,7 +56,7 @@ public enum StatusKey
 {
     CurrentLocationId,          // string  —— 仅由 Travel 结算改写
     LocationEventCount,         // int     —— 非 Travel +1 / Travel 归 0（均以绝对值提交）
-    FaithBand, MaleficQiBand, LifeSpanBand,   // sbyte 存档字段，spec 内以 int 承载
+    FaithBand, BloodlustBand, LifeSpanBand,   // sbyte 存档字段，spec 内以 int 承载
     ChapterLifeSpanBudget,
 }
 

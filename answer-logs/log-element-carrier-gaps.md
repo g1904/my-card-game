@@ -10,6 +10,6 @@
 
 **`plotKeyPoint` 的 element 形态** → `ProfileChangeSpec` 增列 **`PlotElements`**，条目类型 **`PlotKeyPointAssignment`**（`PlotKeyPoint` 的镜像，按 `ArcId` 整条 upsert、零 `Op`、恒不经 pipeline、`SelectCost` 内恒空），并新增八行写严的施加侧失败语义；拓扑校验留在 PlotManager 的 `#if DEBUG` 断言。连带：`PlotArcState` 登记进共享核心类型的枚举清单。（`systems/architecture.md`、`systems/services/profile-service.md`、`systems/services/plot-manager.md`、`systems/character-profile/_index.md`）
 
-**道心 `Faith` / 煞气 `MaleficQi` 是否列入 `CostKey`** → **列入**，与 `Experience` 同批登记为 `CostKey` 成员。`ResourceElements` 三行：`Experience → (0, null, null, null, null, Add)` · `Faith` / `MaleficQi → (0, 100, null, null, null, Add)`；两个修正列留空——一条法则能伪造隐藏属性，即等于伪造整条剧本线的触发条件。（`systems/architecture.md`、`systems/services/profile-service.md`）
+**道心 `Faith` / 煞气 `Bloodlust` 是否列入 `CostKey`** → **列入**，与 `Experience` 同批登记为 `CostKey` 成员。`ResourceElements` 三行：`Experience → (0, null, null, null, null, Add)` · `Faith` / `Bloodlust → (0, 100, null, null, null, Add)`；两个修正列留空——一条法则能伪造隐藏属性，即等于伪造整条剧本线的触发条件。（`systems/architecture.md`、`systems/services/profile-service.md`）
 
 **部分答定的说明：** `PowerFragmentFirstWin(chapter)` 的参数化 `CostKey` 形态、`BundleGrantOrdinal` 由谁施加两项仍留在待答清单；本次只定了它们各自那一行的 `AllowedOps` 取值形态。

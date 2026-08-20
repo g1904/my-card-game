@@ -54,17 +54,23 @@
   - **为何不自动挑选**（例如按出现次数 / 最高费用）：自动挑出的往往是**最平庸的低费填充牌**；关键卡是**叙事与教学的选择**（「这三张能让玩家理解他的路数」），属内容作者职责、不是统计问题；**词条文案挂模板且是静态的**，自动挑选会随卡组改写而漂移，与词条的静态性不一致；显式字段还可被 overlay 热更单独修正。
   - 加载校验：每个 id 必须存在于该模板的样本卡组内 → 否则 `PushError`（带模板 `Id` + 卡牌 `Id`）；数量 > 3 或 < 2 → `PushError`；数量 = 0 但词条已启用 → `PushError`。
   - **物化改写必须保留这 3 张**（否则图鉴与玩家实际遭遇对不上，而图鉴是**唯一的事前信息来源**）→ 违反则 `PushWarning` + 该次改写回退；**`OverridesDeck == true` 的定制卡组条目显式豁免**。见 `systems/enemies/`。
+- **慷慨度维持 3 张关键卡，不给样本卡组完整列表（承重）。** 本图鉴是事前知识的主通道，「是否该给得更多」因此是一个真实的问题；结论是**先不动机制**，三条理由：
+  1. **完整 15 张列表把词条从「事前知识」推向「事中情报」。** 知道全表的玩家可在战斗中做「他还剩哪些牌」的推算——那是读牌堆，属事中情报，而「事前知识 vs 事中情报」这条分层是图鉴与战斗信息体系共存的**前提**，不是可微调的旋钮。3 张只勾勒路数，不支持这种推算。
+  2. **它与两条既有结论同时相抵。** 「关键卡 3 张（5 张变成背卡表）」与「总长 150–280 字、一屏读完不需滚动」是同一件事的两面；15 张卡名 + 说明必然突破一屏，进而逼出分页或分档解锁，而分档解锁本身已被否决。
+  3. **慷慨度上调有一个更便宜、可回退的旋钮：**③「运作方式」与 ④「特点与弱点」的写作厚度。④ 本就被要求「必须可行动」；若实测知识不足，先把 ③④ 写厚——**纯内容侧调整、零机制成本、可逐条回退**，远早于动机制。
+  - **退让阶梯（属实测调整，不是重新裁决）：** 加厚 ③④ → 把 `KeyCardIds` 的**数量上界**由 3 放宽到 5（加载校验的 `> 3 → PushError` 改为 `> 5 → PushError`，**下界 2 不动**；纯数据改动，词条仍在一屏内）→ **再之后**才考虑全表。给出这条阶梯，是为了让「慷慨度不够」将来有一条不必重开分层裁决的出路。
+  - **已知代价照录：** 首次面对陌生敌人的信息劣势维持现有水平，而该水平尚未经实测检验。
 - **实例信息分离为「静态正文 + 动态页眉」。** **词条正文绝不写等级**——词条挂模板、跨轮回持久，写入实例信息会污染静态知识（且同一模板会以 5 个不同等级出场）。**动态页眉只在战斗内查阅时出现**，元进程界面查阅时不显示（那里没有「本次」）。
   - **页眉只写本次遭遇实例的境界名 + 层级**（如「本次遭遇：筑基后期」），**不写「高你 1 级」这类方向 / 差值标记**——与「敌人等级标注不做方向标记」的裁决对齐，差几级由玩家自行比对。措辞沿用 `EventOption` 上的既定口径（境界名 + 层级，全局序 1–22 不出现在任何 UI 上）。
 - **战斗内可查阅，但受限。** 入口 = **点按敌人立绘 → 半屏 bottom sheet**（与「随身」抽屉同一套控件语言）。
   - **为何可以**：词条给的是路数 / 弱点 / 常用牌，**不是他这回合出哪张**——既然词条本身不含动态情报，**战斗内可读不改变信息分层**，只是把已有的静态知识放到最需要它的时刻。
   - **限制**：**结算过程中 / 选目标态中禁用入口**（避免打断结算状态机与决策点边界）；**不暂停战斗**（回合制无计时，本就不需要暂停）；**只读**，无任何交互。
   - **⚠ 点按语义冲突须在实现时明确优先级**：立绘同时可能是选目标态的合法目标——**选目标态中立绘的点按语义被该态独占**（图鉴入口禁用），非选目标态时点按 = 开图鉴。
-  - **解锁写入发生在战斗开始时，第一次遭遇本场即可读全部五项。** 理由：**静态知识的价值本就不在藏起来**，越级的信息压迫由**意图三档独占承载**（既定的分层分工），不该让图鉴再分担一份遮蔽；且「词条分级可见」会打破「一次遭遇，全文案解锁」这条已定案。**已知代价：首遇即全知会削弱「靠试错记忆」的仪式感**，接受。
+  - **解锁写入发生在战斗开始时，第一次遭遇本场即可读全部五项。** 理由：**静态知识的价值本就不在藏起来**，不该让图鉴分担一份遮蔽；且「词条分级可见」会打破「一次遭遇，全文案解锁」。**已知代价：首遇即全知会削弱「靠试错记忆」的仪式感**，接受。
 
 > 条目共有字段与解锁语义见 `common-properties.md`；图鉴族总览见 `_index.md`。
 
-Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md`
+Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-19-codex-entry-schema.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -72,12 +78,6 @@ Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` �
 - **五项写作规格（长度 / 口径 / 不含阿拉伯数字）；关键卡牌列 3 张由 `EnemyData.KeyCardIds` 显式标注；实例信息 = 静态正文 + 动态页眉；战斗内可读全部五项（结算 / 选目标态禁用入口）**。
 - **敌人图鉴为账号级收集，归 PlayerProfile；与敌人回合的逐步执行呈现按「事前知识 vs 事中情报」分层；它是事前知识的主通道**。
 - **解锁触发 = 遭遇即记录（不必击败）**。
-
-## 待决问题
-> _尚未解决，需要一次 handoff/决策。_
-
-- **计数字段是否要（遭遇 / 击败 / 败于其手次数）。** 解锁已是一次性全量，计数只服务于收集感与成就；要不要、记哪些未定。→ `common-properties.md`。
-- **是否与成就 / 奖励挂钩。** 收集完成度是否发放 PlayerPower / PlayerItem 等奖励未定。→ `systems/player-profile/achievement/`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/codex/enemy-codex.md`（待建）。

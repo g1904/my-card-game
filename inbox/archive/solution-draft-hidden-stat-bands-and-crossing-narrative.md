@@ -80,7 +80,7 @@ distilled-to: handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md
 `[已裁决 ①]`
 
 - **道心 faith：`[0, 100]`，轮回起始 `50`，双向推拉。** 它是「状态」（心境澄明 ↔ 心魔渐生），事件两个方向都推得动。
-- **煞气 malefic qi：`[0, 100]`，轮回起始 `0`，以上行为主、可被净化类事件下拉。** 它是「累积物」，既定的「累积到阈值触发煞气反噬」直接对应最高档。
+- **煞气 Bloodlust：`[0, 100]`，轮回起始 `0`，以上行为主、可被净化类事件下拉。** 它是「累积物」，既定的「累积到阈值触发煞气反噬」直接对应最高档。
 - **有界的理由**：无界属性的「档位」只能靠不断加新档追赶，而档位是内容条目、**overlay 只改不增**（见 §6）⇒ 加档必须发版。有界 + 顶档吸收溢出，使档数在整条内容生命周期里是常量。
 - 钳制规则：施加后截断到 `[0, 100]`，**不构成终态**（与寿元不同）——这同时是「哪些资源允许被打穿」那条待答项在隐藏属性这一半上的答案。
 - 寿元不套用本条：它已有既定的预算模型（起始 100 / +100 / +300 / +500，归 0 = `defeated`）。
@@ -105,7 +105,7 @@ distilled-to: handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md
 >
 > **道心下臂极值 `-2` 不配文案**：裁决 ③（下行不播）优先于裁决 ⑤（极值播），两者叠加的结果是「**上行的极值才播**」。`-2` 的存在感由 `PlotTriggerId`（心魔滋生剧情线）与调制承担。
 
-**煞气 malefic qi —— 4 档，阈值 25 / 50 / 75**（单臂，档号即数值序）
+**煞气 Bloodlust —— 4 档，阈值 25 / 50 / 75**（单臂，档号即数值序）
 
 | Band | 区间 | 语义 | 文案 |
 |---|---|---|---|
@@ -186,7 +186,7 @@ distilled-to: handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md
 public partial class HiddenStatBandData : Resource
 {
     [Export] public string     Id            { get; set; }  // "plot.band.faith.2"
-    [Export] public HiddenStat Stat          { get; set; }  // Faith | MaleficQi | LifeSpan
+    [Export] public HiddenStat Stat          { get; set; }  // Faith | Bloodlust | LifeSpan
     [Export] public int        BandIndex     { get; set; }  // 带符号：0 = 常态，|值| 越大越远离常态
     [Export] public int        EnterValue    { get; set; }  // 该档朝常态一侧的边界；LifeSpan 以百分点书写
     [Export] public int        Hysteresis    { get; set; }  // δ，退出阈值 = EnterValue 向常态方向放宽 δ
@@ -197,7 +197,7 @@ public partial class HiddenStatBandData : Resource
 ```
 
 - **文案正文单独成条目**（复用 Finale 补白已经要用的那个定性文案类型），本类只持 `Id` 数组——与「快照 / 结构里不存字符串正文」的既有分层一致，也让文案与档位可各自热更。
-- `HiddenStat` 是新枚举 `{ Faith, MaleficQi, LifeSpan }`——`plot-manager.md` 的 API 表里**已在用这个类型名**，本方案只是给它定值。
+- `HiddenStat` 是新枚举 `{ Faith, Bloodlust, LifeSpan }`——`plot-manager.md` 的 API 表里**已在用这个类型名**，本方案只是给它定值。
 - **`BandIndex` 取带符号 `int`（存档侧落 `sbyte`）**：只有道心用得到负值，煞气 / 寿元恒为 `0..3` / `0..2`。判据统一为 `|new| > |old|` ⇒ 播。
 
 **② 加载期校验（`data-resource-rules.md` 的「坏数据在启动时大声失败」）**
@@ -216,7 +216,7 @@ public partial class HiddenStatBandData : Resource
 ```csharp
 // 当前所处档（回滞使档位不是当前值的纯函数，必须持久化）
 sbyte FaithBand;             // 索引 HiddenStatBandData.BandIndex；带符号，双臂
-sbyte MaleficQiBand;
+sbyte BloodlustBand;
 sbyte LifeSpanBand;
 int  ChapterLifeSpanBudget;  // 本篇章起始可用预算 = 本章增量 + 上章结转；篇章边界赋值
 ```

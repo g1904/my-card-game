@@ -15,8 +15,8 @@
   | PlayerProfile(玩家档案) | 状态与账号信息(`AccountInfo`) | `accountInfo` |
   | PlayerPower(法则) | always-available 能力,带**开关(默认开启)**;QoL 或影响公平性的全局加强,不与角色绑定 | `playerPower` |
   | Achievement(成就) | 分组成就;玩家**只能查看进度 / 领取奖励**;奖励按**组内加权进度**发放,分 **60% / 90% 两档一次性奖励**(见下) | `achievement` |
-  | Settings(设置) | 音量等常规系统设置;**外加一行只读的「同步版本 #N」**(见下) | `gameSetting` |
-  | **Store(礼包)** | premium bundle 的详情与购买入口;**排在末位、安静呈现**(见下) | `entitlement` |
+  | Settings(设置) | 音量与快速演出(账号级)、语言(设备本地);**外加一行只读的「同步版本 #N」**(见下) | `gameSetting` + 设备本地 `user://cache/device-settings.json` |
+  | **Store(礼包)** | premium bundle 的详情与购买入口;**排在末位、安静呈现**(见下)。同屏另有两个结果态:购买处理中(全屏模态进度)与兑现结果(本次获得的 1 法则 + 2 古宝) | `entitlement` |
 
 
 
@@ -26,12 +26,40 @@
   - **两处必须的二次确认:** ① **解绑**(不可逆地移除一条登录方式);② **绑定失败为「该渠道已绑到另一个账号」时**——必须明确告诉玩家那个渠道下有另一份进度、**绑定不会合并两份存档**,否则玩家会以为是 bug。这一条直接对应后端契约「绝不做隐式账号合并」。
   - 字段与写入方见 `systems/player-profile/account-info.md`;方法面与失败映射见 `systems/services/account-service.md`。
 
+- **Settings(设置)屏 = 三段 + 一行只读诊断,竖屏单列。**
+
+  ```
+  ┌─────────────────────────────────────┐
+  │ [安全区]              设置       ←  │
+  ├─────────────────────────────────────┤
+  │  音量                               │
+  │    主音量      ▓▓▓▓▓▓▓▓░░  100      │  ← 拖动 = 实时预览,释放才提交
+  │    音乐        ▓▓▓▓▓▓░░░░   80      │
+  │    音效        ▓▓▓▓▓▓▓▓░░  100      │
+  ├─────────────────────────────────────┤
+  │  战斗                               │
+  │    快速演出                    ( ●) │  ← 默认关
+  ├─────────────────────────────────────┤
+  │  语言          〔中文〕〔English〕  │  ← 首批隐藏
+  ├─────────────────────────────────────┤
+  │  同步版本 #1337                     │  ← 只读诊断,不是设置项
+  └─────────────────────────────────────┘
+  ```
+
+  - **滑条拖动 = 实时预览,释放才提交(承重的一条 UI 纪律)。** 拖动过程中直接改音频总线音量让玩家听见,**不碰 profile**;`drag_ended` 与开关切换那一刻各提交一次;**离开本屏时若存在未提交的预览值,强制提交一次**(防「拖到一半直接返回」丢掉改动)。理由是「一次提交 ⇒ 一次本地原子写」——一根拖动中的滑条若每帧提交,就是每帧一次磁盘原子写。它不新增任何机制,只是把「预览」与「提交」分清。
+  - **语言行首批隐藏**(英文文案尚未就位);字段、设备本地文件与归一覆盖口首批就落。
+  - **「同步版本 #N」是只读诊断,不是设置项**,取自 `SyncService.BaseRevision`;为 `0` 时显示「尚未同步」。把它写成设置字段会制造第二份真值。
+  - 每行满足触控目标尺寸,滑条轨道够长够高(竖屏单手可及区);**无 hover-only 可供性**——数值恒可见,不靠悬停显示。
+  - 文案走 `SETTINGS_` 分区 / `res://text/settings.csv`,**不写字面量**。字段清单、两侧切分与写入通道见 `systems/player-profile/game-setting.md`。
+
 - **商业化入口 = 一个安静的一等入口,绝不在失败时刻推销（承重）。** 入口是主菜单的**一等入口、排在既有四项之后**,而非藏进 PlayerProfile 面板的二级页。
   - **理由反直觉但承重:** 把付费点藏进二级面板并不会让它更克制——它会因曝光不足而诱导出后续的补偿手段(弹窗、红点、限时角标),**那才是「付费才玩得下去」观感的真正来源**。一个安静、可预期、永远在同一个位置的一等入口,是打扰最少的形态。
   - **三条呈现纪律:** 入口**永不带红点 / 徽标 / 数字角标 / 常驻动效 / 限时促销倒计时** · **除该入口外全游戏不存在第二个通往付费流程的路径**(无弹窗、无插屏、无横幅) · **已购买后不隐藏**(可重复购买),文案改为「再次购买(仅含法则 / 古宝)」,如实反映 ③ ④ 不叠加的口径。
   - **重试次数耗尽时不提示购买(明确否决)。** 两条独立理由:① 那是玩家刚失去一个角色的时刻,是全游戏情绪最低点,此处推销会把 ③ ④ 从「宽松化」在观感上变成「解锁继续游玩」;② **它在结构上本就不可行**——购买流程只能在主菜单发起且待发队列为空(同步模型的结构要求,见 `systems/services/sync-service.md`),而重试耗尽是轮回内 / 结算流程内的时刻。**礼包入口在轮回内 / 战斗内 / 结算流程内不存在。**
-  - **允许的全部呈现穷举为两处:** 主菜单入口本身;礼包详情页内如实列出四项权益(及第二次起的删减说明——**必须在付款前**标注)。
-  - **入口不可用时置灰 + 一行说明,不隐藏**(走 `STORE_UNAVAILABLE_*` 翻译键);三条前置条件见 `systems/monetization.md`,灰态判据见 `ux/error-and-blocking-ux.md`。
+  - **允许的全部呈现穷举为三处:** 主菜单入口本身;礼包详情页内如实列出四项权益(及第二次起的删减说明——**必须在付款前**标注);兑现结果态。**兑现结果不是推销面**——它发生在付款之后、内容已定,而「付了钱看不到货」正是退款争议的常见诱因。
+  - **入口不可用时置灰 + 一行说明,不隐藏**(走 `STORE_UNAVAILABLE_*` 翻译键);四条前置条件见 `systems/monetization.md`,灰态判据见 `ux/error-and-blocking-ux.md`。
+  - **兑现结果是 Store 屏的一个结果态,不是新增一屏。** 它发生在 Store 流程内、由同一入口进出,屏清单不变;购买处理态同理。文案走 `STORE_` 分区。
+  - **待兑现态存续期间(重启后仍未兑现):主菜单可进入,但「开始新轮回」置灰 + 说明「有一笔购买待发放,正在重试」**,顶部常驻同步指示复用既有形态。这是既定灰态判据「入口置灰 + 说明、不隐藏」的一次应用,不新增拦截点。
 
 - **成就发放细化。** 每个类别按**组内加权进度**分**两档一次性奖励**:加权进度达 **60%** 发一次、达 **90%** 再发一次;**两档奖励不同,且都为一次性**。**成就目录 80% 条目可见、20% 为隐藏成就**,达成后才显示。(发放**何种**奖励 —— PlayerPower / PlayerItem / 账号级 —— 仍待定。)
 - **登录渠道优先级。** 移动端优先(手机 / 邮箱)→ 微信 / QQ 其次 → 海外 / 跨平台最后。**没有游客**入口。
@@ -125,7 +153,7 @@
 - **三种终局态共用一个阻塞屏。** 需更新(强更)、被挤下线、存档读取失败三者形态同构,收敛为一个 `BlockingNoticeScreen` + 变体表(全屏 · 无返回 · 主按钮永不是「继续游玩」 · 底部诊断编号可长按复制)。**三个变体不等于三处硬阻塞**——阻塞点仍是既定两处。见 `ux/error-and-blocking-ux.md`。
 - **美术挂点占位。** 循环视频、图标、卡面等 TBA;组合场景时为其保留可轻松替换的挂点,先用占位 / 免费资源。
 
-Source: `handoffs/2026-07-16-...` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-...` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-...` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
+Source: `handoffs/2026-07-16-...` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-...` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-...` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

@@ -163,15 +163,40 @@
     - **能力族商品经第二级 `TryPickGrantableMany` 取池，其余三族直用第一级 `DrawPool<T>`**（`[采纳推荐 — 待复核]`）。理由：「排除已持有」是需要读 `Profile` 的那道过滤，它必须只写在一个地方；走既有门面方法即可，**不给 `GrantPoolPicker` 新开入口**——它已是全库唯一的能力抽取处，入口越多越容易漏用。代价：本条取池链因此分裂为两种写法。
   - **`ListPrice` 在此定稿，`ModifierKey.ShopPrice` 也在此施加。** 依据是「一个 `ModifierKey` 只能有一个施加点」：商店价格必须先算才能标价 ⇒ 施加点在物化 / 展示侧，`Jade` 那一行的两个修正列因此恒为 `null`（见 `systems/services/profile-service.md`）。**代价明写：** 轮回中途新获得的降价修正不影响已定稿的库存，下一个 Exchange 事件才生效。
   - **`RerolledCount` 初值为 0。** 刷新是结算侧的动作（花 jade 重掷整批库存，走同一条取池链与同一个 `Shop` 子流），本服务只负责给出初始库存。规则见 `systems/adventure-event/exchange/_index.md`，字段面与校验见其 `common-properties.md`。
-- **Explore 的取池附加一条过滤：真身被 `ContentEnabled == false` 关闭 ⇒ 该 Explore 壳本次不进候选池。** 判定与 `AllEnabled()` 同一档，在取池阶段做一次。
+- **Explore 的取池附加一条过滤：真身被 `ContentEnabled == false` 关闭，或真身是 Exchange 且其闸 ② 不通过 ⇒ 该 Explore 壳本次不进候选池。** 判定与 `AllEnabled()` 同一档，在取池阶段做一次；两个分支同形同档——否则玩家付掉壳的 `lifeSpanCost`、揭示之后撞上一个空商店，而这正是「失败点必须前移到付费之前」所防的形态。
   - **不加这条即有一个能上线、线上不可见的洞**：线上用 flags 关掉一个坏掉的 Combat 条目后，指向它的 Explore 壳仍在池里（壳自己是 enabled 的），玩家照常选中、照常付费，揭示后落到那个被关闭的条目上——放量开关对这条路径静默失效。
   - **它是抽取侧过滤，不违反「读取侧不过滤」**：`pastEvent` 回溯与图鉴解析照常解析 disabled 条目。
   - **真身的启用态不进 `EventOption` 快照**（随 flags 变、重算不保证同结果且无消费方），只在取池那一刻查一次。代价与被否决的替代见 `systems/adventure-event/explore/_index.md`。
+- **候选池短缺由三道闸处置，两处都不留空面板（承重）。** Research 候选与 Exchange 库存各自的取池链都可能抽不足所需条数（`PickMany` 返回 `false`）；处置分三个时机，两个调用点共用同一层次、逐格取值不同。
+
+  | 闸 | 时机 | Research | Exchange | 失败处置 |
+  |---|---|---|---|---|
+  | **①** | 内容加载期（合并后强校验，走 `AllIncludingDisabled()` 的同一遍） | 每个 `ResearchSlotSpec` 的每类内容池型操作（`LearnTechnique` / `GrantItem`）：通用池条目数 ≥ `CandidateCount` + `ResearchPoolMargin` | 逐 `Kind` 逐 `RarityTier` 档位核算：覆盖该档位的全部规则 Σ`SlotCount` + `ExchangePoolMargin` ≤ 该档位的池条目数 | **`PushError`** —— 编排错误在启动期就大声失败。断言全文见两个子类型的 `common-properties.md` |
+  | **②** | 取池期（本服务挑候选事件条目、物化之前） | 该条目**至少一个槽**能产出 ≥ 1 条候选；`AllowDecline == false` 的槽**逐槽** ≥ 1 | 该条目全部 `StockRule` 的可产出 offer 数之和 ≥ 1 | **该条目本次不进候选池** + `PushWarning` + 定位上下文；判定结果**不落快照** |
+  | **③** | 物化期（实际抽取） | 该槽候选数降级为实际抽到的条数；某槽降到 0 → 该槽不进 `ResearchSlot[]` | 该规则少产出几个 offer；某规则降到 0 → 少一批槽位 | `PushWarning` + want / got |
+
+  - **闸 ② 与既有的 Explore 壳过滤同形同档**：同样是取池阶段的一次判定、不落快照，防的同样是加载期够不着的**运行期收缩**（flags 秒关、玩家已持有导致的池收缩）。**它是「不能留空面板」的真正防线。**
+  - **闸 ② 的阈值取 `≥ 1` 而不是 `≥ 所需`**：取后者会让一次轻微的运行期收缩把整类事件从池里删掉（Research 尤其致命，它是构筑的唯一落点），其余交给闸 ③ 降级。硬约束原文是「不留空面板」，不是「面板必须是满的」。
+  - **闸 ② 的计数必须与实际抽取链同口径**：能力族走 `profile-service.GrantableCount(kind, scope, rarityFilter)`（`rarityFilter` 可选，`null` / 空 = 不限），内容族走 `DrawPool<T>` 同款过滤后的条目数。用不含 `RarityFilter` 的宽松计数会出现「总池非空、过滤后为空」⇒ 闸 ② 判过、闸 ③ 抽空，而闸 ② 之所以能声称「闸 ③ 的空面板分支理论不可达」，全部依据就在这个同口径上。
+  - **代价明写：** 每批产 3–5 项、只发生在屏幕切换点，逐候选条目算一次池计数不落在任何热路径上。
+  - **闸 ③ 的空面板分支是理论不可达的缺陷分支：** 全部槽 / 全部 offer 皆空到达此处 ⇒ `PushError` + 上报，**该条目本次不进批次、本批少一项**。**不另取一条填补批次**——本服务不设单项补位，而 1 项的批次本就合法，少一项不需要额外规则允许它。
+  - **闸 ② 移出条目后的退化情形不新增任何分支：** 批次规模照常由既有产出逻辑给出（可缩到 1 项）；过滤后候选池为空则落既有的「内容池为空 = 坏数据 → `PushError` + 抛」；而**邻接集合不经 `AllEnabled()` ⇒ Travel 兜底恒可产出**，轮回死锁在规则层不成立。
+  - **闸 ② 对 `AllowDecline == false` 的槽逐槽收紧**，是因为那类槽卡住玩家：开局构筑事件靠 `eventPriority = 1` 强制进入，任一槽降到 0 候选即是一个无法提交的强制面板。被拦下时该条目不进批次，**首批退化为常规批**（见 `systems/adventure-event/research/_index.md`）。
+  - **分界判据 = 玩家有没有为这一次产出付过钱。** 付过钱的产出（premium bundle 的空池三道闸，见 `systems/monetization.md`）→ **少给即事故**，把失败点前移到掏钱之前，宁可拒绝进入流程，绝不降级替代。没付钱的玩法内容（Research 候选 / Exchange 库存）→ **降级到更少是可接受的方差**，硬拒绝反而制造更严重的后果：Research 是构筑的唯一落点，把它整类拦掉等于剥夺轮回内构筑；把一批 eventOptions 拦成空批则直接触及轮回死锁。**两套看似相反的处置由这一条判据分开**，不写下它，后来者会把两处读成矛盾。
+  - **日志形态：**
+
+    ```
+    [FutureEvent-PoolGate]   skip event=<EventId> type=<Research|Exchange> reason=insufficient-pool detail=<kind/slot> pool=<n>
+    [FutureEvent-Materialize] empty panel: instance=<InstanceId> event=<EventId> type=<Research|Exchange>
+    ```
+
+    闸 ② 用 `PushWarning`——flags 秒关是正常运营手段，一个条目因此暂时退出候选池不是缺陷；闸 ③ 的空面板分支用 `PushError`——它意味着闸 ② 判定与实际抽取不一致，是真缺陷。
+
 - **Explore 的真身类型分布不是本服务的一个旋钮，而是取池加权的涌现结果。** 遮罩的是模板上写死的固定条目 ⇒ 物化与揭示两处都不掷这个权重；`AdventureEventData` / `LocationData` / `PlotModulation` 三处均**不为它新增字段**。location 的类型修正只及「有多少 Explore」这一行，及不到「秘境里多半是什么」。权威与占比的编排口径见 `systems/adventure-event/explore/_index.md`。
 - **Explore 的揭示落在既有 `eventStart` 阶段内，不新增服务方法。** 揭示是 `revealed = option with { IsRevealed = true }` 一次派生（当前批里那份原实例不动，符合「产出即定稿」）；**resolver 按真身的 `eventType` 选取，不按 `EventOption.EventType`**——后者恒为 `Explore`，照它选会把一个战斗真身送进 `GenericEventResolver`。这与下条的组装判据是同一条纪律的两处应用。
 - **通用结算器从 outcome / effect 定义算出的授予一律记 `Source.EventOutcome`。** 授予来源的分野判据是**谁组装出这条 element**，不是事件类型：Research / Explore / Travel 的 outcome 授予、以及 Exchange 中**不走购买流程**的 outcome（对话结果、赠礼）同归此值；走购买流程的那一条走 `Source.ExchangePurchase`，由 combat-service 交出的 `Spoils` 走 `Source.CombatReward`。**推论：Explore 选项按其揭示后的真身归类**——`EventType` 恒为 `Explore` 而真身在 `RevealedEventId`，一个揭示出战斗真身的选项，其战利品出自 combat-service，故不记 `EventOutcome`。见 `systems/common-properties.md`。
 
-Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md`
+Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
 
 ## 管理器
 
@@ -264,7 +289,6 @@ public sealed record EventOptionBatch(
 
 - **生成 / 加权规则未定。** **location 层的形态**（事件类型概率修正 + `eventCountLimit`）、**每批数量**（常态 3、区间 1–5）、**重算依据**（角色整体历程，重度依赖 `pastEvent`，不承接上一批）、**Travel 段的物化伪码**均已给出；仍待定：类型修正的**运算形态**（乘性 / 加性 / 白名单 + 权重，其余四类能否修正到 0）、月圆之夜式策划与随机权重的配比、location 框定 / PlotManager 调制 / seeded RNG 的**叠加顺序**、以及**批次规模区间两端由什么驱动**（它同时决定常规批里 Travel 的槽位数 `k` 从何而来）。→ `systems/game-progression.md`、`systems/adventure-event/common-properties.md`。
 - **`EventOutcomeSpec` 的内部字段面未定。** 顶层载体、固化时点与「按结算走向分侧」已定（见「意图」）；**内部分解**——产出效果原语的表达、`OnResolved` / `OnFailure` 两侧各自的列、经验失败折算的数据形态——阻于「效果关键字体系与目标规则」那条待答项，须随它一并落定。→ `systems/adventure-event/combat/_index.md`。
-- **`PickMany` 抽不足 `count` 时，Research 候选与 Exchange 库存两个调用侧如何处置未定。** 契约那一侧已定（返回 false + `PushWarning`，不静默少给），但调用侧要给出一个处置：少给几个槽位 / 商品位，还是另有兜底？两处都不能留空面板。→ `systems/adventure-event/research/common-properties.md`、`systems/adventure-event/exchange/_index.md`。
 - **框定叠加顺序。** location 框定、PlotManager 调制、seeded RNG 三者的叠加顺序与优先级未定。**问题形状已收窄为「多个 `PlotModulation` 与 location 修正如何合并」**（白名单取交还是取并、权重相乘还是相加）——「剧本用什么调制」已有答案，调制的承载类型与字段面见 `plot-manager.md`，本条只欠合并算法。→ `systems/game-progression.md`、`systems/services/plot-manager.md`。
 - **`Priority = 1` 依什么条件抬升。** **取值域（两档）与置位方（本服务独占，PlotManager 不得改）**；**两个确定的抬升条件已知**——配额用尽后的 Travel 闸门，以及起始批次里的开局构筑事件（Research）。仍待定：本服务还依什么条件把某个选项抬到 `1`（剧情线关键节点？），以及**同批出现多个 `1` 档时是否需要额外收窄规则**（当前语义：同档内自由择一）。→ `systems/adventure-event/common-properties.md`。
 

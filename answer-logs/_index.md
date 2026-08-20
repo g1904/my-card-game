@@ -23,6 +23,16 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-architecture-structural-residuals.md` | 2026-08-19 | `inbox/archive/solution-draft-architecture-structural-residuals.md` → `handoffs/2026-08-19-architecture-structural-residuals.md` | 3 |
+| `log-translation-english-placeholder.md` | 2026-08-19 | `inbox/archive/solution-draft-translation-english-placeholder.md` → `handoffs/2026-08-19-translation-english-placeholder.md` | 1 完整 + 1 部分 |
+| `log-pickmany-shortfall-handling.md` | 2026-08-19 | `inbox/archive/solution-draft-pickmany-shortfall-handling.md` → `handoffs/2026-08-19-pickmany-shortfall-handling.md` | 1 |
+| `log-codex-entry-schema.md` | 2026-08-19 | `inbox/archive/solution-draft-codex-entry-schema.md` → `handoffs/2026-08-19-codex-entry-schema.md` | 3 |
+| `log-device-id-provisioning.md` | 2026-08-19 | `inbox/archive/solution-draft-device-id-provisioning.md` → `handoffs/2026-08-19-device-id-provisioning.md` | 1 |
+| `log-game-setting-schema.md` | 2026-08-19 | `inbox/archive/solution-draft-game-setting-schema.md` → `handoffs/2026-08-19-game-setting-schema.md` | 3 |
+| `log-costkey-statkey-registry.md` | 2026-08-19 | `inbox/archive/solution-draft-costkey-statkey-registry.md` → `handoffs/2026-08-19-costkey-statkey-registry.md` | 2 |
+| `log-bundle-grant-ordinal-authority.md` | 2026-08-19 | `inbox/archive/solution-draft-bundle-grant-ordinal-authority.md` → `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` | 1 完整 + 1 部分 |
+| `log-breakdown-granularity-and-signoff.md` | 2026-08-19 | `inbox/archive/solution-draft-breakdown-granularity-and-signoff.md` → `handoffs/2026-08-19-breakdown-granularity-and-signoff.md` | 1 |
+| `log-profile-change-spec-gaps.md` | 2026-08-19 | `inbox/archive/solution-draft-profile-change-spec-gaps.md` → `handoffs/2026-08-19-profile-change-spec-gaps.md` | 4 |
 | `log-draw-pool-and-instance-shapes.md` | 2026-08-17 | `inbox/archive/solution-draft-draw-pool-and-instance-shapes.md` → `handoffs/2026-08-17k-draw-pool-and-instance-shapes.md` | 3 完整 + 1 部分 |
 | `log-event-option-derived-persistence.md` | 2026-08-17 | `inbox/archive/solution-draft-event-option-derived-persistence.md` → `handoffs/2026-08-17j-event-option-derived-persistence.md` | 1 |
 | `log-event-option-materialized-fields.md` | 2026-08-17 | `inbox/archive/solution-draft-event-option-materialized-fields.md` → `handoffs/2026-08-17i-event-option-materialized-fields.md` | 4 |

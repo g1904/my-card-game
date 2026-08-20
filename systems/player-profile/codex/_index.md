@@ -14,7 +14,7 @@
 | **PlayerPowerCodex** | 账号级能力 `PlayerPower` | ⟨待播种；对象定义见 `../player-power/`⟩ |
 | **CharacterItemCodex** | 角色（轮回级）道具 `CharacterItem` | ⟨待播种；对象定义见 `../../character-profile/item/`⟩ |
 | **PlayerItemCodex** | 账号级道具 `PlayerItem` | ⟨待播种；对象定义见 `../player-item/`⟩ |
-| **LocationCodex** | 已去过的地域（location 条目） | ⟨待播种；对象定义见 `../../game-progression.md`⟩ |（LocationCodex）。
+| **LocationCodex** | 已去过的地域（location 条目） | ⟨待播种；对象定义见 `../../game-progression.md`⟩ |
 
 - **LocationCodex 是 `locationMap` 向玩家显影的唯一通道（承重）。** 地域图 **`locationMap` 在轮回内对玩家不可见**（进程不给俯瞰视图这条不变）；玩家只能看到**已经去过的地方**——与 EnemyCodex 的「遭遇即记」同构。**玩家的世界地图是在多次轮回中一格一格拼出来的，而不是一开始就发下来的。**
   - **词条记连边：跨轮回重建整张图是设计目标（承重）。** 词条**记录「它通向哪些地域」**；玩家因此能在多次轮回中**把整张 `locationMap` 重建出来**——这不是要规避的泄露，而是**设计目标（知识 = 力量）**。「去过即记」的完整语义 = **去过 A 就记下 A 及 A 的连边**。
@@ -29,29 +29,29 @@
 - **账号级、跨轮回持久，归 PlayerProfile。** 图鉴**不随轮回清理**——这正是它作为「知识资产」的意义：一次失败的轮回同样往图鉴里写了东西。
 - **条目按对象的稳定 `Id` 索引。** 与全库「稳定 `Id` 是一切引用的键」一致。
 - **条目内容是静态文案，挂在对应的内容 `Resource` 上；存档只记解锁状态。** 图鉴的存档负担因此**接近于一个 id 集合**——文案改版不触发存档迁移，也不撑大增量 push。
-- **写入经 `profile-service.ProfileManager`。** 解锁与计数更新是 `ProfileChangeSpec` 的变更目标，不绕过唯一写入面。
-- **给静态知识，不给动态情报。** 这条分层由 EnemyCodex 确立（图鉴说「这个敌人会做哪些事」，不说「它这回合做什么」），对整族适用：图鉴是**场外的知识面**，不是场内的情报面。
+- **写入经 `profile-service.ProfileManager`。** 解锁是 `ProfileChangeSpec.CodexElements` 的变更目标，不绕过唯一写入面。
+- **六本共用一条触发内核：接触即记，不要求你从中获益。** 遭遇 / 去过 / 进入持有列表，六行全部搭在一次已经存在的提交上（**零新增提交点**）；初始持有一并入图鉴，商店里见到但没买的不记。逐本触发表与依据见 `common-properties.md`。
+- **给静态知识，不给动态情报。** 这条分层由 EnemyCodex 确立（图鉴说「这个敌人会做哪些事」，不说「它这回合做什么」），对整族适用：图鉴是**场外的知识面**，不是场内的情报面。**「词条正文不含阿拉伯数字」不在整族通用之列**——它是 EnemyCodex 独有的口径纪律，边界见 `common-properties.md`。
+- **词条深度按本分野。** EnemyCodex 是五项结构化文案，四本能力 / 道具类只用内容条目自身已有的字段 + 一段可选的 `CodexFlavor` 风味文案；六本一律不分档解锁。
 
 ### 为何是一族而不是一个
 
 - 六个图鉴形状相同、语义相同、存档形态相同——**差别只在收录对象**。把它们做成一族（共有属性一份、各自一份文档）避免六套并行的解锁 / 计数逻辑。**LocationCodex 的加入是这条设计的验证**：一个全新的收录对象只需加一行，不需要任何新机制。
 - **它也给「收集」这条动机一个统一的落点：** 玩得越多，六本图鉴越厚；这与成就的「完成度」是两种不同的满足感（成就衡量做到了什么，图鉴衡量见过什么）。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-19-codex-entry-schema.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
 - **图鉴共六个，构成一族；账号级、静态文案、存档只记解锁状态**。
+- **图鉴不与成就 / 奖励挂钩**：收集完成度不发放 PlayerPower / PlayerItem，也不驱动后端的任何发放。**连带：六个 Codex 字段不进透明路径白名单、后端零配合**（见 `systems/services/sync-service.md`）。反向的代价是收集这条动机只靠「看着它变厚」自持——这正是它与成就「完成度」两种满足感的分野。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **其余图鉴的解锁触发。** EnemyCodex = 遭遇即记，**LocationCodex = 去过即记**；能力 / 道具类是「获得即记」「见过即记（含商店里见到）」还是「使用过即记」？→ `common-properties.md`。
 - **「记连边」的显影粒度（承重）。** **记连边**（跨轮回重建整张图是设计目标）；仍待定：去过 A 之后，词条列出的是 **A 的全部邻接（含从未去过的 B，地名因此被提前看见）**，还是**只记已实际走过的那几条边**？前者才真正支持「提前两步规划路线」、也才让整张图在有限轮回内可重建；后者纯回溯、更保守。**本库现按前者理解，待确认。**
 - **LocationCodex 的其余词条深度。** 除连边外还写什么（风物文案？该地域的事件类型倾向？敌人清单？`eventCountLimit`？）未定。**连带：它的呈现形态与其余五本不同**（一张逐步显影的图 vs 列表 / 网格），归 `ux/screen-flow.md`。
-- **各图鉴的词条深度是否一致。** EnemyCodex 已定为五项文案；能力 / 道具类的词条该写什么（效果说明？获取途径？出处传说？）未定。
-- **是否与成就 / 奖励挂钩。** 收集完成度是否发放 PlayerPower / PlayerItem 等奖励未定。→ `../achievement/`。
 - **入口与浏览形态。** 六本图鉴在主菜单如何组织（一个「图鉴」入口下分六页？）、战斗内能否查阅（EnemyCodex 尤其相关）。→ `ux/screen-flow.md`、`ux/combat-ux.md`。
 
 ## 对应

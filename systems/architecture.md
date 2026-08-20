@@ -89,7 +89,10 @@ ContentRegistry（内存）    按 Id 索引，唯一内容读取入口
 
 - **本地内容层**（`res://` + overlay）承载**有稳定 `Id`、被存档引用、需启动期校验**的一切：`AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表，**含静态展示文案**。因此 **AdventureEvent 的定义本身属本地** —— 启动期强校验模型成立。
 - **没有云端内容通道。** AdventurePlot 的剧本节点 / 分支 / 文本**同属本地内容层**，经 ContentRegistry 读取；PlotManager 按 key points 在本地定位剧本节点，**运行时内容零网络请求**。剧本正文**不落存档**（`CharacterProfile` 只存 key points），这一点只决定一件事：**overlay 对剧本内容可新增 `Id`**（「只改不增」的唯一例外，见 `services/content-service.md`）。悬空 key point → `PushWarning` + 叙事降级、不阻塞轮回。
-- **档案**：云端权威 `PlayerProfile ⊃ List<CharacterProfile>`；启动时全量 pull，自动存档点 push，冲突以云端为准；本地 `user://cache/` 仅缓存，原子写 + schema 版本 + 迁移路径。归属 sync-service。
+- **档案**：云端权威 `PlayerProfile ⊃ List<CharacterProfile>`；启动时全量 pull，自动存档点 push，冲突以云端为准；本地 `user://cache/` 仅缓存。存档本身归属 sync-service。
+  - **`user://cache/` 下一律原子写**（临时文件 → rename），实现走共享静态工具 `AtomicJsonFile`（见下方「共享核心类型」）。
+  - **断线时的逐场景处置不在本文件。** 权威分散在各边界服务：push / pull 两条通道、缓冲闸门、退避形态与 `Upgrade` 类错误见 `services/sync-service.md`「断线降级」/「`Immediate` flush 的失败语义」/「`Upgrade` 类错误在非闸门点」；身份侧的刷新失败分流见 `services/account-service.md`；内容与 flags 侧的降级见 `services/content-service.md`；退避的可调数值见 `balance.md`「同步 / 内容管线旋钮」。**本文件不复述任何处置**——抄一份即制造第二权威，而降级行为分散在三个服务里各自演进。
+  - **schema 版本 + 迁移路径按判据决定谁需要，不是全称要求。** **多字段的结构体（存档聚合、信封）必须带 `schemaVersion` 并有一条迁移路径**——它们的字段面会增长，读到一份不认识的结构而无版本可判即坏档。**单字段的设备维度小文件不带版本**：迁移面为空，那一格纯属仪式，而配套的「版本不认识就整份丢弃」还可能有害（对一个设备标识而言，丢弃 = 一次假换设备）。判据是**这份文件的结构会不会增长到需要逐版迁移**。逐份落点与各自的处置见 `systems/services/sync-service.md`、`systems/services/content-service.md`、`systems/services/account-service.md`、`systems/player-profile/game-setting.md`。
 
 ### 展示层契约：数据 / 运行时 / ViewModel 三层
 
@@ -99,7 +102,7 @@ ContentRegistry（内存）    按 Id 索引，唯一内容读取入口
 2. **运行时 / 存档态只带 `Id` + 可变状态。** CharacterProfile 及其持有的运行态对象**不复制展示文本**——存档与上行云端负载保持轻量可版本化，文案变更不触发存档迁移。
 3. **组合展示走 UI 层轻量 ViewModel。** 动态描述（数值代入、条件文案、随 capability flag 变化的可见性）由展示层按需组装 `Data + 运行时状态 → ViewModel`，只存在于呈现期，**不落存档、不进云端负载**。
 
-**ViewModel 层因此是架构中的一个显式层**：位于 services / 核心「类」与屏幕场景之间，是「服务 → 屏幕」的数据形态契约。它单向依赖（读 Data + 运行时状态），不被服务反向依赖，也不参与存档 / 同步。
+**ViewModel 层因此是架构中的一个显式层**：位于 services / 核心「类」与屏幕场景之间，是「服务 → 屏幕」的数据形态契约。它的完整契约（依赖方向、组装源、重组装触发面、只读消费与缓存归属、永不渲染清单）见 `systems/viewmodel.md`。
 
 ### API 契约总则（贯穿七个服务）
 
@@ -274,7 +277,7 @@ internal interface IProfileBackend  { Task<OpResult<ProfileSnapshot>>  PullAsync
 
 **处置表不含玩家文案；文案归 UI 层，键同为 `code`。** 这张表跑在后端适配层，**那里没有界面上下文，也不该有**——往里塞文案会让一个网络适配器依赖 UI 层。文案表是另一张表，与本表**共用同一个键 `code`**：本表回答「怎么办」，文案表回答「怎么说」。`code` → 翻译键是**机械变换**（`ERR_` + 全大写 + `.` 换 `_`），故新增一个 `code` 只需在本表加一行、在翻译资源加一条，**不存在第二张需要同步的对照表**。形态、兜底路径与启动期审计见 `ux/error-and-blocking-ux.md`。
 
-**`OpResult.Detail` 是诊断串，UI 永不直接渲染它。** `Detail` = `code` + `requestId` + 后端 `message`（本地失败则为定位上下文）；玩家可见文案一律经 UI 层的 `ErrorText.For(code, error)`。**它不兼「可展示」身份**——一旦可能被渲染，英文调试串就随时可能漏到屏上，且上面三条承重纪律**一条也无法机械检查**。**检查形态**：UI 层不出现把 `OpResult.Detail` 赋给任何 `Label.Text` 的写法。
+**`OpResult.Detail` 是诊断串，UI 永不直接渲染它。** `Detail` = `code` + `requestId` + 后端 `message`（本地失败则为定位上下文）；玩家可见文案一律经 UI 层的 `ErrorText.For(code, reasonKey, error)`。**它不兼「可展示」身份**——一旦可能被渲染，英文调试串就随时可能漏到屏上，且上面三条承重纪律**一条也无法机械检查**。**检查形态**：UI 层不出现把 `OpResult.Detail` 赋给任何 `Label.Text` 的写法。
 
 **默认路径**（未知 `code` → 按 `class` 降级；**未知 `class` → 当作 `Fatal` + 上报一次**）：
 
@@ -312,17 +315,20 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
   → 【eventStart 阶段】选 resolver、Explore 揭示
   → resolver.ResolveAsync(activeEvent.option, ct)      ← 传派生后的那一份
   → 【eventEnd 阶段】合并 ResolveOutcome + lifeSpanCost + 隐藏属性推拉
-                     + EventStateChanges[ActiveEvent = null, EventOption = 新一批] 为**一次** TryApply
-  → 记入 pastEvent（按 InstanceId，快照取自 activeEvent.option）
+                     + TraceElements[本次 PastEventEntry]（快照取自 activeEvent.option）
+                     + EventStateChanges[ActiveEvent = null, ActiveCombat = null, EventOption = 新一批]
+                     + RngElements[本次事件内消耗过的子流终态] 为**一次** TryApply
   → 终态判定 ②（结算后）→ EventBus 广播 → sync 自动存档点
 ```
+
+**「记入 `pastEvent`」在事务之内，不是事务之后。** 它经 `TraceElements` 与收口的其余各列同批提交，故「收口是一次事务、一个存档点」不依赖任何人记得把两步写在一起。收口内部的组装顺序（先投影、后补两列）见 `systems/services/life-cycle-service.md`。
 
 五类事件仍只有**两个** resolver——与拆分轴「只有 Combat 真有状态机、其余差异在数据而非代码」一致，且保住「新增一个事件 = 新增一个 `.tres`」的可加性。
 
 #### 共享核心类型（`src/Core/`）
 
 ```csharp
-public sealed class ProfileChangeSpec                                     // 平级只读列表，逐条按施加语义分列
+public sealed record ProfileChangeSpec                                    // 平级只读列表，逐条按施加语义分列
 {
     public IReadOnlyList<ChangeElement>        Elements        { get; }   // 资源：带符号的量
     public IReadOnlyList<AbilityChangeElement> AbilityElements { get; }   // 能力：按 Id 的集合成员操作
@@ -330,7 +336,10 @@ public sealed class ProfileChangeSpec                                     // 平
     public IReadOnlyList<StatusAssignment>     StatusChanges   { get; }   // Status 规则字段：绝对置值
     public IReadOnlyList<DeckChangeElement>    DeckElements    { get; }   // 卡组：带层数的构筑变更 / 多重集增删
     public IReadOnlyList<PlotKeyPointAssignment> PlotElements  { get; }   // 剧本：按 ArcId 的带载荷 upsert
-    public IReadOnlyList<EventStateAssignment> EventStateChanges { get; } // 事件态：绝对置值
+    public IReadOnlyList<EventStateAssignment> EventStateChanges { get; } // 事件态：绝对置值（含 activeCombat）
+    public IReadOnlyList<RngStateAssignment>   RngElements     { get; }   // RNG 子流：按子流键的双标量 upsert
+    public IReadOnlyList<PastEventEntry>       TraceElements   { get; }   // 履历：序列尾部只追加
+    public IReadOnlyList<SettingAssignment>    SettingChanges  { get; }   // 账号级设置：绝对置值
 }
 public readonly record struct ChangeElement(   // 负 = 消耗，正 = 产出（仅 Add 时有向）
     CostKey Key,
@@ -357,8 +366,19 @@ public readonly record struct PlotKeyPointAssignment(   // 按 ArcId upsert 一�
 public readonly record struct EventStateAssignment(     // 事件态：赋一份已算好的块，或置空
     EventStateKey     Key,
     ActiveEventState? ActiveEvent,                      // Key == ActiveEvent 时使用
-    EventOptionSave?  EventOption);                     // Key == EventOption 时使用；另一格填 null
-                                                        // 两格恒为 null = 置空，仅 ActiveEvent 合法
+    EventOptionSave?  EventOption,                      // Key == EventOption 时使用
+    ActiveCombat?     ActiveCombat);                    // Key == ActiveCombat 时使用；其余格填 null
+                                                        // 三格恒为 null = 置空，仅 ActiveEvent / ActiveCombat 合法
+public readonly record struct RngStateAssignment(       // RNG 子流：按子流键的绝对置值 upsert
+    RngStream Stream,                                   // 键：SeedManager 内的子流常量清单
+    ulong     State,                                    // 恢复权威字段
+    int       DrawCount);                               // 诊断与迁移保险；本次提交之后的累计值
+public readonly record struct SettingAssignment(        // 账号级设置：赋一个已算好的绝对值
+    SettingKey Key,
+    int?       IntValue,                                // Kind == Int 时使用；否则 null
+    bool?      BoolValue);                              // Kind == Bool 时使用；否则 null
+                                                        // 两格皆可空：0 / false 既是缺省也是合法值，
+                                                        // 非可空下「哪一格有效」判不出来
 
 internal readonly record struct ElementSpec(      // 资源 element 的取值域 + 终态语义 + 修正接入 + op 准入
     int  Min,                                     // 施加后的下界
@@ -370,14 +390,24 @@ internal readonly record struct ElementSpec(      // 资源 element 的取值域
 
 // 封闭表；新增一行 = 新增一个资源 element 的完整语义，须与 CostKey 同批评审
 internal static readonly IReadOnlyDictionary<CostKey, ElementSpec> ResourceElements = ...
-// LifeSpan   → (0, null,  DefeatReason.LifeSpanExhausted,  ModifierKey.LifeSpanCost, null, Add)
-// Jade       → (0, null,  null,                            null, null,               Add)
-// LifeTotal  → (0, null,  DefeatReason.LifeTotalExhausted, null, null,               Add)
-// ManaLimit  → (0, null,  null,                            null, null,               Add)   两个修正列留空是硬要求，Set 恒不开，见下
-// Experience → (0, null,  null,                            null, null,               Add)
-// Faith      → (0, 100,   null,                            null, null,               Add)
-// MaleficQi  → (0, 100,   null,                            null, null,               Add)
-// ⟨其余随「cost element 清单（资源族）」逐条补⟩
+// 轮回层 · CharacterProfile
+// LifeSpan        → (0, null,  DefeatReason.LifeSpanExhausted,  ModifierKey.LifeSpanCost, null, Add)
+// Jade            → (0, null,  null,                            null, null,               Add)
+// LifeTotal       → (0, null,  DefeatReason.LifeTotalExhausted, null, null,               Add)
+// ManaLimit       → (0, null,  null,                            null, null,               Add)   两个修正列留空是硬要求，Set 恒不开，见下
+// ExperiencePoint → (0, null,  null,                            null, null,               Add)
+// Faith           → (0, 100,   null,                            null, null,               Add)
+// Bloodlust       → (0, 100,   null,                            null, null,               Add)
+// 账号层 · PlayerProfile.playerPowerFragment（7 字段 ↔ 7 成员）
+// PowerFragmentAccumulated         → (0, 10000, null, null, null, Add | Set)
+// PowerFragmentFinaleWinOrdinal    → (0, null,  null, null, null, Add)
+// PowerFragmentCh1FirstWinDone     → (0, 1,     null, null, null, Set)
+// PowerFragmentCh2FirstWinDone     → (0, 1,     null, null, null, Set)
+// PowerFragmentCh3FirstWinDone     → (0, 1,     null, null, null, Set)
+// PowerFragmentLastRoll            → (0, 9999,  null, null, null, Set)
+// PowerFragmentLastEffectiveChance → (0, 10000, null, null, null, Set)
+// 账号层 · PlayerProfile.entitlement
+// BundleRedeemedOrdinal            → (0, null,  null, null, null, Set)
 
 internal readonly record struct StatusFieldSpec(StatusValueKind Kind, int Min, int? Max);
 
@@ -386,25 +416,47 @@ internal static readonly IReadOnlyDictionary<StatusKey, StatusFieldSpec> StatusF
 // CurrentLocationId  → (Id,  -, -)      值须能经 ContentRegistry 解析为 LocationData
 // LocationEventCount → (Int,  0, null)
 // FaithBand          → (Int, -2, 2)
-// MaleficQiBand      → (Int,  0, 3)
+// BloodlustBand      → (Int,  0, 3)
 // LifeSpanBand       → (Int,  0, 2)
 // ChapterLifeSpanBudget → (Int,  0, null)   Min = 0 与寿元同源（结转要求它是可加的非负预算）；无上界
 // ⟨其余 Status 规则字段随各自专场逐条补⟩
 
-public enum CostKey         { LifeSpan, Jade, LifeTotal, ManaLimit,
-                              Experience, Faith, MaleficQi, /* ⟨待定：其余 element 清单⟩ */ }
+internal readonly record struct SettingFieldSpec(       // 值类型 + 取值域 + 默认值（默认值的唯一一处）
+    SettingValueKind Kind, int Min, int Max, int IntDefault, bool BoolDefault);
+
+// 封闭表；与 StatusFields 同款判据。默认值列不是平衡数值，是 UI 初值 / 缺省
+internal static readonly IReadOnlyDictionary<SettingKey, SettingFieldSpec> SettingFields = ...
+// MasterVolume        → (Int,  0, 100, 100, -)
+// MusicVolume         → (Int,  0, 100,  80, -)
+// SfxVolume           → (Int,  0, 100, 100, -)
+// FastCombatAnimation → (Bool, -,   -,   -, false)
+
+public enum CostKey         {                                             // 资源族 element 键；15 值，逐一在 ResourceElements 表中占一行
+                              // 轮回层 · CharacterProfile
+                              LifeSpan, Jade, LifeTotal, ManaLimit,
+                              ExperiencePoint, Faith, Bloodlust,
+                              // 账号层 · PlayerProfile.playerPowerFragment
+                              PowerFragmentAccumulated, PowerFragmentFinaleWinOrdinal,
+                              PowerFragmentCh1FirstWinDone, PowerFragmentCh2FirstWinDone,
+                              PowerFragmentCh3FirstWinDone,
+                              PowerFragmentLastRoll, PowerFragmentLastEffectiveChance,
+                              // 账号层 · PlayerProfile.entitlement
+                              BundleRedeemedOrdinal }
 public enum ApplyOp         { Add, Set }                                  // Add 必须为 0（缺省即累加）
 [Flags] public enum ApplyOps { Add = 1, Set = 2 }                         // ElementSpec 的 op 准入集
 public enum DeckChangeOp    { LearnTechnique, UpgradeTechnique, ForgetTechnique,
                               AddLooseCard, RemoveLooseCard }
 public enum PlotArcState    { Queued, Active, Completed, Abandoned }      // 一条剧本线在存档里的态
-public enum EventStateKey   { ActiveEvent, EventOption }                  // 两个事件态字段；载荷格名与成员名一一对应
+public enum EventStateKey   { ActiveEvent, EventOption, ActiveCombat }    // 事件态字段；载荷格名与成员名一一对应
 public enum StatusKey       { CurrentLocationId, LocationEventCount,
-                              FaithBand, MaleficQiBand, LifeSpanBand,
+                              FaithBand, BloodlustBand, LifeSpanBand,
                               ChapterLifeSpanBudget, /* ⟨随各专场逐条补⟩ */ }
 public enum StatusValueKind { Int, Id }
+public enum SettingKey      { MasterVolume, MusicVolume, SfxVolume, FastCombatAnimation }
+                                                              // 账号级设置键；逐一在 SettingFields 表中占一行
+public enum SettingValueKind { Int, Bool }
 public enum ModifierKey     { LifeSpanCost, ShopPrice, /* ⟨待定：其余具名修正，随各自专场补⟩ */ }
-public enum StatKey         { CyclesCompleted, CyclesDefeated, /* ⟨待定：其余统计项⟩ */ }
+public enum StatKey         { TotalCyclesCompleted, TotalCyclesDefeated }   // 统计族；无配表，成员名 = PlayerStatistics 字段名
 public enum AbilityChangeOp { Grant, Remove, Disable }
 public enum AbilityKind     { Power, Item }
 public enum AbilityScope    { Character, Player }                         // 能力的生命周期层
@@ -415,33 +467,53 @@ public enum Realm           { QiRefining, FoundationEstablishment, GoldenCore, N
                                                               // 四境；全局等级序 = (Realm, Level) 的纯函数，不落存档
 public enum DefeatReason    { Discarded, LifeSpanExhausted, LifeTotalExhausted }   // 战斗失败本身不终结角色，只扣 lifeTotal
 public enum CapabilityFlag  { RevealHiddenStats, ShowExploreType }
-public enum HiddenStat      { Faith, MaleficQi, LifeSpan }
+public enum HiddenStat      { Faith, Bloodlust, LifeSpan }
 public enum RngStream       { Map, Combat, Shop, Reward }
 public enum EventType       { Combat, Exchange, Research, Explore, Travel }
 public enum CombatTier      { Practice, Standard, Finale }   // 仅 EventType.Combat 携带
 ```
 
+**`CostKey` / `StatKey` 的成员**序**不构成契约，成员**名**构成契约，只可追加（承重）。** 两个枚举都随 `ProfileChangeSpec` 落进 `PastEventEntry.SelectCost` / `AppliedChange`，而枚举以成员名逐字序列化（见 `systems/services/sync-service.md`）⇒ **重命名或复用一个成员即破坏性契约变更**，须 bump `schemaVersion` 并与后端同批改；重排成员则毫无影响。**也不给两者分配显式整数 code**：`Source` 走名 / code 双轨是因为它在存档里以整数序列化，两个 element 键无此包袱，加一套 code 等于加一份必须一同冻结的第二真值而收益为零。
+
+**`CostKey` 的成员集合由两层 Profile 的字段表穷举而来，不是一个开放的设计选择（承重）。** `Elements` 的唯一职责是写 Profile 上的资源型字段，故成员数 **=** 两张字段表中写入通道标为 `Elements` 的格子数，闭合判据是这个映射**双向满射**（每个成员有一个标的字段，每个标为 `Elements` 的字段有一个成员）。**日后新增一个资源 element 恰好五步**：① Profile 加字段（只读、无 setter）并更新该库字段表的写入通道列 → ② `CostKey` 加一个成员（名 ⟸ 字段路径）→ ③ `ResourceElements` 加一行六列 → ④ bump 存档 schema 版本（老档补默认值）→ ⑤ 若该行含 `Set`，两个修正列必须留空（启动期断言兜底）。不新增服务、不改任何调用方。字段表见 `systems/character-profile/_index.md` 与 `systems/player-profile/_index.md`，逐行取值与两族的书写分野见 `systems/services/profile-service.md` 与 `systems/player-profile/_index.md`。
+
+**三个首胜标记以 `int 0/1` 进 `Elements`，不另开一列 `FlagChanges`。** 它们在存档上是 `bool`，在 `ChangeElement.BaseValue`（`int`）上以 `0 / 1` 承载，`Min = 0` / `Max = 1` 由钳制兜住。按三级判据的六个面核对，它与 `Elements` 在**五个面上全对齐**（要钳制 · `Set` 下不走 pipeline · 失败阻断整批 · `Set` 幂等 · 键与载荷是标量），只在「有无量纲」一面不同——而判据要求的是**六面全对齐才不分列**的反面：**只差一面不足以分列**，否则每个 `Set` 型标量都要一列。
+
 **`CostSpec` / `RewardSpec` 合并为单一 `ProfileChangeSpec`**（element 带符号：负 = 消耗，正 = 产出）。理由：「全有或全无、单点提交」本就要求成本与产出在同一事务内；两个类型会诱导出「先 `TryApply(cost)` 再 `TryApply(reward)`」这种半套写入。
+
+**`ProfileChangeSpec` 是 `sealed record`，组装期的追加以 `with` 产生新实例，各列仍是 `IReadOnlyList<T>`（承重）。** 收口组装存在一个「先投影、再把算出的结果补进 spec」的既定顺序（见下方总则 8 与 `systems/services/life-cycle-service.md`），它要求一份已构造的 spec 能派生出带追加列的新实例。**取 `record` + `with`，不让任何一列可变**——可变列与「服务不返回内部可变集合」这条同源纪律直接相抵，也会让 `AppliedChange` 记的账在提交之后仍可被改写。`with` 是纯函数派生：原实例一字未动，与 `EventOption` 处理「定稿后确需派生」的既有惯用法（总则 6）同形。否决 `ProfileChangeSpecBuilder`：它要求全部 spec 组装点改写，换来的只是把同一条边界从类型层挪到一个 `Build()` 调用上。
 
 **一个新的施加语义该落在哪里：自上而下的三问（承重判据）。** 每次遇到「这条新语义要不要新开一列 / 要不要加一个 `Op` / 要不要在配表里加一列」，按下表逐级下降，取第一个成立的落点。判据本身是可机械核对的，不靠先例类推——散落的类推会给形状相同的三个问题推出三个互不一致的答案。
 
 | 落点 | 成立条件 | 既有形态 |
 |---|---|---|
-| **① 新增一个列表（分列）** | 施加语义与既有各列**根本不同**。可机械核对的**六个面**：**要不要钳制** · **是否走 modifier pipeline** · **失败是否阻断整批** · **是否幂等** · **有无量纲** · **键与载荷的形状**（标量 / 集合成员 / 多重集成员 / 带载荷的键值 upsert）。**任一既有列在这六面上与新语义全部对齐 ⇒ 不分列。** | `ProfileChangeSpec` 的各列 |
+| **① 新增一个列表（分列）** | 施加语义与既有各列**根本不同**。可机械核对的**六个面**：**要不要钳制** · **是否走 modifier pipeline** · **失败是否阻断整批** · **是否幂等** · **有无量纲** · **键与载荷的形状**（见下方展开）。**任一既有列在这六面上与新语义全部对齐 ⇒ 不分列。** | `ProfileChangeSpec` 的各列 |
 | **② 同列内新增一个 `Op`** | 语义**同族**——共用同一张配表、同一条校验链、同一套钳制与失败语义——但**动作的方向或形式不同**（增 vs 减、加 vs 赋、学 vs 忘 vs 升）。 | `ApplyOp` · `AbilityChangeOp` · `DeckChangeOp` |
 | **③ 在配表里新增一列** | 该性质是 **element 类型的属性**：同一个 key 的**每一次**变更都取同一个值（取值域、触底是否终态、修正准入、允许的 `Op` 集合）。 | `ResourceElements` · `StatusFields` |
 
+**第六面「键与载荷的形状」的完整口径（承重）：它由三样东西共同给出——**
+
+1. **访问形态**：标量 / 集合成员 / 多重集成员 / 带载荷的键值 upsert / 序列尾部追加；
+2. **键的取值空间**：内容 `Id`（须经 `ContentRegistry` 解析）/ 固定枚举 / 无键（位置由序列尾部给出）；
+3. **载荷的字段集合**：几个标量、还是一整个结构块，以及是哪些字段。
+
+**三样全部相同才算这一面对齐。** 只比第 1 样会让「按内容 `Id` upsert 一条剧本锚点」与「按子流枚举键 upsert 一对 RNG 标量」被判为同形，从而推出「把 RNG 状态塞进 `PlotElements`」这类结论——两者的键要不要过内容注册表、载荷字段有没有一格重合，全都不同。**这不是给判据开口子，而是把它本就要比的东西写全**：形状是「怎么定位 + 定位到什么」，不只是「标量还是 upsert」。
+
 **反判据（决定「配表」还是「逐条带」）：** 同一个 key 的**不同次**变更可能取不同值 ⇒ 必须**逐条带**在 element 上（`BaseValue`、`Tier`、`StatusAssignment` 的值、`ApplyOp`）。**唯一恒成立的例外是「谁有权改写它」永远是类型属性、永远配表、绝不逐条带**——逐条带会把一条纪律降级为调用方选项，且 `AppliedChange` 重放时同一 key 可能带不同配置。`ChangeElement` 不自带 `ModifierKey?` 正是这条的应用；而 `Op` 描述的是**这一次发生了什么**（事实，逐次不同），准入仍留在 `ElementSpec.AllowedOps` 里，故两者并存不冲突。
 
-**为什么逐条按施加语义分列，而不是给 `ChangeElement` 加可空字段（承重判据）。** **施加语义根本不同就分列**——列表数不是这条判据的一部分，它随字段族增长，故此处不把数字写进承重表述。当前各列的语义：资源是量（可加、要钳制、**按 `ResourceElements` 表逐行决定是否走 modifier pipeline**），能力是集合成员操作（幂等增删、无量纲、**绝不走 modifier pipeline**），统计是纯计数（不钳制、失败不阻断、**绝不走 modifier pipeline**），Status 规则字段是**绝对置值**（赋一个已算好的值、不累加、按 key 的声明类型可为 id、**绝不走 modifier pipeline**），卡组是**带层数的构筑变更与多重集增删**（层数不可加、散牌可同名多张、无 `Source`、**绝不走 modifier pipeline**），剧本是**按 `ArcId` 的带载荷键值 upsert**（整条替换、无量纲、不钳制、**恒不走 modifier pipeline**），事件态是**整块绝对置值**（赋一份已算好的结构块或置空、无量纲、不钳制、**恒不走 modifier pipeline**）。把它们压进一个带符号 `int` 是**让类型说谎**；分开还使 `ApplyResult.MissingElement: CostKey` 的语义保持完好（它只对资源列表有意义）。**事务性不受影响**——各列表在同一次 `TryApply` 内提交，「全有或全无、单点提交」不变。否决的两个替代：`ChangeElement` 加可空 `TargetId` / 把 `Duration` 塞进 `BaseValue`（破坏带符号约定）；多态 element（`abstract record` + 子类，破坏 `readonly record struct` 的零分配与 diff / 序列化的简单形态）。
+**为什么逐条按施加语义分列，而不是给 `ChangeElement` 加可空字段（承重判据）。** **施加语义根本不同就分列**——列表数不是这条判据的一部分，它随字段族增长，故此处不把数字写进承重表述。当前各列的语义：资源是**标量值**（可钳制、`Add` 时可加且带符号分向、`Set` 时是已算好的绝对值、**按 `ResourceElements` 表逐行决定是否走 modifier pipeline**），能力是集合成员操作（幂等增删、无量纲、**绝不走 modifier pipeline**），统计是纯计数（不钳制、失败不阻断、**绝不走 modifier pipeline**），Status 规则字段是**绝对置值**（赋一个已算好的值、不累加、按 key 的声明类型可为 id、**绝不走 modifier pipeline**），卡组是**带层数的构筑变更与多重集增删**（层数不可加、散牌可同名多张、无 `Source`、**绝不走 modifier pipeline**），剧本是**按 `ArcId` 的带载荷键值 upsert**（整条替换、无量纲、不钳制、**恒不走 modifier pipeline**），事件态是**整块绝对置值**（赋一份已算好的结构块或置空、无量纲、不钳制、**恒不走 modifier pipeline**），RNG 子流是**按子流枚举键的双标量 upsert**（幂等置值、无量纲、不钳制、**恒不走 modifier pipeline**），履历是**序列尾部追加一个大结构块**（**不幂等**、无量纲、不钳制、**恒不走 modifier pipeline**），账号级设置是**按固定枚举键的绝对置值**（要钳制、无量纲、双可空标量载荷格、**恒不走 modifier pipeline**）。把它们压进一个带符号 `int` 是**让类型说谎**；分开还使 `ApplyResult.MissingElement: CostKey` 的语义保持完好（它只对资源列表有意义）。**事务性不受影响**——各列表在同一次 `TryApply` 内提交，「全有或全无、单点提交」不变。否决的两个替代：`ChangeElement` 加可空 `TargetId` / 把 `Duration` 塞进 `BaseValue`（破坏带符号约定）；多态 element（`abstract record` + 子类，破坏 `readonly record struct` 的零分配与 diff / 序列化的简单形态）。
 
 **`StatusChanges` 的取值域同样是逐行一张封闭表（`StatusFields`），与 `ResourceElements` 同款判据。** 每行给出该 key 的**值类型**（`Int` / `Id`）与取值域：band 的 `[-2, 2]` / `[0, 3]` / `[0, 2]` 来自档位表，`LocationEventCount` 的 `[0, ∞)` 来自计数语义——没有通则能给出这些区间，也没有通则能判断某个 key 该填哪一格。**`Id` 型的值须能经 `ContentRegistry` 解析**，解析不到即坏档。`StatusChanges` 恒不走 modifier pipeline，理由与统计层同源且更重：`CurrentLocationId` 若可被一条法则改写，等于让内容改写玩家的地图位置；band 若可被改写，等于让法则伪造隐藏属性档位。逐行取值与施加 / 失败语义见 `systems/services/profile-service.md`。
 
 **`DeckElements` 承载卡组变更，`Tier` 写目标层数而非增量。** 卡组的施加语义与其余各列都不同：功法带**层数**，`UpgradeTechnique` 既不是集合意义上的 `Grant` 也不是 `Remove`；游离散牌是**多重集**（同一张业障可在卡组里出现多张），而集合成员操作的「已持有 → 空操作」会静默吞掉第二张；卡组条目也没有 `SourceCode` 挂载面，`AbilityChangeElement` 强制携带的 `Source` 对它无落点。**`Tier` 取目标层数**的理由与「element 只承载已定稿的 `Id`」同源：`AppliedChange` 要可直接重放，写增量会让重放结果依赖当时的层数。**恒不走 modifier pipeline**——一条法则若能把「层数 +1」放大成 +2，「进化 = 整组替换、每层一整套卡牌定义」直接失去意义（不存在「1.5 层」的定义）。逐条校验与失败语义见 `systems/services/profile-service.md`，卡组侧语义见 `systems/character-profile/deck/_index.md`。
 
-**`EventStateChanges` 承载两个事件态字段（`activeEvent` / `eventOption`），语义是整块绝对置值。** 它按三级判据的 ① 分列：键与载荷的形状是**整个结构块**（而非标量、集合成员或带载荷的键值 upsert），既不钳制也无量纲，其余各列没有一列在这六面上与之对齐。**载荷落成两个具名可空字段而非裸 `object`**，与 `StatusAssignment` 的「双字段单列表、另一格填缺省」同构——贯穿链路的类型一致性不做隐式装箱，且「`Key` 与哪一格有效」因此可机械校验。**恒不走 modifier pipeline**：一条法则若能改写 `RerolledCount` 或商店库存，等于账号级内容改写轮回级的定稿实例。字段语义与读档校验见 `systems/character-profile/_index.md`，施加与失败语义见 `systems/services/profile-service.md`。
+**`EventStateChanges` 承载三个事件态字段（`activeEvent` / `eventOption` / `activeCombat`），语义是整块绝对置值。** 它按三级判据的 ① 分列：键与载荷的形状是**固定枚举键 → 整个结构块**（而非标量、集合成员或按内容 `Id` 的 upsert），既不钳制也无量纲，其余各列没有一列在这六面上与之对齐。**`activeCombat` 收在本列内、不另开一列**：它在六面上与 `activeEvent` 全部对齐（都是不钳制、恒不走 pipeline、必需缺失即整批拒绝、绝对置值故幂等、无量纲、固定枚举键 → 结构块），而判据明文要求六面全对齐即不分列。**列名不是分列判据**——`activeCombat` 本就被定性为事件内的中间态，寿命短于一次事件。**载荷落成具名可空字段而非裸 `object`**，与 `StatusAssignment` 的「双字段单列表、另一格填缺省」同构——贯穿链路的类型一致性不做隐式装箱，且「`Key` 与哪一格有效」因此可机械校验。**`ActiveEvent` 与 `ActiveCombat` 允许置空，`EventOption` 不允许**（收口必须清空前两者；轮回进行中把当前批置空即让玩家无路可走）。**恒不走 modifier pipeline**：一条法则若能改写 `RerolledCount`、商店库存或战场局面，等于账号级内容改写轮回级的定稿实例。字段语义与读档校验见 `systems/character-profile/_index.md`，施加与失败语义见 `systems/services/profile-service.md`。
 
-**资源 element 的语义是逐行一张封闭表，不是若干条全局通则（承重）。** `ResourceElements` 把「取值域」「触底是否构成终态」「两向修正接入」并成同一张表的五列，因为它们逐 element 各不相同：寿元与耐久归 0 构成终态，灵玉归 0 只是变穷；`PowerFragmentAccumulated` 的上界 `10000` 来自它自己的万分比语义，道心 / 煞气的 `[0, 100]` 来自档位表——**没有任何通则能给出这些区间**。修正列同理：「这个 element 能不能被法则改写」由它自己的语义决定（`LifeSpan` 是可被法则修正的成本量，`BundleGrantOrdinal` 是付费凭证的序号），同样推不出通则。查表还使终态判定不必硬编码检查若干字段：「新增一个终态资源 = 表里加一行 + `DefeatReason` 加一个成员」，与「新增一张卡 = 新增一个 `.tres`」的可加性同向。**五列合成一张表而非拆成几张按同一个键索引的表**：分表必然出现「加了行 A 忘了行 B」，合表时漏填只是同一行里的空格。
+**`RngElements` 承载四条具名 RNG 子流的状态，语义是按子流键的绝对置值 upsert。** 它按三级判据的 ① 分列，卡在**第六面**：一次提交常需更新多条子流（`EventStateChanges` 的「同批两条同 `Key` 即组装缺陷」正是相反的形状），而键是固定枚举、载荷是两个标量且无一格须过内容注册表（`PlotElements` 的键是内容 `Id`、载荷是五格剧本状态）。**不为它配一张逐 key 的表**——四条子流在取值域、终态、修正准入上完全相同，配一张四行全同的表只会长出一处必须与 `RngStream` 同步增删的枚举镜像，而三级判据的 ③ 要求的是「该性质逐 key 各不相同」。**`Seed` 不进 spec**：`streamSeed` 由 `CycleSeed` 与子流名重算得出，把可重算的值放进 spec 等于让重放依赖一份冗余真值。**恒不走 modifier pipeline**——一条法则若能改写随机流状态，它能改写的是整条确定性链。施加与失败语义见 `systems/services/profile-service.md`。
+
+**`TraceElements` 承载 `pastEvent` 的追加，语义是序列尾部只追加。** 它按三级判据的 ① 分列，**第四、第六两面均不对齐**：追加**不幂等**（同一条提交两次得两条，而 `EventStateChanges` / `PlotElements` 都是幂等置值），且它无键——位置由序列尾部给出，载荷是一整个 `PastEventEntry`（`DeckElements.AddLooseCard` 的多重集追加形状同类，但载荷是三个标量且须解析内容注册表）。**直接复用 `PastEventEntry`、不建镜像类型**：`PlotKeyPointAssignment` 用镜像的成本近零（五个标量），而 `PastEventEntry` 字段众多且随快照判据继续增长，镜像一份等于制造两张必须同步增删的字段表。**分列的直接收益是「记入 `pastEvent`」并入收口那一次 `TryApply`**——「一个事件的收口是一次事务、一个存档点」由结构兑现，而不再由约定兑现。施加与失败语义见 `systems/services/profile-service.md`，条目形态见 `systems/adventure-event/common-properties.md`。
+
+**资源 element 的语义是逐行一张封闭表，不是若干条全局通则（承重）。** `ResourceElements` 把「取值域」「触底是否构成终态」「两向修正接入」并成同一张表的五列，因为它们逐 element 各不相同：寿元与耐久归 0 构成终态，灵玉归 0 只是变穷；`PowerFragmentAccumulated` 的上界 `10000` 来自它自己的万分比语义，道心 / 煞气的 `[0, 100]` 来自档位表——**没有任何通则能给出这些区间**。修正列同理：「这个 element 能不能被法则改写」由它自己的语义决定（`LifeSpan` 是可被法则修正的成本量，`BundleRedeemedOrdinal` 是付费礼包的兑现水位），同样推不出通则。查表还使终态判定不必硬编码检查若干字段：「新增一个终态资源 = 表里加一行 + `DefeatReason` 加一个成员」，与「新增一张卡 = 新增一个 `.tres`」的可加性同向。**五列合成一张表而非拆成几张按同一个键索引的表**：分表必然出现「加了行 A 忘了行 B」，合表时漏填只是同一行里的空格。
 
 **modifier pipeline 对 `Elements` 是 opt-in 白名单，缺省豁免（承重）。** 只有在表中显式登记了 `ModifierKey` 的那一行才经 pipeline，`AbilityElements` / `Stats` 永不经。**缺省方向必须取豁免侧**：漏填时若缺省豁免，最坏是某条法则本该修正它却没修正——数值不对、可见可复现、改一行修好；若缺省经 pipeline，最坏是某条法则**静默地**改写了幂等键 / 付费凭证 / 元进程计数，无人察觉，且在云端权威 + 后端复算下表现为两侧算不一致。两侧代价不对称。**按符号分向是必需的**：同一个资源 element 的消耗向与产出向共用一个 `CostKey`，一条「寿元消耗 −20%」的法则若不分向，会把寿元回复也削 20%。**`Op == Set` 恒不经 pipeline，与该行的两个修正列是否为空无关**：`BaseValue` 在 `Set` 下是一个已算好的绝对值，符号不表达方向，「按符号分向」无从判断该取哪一格；且让一条法则改写一个已算定的权威值（付费凭证序号、万分比累计）等于让内容改写权威值。配套的启动期断言把「允许 `Set` 的行两个修正列必须为 `null`」固定下来，使这条不靠人记。逐行取值、`ModifierKey` 的「只施加一次」判据与施加算法见 `systems/services/profile-service.md`。
 
@@ -451,7 +523,26 @@ public enum CombatTier      { Practice, Standard, Finale }   // 仅 EventType.Co
 
 **截断只发生在「施加到 Profile 字段」那一刻；spec 与快照保留未截断的原值。** `ChangeElement.BaseValue` 与落进 `PastEventEntry.SelectCost` / `AppliedChange` 的快照一律记未截断值——截断进 spec 等于让账本记的不是实际发生的事，而 `AppliedChange` 的定位正是「可直接重放的账」。副产品：「超支了多少」这一信息不丢（由 `LifeSpanAfter == 0` 与 `AppliedChange` 中的原值相减得出）。这与「内容侧写正数量值、物化时取负、`TryApply` 按带符号施加」是同一条分层纪律：**每一层只做自己那一次变换，不把下游的语义提前**。**截断不构成 `ApplyResult.Fail`**——「全有或全无」约束的是「各列表是否一起落」，不是「每个 element 是否落满」。
 
+**`SettingChanges` 承载账号级设置，语义是按 key 的绝对置值。** 它按三级判据的 ① 分列，卡在**要不要钳制**这一面与作用对象上：`StatusChanges` 在其余五面与它对齐，但那一列明写绑定 `CharacterProfile.Status` 上的**规则字段**，两者混住会让 `StatusFields` 的 key 同时指向两个对象——「这个 key 写哪个对象」从此要读上下文，正是配表判据要消掉的东西。**两个载荷格皆可空**（`int?` / `bool?`），与 `StatusAssignment` 的「另一格填缺省」刻意不同：`bool` 的 `false` 与 `int` 的 `0` 既是缺省也是合法值（音量 0 = 静音），非可空下「哪一格有效」在运行时判不出来，而 `StatusAssignment` 的另一格是 `string`（`null` 即缺省）——同库先例是 `EventStateAssignment` 的可空载荷格。**恒不走 modifier pipeline**：否则一条法则能改写玩家的音量与演出速度。逐行取值与失败语义见 `systems/services/profile-service.md`，字段语义与两侧切分见 `systems/player-profile/game-setting.md`。
+
 **`RarityTier` 与 `Tier` 是两个东西，不得复用同一枚举、也不得互相换算。** `Tier { Narrow, Solid, Crushing }` 是战后奖励的**优势档**（道念差归一化后的碾压程度）；`RarityTier` 是**内容品质档**。类型名不写成裸 `Tier` 正是为了避免它们在 `systems/balance.md` 的同一页里造出两个含义。
+
+#### 共享静态工具 `AtomicJsonFile`（`src/Core/`）
+
+**`user://` 下小 JSON 文件的原子读写收敛为一个不属任何服务的共享静态工具。**
+
+```csharp
+public static class AtomicJsonFile          // 无状态；不持有任何服务引用，可在启动链最早期调用
+{
+    public static bool TryRead<T> (string path, out T value);   // 缺失 / 解析失败 → false，由调用方定失败语义
+    public static bool TryWrite<T>(string path, T value);       // 临时文件 → rename；失败 → false
+}
+```
+
+- **为什么它不归任何服务。** 现有写入方分散在四处以上：sync-service 的同步信封与待发队列 · content-service 的 flags 缓存 · UI 层的已关闭推荐版本号 · account-service 的设备标识 · 设置层的设备本地偏好。五份实现受同一条纪律却各写各的，**必然漂移，且漂移的形态正是「某一处漏了 rename，崩溃时留下半个文件」**——原子写这条纪律唯一要防的事。
+- **它不违反「服务之间不伸手进对方 manager」。** 调用它不是跨服务调用，而是调用一个无状态工具；反过来把它挂在 `sync-service` 的 API 面上会长出「替我原子写一个任意文件」这种方法，且**启动顺序对不上**——设备标识在登录时就要读，那一刻 sync-service 尚未初始化。
+- **它只管原子性与序列化，不管语义。** 版本判定、`accountId` 归属校验、缺失时的降级（`PushError` 还是 `PushWarning` + 默认值）一律留在各自的调用方——它们逐份文件各不相同，收进工具里等于让工具认识每一份文件。
+- **`LocalCacheManager` 因此是它的调用方之一，不是原子写的实现方。**
 
 #### EventBus 负载契约
 
@@ -547,7 +638,7 @@ Input (touch, 横向滑动选择)
                                    (SeedManager 的具名子流驱动全部随机性)
 ```
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-19-architecture-structural-residuals.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -556,7 +647,7 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 - **境界存档 · 篇章重试模型** → `decisions/ADR-0004-realm-checkpoint-retry-model.md`（Accepted）。
 - **强制在线 · 云端权威** → `decisions/ADR-0003-online-cloud-authority.md`（Accepted）。
 - **`.claude/knowledge` 降为引用层（本库成为内容 + 技术结构双重事实来源）；引用层形态 = 薄引用（副本判据：设计库里已是代码形态的东西只留链接）** → `decisions/ADR-0005-knowledge-thin-reference-layer.md`（Accepted）。
-- **展示层三层切分（Data / 运行时·存档 / ViewModel）** → **ADR 候选**（待固化）。
+- **展示层三层切分（Data / 运行时·存档 / ViewModel）** → **ADR 候选**（待固化；**固化时的主落点是 `systems/viewmodel.md`**，本文件保留三层定义段）。
 - **五级层次 service ⊃ manager ⊃ module ⊃ processor ⊃ handler；拆分轴 = 生命周期层 + 行为边界（非数据类型）** → **ADR 候选**（待固化）。
 - **单一 profile-service 拥有两层 profile（ProfileManager 唯一写入面）；ContentRegistry 唯一内容读取入口；game-progression 为编排顶点** → **ADR 候选**（待固化）。
 - **内容载体形态（随包基线 + `user://overlay/` 热更 + 云端版本校验）与本地 / 云端内容分界** → **ADR 候选**（待固化）。
@@ -583,19 +674,14 @@ Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hie
 | 7 | 编排顶点缺失 | **已闭合** → game-progression |
 | 8 | UI 与服务间无契约层 | **已闭合** → ViewModel 层 |
 
-**API 契约**见上方「API 契约总则」。**剩余的结构性未决项**已下沉为各服务文档的待决问题（cost element 清单、`EventOption` 完整物化字段清单、内容分桶粒度、协议报文字段），见下节与 `services/*`。
+**API 契约**见上方「API 契约总则」。**剩余的结构性未决项**已下沉为各服务文档的待决问题（`EventOption` 完整物化字段清单、内容分桶粒度、协议报文字段），见下节与 `services/*`。
 
 Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **cost element 清单（ProfileManager 的形状取决于它）：** 有哪些 element（jade / mana / 道具 / 隐藏属性推拉？）、各自数据形态（固定值 / 区间 / 公式）、是否允许**部分抵扣**。→ `systems/adventure-event/common-properties.md`、`services/profile-service.md`。
-- **热更「只改不增」的连带项：** 范围边界已定（overlay 只改既有条目的数值 / 文案，不得新增 `Id`）、确定性张力已裁决（以 overlay 更新为准，不冻结 `contentVersion`，放弃跨版本 seed 可复现）；残留：是否需「预埋占位 `Id`」策略绕开审核周期、是否在存档中记录 `contentVersion` 以便诊断。→ `services/content-service.md`。
-- **断线降级的具体行为：** push / pull / 剧本请求失败时阻塞玩家、本地缓冲重试、还是回退存档点？→ `services/sync-service.md`、`services/account-service.md`。
-- **ViewModel 层是否需要单独一份文档：** 三层切分已在本文件显式化；是否为 ViewModel 层单列文档（或归 `ux/`）待定。
-
-Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`
+> _（当前无未决项。）_
 
 
 ## 对应

@@ -64,7 +64,35 @@ public sealed record ResearchCandidate(
 - **随机源 = `RngStream.Reward` 子流的 `GodotRandomSource`，不新开子流。** `Reward` 已承载「战后奖励候选一次性抽定」这一完全同构的用途（预先掷定 + 落存档 + 绝不重抽），而奖励候选与构筑候选**从不并发**（一次只结算一个事件）；新开子流换来零隔离收益。
 - **候选池不接 modifier pipeline，故不受 PlayerPower 影响。** 候选池的**权重**若可被法则推拉，等于开一条「账号级内容改写轮回级构筑运气」的通道，而它在 `ContentEnabled` / `ExclusiveSource` 之外无人校验。**唯一例外是 capability flag**（如「看见候选的稀有度」这类呈现向 flag）——那走呈现层，不改池。
 
-Source: `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md`
+### 候选短缺：加载期断言 + 取池期拦截 + 物化期降级
+
+三道闸的层次、分界判据与取池期拦截（闸 ②）的完整形态归 `systems/services/future-event-service.md`；本处只记 Research 侧的断言与逐情形行为。
+
+**加载期断言（闸 ①，走 `AllIncludingDisabled()` 的同一遍强校验）：** 每个 `ResearchSlotSpec` 的 `AllowedOperations` 中每一类**内容池型**操作（`LearnTechnique` / `GrantItem`），其对应的通用池条目数须 ≥ `CandidateCount` + `ResearchPoolMargin`；不足 → `PushError` + 抛。
+
+- **余量必须存在，不能只断言「≥ 所需」**：两条取池链都含**排除已持有**，池会随玩家推进单调收缩，一个恰好等于所需的静态池在轮回中段必然短缺。取值归 `systems/balance.md`。
+- **断言只覆盖内容池型操作。** 其余四类（`UpgradeTechnique` / `ForgetTechnique` / `RemoveLooseCard` / `Recuperate`）取自卡组或无池，加载期够不着，不写断言。
+
+**物化期的逐情形行为（闸 ③）：**
+
+| 情形 | 行为 |
+|---|---|
+| 某类操作抽到 **0** 条候选 | 该操作不进本槽候选（与「一门都没有则该操作不进候选」同句处置，只是推广到内容池型两类） |
+| 某类操作抽到 **0 < n < 所需** | 给几条算几条 —— 这是 `CandidateCount`「上界不是保证」的直接兑现，不是新规则 |
+| **整槽候选为 0** | 该槽不进 `ResearchSlot[]`；事件照常物化（其余槽仍有候选）。**`SlotIndex` 不重排**，保留模板槽序号 |
+| **全部槽皆为 0** | 闸 ② 已拦，到达此处 = 缺陷 → `PushError` + 上报，该条目本次不进批次 |
+
+- **「不留空面板」在 Research 侧的兑现 = 闸 ② + 空槽剔除**：面板上呈现的槽必然至少有 1 条候选，配合默认 `AllowDecline = true`，玩家永远有一个可执行的动作。
+- **短缺不给玩家任何提示、不新增文案键。** 玩家看到的就是候选少一点的槽，它与内容作者编排出的小槽在观感上无法区分，也不需要区分。
+- **快照只记实际结果：** `ResearchSlot.Candidates` 的长度就是实际候选数，**不新增「期望数量 / 短缺标记」字段**——期望值在模板的 `CandidateCount` 上随时读得到，落一份进快照就是无用中间态（与「模板上的 outcome / effect 定义不进快照」同一条判据）。
+- **日志：**
+
+  ```
+  [ContentRegistry-Validate] research pool short: event=<EventId> slot=<SlotIndex> op=<DeckOperationKind> need=<CandidateCount+margin> pool=<n>
+  [FutureEvent-ResearchSlot] instance=<InstanceId> event=<EventId> slot=<SlotIndex> op=<Kind> want=<n> got=<m>
+  ```
+
+Source: `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

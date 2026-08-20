@@ -85,10 +85,10 @@ distilled-to: handoffs/2026-08-17h-profile-field-schema.md
 | `manaLimit` | `int` | `Elements`（`CostKey.ManaLimit`） | `(0, null, null, null, null)` | **已定案** |
 | `experiencePoint` | `int` | `Elements`（**`CostKey` 成员待补**） | ⟨待「cost element 清单」⟩ | 半定（见 §3.11） |
 | `faith` | `int` | `Elements`（**待「道心 / 煞气 是否列入 `CostKey`」**） | `[0, 100]` 已定 | 半定（见 §3.12） |
-| `maleficQi` | `int` | 同上 | `[0, 100]` 已定 | 同上 |
+| `bloodlust` | `int` | 同上 | `[0, 100]` 已定 | 同上 |
 | `lifeSpan` | `int` | `Elements`（`CostKey.LifeSpan`） | `(0, null, LifeSpanExhausted, LifeSpanCost, null)` | **已定案** |
 | `FaithBand` | `sbyte` | `StatusChanges` | `StatusFields`：`(Int, -2, 2)` | **已定案** |
-| `MaleficQiBand` | `sbyte` | `StatusChanges` | `(Int, 0, 3)` | **已定案** |
+| `BloodlustBand` | `sbyte` | `StatusChanges` | `(Int, 0, 3)` | **已定案** |
 | `LifeSpanBand` | `sbyte` | `StatusChanges` | `(Int, 0, 2)` | **已定案** |
 | `ChapterLifeSpanBudget` | `int` | `StatusChanges` | **`StatusFields` 缺行** → 见 §3.13 | 半定 |
 | `CurrentLocationId` | `string` | `StatusChanges` | `(Id, -, -)` | **已定案** |
@@ -249,17 +249,17 @@ public sealed class ChapterRetry     // 规则字段层：严格同步 · 参与
 - **`GainModifier` 是一个真实的取向点**：一条「修行事半功倍：经验 +20%」的法则是元进程里最自然的一类 QoL 法则，但开这一格意味着「满级前能否升满」这条已写下的验收项（`game-progression.md`「供给 / 需求 ≈ 1.15–1.20」）要按**老账号全开**校准。按既定的**缺省豁免**方向，本草稿填 `null`，日后确需时加一行即可。
 - **本行落在「cost element 清单（资源族）」那条待答项之内**，故它是**提案而非定案**——见「前置依赖」。
 
-### 3.12 `faith` / `maleficQi` 的存档形态
+### 3.12 `faith` / `bloodlust` 的存档形态
 
 `[既有推演]` 两者的**区间 `[0, 100]` 与「触底不构成终态」已定**（`profile-service.md` 待决项原文），band 字段已定案 ⇒ 原始值必须落存档（band 有回滞 ⇒ band 不是当前值的纯函数，但当前值也不是 band 的函数，**两者都得存**，这正是既定的 band 持久化理由的另一半）。
 
 ```csharp
 int Faith;        // [0, 100]
-int MaleficQi;    // [0, 100]
+int Bloodlust;    // [0, 100]
 ```
 
 - **常态点（`FaithBand == 0` 对应哪个区间）归 `plot-manager.md` 的档位表**，本草稿不填——那里是阈值 / 回滞 δ 的权威。
-- **它们是否与资源族共用 `CostKey`** 是一条**已在册的待答项**（`profile-service.md`：「道心 `Faith` / 煞气 `MaleficQi` 是否列入 `CostKey`（轻）」）。**建议列入**（`[既有推演]`）：它们由事件推拉、要钳制、有明确区间，与 `ResourceElements` 五列逐列对得上；不列入则需要第六条写入通道来做同一件事。行形态：`(0, 100, null, null, null)`——两个修正列留空，理由与 band 同源且更重（一条法则能伪造隐藏属性即等于伪造整条剧本线的触发条件）。
+- **它们是否与资源族共用 `CostKey`** 是一条**已在册的待答项**（`profile-service.md`：「道心 `Faith` / 煞气 `Bloodlust` 是否列入 `CostKey`（轻）」）。**建议列入**（`[既有推演]`）：它们由事件推拉、要钳制、有明确区间，与 `ResourceElements` 五列逐列对得上；不列入则需要第六条写入通道来做同一件事。行形态：`(0, 100, null, null, null)`——两个修正列留空，理由与 band 同源且更重（一条法则能伪造隐藏属性即等于伪造整条剧本线的触发条件）。
 
 ### 3.13 `StatusFields` 需补 `ChapterLifeSpanBudget` 一行
 
@@ -338,7 +338,7 @@ public readonly record struct CodexEntry(string Id);   // 首批只有解锁这�
 
 ## 后果
 
-- **文档影响：** `systems/character-profile/_index.md`（补总表 + 5 个新字段）· `systems/player-profile/_index.md`（补总表 + 六 Codex + 集合命名通则）· `systems/architecture.md`（`Realm` 枚举登记 · `StatusFields` 补 `ChapterLifeSpanBudget` · `CostKey` 补 `Experience` / 可能的 `Faith` / `MaleficQi`）· `systems/services/profile-service.md`（`ResourceElements` 补行 · `StatusFields` 逐行）· `systems/services/sync-service.md`（schema 版本一节 + `currentMana` 移位的连带）· `systems/player-profile/game-setting.md`（只补形态一句）· `systems/services/combat-service.md`（若采纳 `currentMana` 移位）。
+- **文档影响：** `systems/character-profile/_index.md`（补总表 + 5 个新字段）· `systems/player-profile/_index.md`（补总表 + 六 Codex + 集合命名通则）· `systems/architecture.md`（`Realm` 枚举登记 · `StatusFields` 补 `ChapterLifeSpanBudget` · `CostKey` 补 `Experience` / 可能的 `Faith` / `Bloodlust`）· `systems/services/profile-service.md`（`ResourceElements` 补行 · `StatusFields` 逐行）· `systems/services/sync-service.md`（schema 版本一节 + `currentMana` 移位的连带）· `systems/player-profile/game-setting.md`（只补形态一句）· `systems/services/combat-service.md`（若采纳 `currentMana` 移位）。
 - **存档 schema：bump 一次、空迁移**（当前无线上存档）。老档缺字段的补默认值口径：集合 → 空列表；`DefeatReason?` → null；`ChapterRetry` → 全 0；六 Codex → 空列表。
 - **契约影响：零**（若按 §3.14 以契约为准落笔）。若用户反向裁决（改契约对齐库内单数风格），则是一次**破坏性契约变更**，须 bump `schemaVersion` 并与后端同批改 —— 那会在对侧库产生一份承接项。
 - **diff 体积：** 新增字段全为标量或短列表，`sync-service.md` 的 ~2 KB / 事件预算与 400 KB / 轮回粗算**不受影响**；六 Codex 随账号年龄单调增长，落在既有「整聚合 pull」的关注面内——**建议沿用 `pastEvent` 的软上限告警形态**（阈值待定，不在本草稿）而非现在就做分页。
@@ -368,7 +368,7 @@ public readonly record struct CodexEntry(string Id);   // 首批只有解锁这�
 
 | 本草稿的哪一部分 | 依赖的待答问题 | 在册处 |
 |---|---|---|
-| §3.11 `Experience` 行 · §3.12 `Faith` / `MaleficQi` 是否列入 `CostKey` | **cost element 清单（资源族）未定** | `profile-service.md` 待决项 |
+| §3.11 `Experience` 行 · §3.12 `Faith` / `Bloodlust` 是否列入 `CostKey` | **cost element 清单（资源族）未定** | `profile-service.md` 待决项 |
 | §3.5 `looseCard` 的**写入通道** | **游离散牌入组的 element 载体未定（承重）** | `deck/_index.md` · `profile-service.md` —— **S4 分片正在答** |
 | §2 第 16 行 `plotKeyPoint` 的集合型载体形状 | 同上（element 层三缺口） | **S4 分片正在答** |
 | §3.7 `currentEventBatch` 的形状 | **结算进行中的 `EventOption` 派生实例如何落存档** | **S3 分片正在答** |

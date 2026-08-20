@@ -95,7 +95,7 @@ public enum StatusKey
 {
     CurrentLocationId,          // string  —— 仅由 Travel 结算改写
     LocationEventCount,         // int     —— 非 Travel +1 / Travel 归 0（均以绝对值提交）
-    FaithBand, MaleficQiBand, LifeSpanBand,   // sbyte 存档字段，spec 内以 int 承载
+    FaithBand, BloodlustBand, LifeSpanBand,   // sbyte 存档字段，spec 内以 int 承载
     ChapterLifeSpanBudget,
     /* ⟨随各专场逐条补⟩ */
 }
@@ -106,7 +106,7 @@ internal static readonly IReadOnlyDictionary<StatusKey, StatusFieldSpec> StatusF
 // CurrentLocationId   → (Id,  -, -)      值须能经 ContentRegistry 解析为 LocationData，否则 PushError + 整批拒绝
 // LocationEventCount  → (Int,  0, null)  施加后钳到 [0, ∞)
 // FaithBand           → (Int, -2, 2)
-// MaleficQiBand       → (Int,  0, 3)
+// BloodlustBand       → (Int,  0, 3)
 // LifeSpanBand        → (Int,  0, 2)
 public enum StatusValueKind { Int, Id }
 ```

@@ -116,7 +116,8 @@ game-feature-branch/
 │   ├── event.csv                     ← EVENT_：事件选项的框架文案（不含事件正文——那是内容层）
 │   ├── combat.csv                    ← COMBAT_：CombatScreen、出牌 / intent / 结算面板框架
 │   ├── profile.csv                   ← PROFILE_：Player / CharacterProfile 面板、图鉴族、成就
-│   └── settings.csv                  ← SETTINGS_：设置屏（含同步版本 #N 的标签）
+│   ├── settings.csv                  ← SETTINGS_：设置屏（含同步版本 #N 的标签）
+│   └── store.csv                     ← STORE_：礼包屏、购买处理态与兑现结果态
 │
 └── assets/                           ← 美术 / 音频
 ```

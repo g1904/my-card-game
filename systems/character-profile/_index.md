@@ -29,13 +29,13 @@
   | 12 | `magicPack` | `IReadOnlyList<CharacterItem>` | `AbilityElements` | `item/common-properties.md` |
   | 13 | `characterPower` | `IReadOnlyList<CharacterPower>` | `AbilityElements` | `power/common-properties.md` |
   | 14 | `disabledAbility` | `IReadOnlyList<DisabledAbilityEntry>` | `AbilityElements`（`Disable`） | 本文档 |
-  | 15 | `pastEvent` | `IReadOnlyList<PastEventEntry>` | —（life-cycle 追加） | `systems/adventure-event/common-properties.md` |
+  | 15 | `pastEvent` | `IReadOnlyList<PastEventEntry>` | `TraceElements` | `systems/adventure-event/common-properties.md` |
   | 16 | `plotKeyPoint` | `IReadOnlyList<PlotKeyPoint>` | `PlotElements` | `systems/services/plot-manager.md` |
-  | 17 | `activeCombat` | `ActiveCombat?` | —（combat-service 回写） | `systems/services/combat-service.md` |
+  | 17 | `activeCombat` | `ActiveCombat?` | `EventStateChanges` | `systems/services/combat-service.md` |
   | 18 | `eventOption` | `EventOptionSave?` | `EventStateChanges` | 本文档「两个事件态字段」 |
   | 19 | `activeEvent` | `ActiveEventState?` | `EventStateChanges` | 本文档「两个事件态字段」 |
   | 20 | `chapterRetry` | `ChapterRetry`（具名子类 · 三字段） | —（`RetryChapter`） | 本文档 |
-  | 21 | `rng` | `RngState`（具名子类） | —（SeedManager） | `systems/common-properties.md` |
+  | 21 | `rng` | `RngState`（具名子类） | `RngElements`（`CycleSeed` 与子流初始化为 `—`） | `systems/common-properties.md` |
   | 22 | `startContentVersion` | `int` | — | `systems/services/content-service.md` |
   | 23 | `lastContentVersion` | `int` | — | `systems/services/content-service.md` |
 
@@ -45,12 +45,12 @@
   |---|---|---|---|
   | `lifeTotal` | `int` | `Elements`（`CostKey.LifeTotal`） | `ResourceElements` |
   | `manaLimit` | `int` | `Elements`（`CostKey.ManaLimit`） | `ResourceElements` |
-  | `experiencePoint` | `int` | `Elements`（`CostKey.Experience`） | `ResourceElements` |
+  | `experiencePoint` | `int` | `Elements`（`CostKey.ExperiencePoint`） | `ResourceElements` |
   | `faith` | `int` | `Elements`（`CostKey.Faith`） | `ResourceElements` |
-  | `maleficQi` | `int` | `Elements`（`CostKey.MaleficQi`） | `ResourceElements` |
+  | `bloodlust` | `int` | `Elements`（`CostKey.Bloodlust`） | `ResourceElements` |
   | `lifeSpan` | `int` | `Elements`（`CostKey.LifeSpan`） | `ResourceElements` |
   | `FaithBand` | `sbyte` | `StatusChanges` | `StatusFields` |
-  | `MaleficQiBand` | `sbyte` | `StatusChanges` | `StatusFields` |
+  | `BloodlustBand` | `sbyte` | `StatusChanges` | `StatusFields` |
   | `LifeSpanBand` | `sbyte` | `StatusChanges` | `StatusFields` |
   | `ChapterLifeSpanBudget` | `int` | `StatusChanges` | `StatusFields` |
   | `CurrentLocationId` | `string` | `StatusChanges` | `StatusFields` |
@@ -81,9 +81,10 @@
   - 读档校验：`TechniqueId` / `looseCard` 元素解析不到 → **必需缺失** → `PushError`（与 `DeckChangeElement.Id` 的施加侧同口径——悬空 `Id` 写进 Profile 即污染存档）；`Tier < 1` → `PushError`。
 - **`realm` + `level` 是角色的修行位置。** 二者合成**全局等级序**上的位置，是敌人赋级 `±2` 带与 `baseMomentum` 起跑线的判据；篇章突破后 `level` 归位为新境界的初期。**`manaLimit` 不随境界自动成长**，由事件 cost / reward 推拉（见 `mana.md`）。
 - **决策点存档。** 事件推进过程中（含战斗内）在**决策点**落存档，使退出重进恢复到同一局面与同一份 RNG 状态；`selectCost` **不回滚**。存档点清单见 `systems/services/life-cycle-service.md`；**战斗内的 D0–D6 决策点清单见 `systems/services/combat-service.md`**。
-- **`activeCombat`：进行中战斗的中间态（CharacterProfile 上的可空块）。** 战斗开始时创建、`eventEnd` 收口时**置空**；**不进 `pastEvent`**（历史事件只留定稿快照），也不与 `Rng.Streams[]` 混住——它是**事件内的中间态，寿命短于一次事件**。
+- **`activeCombat`：进行中战斗的中间态（CharacterProfile 上的可空块）。** 战斗开始时创建、`eventEnd` 收口时**置空**；**不进 `pastEvent`**（历史事件只留定稿快照），也**不自带随机流状态**（战斗内随机的 `State` / `DrawCount` 落 `rng.stream[Combat]`）——它是**事件内的中间态，寿命短于一次事件**。
+  - **写入通道 = `EventStateChanges`（`Key == ActiveCombat`），与 `activeEvent` 同一列**：combat-service 在每个决策点整块置值，收口时置空。两个中间态字段仍不合并，共用的只是通道。
   - **为什么挂 CharacterProfile 而非独立的战斗存档实体**：与「每篇章至多一个 ongoing」自洽，且 diff 天然落在 `CharacterProfile` 粒度（sync-service 的既定 diff 单位），**无需新增同步单元**。
-  - 内容 = 遭遇参数 + 回合 / 步状态 + 战斗子流 RNG + 两个参战方（含三区 `Id` 序列与 `CardInstance` 运行态）+ 战场条目 + 栈条目 + 挂起态。**完整 schema 与读档校验归 `systems/services/combat-service.md`**（本文件只登记它是 CharacterProfile 的一个字段）。
+  - 内容 = 遭遇参数 + 回合 / 步状态 + 两个参战方（含三区 `Id` 序列与 `CardInstance` 运行态）+ 战场条目 + 栈条目 + 挂起态。**完整 schema 与读档校验归 `systems/services/combat-service.md`**（本文件只登记它是 CharacterProfile 的一个字段）。
   - 随 `activeCombat` 一起 **bump schema 版本**（当前无线上存档 → 空迁移）。
 - **两个事件态字段：`eventOption`（当前批）与 `activeEvent`（正在结算的那一项）。** 前者是**当前批 eventOptions 的定稿快照**，后者是**结算期间的权威副本**，两者与 `pastEvent` / `activeCombat` / `disabledAbility` / `plotKeyPoint` 平级。
 
@@ -124,7 +125,7 @@
 - **`pastEvent`：修行历程 = `IReadOnlyList<PastEventEntry>`。** 元素**不是 `Resource`**——存的是**定稿实例快照 + 本次结算的最终账**，这是物化模型的直接推论（`AdventureEventData` 是 ContentRegistry 的共享只读单例，痕迹要记的是「这一次走过的那个实例」）。
   - **条目形态 `PastEventEntry`（13 字段）、判据「重算不出来的存」、未选项轻摘要 `UnchosenOptionRef`、`EventOutcome` 四值枚举与加载时校验，权威在 `systems/adventure-event/common-properties.md`**（本文件只登记它是 CharacterProfile 的一个字段）。
   - **只追加、不修改既有条目**（不变式）；体积护栏与 diff 友好性见 `systems/services/sync-service.md`。
-  - **写入经 life-cycle-service 组装 → `profile-service.ProfileManager`**，与「档案写入的唯一入口」一致。
+  - **写入经 life-cycle-service 组装 → `profile-service.ProfileManager` 的 `TraceElements` 列**，与「档案写入的唯一入口」一致，且与收口的其余各列落在同一次事务里。**`Seq` 首条为 `0`**，追加时的连续性由入口校验。
   - 随本次结构落定 **bump schema 版本**（当前无线上存档 → 空迁移）。
 - **`chapterRetry`：篇章重试计数器。** 一个**类**，计数第一 / 第二 / 第三篇章各自的重试次数——**因为 ch2 与 ch3 有重试上限**（无限 / 3 / 1，持 premium bundle 为 无限 / 9 / 3，见 ADR-0004）。**它是计数器容器，不是上限持有者**：上限仍按 ADR-0004 的既定纪律读取（可被账号级持有状态改写、凡读取处不得硬编码常量），`chapterRetry` 只答「用掉了几次」。**推论：篇章解锁 / 重新锁定与「剩余重试次数展示」有了确定的数据源。**
   - **形态 = 三个具名字段 `Ch1RetryUsed` / `Ch2RetryUsed` / `Ch3RetryUsed`**，第一 / 第二 / 第三篇章各一，**不是字典也不是按索引的数组**。**`Used` 后缀**避开两个已被占用的词缀——`Ordinal` 表达「第几次」这个位置且要当幂等键用，`Count` 属统计计数层，而 `chapterRetry` 是规则字段层的一个数量（命名硬约定见 `systems/player-profile/_index.md`）。**与「四境三篇章」这条硬事实对齐**（篇章数是游戏结构，不是可扩展列表）：具名字段让存档 schema 显式、读取处不必处理「键不存在」的分支，也免去按索引访问的越界校验。**代价是新增篇章需改 schema——但篇章数不是设计变量。**
@@ -159,7 +160,7 @@
   ```csharp
   // 当前所处档（索引 HiddenStatBandData.BandIndex；0 = 常态，|值| 越大越远离常态）
   sbyte FaithBand;             // 带符号 —— 道心是唯一的双臂属性，取值 -2..+2
-  sbyte MaleficQiBand;         // 0..3
+  sbyte BloodlustBand;         // 0..3
   sbyte LifeSpanBand;          // 0..2
   int   ChapterLifeSpanBudget; // 本篇章起始可用预算 = 本章增量 + 上章结转；ChapterManager 在篇章边界赋值
   ```
@@ -213,6 +214,8 @@
   | `Rng.CycleSeed` | `ulong` | 轮回开始时生成，不变 |
   | `Rng.Stream[]` | `Name` / `Seed` / `State` / `DrawCount`（`string` / `ulong` / `ulong` / `int`） | 具名子流状态；`State` 为恢复权威字段，`DrawCount` 为诊断与迁移保险 |
 
+  **`State` / `DrawCount` 经 `ProfileChangeSpec.RngElements` 与消耗它们的那一次提交同批写入**（`CycleSeed` 与 `StartCycle` 的子流初始化不走本列），使「凡消耗了子流随机的提交，该子流状态必须在同一次原子写内更新」这条不变式由结构而非自律兑现；`Seed` 可由 `CycleSeed` 与子流名重算，不进 spec。施加与失败语义见 `systems/services/profile-service.md`。
+
   schema 形态（JSON 侧一律 camelCase，见 `systems/services/sync-service.md`「JSON 序列化命名策略」）：
 
   ```jsonc
@@ -230,7 +233,7 @@
   派生规则与恢复语义见 `systems/common-properties.md`；双 `contentVersion` 的诊断用途见 `systems/services/content-service.md`。
 - **角色状态是终态收敛的状态机。** `status` 收敛为 `ongoing | defeated | completed`（`defeated` 的三种原因：discarded / 寿元归 0 / lifeTotal 归 0）；`defeated` 与 `completed` 数据都会在轮回结束时被清理。→ 见 `systems/services/life-cycle-service.md` 与 `decisions/ADR-0004-realm-checkpoint-retry-model.md`。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md`
 
 ## 子系统导航
 

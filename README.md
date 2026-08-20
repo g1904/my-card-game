@@ -31,7 +31,7 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
 
 **两条从设计到代码的路，按「系统行为 vs 内容条目」分流：**
 
-- **系统行为**的桥梁是两步：`/derive-requirements` 产出片区级的 `requirements/FR-*`，`/breakdown-requirements` 再把**一份** FR 拆成同名文件夹内的**可执行子需求**——后者才是 `/blueprint` 的直接输入。两层结构、id 形态与签核语义见 `requirements/_index.md`。
+- **系统行为**的桥梁是两步：`/derive-requirements` 产出片区级的 `requirements/FR-*`，`/breakdown-requirements` 再把**一份** FR 拆成同名文件夹内的**可执行子需求**——后者才是 `/blueprint` 的直接输入。两层结构、id 形态、签核语义与拆解粒度判据见 `requirements/_index.md`。
 - **内容条目**不经 FR，**直接喂 `/blueprint`**——内容最终落地就是一批 `.tres`，其可构建增量的边界天然就是条目本身。`systems/` 持有**这类内容怎么运作**（类定义），`content/` 持有**有哪些条目**（实例），二者是类 ↔ 实例关系，故平级。约定、类型登记表与依赖链见 `content/_index.md`。Source: `handoffs/2026-08-14c-content-authoring-layer.md`。
 
 **derive 就绪度由 `/assess-derive-readiness` 单独评估**（全量扫描全部主题文档，写入 `open-questions.md` 的「derive 就绪度」小节），**由用户在时机成熟时手动调用**；它是该小节的**唯一写入者**。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不**顺带评估或更新就绪度——逐次 handoff 顺带的判定会迅速过时且互相矛盾。**当前状态见 `open-questions.md` 的「derive 就绪度」小节**——整体仍未进入可 derive 阶段，但已有少数文档带可独立成立的就绪切片，该小节给出了建议的 derive 顺序。
@@ -53,7 +53,7 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
 | `content/` | **内容条目（实例层）**：`content/<类型>/<id>.md` 一条内容一份文档，`content/<类型>/_index.md` 是该类型的**档案**（字段核对清单 + id 形态 + 交叉引用表 + 条目台账）。由 `/scaffold-content-type` 开张类型、`/author-content` 写条目、`/audit-content` 对账，产出**直接喂 `/blueprint`**（不经 FR，故完成度只在各类型档案的台账上追踪）。**硬边界：本层不定义字段**——对每个字段只写「填了什么值 + 权威回链」，字段的类型 / 取值域 / 枚举 / 校验语义一律在 `systems/` 那侧。未开张的类型不预先建空文件夹——**当前尚无已开张的类型**，本层只有 `_index.md`（登记表 + 依赖链）与两份骨架 `_TEMPLATE-type.md` / `_TEMPLATE-entry.md`。 | 持续更新；随内容创作滚动增长。 |
 | `art/` | 美术与音频的设计意图与生成指导：**两个一级分区** `visuals/`（内含子分区 `animations/`，占位）与 `soundtracks/`，各含总方向 + `references/` + `guides/`。承载 vision 文本、参考登记与 art / audio guide（= 投喂生成工具的 prompt）；**生成出的二进制资产不入本库**，归 `game-feature-branch/`。 | 持续更新；**只保留最新设计**。当前为脚手架阶段。 |
 | `ux/` | 屏幕、流程、手感（文本线框图）。 | 持续更新；**只保留最新设计**。 |
-| `decisions/` | ADR 风格的已定决策。 | 可修改（软件开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
+| `decisions/` | ADR 风格的已定决策。**唯一写入者是 `/write-adr`**；ADR 形状与台账约定见 `decisions/_index.md`。 | 可修改（软件开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
 | `requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往 `/blueprint` 的桥梁。由 `/derive-requirements` 生成、用户签核（`draft → ready`），再由 `/breakdown-requirements` 拆成同名文件夹内的可执行子需求（`FR-*/`）。含 `_index.md`（两层结构 + 覆盖核对）与两份骨架 `_TEMPLATE.md` / `_TEMPLATE-sub.md`；**当前尚无 FR**。 | 持续更新；随设计深化而重新生成/扩展。 |
 | `inbox/` | 未整理的草稿，待分流到 handoff/主题中。两类：手写的 `draft-<suffix>.md`（`<suffix>` = `MMDD` + 序列字母，**从 `a` 起**，例 `draft-0816a.md`）；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。**分两层：顶层只放在办草稿，已提炼的移入 `inbox/archive/`**（判据：有无对应 `status: distilled` 的 handoff）；约定与在办清单见 `inbox/_index.md`，草稿→handoff 对应表见 `inbox/archive/_index.md`。 | 顶层自由发挥；`archive/` 只作溯源，不再改动。 |
 | `open-questions/` | 跨 session 待答清单的**分片**：`01-combat.md` … `07-codex-monetization.md`（焦点区，编号即优先级）、`cross-boundary.md`（**后端已定案、本库尚未承接**的条目；不带编号，与后端库同名同形）、`deferred-content.md`（已搁置的内容充实）、`update-log.md`（逐次更新摘要）+ `update-log-archive.md`（超出保留窗口的旧条目）。**只跟踪仍待答的问题**（无「已解决」区）；主题文档的 `## Open questions` 是权威归属，此处是导航。答定即移出到 `answer-logs/`。 | 持续更新；由 `/analyze-new-ideas` 与 `/summarize-open-questions` 写入。分片过长可再拆、过短可并回，同步更新索引导航表。 |

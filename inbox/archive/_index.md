@@ -6,6 +6,16 @@
 
 | 草稿 | 类型 | 日期 | 去向 handoff | answer log |
 |------|------|------|--------------|------------|
+| `solution-draft-architecture-structural-residuals.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-architecture-structural-residuals.md` | `answer-logs/log-architecture-structural-residuals.md` |
+| `solution-draft-translation-english-placeholder.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-translation-english-placeholder.md` | `answer-logs/log-translation-english-placeholder.md` |
+| `solution-draft-pickmany-shortfall-handling.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-pickmany-shortfall-handling.md` | `answer-logs/log-pickmany-shortfall-handling.md` |
+| `solution-draft-codex-entry-schema.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-codex-entry-schema.md` | `answer-logs/log-codex-entry-schema.md` |
+| `solution-draft-device-id-provisioning.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-device-id-provisioning.md` | `answer-logs/log-device-id-provisioning.md` |
+| `solution-draft-game-setting-schema.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-game-setting-schema.md` | `answer-logs/log-game-setting-schema.md` |
+| `solution-draft-costkey-statkey-registry.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-costkey-statkey-registry.md` | `answer-logs/log-costkey-statkey-registry.md` |
+| `solution-draft-bundle-grant-ordinal-authority.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-bundle-grant-ordinal-authority.md`（后端半见 `backend-design-documents/inbox/` 同名 counterpart） | `answer-logs/log-bundle-grant-ordinal-authority.md` |
+| `solution-draft-breakdown-granularity-and-signoff.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-breakdown-granularity-and-signoff.md`（后端半 `backend-design-documents/handoffs/2026-08-19-breakdown-granularity-and-signoff.md`） | `answer-logs/log-breakdown-granularity-and-signoff.md` |
+| `solution-draft-profile-change-spec-gaps.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-profile-change-spec-gaps.md` | `answer-logs/log-profile-change-spec-gaps.md` |
 | `solution-draft-draw-pool-and-instance-shapes.md` | solution-draft | 2026-08-17 | `handoffs/2026-08-17k-draw-pool-and-instance-shapes.md` | `answer-logs/log-draw-pool-and-instance-shapes.md` |
 | `solution-draft-event-option-derived-persistence.md` | solution-draft | 2026-08-17 | `handoffs/2026-08-17j-event-option-derived-persistence.md` | `answer-logs/log-event-option-derived-persistence.md` |
 | `solution-draft-event-option-materialized-fields.md` | solution-draft | 2026-08-17 | `handoffs/2026-08-17i-event-option-materialized-fields.md` | `answer-logs/log-event-option-materialized-fields.md` |

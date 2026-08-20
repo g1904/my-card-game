@@ -109,7 +109,9 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 
 > **共用公理：决策点 = 战斗状态机唯一可以停下来的地方。** 存档 schema、取消语义、决策点清单三者全部由它导出。
 
-**`ActiveCombat` 是 `CharacterProfile` 上一个可空块**：战斗开始时创建、`eventEnd` 收口时置空。它**不进 `pastEvent`**（历史事件只留定稿快照），也不与 `Rng.Streams[]` 混住——它是**事件内的中间态**，寿命短于一次事件。挂 `CharacterProfile` 使 diff 天然落在 sync-service 既定的 diff 单位上，**无需新增同步单元**，且与「每篇章至多一个 ongoing 事件」自洽。
+**`ActiveCombat` 是 `CharacterProfile` 上一个可空块**：战斗开始时创建、`eventEnd` 收口时置空。它**不进 `pastEvent`**（历史事件只留定稿快照），也不自带随机流状态——它是**事件内的中间态**，寿命短于一次事件。挂 `CharacterProfile` 使 diff 天然落在 sync-service 既定的 diff 单位上，**无需新增同步单元**，且与「每篇章至多一个 ongoing 事件」自洽。
+
+**写入通道 = `ProfileChangeSpec.EventStateChanges`（`Key == ActiveCombat`），与 `activeEvent` 同一列。** 本服务在每个决策点组装一次 `TryApply`，整块绝对置值；`eventEnd` 收口时置空（并入那一次事务）。「战斗内的一切写入经 `ProfileManager`」由此有了确实的通道，不再有例外。分列判据与失败语义见 `systems/architecture.md`「共享核心类型」与 `systems/services/profile-service.md`。
 
 ```jsonc
 "activeCombat": {                    // null = 当前没有进行中的战斗
@@ -119,13 +121,14 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
   "turnIndex": 3,
   "activeSide": "Character",
   "step": "Action",                  // Start | Action | End
-  "rng": { "seed": 0, "state": 0, "drawCount": 0 },
   "sides": [ /* 恰两条 */ ],
   "battlefield": [ /* 单表 + kind */ ],
   "stack": [ /* 数组序即栈序，0 = 栈底 */ ],
   "pending": null                    // 全局至多一个
 }
 ```
+
+**战斗内随机的状态不落本块，由 `CharacterProfile.rng.stream[Combat]` 承载。** 战斗内随机**直接用 `combat` 子流、不在其上再派生一层**，故不存在第二个随机源，本块里再放一份 `(seed, state, drawCount)` 就是无机制保证相等的第二份真值。它经 `ProfileChangeSpec.RngElements` 在每个决策点那一次 `TryApply` 内与局面同批更新——「凡消耗了子流随机的提交，该子流 `State` / `DrawCount` 必须在同一次原子写内更新」这条不变式对战斗内因此同样是结构保证。
 
 **参战方（`sides`，恰两条）**：`side` · `momentum` · `manaLimit`（战斗内不变，落它只为读档自洽）· `currentMana`（**回合内消耗量，决策点存档必须恢复它**——它每回合刷满、回合内不结转，战斗外无意义，故它的落点是本字段而非 `CharacterProfile.Status`）· `drawPile` / `hand` / `discardPile`（`CardInstanceId` **有序**序列）· `instances` · `items` · `enemyRef`（仅敌方）。
 
@@ -190,6 +193,8 @@ public sealed record CardInstanceSave(
 
 **明确不是决策点**（同样重要）：弹栈结算的**每一次**弹出（除非因此进入 D4）· **敌人回合内部**的任何一步（玩家在其中没有输入，D5 一个点即覆盖整个敌人回合，它是一段可确定性重放的区间）· 战后奖励选择。
 
+**每个决策点的提交形态：** `TryApply(EventStateChanges[ActiveCombat = 当前局面] + RngElements[combat 子流终态])` —— D0–D5 各一次，**不新增存档点类型**（这六个点本就是既定存档点），且照常**不计**软阻塞闸门。**D6 并入 `eventEnd` 的那一次**（`ActiveCombat = null`），既定的「D6 不单独落点」原样成立。提交前由组装方比对 SeedManager 的未清账子流与 `spec.RngElements`（`#if DEBUG`），见 `systems/services/life-cycle-service.md`。
+
 - **密度 ≈ 31 个决策点 / 场**（10 回合、玩家 5 个回合、每回合出 2~3 张牌）。**保留 D2**——它是「退出重进得到同一局面」这条承诺在最自然位置的兑现，**不作为超预算时的第一削减对象**——该承诺在强制在线 · 云端权威下是玩家对存档的基本信任。若实测超预算，先动 push 频率而非存档点本身（存档点与 push 已解耦）。
 - **软阻塞闸门不受影响**：`sync-service` 的缓冲上限口径为「未同步的**事件级**存档点 ≥ 3」，**战斗内 D0–D5 照常写本地、照常防抖 push，但不参与软阻塞判定**——否则每场战斗的第三个决策点就会触发模态。**连带：D0 的 `Immediate` flush 失败也不触发阻塞**——同一个点不能一边被排除在闸门计数外、一边又能独立挡住玩家；且此时 `SelectCost` 已施加，挡住 = 付了成本却拿不到事件。「flush 是尝试、闸门是状态」见 `sync-service.md`「`Immediate` flush 的失败语义」。
 - **需要选目标的触发式异能按稀缺配额编排**：占全部触发式异能 **≤ 10%**（加载时统计 + `PushWarning`）、一场 `Standard` 档战斗期望进入挂起态 **1~2 次**（编排口径，不可机械化）。频度天然低——玩家**主动出牌**的目标在打出时就由 UI 按 `slotIndex` 顺序一次收齐（`PlayCard(card, targets)`，入栈时 `targetState = Resolved`），挂起态**只**来自「压进去的东西在结算时回头问一句『指谁』」；敌人侧的目标选择由 EnemyManager 自行决定、不产生决策点。**稀少改变的是性能预算，不是正确性要求**：D4 必须在清单里。连带成立——**挂起态存档不做任何专门优化**，`ActiveCombat` 全量序列化足够，**栈的增量写入不做**。
@@ -220,7 +225,7 @@ public sealed record CardInstanceSave(
 
 **栈与战场是两个区，不是一个。** 栈 = **等待结算**的队列；战场 = **已结算并正在生效**的东西。结算的完整路径：**打出 → 入栈 →（LIFO）弹出结算 → 效果施加 →（若是持续效果）落到战场**。
 
-Source: `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-17h-profile-field-schema.md`
+Source: `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md`
 
 ## API 面（契约）
 

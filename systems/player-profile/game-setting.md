@@ -1,17 +1,111 @@
 # game-setting
 
-> 游戏设置 / **GameSetting** —— PlayerProfile 上的账号级常规系统设置。
+> 游戏设置 / **GameSetting** —— 玩家可调设置中**账号级的那一半**，落 PlayerProfile。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-- **GameSetting = 账号级常规系统设置。** PlayerProfile 的一个账号级字段（音量等）；是主菜单「Settings（设置）」按钮的数据来源。
-- **随账号云端持久。** 与其他账号级字段一致，写入经 `profile-service.ProfileManager`、同步经 `sync-service`，云端为权威。
+- **设置 ⊃ `GameSetting`（包含关系，承重）。** 玩家可调的设置分落两侧：**账号级**一半落 `PlayerProfile.gameSetting`（`GameSetting` 类），**设备本地**一半落 `user://cache/device-settings.json`。`GameSetting` 不是「全部设置」，故本文档承担的是一张**两侧对照表**，而不是一张账号级清单——不写清这层包含关系，设备本地那一半会无处登记。
 - **形态 = 具名类，不是字典 / 键值表。** 与「`CapabilityFlag` 用 `enum` 而非字符串 key」「`PlayerEntitlement` 用具名字段而非集合」同一条纪律：开放容器把「拼错了」从编译期推迟到运行时，还会让「哪些项是账号级」这个真问题被悄悄绕过。
-  - **落笔顺序：先答「设备本地项 vs 账号级项的切分」，再一次性定清单**（见待决问题）。那一条决定哪些字段进 `PlayerProfile`（云端权威 · 进 diff）、哪些留 `user://`；在它答定前填字段等于替用户拍板一次同步口径。
+- **随账号云端持久。** 账号级那一半与其他账号级字段一致，写入经 `profile-service.ProfileManager`、同步经 `sync-service`，云端为权威。
 - **本子系统为独立 markdown。** 结构轻，不成文件夹。
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md`
+### 切分判据：账号级还是设备本地
+
+> **一句话判据：这一项的正确取值是否取决于「这台机器」——硬件能力、系统环境、或只在本机成立的呈现状态？取决于 → 设备本地；纯粹是玩家的偏好、换台手机也应当跟着走 → 账号级。**
+
+- **自检反问（评审时用这一条）：** 「玩家换了一台新手机、登录同一个账号，他会不会觉得这一项**理应已经是他上次调好的样子**？」会 → 账号级；「新机器上本来就该重新调一次」→ 设备本地。它与上面的判据同解，但更容易执行。
+- **拿不准时归设备本地。** 两侧成本不对称：账号级一项 = 进 `PlayerProfile` + 进 diff + 进存档 schema + 进迁移路径 + 受 camelCase 机械映射约束；设备本地一项 = 一个 JSON 字段，玩家重设一次即可无损重建。故默认落设备本地，只有确实通过上面反问的才升上去。这与 `PlayerStatistics`「首批清单的价值在于小而无歧义」同向。
+- **切分不等于两个开关。** 一项设置**只能落一侧**，绝不两侧各存一份——那正是「内容层另设一个语言设置」被拒时点名的形态（设置屏会长出两个开关）。
+
+### 两侧对照表
+
+| 归属 | 键 | 类型 | 取值域 | 默认 | 载体 | 进 diff | 进存档 schema |
+|---|---|---|---|---|---|---|---|
+| 账号级 | `MasterVolume` | `int` | 0–100 | `100` | `PlayerProfile.gameSetting` | ✅ | ✅ |
+| 账号级 | `MusicVolume` | `int` | 0–100 | `80` | 同上 | ✅ | ✅ |
+| 账号级 | `SfxVolume` | `int` | 0–100 | `100` | 同上 | ✅ | ✅ |
+| 账号级 | `FastCombatAnimation` | `bool` | — | `false` | 同上 | ✅ | ✅ |
+| 设备本地 | `locale` | `string?` | `zh` \| `en` \| 缺省（跟随系统） | 缺省 | `user://cache/device-settings.json` | ❌ | ❌ |
+
+**三条音量轨的默认值 100 / 80 / 100 是待实测初值**（BGM 略低于音效，避免盖住出牌 / 结算的反馈音）；正确的调校时机是真机 + 响度目标定稿之后，见 `art/soundtracks/_index.md`。
+
+### 账号级：`GameSetting` 四字段
+
+```csharp
+public sealed class GameSetting     // 不被任何规则读，也不是统计计数
+{
+    public int  MasterVolume        { get; }   // 0–100 线性档位
+    public int  MusicVolume         { get; }   // 0–100
+    public int  SfxVolume           { get; }   // 0–100
+    public bool FastCombatAnimation { get; }   // 敌人回合基线节拍 0.2 s，见 ux/combat-ux.md
+}
+```
+
+- **本类不属两层中的任何一层，15 字段表的「层」格填 `—`。** 分层通则的判据是「有没有被**规则**读」，本类既不被规则读、也不是统计计数 ⇒ 两层都不落。**不为它立第三个层名**——那条判据是判据而不是分类学，为一个偏好字段造一个层名会让一条二值判据变三值。
+- **不设 `IsMuted` / `AudioEnabled` 布尔。** `MasterVolume == 0 ⟺ 静音`，是一次纯派生读取；这与「不设 `HasPremiumBundle`，因为 `HasPremiumBundle ⟺ BundleGrantOrdinal > 0`」是逐字相同的判据——**让重复字段从一开始就不存在**，比任何注释可靠。
+- **音量存 `int` 0–100 的线性档位，不存 `float`、不存 dB。** `float` 由 `PlayerPowerFragment.Accumulated` 取万分比整数的同一条理由排除（存档 / 跨端一致性 + 可复算 + 避免浮点比较）；dB 是**呈现层的换算**——`AudioServer.SetBusVolumeDb(bus, Mathf.LinearToDb(v / 100f))` 在音频层做一次，换算规则收敛在代码一处、不进存档。理由与「`Source` 上行走成员名、存档走整数 code，映射只在组装上行负载时做一次」同构。
+- **类内禁用 `Ordinal` / `Total` / `Count` 三个词缀（可机械检查）。** 三个词缀在本库各自绑定一层（`Ordinal` ⇒ 规则字段层，`Total` / `Count` ⇒ 统计计数层），出现在本类里即意味着有人把它当成了另一层的字段。禁用即让「层 = `—`」这一格可机械检查。
+- **字段名单数已合规**，类内亦无集合字段。
+
+**读档校验（一律可选缺失，绝不阻塞登录）：**
+
+| 情形 | 语义 | 处置 |
+|---|---|---|
+| 三个音量字段越界（`< 0` 或 `> 100`） | 可选缺失 | `GD.PushWarning` + 钳制到 `[0, 100]`，与 `Accumulated` 越界钳制同口径 |
+| 整个 `gameSetting` 缺失（老档） | 可选缺失 | 全字段取默认值，**不告警**（迁移的正常路径） |
+| 单个字段缺失 | 可选缺失 | 取该字段默认值 + `GD.PushWarning`（带字段名） |
+
+设置是纯偏好，读不出来的最坏后果是玩家重调一次滑条 ⇒ 一律不阻塞、不由历史重建。
+
+### 设备本地：`user://cache/device-settings.json`
+
+```json
+{ "schemaVersion": 1, "locale": "zh" }
+```
+
+- **与 `user://cache/` 的其余小文件同处、同纪律**：**原子写（走共享静态工具 `AtomicJsonFile`，见 `systems/architecture.md`）· 跨启动保留 · 不进存档 · 不进 Profile · 不上云 · 不进 diff**。
+- **不按 `accountId` 分区**，沿用 `dismissed-recommended-version.json` 的理由：它是设备维度的状态，不是账号数据。
+- **切账号不失效（承重，与另外两份相反）。** `sync-envelope.json` / `flags.json` 切账号即失效，因为它们**内含账号绑定的数据**；本文件一个账号字段也没有，切账号清掉它只会让玩家的语言在换号时莫名其妙地跳回系统语言。**「`user://cache/` 下的文件切账号即失效」不是通则，是那两份文件各自的性质。**
+- **它必须能在启动链最早期被读**（locale 归一发生在**登录之前**）⇒ **不得依赖 `account-service` / `sync-service` / `ContentRegistry` 的任何东西**。这是一条承重的时序约束：一旦有人给它加了一个「按账号取默认语言」的字段，归一就再也不能在登录前完成。它也是**不经 `LocalCacheManager` 写**的直接理由——那是 sync-service 的 manager。
+- **读取失败 = 整份可选缺失。** 文件不存在 / 解析失败 / `schemaVersion` 不认识 / `locale` 不在 `{zh, en}` 内 → `GD.PushWarning` + **整份丢弃** + 回落「跟随系统」路径，绝不阻塞启动、绝不弹任何东西。
+- **不走 `MigrationManager`。** 判据：**存档不可无损重建，本文件可**（玩家重设一次）。`schemaVersion` 这一格仍然要留——它让「不认识就整份丢弃」这个动作有依据可判。
+- **`deviceId` 不落本文件。** 两者失效口径不同：本文件「不认识就整份丢弃」是安全的（重设一次），而对 `deviceId` 那等于一次假换设备、在后端触发一次假挤下线。落点见 `systems/services/account-service.md`。
+
+### 语言项与启动期 locale 归一
+
+**`locale` 判给设备本地。** 启动链的顺序是「locale 归一（影响登录屏的服务条款 / 渠道按钮 / 错误文案）→ 登录 → 启动全量 pull」。若它是账号级字段：登录屏只能用系统 locale（此刻 profile 还没拉下来）；pull 成功后才拿到玩家设定的语言 ⇒ 主菜单出现的那一刻语言跳一次变；而「归一只发生一次（单点）」这条纪律要么被打破（变成两次 `SetLocale`），要么就得接受登录屏永远无视玩家的语言选择。三条都不可接受，且都是账号级这个归属直接导致的。
+
+**代价明写：换设备后语言不跟随，新设备回落「跟随系统」。** 实际影响很小——系统 locale 在新设备上通常本来就是玩家想要的那个，这正是切分判据反问所要的答案。
+
+- **归一链条只在链首加一个可选覆盖来源，单点不变**，完整链条见 `ux/error-and-blocking-ux.md`「语言开关只有一个」。
+- **设置屏改语言 = 写 `device-settings.json` + 调用同一个归一入口重跑一次。** **设置屏不得自己调 `TranslationServer.SetLocale`**，否则「非 `zh` / `en` 置 `zh`」这条兜底会在设置路径上被绕过。切换**不需要重启应用**：`res://text/` 侧由翻译键重取，内容层侧 `LocalizedText.Get()` 本就直读 `GetLocale()`、零分支。
+- **设置屏的语言行首批隐藏。** 英文列尚无实际文案，首批就把开关暴露给玩家等于给他一个通往空白的入口。**字段、文件与归一覆盖口首批就落**（结构先行，不挡多语言）；英文文案就位后开这一行是零成本的。**代价照录：首批 `device-settings.json` 实际只有读取方、没有写入方。**
+
+### 首批不收的候选（各带解除条件）
+
+| 候选 | 结论 | 理由 | 解除条件 |
+|---|---|---|---|
+| **震动 / 触觉反馈开关** | 不收 | 游戏里**当前一处震动都没有**（揭示转场明写「无震动」），且唯一可能引入震动的点（寿元告警）本身仍是待答项。收它 = 交付一个不控制任何东西的空开关，玩家关掉它什么也不会变 | 「寿元告警是否伴随音效 / 震动」答定为**有震动**，或战斗 UX 专场引入任一触觉反馈 ⇒ 补一项**设备本地** `haptics: bool`（触觉是硬件能力，部分机型无马达 ⇒ 判据判给设备本地） |
+| **画质档 / 分辨率缩放** | 不收 | 本作是 2D 卡牌、渲染器已锁 GL Compatibility（本身即最低负载档），没有可供分档的渲染负载；「画质」在 2D 项目里通常只能退化成一个安慰性开关 | 真机实测出现掉帧 / 发热，且确认存在一个**真的能换来帧率**的开关（粒子密度 / 特效层数）⇒ 补**设备本地**项 |
+| **帧率上限（30 / 60）** | 不收（但最有可能第一个被补上） | 移动端省电确有价值，且本库在意电量；但当前无任何实测证据说明本作需要它 | 真机功耗实测给出可观差值 ⇒ 补**设备本地** `frameRateCap: int` |
+| **二次确认开关** | 不收，且明确否决 | 它同时踩两条：① 「不做二次确认」是**规则层的手感取向**，不是可由玩家切换的偏好；② 已定的两处二次确认（解绑 · 绑定冲突）是**安全性必需、不可关**。一个总开关必然要么关不掉那两处（名不副实），要么关得掉（削弱一条安全纪律） | 无。若日后确需，应是逐处的产品决策，不是一个总开关 |
+| **辅助功能（字号 / 色盲 / 减少动效）** | 不收 | 字号与色盲当前没有任何既有陈述可依，凭空定即臆造；「减少动效」与已收的 `FastCombatAnimation` 高度重叠，两个开关会互相解释不清。至于「无 hover-only 可供性」，它已是全局设计通则——由通则承担的东西不该退化成一个可关的选项 | 无障碍专场；或战斗 UX 专场确认动效强度确实需要独立于速度的第二个旋钮 |
+| **内容语言（与界面语言分离）** | 明确否决 | 「语言开关只有一个」逐字点名过这个形态：玩家能把界面切成英文而卡面留在中文 | 无 |
+| **「同步版本 #N」** | **它不是设置项，不进 `GameSetting`** | 它是 `SyncService.BaseRevision` 这个只读属性在设置屏上的一次呈现，UI 直读即可。写成字段 = 制造第二份真值，且会把一个传输层元数据卷进存档 schema——与「`baseRevision` / `schemaVersion` 不进 Profile，进去会自指」同一条判据。**明写这条排除**，因为「设置屏上看得见的东西 = `gameSetting` 的字段」是一个非常自然的误读 | 无 |
+| **已关闭的推荐版本号** | 保持既定落点 `user://cache/dismissed-recommended-version.json` | **不并入** `device-settings.json`——一个是玩家显式偏好、一个是一次性呈现去重状态，生命周期不同，合并只换来一次改动、不换来任何收益 | 无 |
+
+### 写入通道、同步与版本化
+
+- **写入通道 = `ProfileChangeSpec` 的 `SettingChanges` 列**，配表 `SettingFields` 给出每个 key 的值类型 / 取值域 / 默认值；施加语义（绝对置值 · 按 key 钳制 · 恒不走 modifier pipeline）与失败语义见 `systems/services/profile-service.md`。字段不提供 setter。
+- **提交时机：滑条释放时提交一次，不是拖动中每帧提交。** 拖动过程中只做实时预览（直接改 `AudioServer` 的 bus 音量让玩家听见，不碰 profile）；`drag_ended` / 开关切换那一刻提交一次；离开设置屏时若存在未提交的预览值，强制提交一次。这是 UI 侧的一条纪律、不新增任何机制——「一次 `TryApply` 提交 ⇒ 一次本地原子写」下，每帧提交就是每帧一次磁盘原子写。
+- **`PushPolicy.Debounced` + `SavePointReason.MetaChanged`；设置变更不计软阻塞闸门。** 见 `systems/services/sync-service.md`。
+- **加一个设置项的成本可预期。** 账号级 = 本类加一个具名字段 + `SettingKey` 加一个成员 + `SettingFields` 加一行 + bump 一次 schema（老档缺字段取该行默认值，无损，后端零配合）；设备本地 = JSON 加一个字段（缺字段取默认，不 bump 任何 schema）。形态与 `PlayerEntitlement` 的表述同构——**这正是「具名类而非字典」换来的东西**：加项的成本是可预期的几步，而不是一个「往字典里塞个新 key」的口子。**推论：设备本地那一侧的加项成本近乎为零，与「拿不准时归设备本地」互相印证。**
+- **不做「版本化的默认值」**（老玩家沿用旧默认、新玩家用新默认）。它需要在存档里记「这个字段是显式设置的还是默认的」，等于给每个设置项加一个伴生布尔——为一个只影响观感的场景付双倍字段不成比例。**改默认值就是对所有未显式设置过的玩家一起改**，明写接受。
+- **不进透明段、后端零配合。** 后端不读它、不复算、不据它发放任何东西 ⇒ `/gameSetting/**` 不出现在透明路径白名单里（白名单权威在 `backend-design-documents/contracts/profile-sync.md` §5，本库不复制）。**但它仍受字段名机械映射为 JSON path 的约束**：改字段名仍要 bump `schemaVersion`，只是**不需要后端配合**。这两件事必须分开说，否则「Profile 字段都受路径稳定性纪律约束」会被读成「改个音量字段名也要与后端同批改」。
+- **离线改设置可能被云端覆盖，代价照录。** 玩家离线改了音量、另一台设备写入，恢复时补提交前先 pull 发现云端 `revision` 领先 ⇒ 以云端为准丢弃本地缓冲，那次改动回滚，玩家会看到既定的「另一设备的进度已生效」提示。**不为设置做任何补偿**——字段级三路合并正是 `ADR-0003` 排除的东西，为一个滑条位置削弱云端权威不成比例。
+
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-game-setting-schema.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -19,8 +113,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **设置项清单未定：** 除音量外还有哪些（画质 / 震动 / 语言 / 辅助功能 / 动画速度？）未设计。
-- **设备本地项 vs 账号级项的切分未定：** 部分设置（如画质、震动）与设备强相关，是否应留在本地 `user://` 而不上行云端待定。
+- **三条音量轨的默认值是待实测初值。** 100 / 80 / 100 的相对关系有依据，绝对值待真机与响度目标定稿后校准。→ `art/soundtracks/_index.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/game-setting.md`（待建）。

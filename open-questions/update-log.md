@@ -7,6 +7,31 @@
 > **只保留最近 10 条。** 更早的条目原样移入 [`update-log-archive.md`](update-log-archive.md)（按时间正序），
 > 一字未改、仅换了文件——本日志与归档合起来即全部历史（`decisions/ADR-0005`：台账不无限膨胀）。
 
+## 2026-08-19b（`/write-adr --game` · 全量固化 · 新建 19 份 ADR · 候选清单清空）
+
+- **范围**：客户端库全量候选——`open-questions.md`「下一阶段」两条 + 散落在七份主题文档 `## 决策(-> ADR)` 小节里的 17 条「ADR 候选（待固化）」。逐条回主题文档核对「事实是否已落地」，**19 条全部查有实据**，无一条判为查无实据或矛盾。
+- **新建 `ADR-0006` ~ `ADR-0024`**（19 份）：开发顺序 · 内容载体形态 · 五级层次词表 · 两条唯一入口 + 编排顶点 · 展示层三层切分 · API 契约总则 · 物化模型 · 纪律可执行化阶梯 · PlotManager 隶属 · 剧本树数据形态 · 隐藏属性档位模型 · capability flag + modifier pipeline · 道念计分模型 · 卡牌类型五分与战场划线 · 事件事务纪律 · `pastEvent` 痕迹 schema · Research 构筑面板 · 付费凭证与兑现 · 内购三渠道纳入 MVP。
+- **分组上的一处刻意偏离**：`plot-manager.md` 三条候选原注「宜与内容载体形态候选合并固化」。按「能否被单独推翻」判据拆为三份——剧本本地内容层与 overlay 剧本例外并入 `ADR-0007`，档位模型（`ADR-0016`）与剧本树数据形态（`ADR-0015`）各自单列，两者均可在不牵动内容载体形态的前提下被推翻。
+- **`decisions/_index.md`**：新增 19 行，全表按日期降序重排（同日按编号降序）；台账 ↔ 文件无不一致需修平。
+- **`open-questions.md`「下一阶段」的 ADR 段落改写为一行状态**：候选清单清空，指向 `decisions/_index.md`。该小节其余三条（流水线闭环 / 架构闭环缺口）与其他小节一字未动。
+- **主题文档未改**：各 `## 决策(-> ADR)` 小节里的「ADR 候选（待固化）」标注仍在原处，改指到具体 ADR 号属主题文档写入，不在本技能范围内 —— 留给下次 `/analyze-new-ideas` 或 `/summarize-open-questions` 清理。
+
+## 2026-08-19（`/batch-analyze-new-ideas` · 10 份 `decided` 草稿一次清完 · 移出 20 条 · 新增 2 条 · **跨库**）
+
+- **来源**：`inbox/` 顶层全部十份 `status: decided` 的 solution-draft —— `CostKey`/`StatKey` 注册表 · `ProfileChangeSpec` 载体缺口 · `CodexEntry` schema · `GameSetting` schema · `BundleGrantOrdinal` 施加权 · `architecture.md` 结构残留 · `deviceId` 供给 · 拆解粒度与签核 · 英文占位形态 · `PickMany` 短缺处置。产出 `handoffs/2026-08-19-*` 十份 + 后端 `2026-08-19-breakdown-granularity-and-signoff.md`。逐条移出记录见十份 `../answer-logs/log-*.md`。
+- **合并 interview 48 项裁决，全部取推荐项。** 十份草稿虽都已由用户逐条评审至「取向零剩余」，Phase A 交叉校验仍查出 21 条与既有权威相抵或草稿自相矛盾的硬冲突。要紧的几条：
+  - **兑现循环写错会付两次拿一份** —— `ordinal = BundleGrantOrdinal` 与「差值 > 1 时逐一按序兑现」不可同时成立（差值为 2 时中间序号永不兑现）。改 `ordinal = Redeemed + 1` 循环；「差值 ≤ 1」的不变式只保证单设备，挡不住两台设备各自付款。
+  - **`Project` 的签名借错了档** —— `bool TryProject(..., out ...)` 是「可选缺失」的形状配「必需缺失」的严重度，全库无先例。改 `PlayerProfile Project(spec)` + `PushError` + `throw`。
+  - **战斗内逐点提交会把约 31 份完整 `ActiveCombat` 块灌进 `AppliedChange`**（2–4 KB/份），与痕迹侧只存轻摘要的体积纪律正面相抵。明写累加时的列剔除清单。
+  - **闸③的「另取一条填补批次」就是单项补位**，直接推翻 `future-event-service.md` 明写的「不设单项补位」。整条作废，抽不足即本批少一项。
+  - **`SettingAssignment` 的失败语义不可机械检查** —— `bool` 缺省 `false` 与合法 `false` 同形、`int` 缺省 `0` 与合法 `0`（静音）同形。改 `int?` / `bool?`。
+  - **退避公式 `±20%` 会以 0.8× 击穿服务端下界**，改为只向上抖 `× (1 + rand[0,0.2])`。
+  - **草稿的一条承重理由是假陈述** —— arch 草稿称「纪律 7 至今无主题文档承载」，实则 `common-properties.md:202` 逐字载有。新建 `viewmodel.md` 的结论不变，但该假陈述不得按「保留理由」写进活文档。
+- **跨草稿矛盾（逐个跑发现不了，本批独有）**：game-setting 的「`en` 列全部预设占位符」与 translation 的「`en` 留空、不写哨兵值」直接相抵，而两份都要写 `ux/error-and-blocking-ux.md`。统一取留空口径。另有三处共写面按单写者收口：`terminology.md` 的 `ProfileChangeSpec` 列枚举（四列一次加齐）· `sync-service.md` 的 schema bump（**全库只此一句**，涵盖四个新增列与两个子对象 schema）· `AtomicJsonFile` 共享工具（本体登记 `systems/architecture.md`）。
+- **新增待答 2 条**（均落 `05-service-contracts.md`）：上行整键回声校验的适用面未穷举（`accountInfo` 是与 `entitlement` 同形的第二处）· 做一次 `architecture.md ↔ services/*` 的待决问题与投影表对账（本批已发现两个过期登记实例）。
+- **松动的既有定案两处**（用户知情后批准）：pickmany 的「零 UI 改动、零文案键」为 reroll 前置校验松一格；breakdown 的软下界由「L1~L4 合取」改为「L1 ∨ L2 触发、L3/L4 降为辅助信号」。另按授权直接改写 `decisions/ADR-0005`（归属判据入 ADR，未新开取代 ADR）。
+- **`systems/architecture.md` 的「待决问题」现已清空**（本批多个分片各清掉几条）。`user://cache/` 的 schema 版本要求由全称改为判据形态，三处同源措辞（含 `.claude/rules/state-save-rules.md`）同批改齐。
+
 ## 2026-08-17h（`/batch-analyze-new-ideas` · 5 份客户端草稿 + 1 份后端 counterpart · 移出 11 条 · 新增 9 条 · **跨库**）
 
 - **来源**：`inbox/` 的五份 `status: reviewed` solution-draft 一次清完 —— element 载体缺口 · 两层 Profile 字段 schema · `EventOption` 物化字段清单 · 派生实例落存档 · 抽取原语与物化实例形态；对侧 `backend-design-documents/inbox/solution-draft-profile-field-schema.md` 同批纳入。产出 `handoffs/2026-08-17g` ~ `2026-08-17k` 五份 + 后端 `2026-08-17-profile-field-naming.md`。逐条移出记录见五份 `../answer-logs/log-*.md`。
@@ -16,7 +41,7 @@
   - **`activeCombat.enemyRef` 是一个双方都以为对方在答的洞** —— 字段 schema 草稿写「归抽取原语那片答」，而那片没答。本次定为 `EnemyInstance.InstanceId`，经 `activeEvent` 比对。
 - **两条承重纪律的正面冲突用新增设施化解，而非改写任何一条。** 「一个事件的收口是一次事务、一个存档点」与「依**更新后**的 profile 重算、`pastEvent` 是一等输入」在收口那一刻互相顶牛：新一批塞进同一次 `TryApply` 只能算在尚未落账的旧 profile 上，拆两次提交又破前者。裁决取**只读投影 `Project(spec)`**（先算后提交），两条纪律一字未动。
 - **本批新增的最大一块承重正文：`architecture.md` 的「三级判据」** —— 「一个新的施加语义该落在哪里」自上而下三问（① 分列 ⟺ 六面核对全不对齐 / ② 加 `Op` ⟺ 同族但方向或形式不同 / ③ 配表加列 ⟺ 该性质是 element 类型的属性），附反判据「同一 key 的不同次变更可能取不同值 ⇒ 必须逐条带；唯『谁有权改写它』永远配表」。它约束此后所有 element 形态问题。
-- **结构增量汇总（一次 bump、空迁移）**：`ProfileChangeSpec` 5 → **7 列**（`PlotElements` + `EventStateChanges`）· `ChangeElement` 增 `ApplyOp Op` · `ElementSpec` 增第六列 `AllowedOps` · `DeckChangeOp` 4 → 5 值（`AddLooseCard`）· `EventOption` 11 → **13 格**（`OutcomeSpec` + `Encounter`）· `PastEventEntry` 增 `EnemyTraceRef` · `CharacterProfile` 增七格（五个新字段 + `eventOption` + `activeEvent`）· `PlayerProfile` 六 Codex 具名字段与四类持有条目定形 · 新登记枚举 `Realm` / `ApplyOp` / `ApplyOps` / `PlotArcState` / `EventStateKey` · `CostKey` 增 `Experience` / `Faith` / `MaleficQi`。
+- **结构增量汇总（一次 bump、空迁移）**：`ProfileChangeSpec` 5 → **7 列**（`PlotElements` + `EventStateChanges`）· `ChangeElement` 增 `ApplyOp Op` · `ElementSpec` 增第六列 `AllowedOps` · `DeckChangeOp` 4 → 5 值（`AddLooseCard`）· `EventOption` 11 → **13 格**（`OutcomeSpec` + `Encounter`）· `PastEventEntry` 增 `EnemyTraceRef` · `CharacterProfile` 增七格（五个新字段 + `eventOption` + `activeEvent`）· `PlayerProfile` 六 Codex 具名字段与四类持有条目定形 · 新登记枚举 `Realm` / `ApplyOp` / `ApplyOps` / `PlotArcState` / `EventStateKey` · `CostKey` 增 `Experience` / `Faith` / `Bloodlust`。
 - **跨库对称落笔（这是本批解除「拆两次运行、第二次经常不发生」那条老账的一次实践）**：客户端裁定「集合字段名全库统一为单数」并把条目键名收口为 `powerId` / `itemId` ⇒ 后端同批改 `contracts/profile-sync.md` §5 白名单与排除清单四条路径 + 新增 §5b 命名通则与**一次性切换的三个成立前提**（线上无真实账号数据 · 两侧同批落笔 · 一次性不设兼容期）+ `schemaVersion` bump。**单数通则的适用边界一并钉死**：受约束的只有两层 Profile 及其子对象的**存档字段名**；`characterDiffs` / `playerDiff`（diff 报文结构）与运行时 / 内容侧集合属性**不受约束**。**§6 算法与 §6a 的 8 组测试向量零改动**（已三重自查）。
 - **两处既有漂移顺手修**：`terminology.md` 的 `ProfileChangeSpec` 词条此前只列到 4 列（连 `DeckElements` 都缺）· `achievement/_index.md` 写着「日后全库统一把集合字段改为**复数**」的预言，与本次方向相反。另 `combat-service.md` 一句错话（把 `currentMana` 也说成「战斗内不变」）一并改正。
 - **移出 11 条**：`01` 分片 2 条（统一抽取收口 · `PoolScope` 数据形态）· `02` 分片 3 条（完整物化字段清单 · 派生实例落存档 · 物化后敌人实例类型形态）· `04` 分片 1 条（`PlotModulation` 字段面）· `05` 分片 4 条（`ApplyOp` 列 · 散牌入组载体 · `plotKeyPoint` element 形态 · 道心 / 煞气入 `CostKey`）· 后端 2 条（切换时序 · `ordinal` 口径确认，其中后者零改动关闭）。**收窄 3 条**（`RarityTier` 只剩数值面 · `Priority` 只剩抬升条件 · 角色模板池只剩取值面）。

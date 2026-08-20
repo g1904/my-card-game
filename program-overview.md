@@ -71,7 +71,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 |------|------|------|
 | **game-progression** | 屏幕流程编排层 | **编排顶点**——串联核心循环；服务不互相直呼 |
 | **EventBus** | autoload | 广播既成事实，解耦跨系统通知 |
-| **ViewModel** | 呈现期对象 | `Data + 运行时状态 → 屏幕`；不落存档、不进云端负载 |
+| **ViewModel** | 呈现期对象 | `Data + 运行时状态 → 屏幕`；不落存档、不进云端负载。完整契约见 `systems/viewmodel.md` |
 
 ---
 

@@ -296,6 +296,17 @@
   - **置换候选池不用本表**（它按锚定稀有度过滤后同档等概率）；**战后奖励池另有自己的权重表**，仍待定（见待决问题）。
   - **分表维度 = 按用途（授予 / 战后奖励），不按渠道（打 / 买）、也不按 `(Kind, Scope)`（结构结论）。** 授予与战后奖励是两个不同的分布诉求，故分表；按渠道分表等于让付费直接买到更高档强度；按 `(Kind, Scope)` 分表则让四个池各多一张要维护的表，而它们的稀有度分布诉求相同。**权重表一律住本文件、不落 `DrawPool<T>`**；抽取侧唯一的接入点是加权 `PickOne` / `PickMany` 的权重参数。
   - **连带常量 `GrantPoolMargin`（闸 ① 的编排余量）：** 内容加载期校验 `(Power, Player)` / `(Item, Player)` 通用池条目数 ≥ **支撑 K 次重复购买所需**（`K × 1` / `K × 2`）+ 本余量，不足 → `PushError`。**礼包为可重复购买**（① ② 每次都给，见 `systems/monetization.md`）⇒「礼包所需」不是一次的量，**余量的语义是「留给第 K+1 次的缓冲」**。**`K` 与余量取值待内容侧条目规模明朗后给**，结构已定。
+- **取池余量三格：`GrantPoolMargin` · `ResearchPoolMargin` · `ExchangePoolMargin`（同表不同值）。** 三者形态相同——都是**加载期硬校验在「所需条数」之上要求的池余量**，不足即 `PushError`；用途与量级不同，故各占一格。
+
+  | 参数 | 加在什么之上 | 落点 |
+  |---|---|---|
+  | `GrantPoolMargin` | `(Power, Player)` / `(Item, Player)` 通用池 ≥ 支撑 K 次重复购买所需 | `systems/monetization.md` |
+  | `ResearchPoolMargin` | 每个 `ResearchSlotSpec` 的每类内容池型操作 ≥ `CandidateCount` | `systems/adventure-event/research/common-properties.md` |
+  | `ExchangePoolMargin` | 逐 `Kind` 逐 `RarityTier` 档位 ≥ 覆盖该档位的 Σ`SlotCount` | `systems/adventure-event/exchange/common-properties.md` |
+
+  - **为什么必须有余量，而不是只断言「≥ 所需」：** 三条取池链都含**排除已持有**，池随玩家推进单调收缩；一个恰好等于所需的静态池在轮回中段必然短缺。
+  - **为什么不焊成同一个数：** 三处的用途量级差异明显（防退款争议 vs 防构筑面板缩水 vs 防商店冷清），共用一格则调其一必动其二。
+  - **取值归 ch1 数值标杆专场，可先填 0：** 结构与断言不依赖取值，形态与「首批内容默认关闭 reroll」同一种偏好。
 - **篇章重试上限 = 平衡资源里的两行，由付费凭证选行。** 重试上限是可变量，其落地形态：
 
   | 篇章 | 免费档（基准） | 付费档（持 premium bundle） |
@@ -315,11 +326,15 @@
   | push 防抖窗口 | **5 s** | `systems/services/sync-service.md` |
   | 断线缓冲上限（未同步的**事件级**存档点数，不含决策点存档） | **3** | 同上 |
   | 断线缓冲上限（最早变更滞留时长） | **180 s** | 同上 |
+  | push 退避底数 / 因子 | **2 s 起 · ×2** | `systems/services/sync-service.md` |
+  | push 退避上限（cap） | **60 s**（硬约束：必须 < 滞留闸门 180 s） | 同上 |
+  | push 退避抖动 | **+0 ~ 20%（乘性，只向上）** | 同上 |
+  | push 退避放弃阈值 | **无**（永不放弃；只在 `Upgrade` / `session_revoked` 两态暂停） | 同上 |
   | overlay 下载重试次数 / 退避 | **3 次 / 1s · 2s · 4s** | `systems/services/content-service.md` |
   | 剧本预取深度 | **下一批 eventOptions 对应的 key points** | `systems/services/plot-manager.md` |
 
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-architecture-structural-residuals.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
@@ -332,7 +347,7 @@ Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` 
 - **商店定价表每格填多少 · Exchange 的三组数值格（归 ch1 数值标杆专场）：** 表的**形态**已定（「商品族 × 稀有度」、内容条目只标偏移、不设篇章维），仍待定每格取值，以及刷新基价 / 递增量、回收率、槽位总数上界。**定价表的绝对数字被灵玉的获取渠道阻塞**——产出侧一片空白时无从反推消耗侧。→ `systems/character-profile/currency.md`、`systems/adventure-event/exchange/_index.md`。
 - **道念的两组剩余数值：** **起始值已定**（`baseMomentum` 表）、**负侧换算已定**（道念差 1:1）、**胜侧换算已定**（两条支路 + 单价表）。仍待定且**已归 ch1 数值标杆专场**：卡牌的道念产出 / 削减量、敌人各等级的道念产出缩放。→ `systems/scoring.md`、`systems/adventure-event/combat/`。
 - **成本类型的 element 清单与数值分档未定：** `selectCost` 已定为**定制复合成本类型**、`lifeSpanCost` 为其一个 element（内容侧正数量值）；其余 element（jade / mana / 道具 / 隐藏属性推拉？）、各 element 的数据形态与基准分档均未定。→ `systems/adventure-event/common-properties.md`。
-- **`RarityTier` 的分布与剩余权重表：** 五档已定名并挂上 `PowerData` / `ItemData` / `CardData`；**授予池的权重表已定**（见上方 `GrantPoolWeights`），**置换候选池不需要权重表**（同档等概率）。仍待定：**战后奖励池**各档权重（按优势档 `Tier` 三档各一张表），以及内容侧「每档应有多少条目」的编排口径；另有 `GrantPoolMargin` 的具体取值（结构已定、数值待内容规模明朗）。→ `systems/services/combat-service.md`、`systems/player-profile/player-power/_index.md`。
+- **`RarityTier` 的分布与剩余权重表：** 五档已定名并挂上 `PowerData` / `ItemData` / `CardData`；**授予池的权重表已定**（见上方 `GrantPoolWeights`），**置换候选池不需要权重表**（同档等概率）。仍待定：**战后奖励池**各档权重（按优势档 `Tier` 三档各一张表），以及内容侧「每档应有多少条目」的编排口径；另有三格取池余量（`GrantPoolMargin` / `ResearchPoolMargin` / `ExchangePoolMargin`）的具体取值（结构已定、数值待内容规模明朗，可先填 0 而不阻塞落地）。→ `systems/services/combat-service.md`、`systems/player-profile/player-power/_index.md`、`systems/adventure-event/research/common-properties.md`、`systems/adventure-event/exchange/common-properties.md`。
 - **重试上限的两档数值是否再调：** **落点已定**——两行住在平衡资源、由 `HasPremiumBundle` 选行（见上方条目），故它已是可调平衡项；仍待定的只有**数值本身**是否随实测调整。
 - **回寿量三档的绝对点数（归 ch1 数值标杆专场）：** `5% / 10% / 20% × ch1 / ch2 / ch3` 折算出的点数，以及它与 `lifeSpanCost` 定价表的联合反推（一次回寿折合「几个事件的时间」）。**标定口径与三档比例已定**（见上方条目），只欠取值；**不阻塞结构**。→ `systems/adventure-event/common-properties.md`。
 - **闭关构筑面板的三个数值格（归 ch1 数值标杆专场）：** `Recuperate` 的 `lifeTotal` 回复量 · 走火入魔风险档候选的出现权重 · 开局构筑条目 `lifeSpanCost = 0` 的覆盖登记（形态是既有的条目级覆盖通道，只欠在定价表里记一笔）。形态均已定，见 `systems/adventure-event/research/_index.md`。

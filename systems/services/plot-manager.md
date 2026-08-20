@@ -20,7 +20,7 @@
 
   即：三个 **Chapter** 相连组成一个 **Story**；Chapter 内可穿插 **SideChapter**，跨 Chapter 可穿插 **SideStory**。
 
-- **隐藏属性驱动。** 属性模型借鉴 **Reigns** 但**反其道：属性隐藏、不作可见仪表**。隐藏属性（**道心 / faith**、**煞气 / malefic qi**、**寿元 / lifeSpan**）**跨入某个带 `PlotTriggerId` 的档位**时触发对应剧情线。隐藏属性落在 `CharacterProfile.Status`（见 `life-cycle-service.md` 与 `systems/character-profile/`）；由 AdventureEvent 推拉，一切写入经 `profile-service.ProfileManager`。
+- **隐藏属性驱动。** 属性模型借鉴 **Reigns** 但**反其道：属性隐藏、不作可见仪表**。隐藏属性（**道心 / faith**、**煞气 / Bloodlust**、**寿元 / lifeSpan**）**跨入某个带 `PlotTriggerId` 的档位**时触发对应剧情线。隐藏属性落在 `CharacterProfile.Status`（见 `life-cycle-service.md` 与 `systems/character-profile/`）；由 AdventureEvent 推拉，一切写入经 `profile-service.ProfileManager`。
 
 - **跨档给定性叙事反馈（数值仍隐藏）。** 数值继续隐藏，但**当某个隐藏属性跨过一个隐藏档位时，给一条定性的叙事描述**——**给方向与因果，不给数字**：
 
@@ -64,7 +64,7 @@
 
 - **取值域与档位表。**
 
-  **道心 faith：`[0, 100]`，轮回起始 `50`，双向推拉**（它是「状态」：心境澄明 ↔ 心魔渐生）。**煞气 malefic qi：`[0, 100]`，轮回起始 `0`，以上行为主、可被净化类事件下拉**（它是「累积物」，既定的「累积到阈值触发煞气反噬」直接对应最高档）。**施加后截断到 `[0, 100]`，不构成终态**（与寿元不同）——两者的区间与终态语义与其余资源 element 同形，逐条写在 `ResourceElements` 表里，见 `systems/services/profile-service.md`。
+  **道心 faith：`[0, 100]`，轮回起始 `50`，双向推拉**（它是「状态」：心境澄明 ↔ 心魔渐生）。**煞气 Bloodlust：`[0, 100]`，轮回起始 `0`，以上行为主、可被净化类事件下拉**（它是「累积物」，既定的「累积到阈值触发煞气反噬」直接对应最高档）。**施加后截断到 `[0, 100]`，不构成终态**（与寿元不同）——两者的区间与终态语义与其余资源 element 同形，逐条写在 `ResourceElements` 表里，见 `systems/services/profile-service.md`。
 
   **有界的理由：** 无界属性的档位只能靠不断加新档追赶，而档位是内容条目、**overlay 只改不增** ⇒ 加档必须发版。有界 + 顶档吸收溢出，使档数在整条内容生命周期里是常量。寿元不套用本条（它已有既定预算模型）。
 
@@ -128,7 +128,7 @@
   public partial class HiddenStatBandData : Resource
   {
       [Export] public string     Id             { get; set; }  // "plot.band.faith.2"
-      [Export] public HiddenStat Stat           { get; set; }  // Faith | MaleficQi | LifeSpan
+      [Export] public HiddenStat Stat           { get; set; }  // Faith | Bloodlust | LifeSpan
       [Export] public int        BandIndex      { get; set; }  // 带符号：0 = 常态，|值| 越大越远离常态
       [Export] public int        EnterValue     { get; set; }  // 该档朝常态一侧的边界；LifeSpan 以百分点书写
       [Export] public int        Hysteresis     { get; set; }  // δ，退出阈值 = EnterValue 向常态方向放宽 δ
@@ -139,7 +139,7 @@
   ```
 
   - **档位文案的正文单独成条目**（与 Finale 补白共用那个定性文案类型），本类只持 `Id` 数组——与「快照 / 结构里不存字符串正文」的既有分层一致，也让文案与档位可各自热更。**这条只对档位叙事成立，不推广到剧本正文**：档位文案拆条目是因为每档 2–3 条候选可等概率取一、可单独关掉；剧本节点的正文是一对一、不可替换、与节点同生同灭的，且定性文案类型照旧只改不增（见下方「剧本正文内嵌在节点上」）。
-  - `HiddenStat` 是枚举 `{ Faith, MaleficQi, LifeSpan }`（API 表已在用这个类型名）。
+  - `HiddenStat` 是枚举 `{ Faith, Bloodlust, LifeSpan }`（API 表已在用这个类型名）。
   - **热更边界（承重）：阈值 / δ / 文案可线上改，档数不可线上增减**（overlay 只改不增 ⇒ 加一档必须发版）。这正是取值域取有界的原因。
   - **档位条目恒启用，文案条目照常参与放量。** 档位解析走**全量视图**、不经 `AllEnabled()` 抽取池——判据是 content-service 的既定不对称（**过滤只在产出侧**，而档位判定是**查表读取**）；关掉一档会在档位表上造出空洞、触发假跨档。故 `HiddenStatBandData.ContentEnabled == false` → 加载期 **`PushError`**；文案条目不受此限（每档 2–3 条候选，关一条只是少一个候选），秒关一条措辞的运营手段因此保留。
   - **overlay 改阈值后的对齐：** 热更后首次 `eventEnd` 时若存档 band 与按新阈值算出的档不符 → **直接对齐、不播叙事**、`PushWarning` 留痕。否则一次数值热更会给全体在线玩家批量假跨档。
@@ -395,7 +395,7 @@
 ### event / EventData（剧本内容侧）
 - **event = 剧本内容单元。** 承载**提示文本以及分支式的选择 / 结果**；AdventurePlot 负责结构模型，event 内容侧负责具体剧本文本与分支。event 内容是**本地内容条目**（`res://` 基线 + overlay，经 ContentRegistry 按 `Id` 读取），由 key points 定位。
 - **隐藏属性驱动剧情线（三条）：**
-  - **煞气 / malefic qi** —— 跨入 Band 3（75+）→ 触发 **「煞气反噬」** 剧情线（经 `PlotTriggerId`）。
+  - **煞气 / Bloodlust** —— 跨入 Band 3（75+）→ 触发 **「煞气反噬」** 剧情线（经 `PlotTriggerId`）。
   - **道心 / faith** —— 跨入 Band `−2`（0–19）→ 触发 **「心魔滋生」** 剧情线（经 `PlotTriggerId`）。**该档无叙事文案**，剧情线与调制是它唯一的显影通道。
   - **寿元 / lifeSpan** —— 递减到 0 → 触发 **「大限将至」**（角色 defeated）。**它对应终态而非任何一档**，不经 `PlotTriggerId` 通道。
 

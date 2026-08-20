@@ -286,7 +286,7 @@ public readonly record struct PlotKeyPointAssignment(
 
 - **`CostKey` 资源族的完整清单（承重待决，另案）。** `AllowedOps` 的**逐行取值**对后四个 key（`PowerFragment*` 三项 + `BundleGrantOrdinal`）随它们各自登记时才生效；**表结构与三条连带规则不依赖它**，可先落。
 - **`PowerFragmentFirstWin(chapter)` 的 key 形态未定**（参数化 key 如何进 `CostKey`）。它那一行的 `AllowedOps = Set` 是形态定后才能落的一格。
-- **`Faith` / `MaleficQi` 是否列入 `CostKey`**（不在本批）。若列入，两行的 `AllowedOps` 需一并裁定——**建议届时取 `Add`**（既定「经隐藏属性推拉施加」是增减语义），但本草稿不预设。
+- **`Faith` / `Bloodlust` 是否列入 `CostKey`**（不在本批）。若列入，两行的 `AllowedOps` 需一并裁定——**建议届时取 `Add`**（既定「经隐藏属性推拉施加」是增减语义），但本草稿不预设。
 - **`plotKeyPoint` 的内容侧逐条映射**（哪个 arc 在哪个节点触发什么）归 ch1 / plot 专场，与本方案的载体形态无关。
 - **⚠ 与 S1 分片（`CharacterProfile` / `PlayerProfile` 字段 schema）的对齐：** 本方案**只改变更规格（spec）一侧，不定任何 Profile 字段**。但两处形状必须一致 ——
   - `PlotKeyPointAssignment` 是 `PlotKeyPoint` record 的镜像。**若 S1 改动 `PlotKeyPoint` 的字段集**（增删字段 / 改名 / 改 `PlotArcState` 值域），`PlotElements` 的载荷须同步，否则 upsert 装不下。
@@ -305,7 +305,7 @@ public readonly record struct PlotKeyPointAssignment(
 >
 > **本轮同批裁定的连带（跨分片，orchestrator 合并）：**
 > - **本草稿的三处类型改动与同批 S3 的 `EventStateChanges` 列在同一段代码块内，必须一次落笔**：`ProfileChangeSpec` 本轮共增**两列**（`PlotElements` + `EventStateChanges`），`ChangeElement` 增第三字段，`ElementSpec` 增第六列。成本侧恒空断言**逐列独立写**、不合并成通则。
-> - **同批 S1 从 Profile 字段侧独立撞到同一条裂缝**（`looseCard` 缺增向 `Op`），与本草稿的 `AddLooseCard` 互为印证；S1 同时发现 `experiencePoint` / `faith` / `maleficQi` 缺 `CostKey` 成员 ⇒ 用户裁定**同批把 `Experience` / `Faith` / `MaleficQi` 登记为 `CostKey` 成员**。本草稿对 `Faith` / `MaleficQi` 只给了「届时建议 `Add`」而未预设——该建议此刻生效，三个新成员的 `AllowedOps` 取 `Add`。
+> - **同批 S1 从 Profile 字段侧独立撞到同一条裂缝**（`looseCard` 缺增向 `Op`），与本草稿的 `AddLooseCard` 互为印证；S1 同时发现 `experiencePoint` / `faith` / `bloodlust` 缺 `CostKey` 成员 ⇒ 用户裁定**同批把 `Experience` / `Faith` / `Bloodlust` 登记为 `CostKey` 成员**。本草稿对 `Faith` / `Bloodlust` 只给了「届时建议 `Add`」而未预设——该建议此刻生效，三个新成员的 `AllowedOps` 取 `Add`。
 > - 五份草稿的 schema bump **合并为同一次**。
 >
 > 下列原文保留为选项与理由的溯源。

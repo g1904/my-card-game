@@ -317,7 +317,7 @@ public enum AdvanceMode    { Select, Skip }
 public enum CycleStatus    { Ongoing, Defeated, Completed }
 public enum DefeatReason   { Discarded, LifeSpanExhausted, CombatLost }
 public enum CapabilityFlag { RevealHiddenStats, ShowMysteryType, ShowSkipCost /* 可加 */ }   // 裁决 4 = A
-public enum HiddenStat     { Faith, MaleficQi, LifeSpan }
+public enum HiddenStat     { Faith, Bloodlust, LifeSpan }
 public enum RngStream      { Map, Combat, Shop, Reward }
 public enum EventType      { Practice, Combat, Research, Exchange, Social, Mystery, Finale, Explore, Travel }
 ```

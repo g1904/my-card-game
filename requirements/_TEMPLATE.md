@@ -7,7 +7,8 @@
     - systems/<doc>.md
     - vision/<doc>.md          # (as applicable)
     - decisions/ADR-####.md    # (if a settled call constrains it)
-- status: draft                   # draft | ready | blueprinted | built
+- status: draft                   # draft | ready | broken-down | blueprinted | built
+- signed-off-as:                  # 迁入 broken-down 时填：ready | draft（迁入前的签核状态；子需求签核规则读这一格）
 - blueprint:                      # link to .claude/blueprints/<slug>.md once /blueprint runs
 - depends-on:                     # other FR ids this one requires first (build order)
 

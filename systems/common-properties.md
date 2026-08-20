@@ -85,13 +85,14 @@
     - **理由是一条会稳定误报的缺口，不是文风：** 后端拿到上行 profile 后，用**存档里的**序号（必然是自增后的值）复算 `roll'` 并要求它与 `LastRoll` 相等；客户端若用自增前的值掷骰，两侧永远对不上，而这条校验的用途正是抓种子篡改 / 序号刷 / 换设备重掷——它会在**每一个正常账号上**触发。复算口径见 `backend-design-documents/contracts/profile-sync.md` §7。
     - **序号自增与「是否抽中 / 是否发放」无关**：静默停摆时照常 `+1`，否则下一次复用同一 `ordinal`、掷出完全相同的序列，幂等键当场失效。
   - **单调序号同时是幂等键**——同一 `(stream, ordinal)` 重复结算得同一结果，退出重进 / push 重放都不改变结果，与决策点存档的防重掷同一条纪律。**一次授予要抽多条时（礼包的 1 法则 + 2 古宝）共用同一个 rng 实例连续抽**，故整次授予由 `(stream, ordinal)` 完全确定。
-  - **对轮回可复现性零影响**（不派生自 `CycleSeed`、不消耗任何子流 `State`）。两个用例：**道统残卷**（`PowerFragment` 域，序号 = `FinaleWinOrdinal`，见 `systems/player-profile/player-power/_index.md`）与 **premium bundle**（`PremiumBundle` 域，序号 = `BundleGrantOrdinal`，落点见 `systems/monetization.md` 的待决项）。**「持有的账号级内容不同 ⇒ 同一 seed 的轮回体验不同」不构成公平性问题**：账号状态本就是轮回的输入（deck、法则、古宝皆然），既定的确定性承诺只覆盖「同一存档恢复后能正确继续」。
+  - **对轮回可复现性零影响**（不派生自 `CycleSeed`、不消耗任何子流 `State`）。两个用例：**道统残卷**（`PowerFragment` 域，序号 = `FinaleWinOrdinal`，见 `systems/player-profile/player-power/_index.md`）与 **premium bundle**（`PremiumBundle` 域，序号 = **本次兑现的 `ordinal`**——`BundleGrantOrdinal` 是它的上界，兑现循环从 `BundleRedeemedOrdinal + 1` 逐个追平；见 `systems/monetization.md`）。**「持有的账号级内容不同 ⇒ 同一 seed 的轮回体验不同」不构成公平性问题**：账号状态本就是轮回的输入（deck、法则、古宝皆然），既定的确定性承诺只覆盖「同一存档恢复后能正确继续」。
 - **确定性的边界：同一 `contentVersion` 内。** 内容热更**以 overlay 更新为准**——轮回进行中 overlay 更新时新数值立即生效，**不冻结该轮回的 `contentVersion`**。因此本项目**不承诺「同一 seed 跨内容版本复现同一轮回」**：seeded RNG 的目的是消除未加种子的随机、保证存档恢复后能正确继续，而非提供跨版本的绝对可复现性。数值可随时线上修正的价值高于跨版本复现。详见 `systems/services/content-service.md`。
 
 ### 存档版本化与原子写入（强制在线 · 云端权威）
 - **强制在线 · 云端权威**：进度实时同步云端，本地↔云端冲突以云端为准；本地 `user://` 仅作缓存 / 离线临时态。Source: `decisions/ADR-0003-online-cloud-authority.md`。
-- **原子写入**：先序列化到临时文件，再重命名覆盖；对本地缓存与上行云端负载都原子、带版本。
+- **原子写入**：先序列化到临时文件，再重命名覆盖；本地缓存与上行云端负载**一律原子**。实现走共享静态工具 `AtomicJsonFile`，见 `systems/architecture.md`。
 - **给存档加 schema 版本字段 + 迁移路径**；读取时校验版本 / 内容 id / 字段，未知或不匹配以清晰错误 / 迁移处理，绝不静默 null。Source: `.claude/rules/state-save-rules.md`。
+- **带版本是按判据的，不是全称的。** **多字段的结构体（存档聚合、上行 / 缓存信封）必须带版本并有一条迁移路径**——它们的字段面会增长，读到不认识的结构而无版本可判即坏档。**单字段的设备维度小文件不带版本**：迁移面为空，那一格纯属仪式，且配套的「版本不认识就整份丢弃」对某些文件有害。判据是**这份文件的结构会不会增长到需要逐版迁移**。
 
 ### Null / 结果校验（强制）
 - 每次节点查找、资源加载、注册表 / 字典查找、存档读取之后，使用前**显式校验**：必需但缺失 → `GD.PushError` + 定位上下文（id / 路径）并退出；可选但缺失 → `GD.PushWarning` + 安全默认值。绝不把未检查的 null 向下游传递。Source: `.claude/rules/null-check-rules.md`。
@@ -189,8 +190,11 @@ public partial class LocalizedText : Resource
 }
 ```
 
-- **挂载面 = 一切面向玩家的内容文本字段：** `CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PowerData` 的**显示名 · 描述 · 风味文案**；`HiddenStatBandData` 的档位叙事条目；Finale「失败但存活」补白；AdventurePlot 的剧本正文与分支文本。
+- **挂载面 = 一切面向玩家的内容文本字段：** `CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PowerData` 的**显示名 · 描述 · 风味文案**；`PowerData` / `ItemData` 顶层的图鉴风味文案 `CodexFlavor`（可选，见下）；`HiddenStatBandData` 的档位叙事条目；Finale「失败但存活」补白；AdventurePlot 的剧本正文与分支文本。
 - **不挂载：** `Id`、任何数值、任何枚举、`ContentEnabled` / `Rarity` / `ExclusiveSource` 等结构字段。
+- **可选的 `LocalizedText` 字段：「缺失」= 字段本身为 `null`（承重）。** 有的展示文本字段本就可以整段不存在（`CodexFlavor` 是第一个：图鉴详情页缺它就不渲染风味段）。**这类字段留空的形态是 `.tres` 里不挂这个子资源**，语言强校验只对**已挂上的 `LocalizedText`** 执行；挂了却默认语言为空串仍是坏数据。
+  - **不引入「必填 / 可选字段分类清单」**：那会长出一份要逐字段维护的表，且每加一个展示文本字段都要先回答「它属哪一类」——把一条可机械判定的校验降级为要读上下文。
+  - 它与「缺 `en` 键 = 未翻译」是**同一种判据风格**：干脆没有这个键 / 干脆没有这个子资源，都是干净可判的条件。校验口径的权威在 `systems/services/content-service.md`。
 - **三条采纳理由，逐条对上既有纪律：**
   - **加一门语言 = 在 `.tres` 里加一个键，零代码改动**——落在「新增内容 = 新增 / 编辑 `.tres`，不改 switch」内。这同时**否决「每语言一个 `[Export]` 字段」**（`DescriptionZh` / `DescriptionEn`）：那种写法把「加一门语言」变成「改 C# 类 + 发版」，语言数直接焊死在代码里。
   - **它是「改既有条目的字段值」⇒ overlay 可以热更它**，完全落在「只改不增」内——**线上补一段英文文案不必发版**。这是本形态相对全部替代方案的实质收益（`res://text/` 已定为随包分发，内容文案放进去等于给它判了「改一个字要过审核」）。
@@ -199,7 +203,7 @@ public partial class LocalizedText : Resource
   - **`Get()` 必须纯读，绝不把解析结果写回 `XxxData` 或 `LocalizedText`**——`XxxData` 是 ContentRegistry 里的**共享只读单例**（见「物化模型」），缓存写回会污染注册表。需要缓存就缓存在 **ViewModel** 上，那正是「组合展示由 UI 层按需组装、不落存档」那一层的职责。
   - **`LocalizedText` 不落存档、不进上行负载。** 它是内容定义的属性；存档与云端负载照旧只带 `Id` + 可变状态。**不 bump schema，无迁移。**
 - **locale 取值域封闭为二值 `zh` / `en`，无地区码。** 中长期语言范围就是中英双语，不预留第三门语言的结构；**不设 `zh_TW`**，日后确需繁体走简繁转换（同一条「能机械变换的绝不建第二张手写表」）。`Get()` **就读 `TranslationServer.GetLocale()`**，不另设内容语言设置；**归一在启动期做一次**（形态见 `ux/error-and-blocking-ux.md`「语言开关只有一个」）。
-- **切语言后的重绘存在一条真实的不对称，必须写下来：** locale 变化会让走翻译键的 `Control` 自动重翻，但 `LocalizedText` **不经 `TranslationServer`**，已组装好的 ViewModel 里那串中文不会自己变。纪律：**ViewModel 层订阅翻译变更通知，收到即重新组装一次**（重建成本就是重取一次 `Id` 对应的内容）；「重进当前屏」是可接受但更粗的兜底。
+- **切语言后已组装的 ViewModel 不会自己变**（`LocalizedText` 不经 `TranslationServer`）——重组装纪律的权威在 `systems/viewmodel.md`「重组装的触发面」。
 - **校验与审计的形态、以及「缺 `en` 键 = 未翻译」的占位约定，见 `systems/services/content-service.md`「内容文本的语言校验与覆盖率审计」。**
 - **抽取池零影响**——一条内容仍是一个 `Id`、一个池成员，权重不被语言数稀释。这正是**否决「每语言一套条目 `Id`」**（`card_xxx_zh` / `card_xxx_en`）的第二条理由；另两条：撞「只改不增」（加一门语言 = 新增 N 个 `Id`，只能发版且 overlay 永远补不上），以及切语言会让存档里的 `Id` 引用全部悬空。
 - **排期：与 `DrawPool<T>` 同批，第二阶段（内容）开工前、第一份内容 FR 之前落地。** 理由相同——`XxxData` 类、`.tres`、UI 读取点当前存量**都是零**，此刻是纯加法窗口；窗口在写下第一批 `.tres` 的那一刻关闭，此后每多一条内容就多一份要改的资产。两者也天然是同一次 `XxxData` 面的改动。
@@ -296,7 +300,7 @@ public partial class LocalizedText : Resource
 - **选 `Source?` 而非新开一个布尔（如 `AchievementExclusive`）**：同一诉求日后必然重演（活动限定、剧情限定条目），复用既有枚举让「限定给谁」成为一次数据填写，而非每次新增一个布尔字段——与「新增内容 = 新增 `.tres`，不改 switch」同一条纪律。取值域随 `Source` 清单扩张而自然扩大。
 - **不落存档**（它是内容定义的属性，不是持有条目的属性），故不 bump schema。
 
-Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-14-common-properties-layering.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md`
+Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-14-common-properties-layering.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

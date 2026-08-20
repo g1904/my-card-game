@@ -70,8 +70,11 @@
 - **两个决策槽**：槽 1 限定 `LearnTechnique`（候选 3），槽 2 限定 `GrantItem`（候选 3）。
 - **两槽均 `AllowDecline = false`。** 开局底盘明写为「2 门角色绑定功法 + 1 门选来的功法 + 1 件选来的法宝」，允许拒绝会让底盘残缺；且它是玩家的第一屏，不该以「什么都不选」开场。**常态条目的默认值相反，是 `true`**（见 `common-properties.md`）。
 - **`lifeSpanCost` 取 0 的条目级覆盖。** 它是被强制进入的第一个事件，收寿元等于开局即扣而玩家未做出任何取舍。这落在「个别事件可在表值之外设更小的覆盖值」这条既有通道内，不需要新规则。
+- **它可以缺席，开局流程仍然成立（承重）。** 两槽 `AllowDecline = false` ⇒ 取池期的池前置对它逐槽收紧为「必须能产出 ≥ 1 条候选」（见 `systems/services/future-event-service.md`）；不满足时该条目不进批次，**首批退化为常规批，轮回照常开始**。上面那句开局底盘描述因此是内容编排的目标形态，不是结构性保证。
+  - **缺席是一次大声失败的运营事故**（`PushError` + 上报），运行期唯一可能的成因是 flags 把功法 / 法宝池关到见底。**不新增任何降级路径或补发机制**——空池是运营事故，不是玩法分支。
+  - 反面的做法是运行期静默把 `AllowDecline` 改成 `true` 让它照常出场：那用「静默改写一条内容侧的强约束」换「不缺席」，而开局底盘残缺的后果贯穿整个轮回，且玩家与运营都看不见发生过什么。
 
-Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md`
+Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

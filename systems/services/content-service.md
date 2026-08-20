@@ -94,7 +94,7 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 
 > 内容文本的多语言载体是条目内嵌的 **`LocalizedText`**（`Entries: locale → 文本`，locale 封闭为二值 `zh` / `en`）——类型形态、挂载面与两条配套纪律的权威在 `systems/common-properties.md`「内容文本的多语言形态」。本节只定**校验、审计与热更权限**。
 
-**失败语义必须分方向，否则英文占位符阶段会被警告刷屏：**
+**失败语义必须分方向，否则英文未翻译期会被警告刷屏：**
 
 | 情形 | 语义 | 处置 |
 |---|---|---|
@@ -102,10 +102,14 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 | **非默认语言缺失** | 可选缺失——降级完全可用 | **读取侧静默回落 `zh`，不逐次警告**；改由**合并后一次性审计**汇总：当前 locale 下的缺失条目数、**覆盖率**与前 N 个 `Id`，一条 `GD.PushWarning` |
 | **`Entries` 出现 `zh` / `en` 之外的键** | 拼错 locale | 合并后 `GD.PushWarning` + `Id` + 该键 |
 
-- **为什么读取侧必须静默：** 既定的英文列「全部预设占位符」意味着**每一条内容**在 `en` 下都会命中回落。逐次 `PushWarning` = 每帧刷屏的日志噪音，还会把真正的告警淹掉。
+**本表的适用范围是「一个已存在的 `LocalizedText`」，不是「一个内容条目的每个文本字段」（承重）。** 有的展示文本字段本就可选（`CodexFlavor` 是第一个），它留空的形态是**字段本身为 `null`**——`.tres` 里不挂这个子资源。**强校验只对非 `null` 的 `LocalizedText` 执行**；挂上了却 `zh` 缺失 / 空串，仍是第 1 行的坏数据。
+- **不引入必填 / 可选字段的分类清单**：那要逐字段维护，且每加一个文本字段都得先回答「它属哪一类」，把可机械判定的校验降级为要读上下文。字段级判据与挂载面见 `systems/common-properties.md`。
+- 它与下方「`en` 的占位形态 = 该 locale 干脆没有这个键」是同一种判据风格：**干脆没有**这个键 / 这个子资源，都是干净可判的条件，覆盖率审计因此不需要第二套识别规则。
+
+- **为什么读取侧必须静默：** 当前 `en` 整体未翻译，意味着**每一条内容**在 `en` 下都会命中回落。逐次 `PushWarning` = 每帧刷屏的日志噪音，还会把真正的告警淹掉。
 - **为什么审计必须有：** 「**告警要落在能被看见的地方**」——这正是本文件为负向能力条目清单告警写下的判据，本条是它的**第三个同形实例**（前两个：`ErrorText.AuditTranslations()`、负向条目清单）。**审计同时报覆盖率**（`en: 12 / 840 条目已翻译`），使「英文版做到哪一步了」成为一个能一眼读到的数，而不必人工点数。
 - **locale 拼写校验之所以写得起，正是因为语言域封闭。** `En` / `en_US` 这类拼错会让整条文案在英文下回落中文且**没有任何症状**；若语言域是开放的，这条校验根本无从写起。
-- **`en` 的占位形态 = 该 locale 干脆没有这个键**（`Entries` 只有 `zh`），由静默回落承接。这让「缺 `en` 键」= 「未翻译」成为一个**干净可判的条件**，覆盖率审计因此不需要第二套「什么算占位符」的识别规则。（`res://text/` CSV 一侧的占位符形态是另一个问题，仍待定，见 `ux/error-and-blocking-ux.md`。）
+- **`en` 的占位形态 = 该 locale 干脆没有这个键**（`Entries` 只有 `zh`），由静默回落承接。这让「缺 `en` 键」= 「未翻译」成为一个**干净可判的条件**，覆盖率审计因此不需要第二套「什么算占位符」的识别规则。（`res://text/` CSV 一侧同构：**未翻译的形态 = `en` 单元格留空**，见 `ux/error-and-blocking-ux.md`「未翻译的形态」。）
 - **overlay 热更权限：`LocalizedText` 的内容归「只改不增」内。** 改一个条目的文案（含**新增一个语言键**）是「修改既有条目的字段值」，**新增语言键不构成新增 `Id`** ⇒ **线上补英文文案不必发版**，且不触碰「热更只改不增」纪律的任何前提。
 - **抽取池零影响：** 一条内容仍是一个 `Id`、一个池成员，`AllEnabled()` 的行为完全不变，权重不被语言数稀释。
 
@@ -123,7 +127,7 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 - **首次拉取排在登录之后。** flags 端点需鉴权，而本服务是启动链第一步（登录之前）——两者对不上。`InitializeAsync` 仍只做 manifest 比对 + overlay 合并 + 校验；flags 首次拉取由 Bootstrap 在 `SignInAsync` **之后**、`SyncService.InitializeAsync` **之前**调用（抽取池必须在轮回开始前正确，而它失败不阻塞，放在硬阻塞的 pull 之前不增加阻塞风险）。启动链见 `systems/architecture.md` 总则 4。
 - **刷新时机 = 搭车信封，零轮询。** 共享应答头处理点观察到 `X-Flags-Version` 与内存值不同 → 拉一次全量 flags。秒关的实际延迟 = 该玩家的下一次上行，**分钟级以内**。不引入长连接 / 第三方推送。
 - **热应用：拉到即生效于下一次抽取。** 不需重启、不需重新合并 overlay、不触碰 ContentRegistry 的校验 ⇒ **轮回进行中安全**。数值型 overlay 无此性质，这正是把它独立出来的收益。
-- **本地缓存 `user://cache/flags.json`**（`accountId` / `flagsVersion` / `disabledIds`；原子写、跨启动保留，与 `sync-envelope.json` 同处同纪律）。
+- **本地缓存 `user://cache/flags.json`**（`accountId` / `flagsVersion` / `disabledIds`；原子写、跨启动保留，与 `sync-envelope.json` 同处同纪律）。**原子写走共享静态工具 `AtomicJsonFile`**（见 `systems/architecture.md`），不自带实现。
   - **缓存的收益不在离线开局——那条路径根本不存在**：启动 pull 是**硬阻塞**，强制在线下无权威档即不可玩，故不存在「断网启动并进入轮回」。
   - 真实收益只有一处：**登录成功但 flags 拉取失败**时的降级值。用上一次已知 flags 优于回落到 overlay 里的布尔（后者会让被秒关的条目复活）。
   - **切账号即失效**：`accountId` 不匹配 → 丢弃（`PushError` + 定位上下文）。分桶是**按账号解析后的结果**，跨账号复用等于灰度串号。与 `sync-envelope.json` 的切账号纪律同构。
@@ -227,7 +231,17 @@ IContentRepository<T> where T : Resource
 
 **两条契约由授予池这个调用方定死：**
 
-- **`PickMany(rng, count)` 是无放回的。** 礼包一次给 2 件古宝必须两件不同；这是 `PickMany` **唯一一处会被误实现成有放回**的地方，故无放回写进契约、不留给实现自由裁量。数量不足 `count` 时按可选缺失处理（返回 false + `PushWarning`），不静默少给。
+- **`PickMany(rng, count)` 是无放回的。** 礼包一次给 2 件古宝必须两件不同；这是 `PickMany` **唯一一处会被误实现成有放回**的地方，故无放回写进契约、不留给实现自由裁量。数量不足 `count` 时按可选缺失处理（返回 `false` + `PushWarning`），不静默少给。
+- **短缺时把已抽出的那几条交出来，故签名带一个 `out`：**
+
+  ```csharp
+  bool PickMany<TRng>(TRng rng, int count, out IReadOnlyList<T> picked);
+  //   池 ≥ count      → true，picked.Count == count
+  //   0 < 池 < count  → false + PushWarning，picked = 池中全部（无放回、已加权），picked.Count == 池大小
+  //   池 == 0         → false + PushWarning，picked = 空列表
+  ```
+
+  **`picked` 永不为 `null`**——调用方在 `false` 分支上不必判空。**「不静默少给」防的是原语假装成功**（返回 `true` 却少给几条），`false` + 告警已完整兑现它；丢弃已抽出的结果不增加任何安全性，只逼调用侧走「先数一次池、再用较小的 `count` 抽第二次」——同一条取池链在同一次物化里跑两遍，且两次之间消耗的 RNG 次数依赖于池大小，与「抽取代码的落点恰好两处」和确定性纪律都不友好。调用侧拿到 `picked` 之后的降级处置见 `systems/services/future-event-service.md`。
 - **`PickOne` / `PickMany` 需要加权重载**（按内容定义上的 `Rarity: RarityTier` 取权重表）。战后奖励池的稀有度权重（`Rarity` 的消费点 ①）同样需要它。权重表本身是平衡数值，归 `systems/balance.md`，不落 `DrawPool<T>`。
 - **随机源参数是泛型约束的 `IRandomSource`**，不是 Godot 的 `RandomNumberGenerator`：`PickOne<TRng>(TRng rng, …) where TRng : IRandomSource`。账号级授予传 `AccountRandom`（契约定义的 SplitMix64），轮回级三处抽取传 `GodotRandomSource`（子流的薄适配）。**取泛型约束而非裸接口参数**——值类型经泛型特化调用，零装箱、零堆分配。类型定义见 `systems/common-properties.md`。
 
@@ -251,7 +265,7 @@ IContentRepository<T> where T : Resource
 | **ContentRegistry** | 合并 overlay + 基线，按 `Id` 建立索引，暴露泛型仓储接口；合并后统一校验 |
 | **ContentUpdateManager** | 读本地 manifest、比对云端 `contentVersion`、**manifest 验签**、逐文件下载进 `overlay.staging/` 并校验 hash、事务性搬入 `overlay/`、断网降级 |
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md`
 
 ## API 面（契约）
 

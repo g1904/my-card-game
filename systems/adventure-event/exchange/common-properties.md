@@ -84,11 +84,25 @@ public sealed record ExchangeOffer(          // 定稿商品实例：immutable�
 | `eventType != Exchange` 而 `ExchangeSpec != null` | `PushError`（带 `EventId`） |
 | 某条 `StockRule` 的 `SlotCount <= 0` | `PushError`（带 `EventId` + 规则序号） |
 | `StockRules` 的 `SlotCount` 之和超过槽位总数上界 | `PushError`（上界见 `systems/balance.md`） |
-| `Kind` 对应的抽取池在 `RarityFilter` 过滤后为空 | `PushError`（带 `EventId` + `Kind`）——否则会在轮回中途开出一个空商店 |
+| 某个 `Kind` 的某个 `RarityTier` 档位供不应求 | `PushError`（带 `EventId` + `Kind` + 档位 + 实际条目数）——否则会在轮回中途开出一个空商店。判据见下 |
 | `MaxRerollCount > 0` 而 `RerollBaseCost <= 0` | `PushError`（可无限免费刷新 = 零成本 reroll 漏洞，与 Travel 定价必须 > 0 同一条理由） |
 | `DiscountPercent` 不在 `[0, 100]` | `PushError` |
 | `SellEnabled == true` 而 `SellRatePercent` 不在 `[1, 100]` | `PushError` |
 | 定价表某格缺失 | 启动期 `PushError`（同 `ResourceElements` 表的全成员断言） |
+
+**档位供需的核算口径 = 逐 `Kind` 逐 `RarityTier` 档位（承重）：**
+
+```
+对每个 Kind 的每个 RarityTier 档位：
+    Σ SlotCount（该条目内 RarityFilter 覆盖该档位的全部规则）+ ExchangePoolMargin
+        ≤ 该 Kind 该档位过滤后的池条目数
+```
+
+- **不按「同 `Kind` + 同 `RarityFilter` 完全相同才合并」核算**：两条 `RarityFilter` 分别为 `[Tier1, Tier2]` 与 `[Tier2, Tier3]` 的规则同样抢同一批 Tier2 条目，按「完全相同才合并」会各自单独判、**放过一个真实的短缺编排**，而闸 ① 的存在理由就是机械化的硬保证。
+- **也不按 `Kind` 取并集合并**：并集足够而某单档不足时判不出，方向偏保守但同样漏。逐档位核算精确、无漏无误报，实现是一次分组求和，落在加载期不计成本。
+- **`ExchangePoolMargin` 必须存在，不能只断言「≥ Σ`SlotCount`」**：能力族取池链含**排除已持有**，池随玩家推进单调收缩，一个恰好等于所需的静态池在轮回中段必然短缺。取值归 `systems/balance.md`。
+- **这是一条有意的收紧**：编排更容易在启动期失败，而当前内容存量为零 ⇒ 落地代价为零，晚做则每多一个 `.tres` 多一份返工。
+- **池计数口径不含储物袋满袋过滤**——满袋是购买前置校验的拒收，不是库存侧过滤（见 `systems/character-profile/item/_index.md`）。
 
 ### 运行期校验
 
@@ -99,6 +113,13 @@ public sealed record ExchangeOffer(          // 定稿商品实例：immutable�
 | 售出的目标不是 `CharacterItem` | 必需缺失（代码组装缺陷） | `PushError` + 拒绝（准入是代码常量，到达此处即调用方缺陷） |
 | `Grant` 目标已持有 | 可选缺失 | `PushWarning` + 空操作（取池已排除已持有，出现即内容错误） |
 | 购买 `PlayerItem` / `CharacterItem` 且储物袋约束不满足 | ⟨阻于「储物袋满袋处理」待答项⟩ | — |
+| 某条 `StockRule` 抽到 `0 < n < SlotCount` | 可选缺失 | `PushWarning` + want / got；**该规则产出 n 个 offer，不补位、不用别族顶替** |
+| 某条 `StockRule` 抽到 0 条 | 可选缺失 | 同上；该规则贡献 0 个槽位，其余规则照常 |
+| 整店 `ExchangeStock` 为空 | 必需缺失（取池期前置本应拦住） | `PushError` + 上报，该条目本次不进批次 |
+
+- **短缺处置的层次、取池期前置（闸 ②）与三道闸的分界判据归 `systems/services/future-event-service.md`**；本处只记 Exchange 侧的逐情形行为。
+- **短缺不给玩家任何提示、不新增文案键**（reroll 按钮的池前置置灰是另一个界面元素，见 `_index.md`）。玩家看到的就是一个商品少一点的店，它与内容作者编排出的小店在观感上无法区分。
+- **快照只记实际结果：** `EventOption.ExchangeStock` 的长度就是实际抽到的 offer 数（可 < Σ`SlotCount`），**不新增「期望数量 / 短缺标记」字段**——期望值在模板的 `SlotCount` 上随时读得到。**推论：一个因池收缩而少给的商店，退出重进后仍然少给**，即便此刻 flags 已把条目放回来；这是防重掷纪律要的行为（恢复即读结果，绝不重走取池链）。
 
 ### 日志（沿用 `[System-Method]` 约定）
 
@@ -106,9 +127,12 @@ public sealed record ExchangeOffer(          // 定稿商品实例：immutable�
 [Exchange-Purchase] offer=<OfferId> content=<ContentId> price=<ListPrice> jadeAfter=<n>
 [Exchange-Sell]     item=<ItemId> base=<BasePrice> rate=<SellRatePercent> jadeAfter=<n>
 [Exchange-Reroll]   event=<InstanceId> count=<n> cost=<c>
+
+[ContentRegistry-Validate]  exchange pool short: event=<EventId> kind=<ExchangeGoodsKind> rarity=<RarityTier> need=<ΣSlotCount+margin> pool=<n>
+[FutureEvent-ExchangeStock] instance=<InstanceId> event=<EventId> rule=<i> kind=<Kind> want=<n> got=<m>
 ```
 
-Source: `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md`
+Source: `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

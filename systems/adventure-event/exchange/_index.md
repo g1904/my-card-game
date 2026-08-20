@@ -28,6 +28,7 @@
 - **商品族取值域 = 已存在的抽取池，不新建任何池。** `ExchangeGoodsKind` 五值一一映射到既有仓储；**法则 `(Power, Player)` 不在族内**——`Source` 合法子集表对它是 ❌，规则层本就不允许 `ExchangePurchase` 落到法则上。族的定义与取池链见 `common-properties.md`。
 - **同一批库存内不出现重复商品，这条免费成立**：`PickMany` 无放回是既定契约，不需要新规则。
 - **买完即售罄，同一 offer 不可重复购买。** 不设售罄，一个高价值 offer 会把 jade 全部单点吸走，库存槽位失去意义。
+- **不设兜底商品 / 保底 offer。** 池不足时店里就少几件，**空池是运营事故，不是玩法分支——不为它设计兜底玩法**。一件为空池而生的保底商品必须有 `Id`、有定价、有稀有度，且它会在正常库存里也被抽到（除非再加一条 `ExclusiveSource` 式的准入标记），代价远大于收益。短缺的层次化处置见 `common-properties.md` 与 `systems/services/future-event-service.md`。
 
 ### 定价与折扣
 
@@ -57,6 +58,12 @@
   两个方向的破裂各是一个可利用的漏洞：**只落 `-jade`、库存未落** ⇒ 退出重进看到旧库存，同一笔钱可再刷一次（正是防重掷纪律封死的那个窗口）；**只落库存、`-jade` 未落** ⇒ 免费刷新。这一笔是「事件内主动消费即时提交」的第四个实例：本地立即原子写，push 走 `Debounced`，**不计软阻塞闸门**（闸门只数事件级存档点，连按刷新不会弹模态）。派生实例的承载与七条读档校验见 `systems/character-profile/_index.md`。
 - **消耗了 `Shop` 子流的随机 ⇒ 该子流的 `State` / `DrawCount` 必须在同一次原子写内更新**（不变式，见 `systems/services/life-cycle-service.md`）。`State` 落了库存没落 ⇒ 再刷一次得到不同结果，等于一条重掷通道；库存落了 `State` 没落 ⇒ 下一次从同一 `State` 起掷、重复同一批结果。
 - **恢复即读结果：** 退出重进后读 `activeEvent.Option.ExchangeStock` 直接呈现，**绝不重走取池链**。
+- **刷新有一条池前置：可产出的 offer 数 < 1 ⇒ 刷新按钮置灰 + 一行说明，不进入付费路径（承重）。** 计数用与取池期前置（闸 ②）同一款口径——能力族走 `profile-service.GrantableCount(kind, scope, rarityFilter)`，内容族走 `DrawPool<T>` 同款过滤后的条目数。
+  - **它拦的是一个真实窗口**：取池期的前置只在物化那一刻判一次，而能力族取池链含**排除已持有** ⇒ 玩家在店内买走几件之后池即收缩，重掷结果可以比初始更少、乃至为 0。没有这条前置，玩家会付掉刷新费换来一个空店——**失败点落在付费之后**，是最糟的失败时机。
+  - **形态与礼包购买入口的前置条件完全同形**：置灰 + 说明、不隐藏，说明文案走 `EVENT_` 普通分区的 `EVENT_REROLL_UNAVAILABLE_POOL`，**不占 `ERR_` 前缀**（它是本地业务拒绝，没有后端 `code`）。灰态判据见 `ux/error-and-blocking-ux.md`。
+  - **否决「重掷得 0 条则保留原库存 + 不扣费 + `PushWarning`」**：那需要一条「已进入 `TryApply` 又回滚」的路径，与「刷新价与新库存必须落在同一次 `TryApply`」正面冲突。
+  - **短缺本身仍不给玩家提示**——刷到一个商品更少的店是正常观感；被拦下的只有「刷了也必然是空店」这一种必然无结果的操作。
+- **不因库存少而下调刷新价、也不免除刷新费。** 刷新价公式已给出，为短缺开一条折扣分支会给「刷新价与新库存必须落在同一次 `TryApply`」那条承重再加一个变量。玩家的救济通道就是刷新本身。
 - **首批内容默认关闭**（`RerollBaseCost = 0` / `MaxRerollCount = 0`）：机制先落地、数据先留空是本库既有偏好。
 
 ### 售出
@@ -72,6 +79,7 @@
 - **`SellRatePercent` 折算基准取「族 × 稀有度」定价表的基准价，不取 `ListPrice`。** 后者已含 `ShopPrice` modifier 与 `DiscountPercent`，按它折算会让「在打折商店卖东西更亏」，玩家读不出因果；按基准价折算则与买价折扣完全解耦。
 - **回收率显著低于标价**（建议落在 30–50%，具体归 ch1 标杆）。摩擦保住取舍感：卖仍是亏，只是比丢掉强。
 - **代价明写：储物袋 9 格从纯取舍位变成一个可换 jade 的位置。** 9 格被明写为「真正会咬人的构筑取舍位，不是溢出防护」；能卖之后，满袋从「必须放弃一件」变成「换成 jade」。**这是被接受的设计取向**，缓解手段只有上面两个旋钮（低回收率 + 按基准价折算），不再加规则。见 `systems/character-profile/item/_index.md`。
+- **售出面不受库存短缺影响**：`SellEnabled` / `SellRatePercent` 与库存抽取无关，一个只剩一件商品的店照常收购。
 - **售出即时提交**，与购买同一条路径。
 - **售出走 `Source.ExchangeSell`，与买入侧的 `ExchangePurchase` 分立。** `Source` 的既定职责是「这件东西怎么来的 / 怎么没的」，买与卖在履历、成就与诊断上是两件事；复用会让「购买次数」这类统计永远算不准。它是本子类型唯一的枚举增量，合法子集表只对 `(Item, Character)` 开放，见 `systems/common-properties.md`。
 
@@ -108,7 +116,7 @@
 - **回寿法宝（补天丹一类）是 `CharacterItem` 族的一个普通商品，零机制增量。** 它使商店成为「灵玉 → 寿元」的一条兑换通道，但**不需要任何新接口**：库存抽取、定价（「族 × 稀有度」表的 `CharacterItem` 行）、购买 spec（`ChangeElement(Jade, -ListPrice)` + `AbilityChangeElement(Grant, Item, Character, id, Source.ExchangePurchase)`）全部照既有路径走。**账号级古宝 `PlayerItem` 一族被结构性排除在这条通道之外**——含寿元产出的 `ItemData.Scope == Player` 在加载期即 `PushError`，见 `systems/character-profile/item/_index.md`。回寿通道的完整形态与平衡护栏见 `systems/adventure-event/common-properties.md`。
 - **商品的内容定义一律归各自的内容子树，Exchange 只承载交易机制。** 五个商品族的定义位置：`Card` → `systems/character-profile/deck/`；`CultivationTechnique` → 同上；`CharacterItem` → `systems/character-profile/item/`；`CharacterPower` → `systems/character-profile/power/`；`PlayerItem` → `systems/player-profile/player-item/`。
 
-Source: `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md`
+Source: `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
