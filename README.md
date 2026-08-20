@@ -111,6 +111,7 @@ D:\MyCardGame\
     ├── analyze-new-ideas/     — raw idea → consistency/compat review → interview → clean handoff → distill into design docs
     ├── provide-solution-draft/ — one open question → proposed solution → inbox/solution-draft-<slug>.md (human review)
     ├── summarize-open-questions/ — rebuild open-questions.md (index) + open-questions/ shards; answered items → answer-logs/log-<draftSuffix>.md
+    ├── write-adr/            — settled decisions → decisions/ADR-####-<slug>.md + _index.md ledger
     ├── assess-derive-readiness/ — full sweep: is any design doc ready to derive? (manual)
     ├── derive-requirements/   — detailed design → 片区级 feature requirements (FR-*)
     ├── breakdown-requirements/ — one FR → a folder of executable sub-requirements (one = one blueprint)
@@ -136,7 +137,7 @@ D:\MyCardGame\
 
 设计 → 需求 → 代码：
 
-> **双库入参：** 前 5 步（`/analyze-new-ideas`、`/provide-solution-draft`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）与 `/summarize-open-questions` 对**两个设计库**通用——`game-design-documents/`（客户端）与 `backend-design-documents/`（后端）。用 `--lib=game` / `--lib=backend` 显式指定，或直接给带库前缀的路径；判不出时技能会**询问，不静默默认**。解析顺序、跨库纪律与两库结构差异见 `rules/design-library-routing.md`。第 6 步起（`/blueprint` 及其后）仍只面向客户端。
+> **双库入参：** 前 5 步（`/analyze-new-ideas`、`/provide-solution-draft`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）与 `/summarize-open-questions`、`/write-adr` 对**两个设计库**通用——`game-design-documents/`（客户端）与 `backend-design-documents/`（后端）。用 `--lib=game` / `--lib=backend` 显式指定，或直接给带库前缀的路径；判不出时技能会**询问，不静默默认**。解析顺序、跨库纪律与两库结构差异见 `rules/design-library-routing.md`。第 6 步起（`/blueprint` 及其后）仍只面向客户端。
 
 1. `/analyze-new-ideas [--lib=…] <raw>` —— 先校验想法的**逻辑自洽性**与**同既有 ADR / 主题文档 / 承重纪律的兼容性**；有冲突或含糊即**停下来发起 interview 让用户澄清**，拿到答复后才把意图捕获为整洁的 handoff 并提炼进选定设计库的主题文档。无参数运行则扫描该库 `inbox/` 列出待处理草稿。
 2. `/provide-solution-draft <问题>` —— 取 `open-questions.md` 的**一个**待答项，基于既有决策推演 + 行业通行做法给出**提案式**方案，写到 `inbox/solution-draft-<slug>.md`。**人类评审后**再喂回 `/analyze-new-ideas` 提炼（human-in-the-loop）。它只写这一个草稿文件，不裁决问题、不动主题文档。
@@ -148,13 +149,15 @@ D:\MyCardGame\
 8. `/review-local-changes` 或 `/review-feature` —— 在提交前捕获 bug。
 9. `/investigate <symptom>` —— 把一个 bug 追溯到按可能性排序的根因 + 诊断步骤。
 
-> **批量版：** 上述多数阶段各有 `batch-*` 编排版（`/batch-provide-solution-draft`、`/batch-analyze-new-ideas`、`/batch-author-content`、`/batch-derive-requirements`、`/batch-breakdown-requirements`、`/batch-blueprint`、`/batch-implement`、`/batch-review-feature`）：一次覆盖一批输入，并行 / 波次分派 worker（worker 执行对应的单会话技能），把所有 🔴/🟠/取向问题**合并去重成一场大 interview**再落笔——批量提效，但**不吞掉任何人工决策**。公共契约（两阶段、共享台账单写者、写入面分区）见 `rules/batch-orchestration.md`。`/assess-derive-readiness`、`/summarize-open-questions`、`/audit-content`、`/sync-knowledge`、`/update-readme` 本就是全量扫描形态，无需批量版。
+> **批量版：** 上述多数阶段各有 `batch-*` 编排版（`/batch-provide-solution-draft`、`/batch-analyze-new-ideas`、`/batch-author-content`、`/batch-derive-requirements`、`/batch-breakdown-requirements`、`/batch-blueprint`、`/batch-implement`、`/batch-review-feature`）：一次覆盖一批输入，并行 / 波次分派 worker（worker 执行对应的单会话技能），把所有 🔴/🟠/取向问题**合并去重成一场大 interview**再落笔——批量提效，但**不吞掉任何人工决策**。公共契约（两阶段、共享台账单写者、写入面分区）见 `rules/batch-orchestration.md`。`/assess-derive-readiness`、`/summarize-open-questions`、`/write-adr`、`/audit-content`、`/sync-knowledge`、`/update-readme` 本就是全量扫描 / 全量立档形态，无需批量版。
 
 **内容创作是并行的第二条路（不经 FR）：** `/scaffold-content-type <类型>` 为一个内容类型开张（带**就绪度闸门**：类定义不足以写出可实现的条目时就把话说清楚）→ `/author-content <类型> <草稿>` 把你的条目草稿校验 / interview 后写成 `game-design-documents/content/<类型>/<id>.md` → 你签核 `draft → ready` → **直接 `/blueprint`** → `/implement` → `.tres`。条目一多用 `/audit-content` 做全量对账。**字段清单的权威在设计库的类型档案里，不在技能里**——这正是「一个通用技能 + 十几份类型档案」而非「每类一个技能」的理由（ADR-0005：`.claude` 不承载设计内容）。约定见 `game-design-documents/content/_index.md`。
 
 `knowledge/` 是**指向设计库的薄引用层**（导航表 + 代码现状 + 一句话承重纪律；设计内容不在此复述，见 `decisions/ADR-0005`）—— `/implement` 会在构建时就地更新相关的 `systems/`、`scenes/`、`data/`、`autoloads/` 笔记；怀疑知识与代码/设计脱节时运行 `/sync-knowledge` 做整体对账（它同时把偷偷长回来的副本压回薄引用）。术语的权威在 `game-design-documents/terminology.md`；`knowledge/dictionary.md` 只保留通用的 roguelike 卡组构建体裁词汇，不复制本作专有术语。
 
-台账闭环：`/blueprint` 把 FR 翻为 `blueprinted` 并登记 `blueprints/_index.md`；`/implement` 在**端到端验证通过后**把 FR 翻为 `built`。
+**决策立档（与上面的流水线并行、随时可跑）：** `/write-adr [--lib=…]` 把各库的**已定方向**（`open-questions.md`「下一阶段」的 ADR 候选、后端库 `decisions/_index.md` 的「ADR 候选」表、以及散落在 handoff 里的定案）逐条落成 `<LIB>/decisions/ADR-####-<slug>.md` 并更新 `decisions/_index.md`。它是 `decisions/` 的**唯一写入者**（唯一例外：用户裁决推翻某条决策时，`/analyze-new-ideas` 直接改写那份 ADR），且严守「**台账绝不领先于事实**」：一条定案没写进权威主题文档就不建档，只在报告里点名。**不接受跨库运行**——两库 ADR 编号各自独立、永不合并。
+
+台账闭环：`/blueprint` 把 FR 翻为 `blueprinted` 并登记 `blueprints/_index.md`；`/implement` 在**端到端验证通过后**把 FR 翻为 `built`。台账各有**唯一写入者**：`decisions/_index.md` 归 `/write-adr`，`answer-logs/` 归 `/summarize-open-questions`，`blueprints/_index.md` 归 `/blueprint` 与 `/implement`，「derive 就绪度」小节归 `/assess-derive-readiness`。
 
 ## 验证
 

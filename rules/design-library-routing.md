@@ -7,7 +7,7 @@
 | 客户端设计库 | `game-design-documents/` | `game-design` | Godot 客户端的设计意图（含客户端侧的边界服务门面） |
 | 后端设计库 | `backend-design-documents/` | `backend-design` | 云端服务的设计意图 + 客户端 ↔ 后端协议契约 |
 
-设计流水线技能（`/analyze-new-ideas`、`/provide-solution-draft`、`/summarize-open-questions`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）对两库**通用**。本文件定义它们如何确定「这一次作用于哪个库」。
+设计流水线技能（`/analyze-new-ideas`、`/provide-solution-draft`、`/summarize-open-questions`、`/write-adr`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）对两库**通用**。本文件定义它们如何确定「这一次作用于哪个库」。
 
 ## 记法
 
