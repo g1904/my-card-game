@@ -7,7 +7,8 @@
 - source-docs:                           # 继承父 FR 的来源，不新增
     - systems/\<doc\>.md
 - client-facing: \<yes | no\>
-- status: ready                           # 继承父 FR 的签核状态：ready | draft → blueprinted | built
+- status: ready                           # 继承父 FR 的签核状态（父为 broken-down 时读其 signed-off-as）：ready | draft → blueprinted | built
+                                          # 例外闸：本文件 ## Open questions 非空 ⇒ 一律 draft
 - blueprint:
 - depends-on:                             # 同一拆解内的其他子需求 id（构建顺序）
 
@@ -35,7 +36,7 @@
 > _本切片在重复请求 / 部分失败 / 超时下的行为。强制。_
 
 ## Open questions
-> _父 FR 下发的相关问题 + 拆解中新发现的问题。绝不在此杜撰答案。_
+> _父 FR 下发的相关问题 + 拆解中新发现的问题。绝不在此杜撰答案。本节非空 ⇒ 本子需求的 `status` 为 `draft`（例外闸）。_
 
 ## Traceability
 - Broken down from: FR-\<parent\>

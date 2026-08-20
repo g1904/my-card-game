@@ -22,6 +22,6 @@
 
 | 文件 | status | 说明 |
 |------|--------|------|
-| *（空）* | — | — |
+| `solution-draft-bundle-grant-ordinal-authority.md` | decided | `bundleGrantOrdinal` 施加权归属（后端半）：`/entitlement` 回声校验（**新发现的既有漏洞**：浅合并按顶层键 ⇒ 客户端整键替换可覆写后端唯一写入字段，封闭表此前无执行点）· 兑现水位路径登记 · 读己所写 · `receiptId` 幂等窗口。**全部定案（三项皆取 A）**：回声校验整批拒绝 + 风控 · 「读己所写」升格为服务端一致性要求 · `receiptId` 永久保留不设 TTL。**跨库**，与 `game-design-documents/inbox/` 同名草稿**成对采纳**。另记录一条相邻定案：**平台内购 SDK 与支付渠道选型纳入 MVP**（Google Play Billing / App Store / 微信支付）⇒ `06-platform-stack.md` 的渠道选型由「可推后」变为 MVP 内必答，`purchase.md` §3 的 `receipt.platform` 取值域收敛为三个具名渠道 |
 
 清空即为「无在办草稿」。已提炼草稿 → handoff 的对应关系见 `archive/_index.md`。

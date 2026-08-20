@@ -2,6 +2,20 @@
 
 > 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身——条目在各分片。
 
+## 2026-08-19（`/write-adr backend` · 七条 ADR 候选全部固化 · 移出 0 条 · 新增 0 条）
+
+- **本库首批 ADR 落笔：`ADR-0001` ~ `ADR-0007`，全部 `Accepted`。** 七条候选逐条回主题文档核对，全部判为「已落地」（每条都能在契约正文里找到同一措辞的定案），无一条查无实据或与文档矛盾。
+  - `ADR-0001` 内容寻址 + `contentVersion` 严格单调（08-11，→ `contracts/content-manifest.md`）
+  - `ADR-0002` flags 第三层只覆盖 `ContentEnabled`（08-11，同上）
+  - `ADR-0003` 契约表达形式 = OpenAPI 3.1 单点、不共享 DTO（08-11，→ `contracts/envelope.md` §1）
+  - `ADR-0004` auth 域幂等 = sync 域幂等（08-13，→ `contracts/auth.md` §4 §4a）
+  - `ADR-0005` 防作弊边界：可复算 `roll`、不复算阈值、仅记账不拒绝（08-14，→ `contracts/profile-sync.md` §7 §7a）
+  - `ADR-0006` 账号级掷骰随机源 = 契约定义的 SplitMix64（08-14，→ `contracts/profile-sync.md` §6 §6a）
+  - `ADR-0007` 购买写入只由 verify 承担（08-16，→ `contracts/purchase.md` §2）
+- **`decisions/_index.md` 的「ADR 候选」整节删除**（过渡形态，表空即整节移除）。「已对后端构成约束的客户端决定」表**一格未动**（跨库引用表，非候选）。
+- **`open-questions.md` 一字未改**：其「下一阶段」不含 ADR 候选条目（候选全在 `decisions/_index.md` 的候选表里），`## derive 就绪度` 属 `/assess-derive-readiness` 独占。就绪度里「ADR 候选未 Accepted」的表述现已过时，待下一次全量评估刷新。
+- **主题文档零改动**（本技能只搬运立档，不改设计）。
+
 ## 2026-08-17（`/batch-analyze-new-ideas` 跨库同批 · 移出 2 条 · 新增 0 条）
 
 - **来源**：`inbox/solution-draft-profile-field-schema.md`（本库那一半，`awaiting-review`）→ `handoffs/2026-08-17-profile-field-naming.md`。它是客户端 5 份草稿批量提炼的**对侧承接**，两侧同批落笔、互相回链；客户端那一半见 `game-design-documents/handoffs/2026-08-17h-profile-field-schema.md`。移出记录见 `../answer-logs/log-profile-field-schema.md`。

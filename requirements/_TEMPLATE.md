@@ -10,6 +10,7 @@
     - decisions/ADR-####.md    # (if a settled call constrains it)
 - client-facing: <yes | no>       # 是否改动客户端可见的报文行为
 - status: draft                   # draft | ready | broken-down | blueprinted | built
+- signed-off-as:                  # 迁入 broken-down 时填：ready | draft（迁入前的签核状态；子需求签核规则读这一格）
 - blueprint:                      # link to blueprint once it exists
 - depends-on:                     # other FR ids this one requires first (build order)
 

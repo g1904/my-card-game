@@ -491,4 +491,4 @@ QQ      → { "authCode": "<同上>" }
 
 **本契约的客户端对位已于 2026-08-16 同批落笔**（`account-service` 的四个新方法与 `SignInAsync` 扩参、`AccountInfo` 的 `Identities` / `Nickname` / `CreatedAtUtc`、绑定管理的 UX、三个新 `code` 的 `ERR_*`），权威在 `game-design-documents/systems/services/account-service.md` 与 `systems/player-profile/account-info.md`。
 
-余下两点仍在客户端侧待落：`deviceId` 的生成与持久化落点 · refresh token 的客户端持有形态（§2 已定「不进 `Session`、落 `user://cache/`」，客户端文档尚未写死落点）。**本库不催办**——它们登记在客户端库自己的 `open-questions/cross-boundary.md`。
+`deviceId` 的生成与持久化落点**已由客户端侧落定**，权威见 `game-design-documents/systems/services/account-service.md`（本库不复述其形态）。余下一点仍在客户端侧待落：refresh token 的客户端持有形态（§2 已定「不进 `Session`、落 `user://cache/`」，客户端文档尚未写死落点）。**本库不催办**——它登记在客户端库自己的 `systems/services/account-service.md`「待决问题」。
