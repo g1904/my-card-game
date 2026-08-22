@@ -6,6 +6,7 @@
 
 | 草稿 | 对应 handoff | 日期 |
 |------|--------------|------|
+| `solution-draft-bundle-grant-ordinal-authority.md` | `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md` | 2026-08-22 |
 | `solution-draft-profile-field-schema.md` | `handoffs/2026-08-17-profile-field-naming.md` | 2026-08-17 |
 | `solution-draft-compliance-codes-and-reason-keys.md` | `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` | 2026-08-16 |
 | `solution-draft-multi-device-session-arbitration.md` | `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（与上一份同批提炼） | 2026-08-16 |

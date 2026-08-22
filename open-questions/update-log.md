@@ -2,6 +2,28 @@
 
 > 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身——条目在各分片。
 
+## 2026-08-22b（`/analyze-new-ideas backend` · 回声校验与收据幂等承接 · 移出 0 条 · 新增 1 条）
+
+- **来源**：`inbox/solution-draft-bundle-grant-ordinal-authority.md`（`status: decided`，三项取向 2026-08-19 全部取 A）→ `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`。它是客户端 08-19 定案（`BundleGrantOrdinal` 施加权收归后端唯一 `+1`）的后端那一半；对侧已单独落笔，**成对采纳的硬要求由此满足**。
+- **移出 0 条 —— 本次不建 answer log。** 本库四个分片与 `cross-boundary.md` 此前均无对应条目：该问题原本登记在**客户端库**的待答清单上（`05-service-contracts.md`），并已随对侧提炼移出（见 `game-design-documents/answer-logs/log-bundle-grant-ordinal-authority.md`）。本库这一侧是**承接落笔**，不是答结自己的待答项。
+- **新增待答 1 条**（`01-contracts.md`）：**回声校验的适用面与非整数路径的比较口径**。`/accountInfo` 是「客户端整键替换覆写后端写入字段」的第二处同形，其受约束路径清单与比较口径（时间串按时刻还是按字面 · 数组按序还是按集合 · 是否按字节）未定，**选错会让正常客户端被整批拒绝 = 丢玩家进度**。故 `profile-sync.md` §5c 同批写死一条底线：**落笔之前不得按字节相等实现**。承接它的 `inbox/solution-draft-echo-validation-scope.md` 已 `decided`，走一次 `/analyze-new-ideas` 即关闭。
+- **契约落笔面**（详见 handoff）：`profile-sync.md` §4（拒绝面四类 + 判定顺序 + 不消耗 revision）· §5（白名单补 `/entitlement/bundleRedeemedOrdinal`，**封闭写入表一格未动**，并把它记为「够格进表」判据的第三个反例）· **新增 §5c 回声校验**（封闭表的首个报文层执行点）· §7a（与 §5c 的所有权判据边界）· §8（只读副本受读己所写约束）· §9（`receiptId` 不同轴的旁注）；`purchase.md` §3（`platform` 收敛为三条具名渠道）· §4 · §5（判据）· §6（保证 3 升格 + 新增 5–7）· **新增 §7 收据幂等窗口**；`envelope.md` §6 台账（`sync.conflict` 的 `detail` 补 `field` 分支，**不新增 `code`**）。
+- **`06-platform-stack.md` 两处新增 + 一处升级**：支付渠道由「可推后」升为 **MVP 内必答**（渠道本身已定三家，待落的是逐渠道接入面）· 读己所写对拓扑与读路径的约束（**本库唯一一条对读路径的实现约束**，选型时不满足即出局）· `receiptId` 幂等记录的存储与冷存归档。
+- **`cross-boundary.md`「待承接」仍为空**，只在「对账基线」补一条已承接记录。**未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）——但可预期它下次评估时会变：`purchase.md` 的 `receipt` 形态卡点由「等渠道选型」变为「等逐渠道接入面」。
+
+## 2026-08-22（`/summarize-open-questions backend` · 全库对账 · 移出 0 条 · 新增 1 条）
+
+- **范围**：本库全部主题目录（`vision/` · `contracts/**` · `systems/` · `operations/`）+ `decisions/` + `handoffs/`（14 份**全为 `distilled`**，无 `raw` / `triaged` 待采集面）+ 四个分片 + `cross-boundary.md`。
+- **移出 0 条 —— 本次不建 answer log。** 四个分片的全部条目逐条回主题文档核对，无一条在 `## 决策` / ADR 里已有定论：`01` 三条（`refresh` 限流 · 合规域端点错误码 · 机检断言承载位置）、`02` 四条、`04` 五条、`06` 十一条**全部仍开放**。08-19 的 `/write-adr` 与 08-20 的就绪度评估均未产生新定案（前者只搬运既有定案立档、后者只评估），故 08-17 之后本库无答结面。
+- **新增待答 1 条**（`02-account-compliance.md`，作「风控与滥用面」的从属项）：**风控三档处置向玩家的可见粒度**。它此前**同时散在 `contracts/auth.md` 与 `contracts/compliance.md` 的 `## Open questions` 里、两处都注明「归 `02`」，但 `02` 分片零对应条目**——即两处权威文档都以为清单接住了，而清单从未收到。两处去重合并为一条。
+  **列为从属项而非独立条目**：它的前提就是母条目（三档处置的判据不定，无从判断要不要分档展示），且两处原文都明写**不阻塞**（新增 `reasonKey` 不要求客户端同批发版，`envelope.md` §5b）。
+- **跨库对账：两侧均无「一侧已定案、另一侧零承载」的缺口，故未在客户端库补登任何承接项。** 逐条核过：`envelope.md`「跨库待办」的五点（`Retry-After` 尊重 · `X-Flags-Version` 读取点 · 错误码映射表落点 · `Upgrade` 类非阻塞处置 · `HttpProfileBackend` 版本字段搬 HTTP 头）**对侧已落笔**（`game-design-documents/handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` → `systems/services/content-service.md`、`sync-service.md`）· `auth.md` 的 refresh token 客户端持有形态与 `compliance.md` 的 `ComplianceManager` 覆盖面切分**均已登记在对侧自己的清单上**（后者在对侧 `cross-boundary.md` 的「待承接」），本库不催办。本库 `cross-boundary.md` 的「待承接」仍为空，**一字未改**。
+- **零改动面**：`01` · `04` · `06` 三个分片 · `cross-boundary.md` · 全部主题文档 · `answer-logs/`。索引只改「最近更新」一行。
+- **未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）。其中「ADR 候选未 Accepted」类表述已由 08-20 的全量评估刷新，无残留。
+- **两处主题文档的陈述失真已修正（用户当场授权，超出本技能常规范围）** —— 两处都是纯陈述失真、不含任何设计裁决：
+  - `systems/_index.md`「现状」段：「协议契约**四份**已成文」→ **六份**，并补列 `purchase.md` · `compliance.md`。08-20 的就绪度评估已点名此处。
+  - `operations/_index.md` 的 `observability.md` 行：同步正确性探针由**两条**改为**三条**（补 `sync.revision_ahead` 具名与**复算不一致率**），并补一条**透明路径缺失**告警口径。原文与 `06-platform-stack.md`、`contracts/profile-sync.md` §5 §7a 的要求不一致——漏掉的那条正是「后端不拒绝、只记账」的白名单漂移的**唯一可见面**，缺它则该告警在唯一的运维落点上无处挂靠。
+
 ## 2026-08-19（`/write-adr backend` · 七条 ADR 候选全部固化 · 移出 0 条 · 新增 0 条）
 
 - **本库首批 ADR 落笔：`ADR-0001` ~ `ADR-0007`，全部 `Accepted`。** 七条候选逐条回主题文档核对，全部判为「已落地」（每条都能在契约正文里找到同一措辞的定案），无一条查无实据或与文档矛盾。

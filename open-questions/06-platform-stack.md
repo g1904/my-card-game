@@ -20,7 +20,11 @@
 
 - **同步侧语义的实现落地（契约已停在语义层，2026-08-14）。** `contracts/profile-sync.md` 明确把下列各项留给本分片，且**落定后进 `operations/`、不回头改契约**：`revision` CAS 的具体存储与并发控制（契约只要求账号级**线性化读改写**，且禁止「先写 profile 再改 revision」的两步非原子形态）· `(accountId, pushId)` 幂等记录的存储（须与 revision 写入**同一次事务**）与初值校准（200 条 / 30 天）· push 滥用阈值的实现（60 次 / 分钟 / 账号）· **跨区域拓扑**（契约已定单写入区 + 只读副本，账号级严格单调计数器在多主下无法维持）· 单账号 profile 体积软告警的实测校准（初值 512 KB，口径为整聚合，与客户端 `pastEvent` 那条不同）。
 
-- **支付渠道选型（08-16b 移入 · 原挂在 `02` 的「自建 vs 接第三方」下）。** `contracts/purchase.md` 的 `receipt` 字段内部形态与平台错误码映射待它落定。**它与账号身份模型不同轴**：那里的「渠道」是登录渠道（`auth.md`），此处是支付渠道（应用商店 / 平台 IAP）；账号侧已定案**不解锁**本条。→ `contracts/purchase.md`。
+- **读己所写要求对拓扑与读路径的约束（08-22 采集 · 承重）。** `contracts/purchase.md` §6 保证 3 已把「验票写入后立即读到」定为**对读路径的一致性要求**，`profile-sync.md` §8 随之写明**滞后的只读副本不能无条件承接 pull**。落定栈与拓扑时必须带上它：要么该账号的读走写入区，要么读路径附带会话粘滞 / `revision` 下界等待。**这是本库唯一一条对读路径提出的实现约束**，选型时不满足它的形态即出局（后果是玩家付款后静默拿不到货，且客户端不会重试）。→ `contracts/purchase.md` §6、`contracts/profile-sync.md` §8。
+
+- **`receiptId` 幂等记录的存储与冷存归档（08-22 采集）。** 语义已定且**不回头改契约**：全局唯一键、**永久保留不设 TTL**、与序号 / `cloudRevision` 的写入同一次事务（`contracts/purchase.md` §7）。归本分片的是**实现**：存储选型、分区策略、体量增长与冷存归档形态，以及它与 `(accountId, pushId)` 幂等记录（30 天窗口，两者**不同轴**）能否同处。另一项同归此处：对账信号「`bundleGrantOrdinal > bundleRedeemedOrdinal` 持续 N 天」的落点与阈值——**只作人工 / 工单入口，不驱动任何自动写入**。→ `operations/`。
+
+- **平台内购三渠道的接入形态（08-22 由「可推后」升为 MVP 内必答）。** 渠道本身**已定**：**Google Play Billing · App Store（StoreKit）· 微信支付**，三条全部纳入 MVP（范围权威在 `game-design-documents/vision/scope.md`），`contracts/purchase.md` §3 的 `receipt.platform` 取值域随之封闭为这三个具名渠道。**仍待落定的是逐渠道的接入面**：三家的收据 / 凭证结构与校验协议互不相同 ⇒ 验票端点须逐渠道定 `receipt` 内部形态与平台错误码映射（一律归一到本库已有的 `code`，渠道原始码只随日志上报）、各自的服务端验票凭据 / 密钥保管、以及退款与撤单通知的对账通道。**它与账号身份模型不同轴**：那里的「渠道」是登录渠道（`auth.md`），此处是支付渠道；账号侧已定案**不解锁**本条。→ `contracts/purchase.md`，落 `operations/`。
 
 - **短信 / 邮件 / 实名核验的服务商选型与灾备（08-16b 采集）。** 身份模型已定「C 层原子能力一律外接、每类能力在后端内部有一个稳定接口使服务商可换」（`contracts/auth.md`）；具体服务商、多供应商灾备策略与切换形态归本分片。**服务商错误码不上契约面**——一律先归一到本库已有的 `code`（`rate.limited` / `auth.credential_invalid` / `auth.challenge_expired` / `server.unavailable`）。另有两项旋钮同归此处：**昵称改名频次阈值**（词表与审核口径归 `02`）· **微信开放平台资质申请**——首版以 `unionid` 建 identity 是不可逆决定，**必须在首个玩家建号之前完成**，落发布前置清单。→ `operations/`。
 

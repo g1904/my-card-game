@@ -18,6 +18,9 @@
 
 ## 对账基线（不是待办）
 
+- **`bundleGrantOrdinal` 施加权收归后端唯一 `+1` 已承接**（客户端 2026-08-19 定案 → 本库 2026-08-22 落笔）：本库既有口径与该裁决同向，故无一句被改写，落的全是护栏与登记——`contracts/profile-sync.md` §5c 回声校验（后端写入封闭表的首个报文层执行点）· §5 补入 `/entitlement/bundleRedeemedOrdinal`（后端只读 + 不变式）· §4 拒绝面补所有权类与判定顺序 · §7a 判据边界 · §8 只读副本受读己所写约束；`contracts/purchase.md` §6 保证 3 升格为一致性要求 + 新增保证 5–7 · 新增 §7 收据幂等窗口（全局唯一键 · 永久保留）· §3 `platform` 取值域收敛为三条具名渠道。**两侧无遗留欠账**；客户端侧的兑现段形态权威在 `game-design-documents/systems/monetization.md` 与 `decisions/ADR-0023-premium-entitlement-and-redemption.md`，**本库不复述**。
+  **唯一仍开放的连带**：回声校验的适用面与非整数路径的比较口径，登记在 `01-contracts.md`（**不是承接项**——它等的是设计裁决，且已有 `decided` 草稿在办）。
+
 - **两层 Profile 字段命名两侧同批落笔**（2026-08-17）：客户端把集合字段名统一为单数并收口条目键名，本库同批改 `contracts/profile-sync.md` §5 白名单与排除清单四条路径 + 新增 §5b 命名通则与一次性切换的三个成立前提。**两侧无遗留欠账。**
 - **球在对侧、本库无欠账的第三处：** 残卷 `ordinal` 的口径**两侧已对齐**——本库 §7 复算读的就是本次（自增后）的 `finaleWinOrdinal`，客户端侧的账号级 RNG 通则权威在 `game-design-documents/systems/common-properties.md`（本库不复述）。本次只在 §7 做了一句零风险的措辞消歧，**算法与 §6a 的 8 组测试向量未改**。**本库不重复设计、也不催办。**
 - **购买段已承接**（客户端 08-15b 定案 → 本库 2026-08-16 落笔）：新增 `contracts/purchase.md` · `profile-sync.md` §2 §5 改为后端写入字段封闭两行表并补入白名单行 · 契约面四份 → 五份。移出记录见 `../answer-logs/log-cross-library-alignment.md`。

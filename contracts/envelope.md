@@ -168,7 +168,7 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 | `compliance.playtime_blocked` | `Fatal` | `Compliance` | 阻塞屏 + 展示 `resumeAtUtc`，**无重试动作** | `{ reasonKey, resumeAtUtc }` | 触发的时段规则与解除时间 |
 | `compliance.account_restricted` | `Fatal` | `Compliance` | 阻塞屏 + 申诉入口（申诉走站外，不占端点） | `{ reasonKey }` | `status` 值与置入时间 |
 | `compliance.account_deleting` | `Fatal` | `Compliance` | 阻塞屏 + 「撤销注销」动作，凭 ticket | `{ reasonKey, deletionEffectiveAtUtc, complianceTicket, ticketExpiresAtUtc }` | 冷静期起止时间 |
-| `sync.conflict` | `Fatal` | `Conflict` | 以云端为准丢弃本地缓冲 + 明确告知玩家（CAS 第二分支） | `{ cloudRevision }` | `baseRevision` 与 `cloudRevision` 两值、账号与 `pushId` 前缀 |
+| `sync.conflict` | `Fatal` | `Conflict` | 以云端为准丢弃本地缓冲 + 明确告知玩家（CAS 第二分支；**后端写入路径的回声校验不通过复用本码**，客户端处置逐字相同、不新增分支） | `{ cloudRevision }`；回声不通过时 `{ cloudRevision, field }`（`field` = 第一条不匹配的 JSON path，`profile-sync.md` §5c） | `baseRevision` 与 `cloudRevision` 两值、账号与 `pushId` 前缀；回声不通过时另含违规 path |
 | `sync.revision_ahead` | `Fatal` | `Conflict` | 同上 **+ 上报一次**；不试图自愈（CAS 第三分支 / 不可能态） | `{ cloudRevision }` | 同上 |
 | `sync.payload_schema_unsupported` | `Upgrade` | `Validation` | 见 §7c：**不硬阻塞**，保留待发队列 + 非阻塞升级提示 | `{ supportedSchemaVersions }` | 收到的 `schemaVersion` 与当前兼容集合 |
 | `sync.payload_invalid` | `Fatal` | `Validation` | 报文结构 / 必填字段不合法——**这是 bug 面，不是玩家面**，上报 | `{ field }` | 违规字段路径与期望形态 |

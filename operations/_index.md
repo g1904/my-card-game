@@ -15,7 +15,7 @@
 | `environments.md` | 环境分层与配置分离、三条分支对应的实体环境 |
 | `deployment.md` | 构建与发布流程、回滚 |
 | `content-delivery-ops.md` | **内容分发的运营面**（首批有具体对象，见下）：CDN 缓存策略、内容发布与回滚流程、flags 数据源与灰度分桶、签名私钥保管与轮换 |
-| `observability.md` | 日志 / 指标 / 追踪的最小集合；同步正确性的线上探针（「本地领先」异常率、`pushId` 去重命中率）；`X-Request-Id` ↔ `requestId` 的两侧日志贯通 |
+| `observability.md` | 日志 / 指标 / 追踪的最小集合；同步正确性的**三条**线上探针（「本地领先」`sync.revision_ahead`、`pushId` 去重命中率、**复算不一致率**）+ 一条**透明路径缺失**告警（白名单路径漂移时后端只记账不拒绝，这条告警是它唯一的可见面）；`X-Request-Id` ↔ `requestId` 的两侧日志贯通 |
 | `compliance-ops.md` | 数据存放地、留存与删除、账号注销与导出的运维侧流程 |
 | `version-matrix.md` | **版本兼容矩阵**（见下）：强更闸门判定的输入，与判定逻辑同处 |
 

@@ -5,7 +5,9 @@ question: `bundleGrantOrdinal` 的推进权归属定案后，后端侧要承接�
 source: game-design-documents/open-questions/05-service-contracts.md → 「`monetization.md` 内部相抵——`BundleGrantOrdinal` 究竟由谁施加（08-17 新增 · 承重）」（客户端库待答项，跨边界承接）
 targets: contracts/purchase.md · contracts/profile-sync.md（§5 白名单与后端写入封闭表 · §9 幂等窗口 · §6 服务端保证）· operations/（对账与补偿，仅回链）
 counterpart: game-design-documents/inbox/solution-draft-bundle-grant-ordinal-authority.md
-status: decided
+status: distilled
+reviewed: 2026-08-19 — 三项取向全部按推荐定案（Q1 回声校验整批拒绝 + 风控 · Q2 读己所写升格为服务端一致性要求 · Q3 `receiptId` 永久保留不设 TTL）
+distilled-to: handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md
 ---
 
 # 方案 — `bundleGrantOrdinal` 施加权归属的后端承接

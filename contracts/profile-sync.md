@@ -2,7 +2,7 @@
 
 > 覆盖 `/v1/profile/…` 两个端点的报文本体。**边界层不在此重复**：序列化与命名约定、`/v1/` 主版本、传输信封、错误体形状、错误码台账、版本协商、Profile 三段可见性的分界——全部见 `envelope.md`，本文件只写 sync 域**相对它的差异与细化**。
 > 客户端侧门面见 `game-design-documents/systems/services/sync-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）。
+> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）。
 
 ## 1. 端点集：两个，封定
 
@@ -85,12 +85,23 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 | **`pushId` 命中幂等窗口** | `200` | `{ "newRevision": 137, "deduplicated": true }` |
 | `baseRevision < cloudRevision` | `409` | `error.code = "sync.conflict"`，`detail = { "cloudRevision": 137 }` |
 | `baseRevision > cloudRevision` | `409` | `error.code = "sync.revision_ahead"`，`detail = { "cloudRevision": 137 }` |
+| **后端写入路径的回声校验不通过**（§5c） | `409` | `error.code = "sync.conflict"`，`detail = { "cloudRevision": 137, "field": "/entitlement/bundleGrantOrdinal" }` |
 
 - 对位客户端 `PushAck(NewRevision, Deduplicated)`，一字不多。
 - **状态码只承担传输层语义**，客户端一律按 `code` 分支（`envelope.md` §5b）；两条 `409` 共用状态码，正说明为什么必须有 `code`。
 - `schemaVersion` 越出兼容集合 → `sync.payload_schema_unsupported`（`Upgrade`，**不硬阻塞**，`detail.supportedSchemaVersions`）。**判定发生在 CAS 之前**——版本不兼容不应消耗一次 revision。
 - 负载信封字段缺失 / 类型不合法 → `sync.payload_invalid`（`detail.field` 给 JSON path）。**不透明段内部的任何结构问题都不得触发这一条**：它只覆盖信封本身与 §3a 的顶层形状。
-- **本文件不新增任何错误码。** 五条 `sync.*` 与 `rate.limited` 已在 `envelope.md` §6 台账中，`class`、客户端处置与 `detail` 形状均原样适用——这是边界层先成文带来的直接收益。
+- **本文件不新增任何错误码。** 五条 `sync.*` 与 `rate.limited` 已在 `envelope.md` §6 台账中，`class`、客户端处置与 `detail` 形状均原样适用——这是边界层先成文带来的直接收益。回声校验**复用 `sync.conflict`**：客户端处置与 CAS 冲突逐字相同（以云端为准、丢弃本地缓冲、重新 pull），新增一个码只会逼客户端多写一条走向同一处的分支；「这不是普通冲突」的可观测性由风控事件承担（§5c）。
+- **后端拒绝上行的全部面共四类**，逐类的触发与处置：
+
+  | 类 | 触发 | `code` | 是否消耗 revision |
+  |---|---|---|---|
+  | 版本闸门 | `schemaVersion` 越出兼容集合 | `sync.payload_schema_unsupported` | 否 |
+  | 信封 / 顶层形状 | 信封字段缺失或类型不合法 | `sync.payload_invalid` | 否 |
+  | CAS | 基线不符 / 本地领先 | `sync.conflict` · `sync.revision_ahead` | 否 |
+  | 所有权 | 后端写入路径的回声校验不通过（§5c） | `sync.conflict` | 否 |
+
+- **判定顺序：`schemaVersion` 闸门 → 信封形状 → CAS → 回声校验 → 写入。** 回声校验必须发生在 `cloudRevision += 1` **之前**——被拒绝的一次不得消耗一次 revision，与版本闸门那条同一理由；且 CAS 已失败时整批已被拒绝，再做字段比较是白做。
 - **`compliance.*` 不出现在这两个端点的错误清单里**，见 §11。
 
 ## 5. 后端可见字段子集：按 JSON path 逐条列白名单
@@ -120,6 +131,7 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
   > `createdAtUtc` 两条都满足，且写入时机与 `accountSeed` 完全相同，不新增一个后端会写 profile 的时刻。
   > **反例一：`/accountInfo/nickname`** —— 真值是玩家输入的，第 ① 条即不满足，故它是**透明只读**路径而非写入路径（`auth.md` §8）。
   > **反例二：`/statistics`** —— 真值在客户端，永远不够格。
+  > **反例三：`/entitlement/bundleRedeemedOrdinal`** —— 兑现水位的真值产生在客户端的兑现事务里，第 ① 条即不满足；它与表内的 `bundleGrantOrdinal` 同处 `entitlement` 键**不构成进表理由**，同键不等于同所有权。
   >
   > **为什么 `bundleGrantOrdinal` 在表内。** 它的推进权**只能在后端**，否则付费防篡改归零（客户端侧承重定案，不可绕过）。
   > **已否决的替代**：把它移出 profile 聚合、单独存在后端的购买域（客户端只读取、不落存档）。代价更高——它会让兑现段的掷骰 `ordinal` 来自一个不在 profile 里的字段，破坏「整次授予由 `(域, 序号)` 完全确定且随授予事务同一次持久化」这条客户端承重纪律，且 `AccountRng` 的两个域会有两套来源。
@@ -140,7 +152,8 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 | `/playerPowerFragment/lastEffectiveChance` | number int `[0,10000]` | 命中自洽校验（§7 校验 ②） |
 | `/playerPower[*]/powerId` | string | `x` 的计数对象 |
 | `/playerPower[*]/sourceCode` | string enum | `x = count(sourceCode == "FinaleWin")` |
-| `/entitlement/bundleGrantOrdinal` | number int | 复算 `PremiumBundle` 域掷骰的 `ordinal`；**单调 `+1` 校验**；**后端写入**（见上方封闭表与 `purchase.md`） |
+| `/entitlement/bundleGrantOrdinal` | number int | 复算 `PremiumBundle` 域掷骰的 `ordinal`；**单调 `+1` 校验**；**后端写入**（见上方封闭表与 `purchase.md`）；受 §5c 回声校验约束 |
+| `/entitlement/bundleRedeemedOrdinal` | number int | 兑现水位，**后端只读**（写入方是客户端的兑现事务）。不变式校验：`0 ≤ bundleRedeemedOrdinal ≤ bundleGrantOrdinal` 且单调不减；违反走 §7a（记账 + 风控，**不拒绝**）。**不受 §5c 约束**——判据是所有权，客户端有权写它 |
 
 **明确落在不透明段的（各有理由）：**
 
@@ -170,6 +183,22 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 - 三者同时成立时才允许把重命名做成一次性切换：改名与 `schemaVersion` 的一次 bump 同批，两侧同时切到新名，无迁移、无双读分支。
 - **兼容期在这里不是安全网。** §7a 的处置语义是「仅记账、不拒绝、不改写」⇒ 双读期内没有任何信号能告诉任一侧「对方还没改」，不一致的症状不是报错而是风控噪声，且会随双读分支长期存活而变得永久不可见。硬信号只能来自一次性切换 + bump。
 - **本次改名合并进客户端两层 Profile 字段面收口的同一次 `schemaVersion` bump**（bump 清单的权威在 `game-design-documents/systems/services/sync-service.md`；本库只声明「须与之同批」）。
+
+### 5c. 后端写入路径的回声校验：封闭表的执行点（承重）
+
+§3a 的浅合并是**顶层键粒度**：客户端提交某个顶层键即整键替换，键内属**后端写入字段表**的路径随之被客户端提交的值覆盖。上方那张表挡住的是「谁有权 `+1`」，挡不住**覆写**——客户端提交它 pull 时的旧序号，云端就被**回退**，而序号回退比不推进更糟：同一个 `ordinal` 会被兑现两次，下一次验票再推一次，序列彻底错位。
+
+`revision` CAS **不是**这条的防线。CAS 保护的是并发窗口，问的是「你的基线对不对」，不问「你有没有权改这个字段」——客户端一个 bug（把序号写成常量）在基线正确时会被原样接受。**没有本节，后端写入字段表就只是一句纪律，在报文层没有任何执行点。**
+
+> **规则：凡 `playerDiff` 含某个顶层键，键内属后端写入字段表的每条路径，客户端提交的值只能是回声（echo）——与当前云端值相等即通过，不等即整批拒绝**，回 `sync.conflict`、`detail` 给 `{ cloudRevision, field }`（`field` = 第一条不匹配的 JSON path），并打一条风控事件（账号 · 违规 path · 云端值 · 客户端提交值 · `requestId`；落地形态同 §7a，归 `02` / `06`）。
+
+- **后端永不采纳客户端对这些路径的写入，也不静默丢弃它。** 静默丢弃会让客户端 bug 永远看不见，而这类 bug 的症状恰好是玩家侧的错误发放。
+- **拒绝整批，不做字段级挑拣。** §3a 的合并语义是整键替换，挑拣要求后端在顶层键内部做字段级合并——一旦为它开一次例外，「后端不递归、不逐元素合并」这条分段就被打开了。**拒绝整批是唯一不动摇既有分段的处置。**
+- **`sync.payload_invalid` 的边界不变**：它仍只覆盖信封本身与 §3a 的顶层形状。回声比较的是白名单内某条路径的**取值**，不是结构合法性，故不走它；不透明段内部一字不动。
+- **当前的执行面**：`/entitlement/bundleGrantOrdinal`（`number int`，数值相等，无比较口径歧义）。它由**兑现**这条常规路径触发——客户端每次兑现都提交 `entitlement` 顶层键，因此这不是罕见窗口而是每次都走一遍的路。
+- **`/accountInfo` 是同形的第二处**（键内混有后端写入的 `accountSeed` / `createdAtUtc` / `identities` 与客户端写入的 `nickname`，由**改昵称**触发）。它的受约束路径清单与非整数路径的比较口径（时间串按时刻还是按字面 · 数组按序还是按集合）**尚未落笔**，见 `open-questions/01-contracts.md`——**在落笔之前不得按字节相等实现**：正常客户端的合法表示差异会被判成不等，而拒绝一次上行在客户端侧就是一次进度丢失。
+
+**判据是所有权，不是严格程度。** 受约束的是**客户端根本无权写**的路径：值无争议地不属于它，正常客户端在这些路径上永远只会提交回声，故零误报，拒绝是安全的。客户端**有权写**的路径（`nickname` · `playerPowerFragment/*` · `playerPower[*]/*` · `bundleRedeemedOrdinal`）一律不受本节约束，越界走 §7a 的「记账 + 风控、不拒绝」。**同一顶层键内的两条路径因此可能走两种处置**——实现者不得按键统一处置。
 
 ## 6. 账号级掷骰的随机源：契约定义的纯函数 SplitMix64（承重）
 
@@ -278,6 +307,7 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 - **不拒绝上行。** 拒绝即 `sync.conflict`，而客户端按既定语义会**丢弃本地缓冲**——一次误报（时钟、并发、客户端 bug、后端实现差一位）当场变成一次玩家进度丢失，违反「绝不回退存档点」与 pillar #4。而复算的对象是**每篇章至多一次**的低价值掉落，用进度丢失去防它，比例失衡。
 - **不以后端复算结果改写 profile。** 与「未知 `sourceCode` 记录原值、不改写」正面冲突，且会让客户端与云端的 Profile 在客户端不知情的情况下分叉（客户端并不重新 pull）。
 - 形状与「验签失败 → 拒绝 + 上报一次」「`revision_ahead` → 处置相同但必须被观测到」一致：**异常必须可见，但不在同步热路径上做裁决。**
+- **与 §5c 的判据边界（两条读起来相反，判据使它们不抵触）：** 本节管的是**客户端有权写、后端只作复算比对**的路径——值可能有争议，一次误报就是一次错误的进度丢失，故只记账；§5c 管的是**客户端根本无权写**的路径——值无争议地不属于它，正常客户端永远只提交回声，故零误报，拒绝安全。**判据是所有权，不是严格程度。**
 
 ## 8. `revision` CAS 的服务端语义：账号级线性化，不指定实现
 
@@ -286,6 +316,7 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 - **同一 `accountId` 上的「读 `cloudRevision` → 比对 `baseRevision` → 写 profile 并 `+1`」必须是一次线性化的读改写。** 任何实现（条件 UPDATE、事务、单分区串行）只要满足它即可。
 - **绝不允许「先写 profile 再改 revision」的两步非原子形态**——中途失败会留下一个 profile 已变而 revision 未变的账号，此后每一次 push 都会被判成功却写在错误基线上。
 - **跨区域：单写入区（单主）+ 只读副本。** 账号级严格单调递增的计数器在多主下无法维持，而「云端权威」这条决策的全部力量都建立在这个计数器上。跨区域延迟由客户端的非阻塞 push 通道吸收（pillar #4 已保证玩家不等待）。
+- **只读副本受一条读己所写要求约束**（`purchase.md` §6）：验票写入返回之后，同一账号的任何后续 `pull` 必须不早于该次写入的结果。**滞后的只读副本因此不能无条件承接 pull**——要么该账号的读走写入区，要么读路径附带会话粘滞 / `revision` 下界等待。它排除了一部分部署形态，这是明知的代价，须在栈选型时带上（`open-questions/06-platform-stack.md`）。
 - 「本地领先」（`baseRevision > cloudRevision`）→ 回 `sync.revision_ahead`，**并作为服务端指标单列**。它在服务端侧的含义是「客户端信封被改写**或后端发生过回滚**」，后者是后端自己的事故信号。
 
 ## 9. `pushId` 幂等窗口：`(accountId, pushId)` 唯一键 + 30 天 TTL
@@ -298,6 +329,7 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 
 - **命中即返回上次结果**：`200` + `{ "newRevision": <上次的值>, "deduplicated": true }`，**不再 `+1`、不重写 profile**。
 - **窗口过期后的重放是安全降级而非错误**：`baseRevision` 此时必然落后 ⇒ 回 `sync.conflict`，客户端按既定语义丢弃缓冲。**这正是窗口必须够长的理由**——过期不会造成错误接受，只会把一次重试变成一次进度丢失。
+- **`receiptId` 的幂等窗口与本节不同轴，不要沿用这里的旋钮。** 本节的 30 天由客户端待发队列的存活上界推出；收据幂等的上界由「待兑现态无自动放弃」决定，且过期后果是重复发放而非一次进度丢失，故为**全局唯一键 + 永久保留**，定义见 `purchase.md` §7。
 - **同一 `pushId` 携带不同 `baseRevision` 或不同 body 到达** → **不做深比对**（后端不解不透明段），一律按幂等命中回上次结果。深比对既昂贵，又会把一次客户端 bug 升级为一次进度丢失。
 
 ## 10. 限流：只设滥用阈值，不设常规节流
@@ -326,6 +358,7 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 ## 决策(-> ADR)
 
 - **账号级掷骰的随机源 = 契约定义的纯函数 SplitMix64**（§6）→ ADR 候选，登记于 `decisions/_index.md`。值得固化其依据（跨语言逐位一致是复算的前提，不能押在引擎实现细节上），否则「客户端本来就有 RNG，为什么另写一个」会反复被重新提出。
+- **后端写入路径在上行侧只接受回声，不等即整批拒绝**（§5c）→ ADR 候选，登记于 `decisions/_index.md`。值得固化其依据（浅合并按顶层键 ⇒ 封闭表若无报文层执行点即形同虚设；CAS 问基线不问所有权），否则「CAS 已经挡住了，为什么还要比一次字段」会反复被重新提出。
 - **防作弊的边界 = 可复算 `roll`、不复算阈值；不一致仅记账不拒绝**（§7 · §7a）→ ADR 候选。它是 pillar #1 在最具体处的一次兑现，也是「后端要不要持有平衡表」这个问题的永久答案。
 
 ## 备选方案（已考虑并否决）
@@ -345,6 +378,11 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 - **`accountSeed` / `next` 在向量文件中走十进制数字或十进制字符串**（§6a） — 数字形态超 2⁵³ 静默丢低位（`envelope.md` §2 已就此立判据）；十进制字符串不定长、与「种子是一段比特」的语义不符，且与 §2 已定的报文 hex 表示不一致，等于在同一个值上放两种写法。
 - **把向量文件放进 `contracts/schemas/`** — 它不是报文形态，`_index.md` 的两条拆分判据都不满足，故 `vectors/` 单开。
 - **另立一张 `Mix()` 单函数的向量表** — 与 §6a 的检查点重复：`Next()` 的输出已完全暴露 `Mix` 的正确性，多一张表多一处需同步维护的真值（标准 SplitMix64 的公开自测值以**非规范性提示**的形式记在 §6a，不构成第二份真值）。
+- **只靠 `revision` CAS 挡住后端写入路径的覆写**（§5c） — CAS 问基线不问所有权：客户端把某条后端写入路径写成常量，在基线正确时会被原样接受，而后端写入字段表将永远没有执行点。
+- **字段级挑拣：忽略客户端提交的后端写入路径、接受其余**（§5c） — 要求后端在顶层键内部做字段级合并，动摇 §3a「不递归、不逐元素合并」的分段。
+- **为回声校验新增专用错误码**（§5c） — 客户端处置与 Conflict 完全一致，新码只逼它多写一条走向同一处的分支；可观测性由风控事件承担。
+- **把 `bundleRedeemedOrdinal` 提为另一个顶层键以避开整键替换**（§5c） — 能绕开这一处的表现，却把一对语义紧邻的字段拆到两个顶层键，且 `/accountInfo` 仍是同一形状——需要的是一条通则，不是搬家。
+- **按顶层键统一处置**（键内任何不一致都拒绝）（§5c） — 会把 `bundleRedeemedOrdinal` 的越界从「记账」升为「丢进度」，与 §7a 正面冲突；判据必须逐路径按所有权判。
 - **RFC 7386 JSON Merge Patch 作为 diff 合并语义** — 以 `null` 表示删除，与 `envelope.md` §2 冲突；且要求后端递归遍历不透明结构。
 - **`playerDiff` 段级全量替换** — 每次 push 重传整个账号级段，与「整聚合上行不可持续」这条既定理由同向相悖。
 - **把 `characterDiffs` 也做成透明段** — 无后端规则用途，且每条透明路径都要背上路径稳定性约束。

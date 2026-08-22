@@ -4,7 +4,7 @@
 
 ## 现状
 
-**尚未建立任何服务文档。** 协议契约四份已成文（`contracts/envelope.md` · `content-manifest.md` · `auth.md` · `profile-sync.md`），但后端技术栈与托管形态仍未定（`open-questions/06-platform-stack.md`），而服务内部设计（存储、并发控制、会话形态）离不开它。按「先有设计再建文件」的约定，此处不预先占位空壳。
+**尚未建立任何服务文档。** 协议契约六份已成文（`contracts/envelope.md` · `content-manifest.md` · `auth.md` · `profile-sync.md` · `purchase.md` · `compliance.md`），但后端技术栈与托管形态仍未定（`open-questions/06-platform-stack.md`），而服务内部设计（存储、并发控制、会话形态）离不开它。按「先有设计再建文件」的约定，此处不预先占位空壳。
 
 ## 计划中的服务
 
