@@ -12,12 +12,14 @@
 
 > 「本轮回禁用」与置换型剥夺片区的**四条并列待答已全部答结**（承载字段 `disabledAbility` · 三档时长与生效判据 · 置换候选池与对价 · `ProfileChangeSpec` 三列表 element 形态 · `PlayerStatistics` 与首批两项 · 宽松同步口径五条 · `PushWarning` 对称落点归内容加载侧），见 `../answer-logs/log-ability-deprivation-and-player-statistics.md`。
 
-- **`RarityTier` 的分布与权重表（08-10c 新增）。** 五档已定名并挂上 `PowerData` / `ItemData` / `CardData`；**结构面已答定**——授予池权重表已给出结构与初值，置换候选池不需要权重表（同档等概率），分表维度按**用途**（授予 / 战后奖励）而非渠道、亦非 `(Kind, Scope)`。仍待定：**战后奖励池**各档权重（按优势档 `Tier` 三档各一张表）、内容侧「每档应有多少条目」的编排口径、`GrantPoolMargin` / `K` 的取值。→ `systems/balance.md`、`systems/services/combat-service.md`。
+- **`RarityTier` 的分布与权重表（08-10c 新增）。** 五档已定名并挂上 `PowerData` / `ItemData` / `CardData`；**结构面已答定**——授予池权重表已给出结构与初值，置换候选池不需要权重表（同档等概率），分表维度按**用途**（授予 / 战后奖励）而非渠道、亦非 `(Kind, Scope)`。仍待定：**战后奖励池**各档权重（按优势档 `Tier` 三档各一张表）、内容侧「每档应有多少条目」的编排口径、**三格取池余量**（`GrantPoolMargin` / `ResearchPoolMargin` / `ExchangePoolMargin`）与 `K` 的取值（结构已定，可先填 0 而不阻塞落地）。→ `systems/balance.md`、`systems/services/combat-service.md`。
 
 ## 结构与配置的残留
 
 - **带边界的配置落点（08-06b 立 · 08-15d 收窄）。** 三章的 `±2` 带边界放在平衡资源里，还是服务配置里？**意图阈值那一半随机制移除而作废**，「下界不得使 `diff` 门槛不可达」这类一致性检查亦随之消失。→ `systems/balance.md`、`systems/services/future-event-service.md`。
 - **战斗之外的事件类型的决策点清单。** 战斗内 D0–D6 已定案；其余四类 AdventureEvent 的事件内决策点尚未逐类给出——它们共享同一形状，清单应当很短。**Research 那一条已给出**（构筑面板的每个决策槽各是一个决策点，候选在物化时即已掷定）；仍欠 Exchange / Explore / Travel 三类。→ `systems/services/life-cycle-service.md`、`systems/adventure-event/`。
+- **战斗内运行态的决策点存档形态（本次归集 · 此前未进清单）。** `ActiveCombat` 的 schema 与 D0–D6 决策点已定；仍待定两块**运行态计数器**的字段形态——`CharacterPower` / `PlayerPower` 的「本场已触发 N 次」，以及 `PlayerItem` 的「本场已用掉哪些、各自剩余次数」。两者须与战场条目的存档形态一并落定（入场本身不必存档，可由持有列表 + `status` + `UsableScene` + `disabledAbility` 确定性重建）。→ `systems/character-profile/power/_index.md`、`systems/player-profile/player-item/_index.md`、`systems/services/combat-service.md`。
+- **更高境界的 mana 基线是否跃升（本次归集 · 此前未进清单）。** 炼气 5/5 已定、上限由事件推拉且一章净增仅 +1~+2；`lifeTotal` **已定为境界跃升**（10 / 25 / 40），而 **mana 尚未表态**——进入筑基 / 金丹 / 元婴时是否另有一次基线跃升，还是完全交给事件累积。两者分工不同，不能类推。→ `systems/character-profile/mana.md`、`systems/balance.md`。
 
 ## 内容与数值的残留（多数已归 ch1 数值标杆专场）
 

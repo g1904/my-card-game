@@ -107,7 +107,7 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 ## 待决问题
 
 - **敌人是否也以功法构筑卡组。** 功法（`CultivationTechnique`）已定为**角色侧**的卡组构筑单位；`EnemyData` 的样本卡组当前仍是**直接的卡牌列表**。若敌人也用功法，图鉴词条②「功法简介」可与系统概念合流、敌人内容的编写颗粒度也随之变粗；若不用，词条②保持为纯风味文案。→ `systems/character-profile/deck/_index.md`、`systems/player-profile/codex/enemy-codex.md`。
-- **敌人 AI / 意图规划逻辑：** 回合级一次性规划已定（见 `systems/services/combat-service.md` 的 EnemyManager），但具体的规划算法、多回合行为倾向、难度旋钮的落点未定义。
+- **敌人 AI 的规划形态：** 「回合级一次性规划」这条硬约束**已随 08-15d 意图机制整条移除而解除**——AI 可在自己回合内逐张决策。仍未定义：具体算法、**规划粒度（一次性 vs 逐张）**、多回合行为倾向、难度旋钮的落点。→ `systems/services/combat-service.md` 的 EnemyManager、`systems/adventure-event/combat/_index.md`。
 - **敌人各等级的道念产出缩放：** 起始值已由 `baseMomentum` 给定，产出能力的缩放曲线未定 → `systems/balance.md`（ch1 数值标杆专场）。
 - **敌人池的篇章框定载体未定。** 取池的第三层写着「篇章框定」，而 `EnemyData` 上没有任何字段表达篇章。载体定下之前，「通用池在某组合下为空」的启动期校验只能按 `EventType` 单维实现（见 `common-properties.md`）。→ `systems/services/future-event-service.md`。
 

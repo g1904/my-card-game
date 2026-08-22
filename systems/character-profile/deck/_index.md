@@ -197,6 +197,7 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 - **回合内状态 = `EntryLifetime` × `CountdownSide` × `RemainingTurns` 三件套；非永久条目可被针对但效果须显式声明目标类别**。
 - **效果系统三层；求值 = 加法层 + 乘法层且「加法先于乘法」是规则；`CardInstance` 运行态判据 = 有无过期时刻；「一切增益减益都是战场条目」**。
 - **关键字体系 = `KeywordData` 内容层条目（清单归零、机制保留）；目标 target 与作用域 scope 分开建模并共用 `EntryFilter`** → `common-properties.md`。
+- **出牌费用 = mana**：每回合出牌资源为 mana，**每回合开始恢复至 `manaLimit`**（炼气基线 5/5，不结转）；`manaLimit` 由事件 cost / reward 推拉 → `../mana.md`。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
@@ -206,7 +207,6 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 - **`CardData` 的完整字段清单与起始卡组内容。** 卡牌类型五分、异能三分、次类型、`Pool`、`Subtypes`、**目标声明与效果引用两格**均已定；其余字段（费用、触发器）与 **starter deck 的具体内容**未设计——**起始卡组正是 ch1 数值标杆专场的切入点**。
 - **卡组规模的实际取值。** 两侧均不设硬限（规则层），故规模是内容/构筑层的问题：起始卡组该给多少张、敌人样本卡组的常用区间落在哪里——**疲劳规则使规模直接换算为后期失血速率**，归 ch1 数值标杆专场。
 - **道念产 / 削的量纲基准（承重 · 已归属专场）。** 「卡牌产道念、可互削、下限 0」已定；**一张牌该产多少**、**10 个回合内一方的总产出应达到起始 `baseMomentum` 的几倍**——**明确推迟到内容横向扩展阶段**，切入点是**设计起始角色 starter deck 的过程**，届时聚焦并定义 **ch1 的数值标杆**（一场专门的「ch1 数值模型」session）。**越级追分的结论已先给出：可能，但很难，境界差越大越难**——`baseMomentum` 跨度随境界放大正是为此。是否存在道念相关的状态与倍率仍未定。→ `systems/balance.md`、`systems/scoring.md`。
-- **出牌费用 = mana。** 每回合出牌资源为 mana，**每回合开始恢复至 `manaLimit`**（炼气基线 5/5）；`manaLimit` 由事件 cost / reward 推拉。→ 见 `../mana.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/deck/_index.md`（待建）。

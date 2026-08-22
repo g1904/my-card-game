@@ -288,7 +288,7 @@ public sealed record EventOptionBatch(
 > _尚未解决，需要一次 handoff/决策。_
 
 - **生成 / 加权规则未定。** **location 层的形态**（事件类型概率修正 + `eventCountLimit`）、**每批数量**（常态 3、区间 1–5）、**重算依据**（角色整体历程，重度依赖 `pastEvent`，不承接上一批）、**Travel 段的物化伪码**均已给出；仍待定：类型修正的**运算形态**（乘性 / 加性 / 白名单 + 权重，其余四类能否修正到 0）、月圆之夜式策划与随机权重的配比、location 框定 / PlotManager 调制 / seeded RNG 的**叠加顺序**、以及**批次规模区间两端由什么驱动**（它同时决定常规批里 Travel 的槽位数 `k` 从何而来）。→ `systems/game-progression.md`、`systems/adventure-event/common-properties.md`。
-- **`EventOutcomeSpec` 的内部字段面未定。** 顶层载体、固化时点与「按结算走向分侧」已定（见「意图」）；**内部分解**——产出效果原语的表达、`OnResolved` / `OnFailure` 两侧各自的列、经验失败折算的数据形态——阻于「效果关键字体系与目标规则」那条待答项，须随它一并落定。→ `systems/adventure-event/combat/_index.md`。
+- **`EventOutcomeSpec` 的内部字段面未定。** 顶层载体、固化时点与「按结算走向分侧」已定（见「意图」）；**内部分解**——产出效果原语的表达、`OnResolved` / `OnFailure` 两侧各自的列、经验失败折算的数据形态——此前登记为「阻于效果关键字体系与目标规则」，**该前置已于 08-16c 收口**（`KeywordData` 内容层条目 + target / scope 分开建模并共用 `EntryFilter`，见 `systems/character-profile/deck/common-properties.md`）。**故本条的阻塞来源需重新确认**：若确已解除，它就只欠自身落笔，可单独排一次专场。→ `systems/character-profile/deck/common-properties.md`。
 - **框定叠加顺序。** location 框定、PlotManager 调制、seeded RNG 三者的叠加顺序与优先级未定。**问题形状已收窄为「多个 `PlotModulation` 与 location 修正如何合并」**（白名单取交还是取并、权重相乘还是相加）——「剧本用什么调制」已有答案，调制的承载类型与字段面见 `plot-manager.md`，本条只欠合并算法。→ `systems/game-progression.md`、`systems/services/plot-manager.md`。
 - **`Priority = 1` 依什么条件抬升。** **取值域（两档）与置位方（本服务独占，PlotManager 不得改）**；**两个确定的抬升条件已知**——配额用尽后的 Travel 闸门，以及起始批次里的开局构筑事件（Research）。仍待定：本服务还依什么条件把某个选项抬到 `1`（剧情线关键节点？），以及**同批出现多个 `1` 档时是否需要额外收窄规则**（当前语义：同档内自由择一）。→ `systems/adventure-event/common-properties.md`。
 

@@ -681,8 +681,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-> _（当前无未决项。）_
-
+- **待做一次 `architecture.md ↔ services/*` 的待决问题与投影表对账（台账事项 · 不阻塞 derive）。** 已有两个实例证明上游会留下过期登记：本文件三条结构残留里有两条的答案早已写死在下游服务文档、只是从没回头划掉；`ResourceElements` 表在本文件与 `profile-service.md` 之间也出现过投影漂移。需要一次**系统性对账**而非逐次顺手修。**它是一项维护动作，不是设计缺口**——本文件的设计面无未决项，对账不产出新的 FR，也不构成任何 derive 的前置。
 
 ## 对应
 提炼至：`.claude/knowledge/architecture.md`（**薄引用层**，ADR-0005：导航 + 代码现状 + 承重一句话，代码形态内容只回链本文件，不留副本）。

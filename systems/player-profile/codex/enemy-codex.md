@@ -78,6 +78,7 @@ Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` �
 - **五项写作规格（长度 / 口径 / 不含阿拉伯数字）；关键卡牌列 3 张由 `EnemyData.KeyCardIds` 显式标注；实例信息 = 静态正文 + 动态页眉；战斗内可读全部五项（结算 / 选目标态禁用入口）**。
 - **敌人图鉴为账号级收集，归 PlayerProfile；与敌人回合的逐步执行呈现按「事前知识 vs 事中情报」分层；它是事前知识的主通道**。
 - **解锁触发 = 遭遇即记录（不必击败）**。
+- **慷慨度维持「关键卡 3 张、不给样本卡组完整列表」**；上调走「加厚 ③④ 写作 → `KeyCardIds` 上界 3 放宽至 5（下界 2 不动）→ 才考虑全表」这条**退让阶梯**，属实测调整，不重开「事前知识 vs 事中情报」的分层裁决。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/codex/enemy-codex.md`（待建）。

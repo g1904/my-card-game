@@ -116,6 +116,7 @@ Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` 
 - **获取触发未设计（残卷 / 礼包之外）。**（失去的语义见上方三形态表；剩余的是形态问题，已单列。）开关 UI 亦未细化。是否还有第三条获取渠道（事件 outcome 直接给予？）未陈述。→ `systems/adventure-event/common-properties.md`。
 - **`Rarity` 的分布与权重表。** 五档 `RarityTier` 已定名并挂上 `PowerData` / `ItemData` / `CardData`；**授予池（残卷 / 礼包）的权重表已给出结构与初值**（40/27/18/10/5，见 `systems/balance.md`）。仍待定：**战后奖励池**的各档权重（按优势档 `Tier` 三档各一张表），以及内容侧「每档应有多少条目」的编排口径。（**置换候选池不需要权重表**——它按锚定稀有度过滤后同档等概率。）→ `systems/balance.md`。
 - **relic / joker 内容为占位。** 触发条件、效果关键字、RelicData 字段清单均尚未设计，需一次 handoff。
+- **「失去法则」三支的频次预算需重新配平（内容编排口径）。** `IgnoresProtection` 的目标频次由 1% 上调至 **≈5%**（战斗类遭遇为分母）后，**单这一支就已接近「三类合计 ≈ 全部事件的 1%」的全部预算**（≈1~2 次 / 轮回 vs 上层预算约 1 次）。两个口径都是内容编排侧目标值、都**不可机械校验**，故未预先拍板：**上层合计口径随之上调，还是置换型 / 禁用型两支相应收窄**——归 ch1 内容编排一并定。→ `systems/services/future-event-service.md`、`systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/player-power/_index.md`（待建）；RelicData 见 `.claude/knowledge/data/_index.md`。

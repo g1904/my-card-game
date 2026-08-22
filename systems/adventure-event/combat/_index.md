@@ -154,18 +154,17 @@ Source: `handoffs/2026-07-13.md` · `handoffs/2026-07-23-adventure-plot-hidden-s
 - **每篇章一个 Finale、败后不可重战；失败但存活亦完成篇章；Finale 是道统残卷的唯一累积源与兑现点**。
 - **全部 Finale 均为天劫战，不设非战斗形态的境界突破路径**（`EncounterSpec.Enemy` 恒非空、`CombatEventResolver` 无内部分派）。
 - **隐藏属性对五类事件输入与输出两侧全开；`Practice` 推道心不推煞气、`Finale` 胜负同推道心，推拉不套 `FailureRatio`**。
+- **平局 = 10 回合打满道念相等 → 只发基础奖励、不扣 `lifeTotal`（`CombatOutcome.Draw`）**；`Practice` 档 `WinMargin = 0` 使 `Draw` 在该档**永不可达**——干净的退化，呈现层需知晓。
+- **敌人图鉴的慷慨度维持「关键卡 3 张、不给样本卡组完整列表」**，上调走「加厚 ③④ 写作 → `KeyCardIds` 上界放宽至 5 → 才考虑全表」的退让阶梯，不重开信息分层裁决 → `systems/player-profile/codex/enemy-codex.md`。
 
 Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md`
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **平局：** 10 回合打满道念相等 → **只发基础奖励**、不扣 lifeTotal（`CombatOutcome.Draw`）。**Practice 档 `WinMargin = 0` 使 `Draw` 在该档永不可达**——干净的退化，呈现层需知晓。
 - **卡牌产 / 削道念的量纲基准：** 一张牌该产多少、10 回合内一方总产出相对起始值的倍数——**它决定越级追分是否可能**；是否存在道念相关的状态与倍率亦未定。**已归 ch1 数值标杆专场。** → `systems/character-profile/deck/`、`systems/balance.md`。
-- **效果关键字体系与目标规则（承重 · 需一次专门 handoff）：** 效果的原子操作清单与求值管线已定（见 `systems/character-profile/deck/`），但**关键字体系**（可复用的效果词汇表）与**目标规则**（谁可以指定谁、合法性的完整判据）仍是结构占位。→ `systems/adventure-event/common-properties.md`、`systems/character-profile/deck/common-properties.md`。
 - **属性模型与战斗资源共存：** 隐藏属性（道心 / 煞气 / 寿元）**如何被战斗推拉已定**（见上方「三档与隐藏属性」）；仍未定的是它们与 mana / 道念 / lifeTotal 在战斗内的相互作用面——隐藏属性经调制通道拧遭遇参数已是既定路径，除此之外是否还有战斗内的直接耦合未定。→ `systems/services/plot-manager.md`、`systems/services/life-cycle-service.md`。
 - **敌人 AI 的规划形态：** AI 可在自己回合内逐张决策，不受「回合级一次性规划」约束。具体算法、规划粒度（一次性 vs 逐张）、多回合行为倾向、难度旋钮落点均未定义。→ `systems/enemies/`。
-- **敌人图鉴的慷慨度是否该上调：** 图鉴是**事前知识的主通道**；「一次遭遇即解锁全部词条」是否够、是否该给出样本卡组的完整列表而非只给关键卡牌，未定。→ `systems/player-profile/codex/enemy-codex.md`。
 - **是否要一条「花代价买信息」的通道：** 当前没有这样的通道。若要建，须先定义标的（敌人抽牌堆顶 N 张 / 敌人本场可用道具 / 其他）。→ `systems/character-profile/deck/`。
 - **敌人平衡：** 敌人各等级的道念**产出**能力（起始值已由 `baseMomentum` 给定）、随境界 / 篇章缩放未定。→ `systems/balance.md`。
 - **失败后果的其余部分：** 胜利奖励随道念差变厚已定；失败除扣 lifeTotal 外是否另有后果未定（**`Finale` 档失败 = 不另开终结通道**，见上）。

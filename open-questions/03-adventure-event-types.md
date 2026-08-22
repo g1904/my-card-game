@@ -8,6 +8,7 @@
 - **构筑面板的竖屏呈现与风险档标注（08-17b 新增）。** 面板与战后奖励面板同构（候选纵向排列、点按选中、确认提交）已定方向；**风险档需要一个明确的视觉标注 + 无 hover-only 的说明通道**，形态未设计。→ `ux/screen-flow.md`、`systems/adventure-event/research/common-properties.md`。
 - **Exchange 的四组待定数值格（08-17d 新增 · 归 ch1 数值标杆专场）。** 「商品族 × 稀有度」定价表每格填多少 · 刷新基价与递增量 · 回收率 `SellRatePercent`（建议 30–50%）· 单事件槽位总数上界（建议 ≤ 8）。形态均已定，只欠取值；**定价表的绝对数字被灵玉的获取渠道阻塞**。→ `systems/balance.md`、`systems/character-profile/currency.md`。
 - **战斗外道具的使用入口未设计（08-17f 新增 · 承重）。** `item/_index.md` 只定义了**战斗内**的使用窗口（自己回合的行动阶段、栈为空时）；`UsableScene = OutOfCombat` 的道具**在哪一屏、哪一步被使用**尚无设计——它阻塞回寿法宝的定稿。**连带两问：** 使用是否单独构成一个存档点（挂在「决策点粒度」上）；以及在事件之外使用时**没有 `PastEventEntry` 可挂**，元进程的寿元曲线会出现一段无痕迹的回升，痕迹落点未定。→ `systems/character-profile/item/_index.md`、`systems/services/life-cycle-service.md`、`ux/screen-flow.md`。
+- **是否为「购买次数」设一个 `StatKey` 成员（08-17d 登记 · 本次归集 · 轻）。** 不统计则零依赖；统计则 `StatKey` 增一个成员，并需定采集点（交易逐笔即时提交 ⇒ 采集点天然在每笔交易上）。→ `systems/adventure-event/exchange/_index.md`、`systems/services/profile-service.md`。
 - **满袋时能否购买道具（08-17d 新增 · 阻于储物袋满袋处理）。** 拒收 / 强制择一丢弃 / 库存侧过滤三种处置会给出三套不同的购买前置校验，并决定商店库存深度是否需要同步下调。→ `systems/character-profile/item/_index.md`、`systems/adventure-event/exchange/_index.md`。
 - **`Practice` / `Finale` 档的奖励厚薄。** 三档的回合数与胜负门槛已定；**`BaseReward` 与 `RewardPoolId` 随档位如何调厚薄**未定，归 **ch1 数值标杆专场**。→ `systems/balance.md`。
 - **Combat 三档各推哪一档 `HiddenStatGrade`（08-17e 收窄 · 内容编排）。** 三档默认口径已定（`Practice` 推道心、对位低一档、不推煞气 · `Standard` 逐条目编排 · `Finale` 胜负同推道心）、「胜负同施一份档位、不套 `FailureRatio`」已定；**逐条目的推拉编排与映射值**仍挂在「隐藏属性的增减触发」那条待答项与 ch1 数值标杆专场上。→ `systems/services/plot-manager.md`、`systems/balance.md`。

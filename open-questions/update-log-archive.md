@@ -583,3 +583,36 @@
   - **`ContentEnabled` 归属**——草稿让 `LocationData` 经 `AllEnabled()` 过滤、用加载期连通性校验兜底；但 **flags 通道按账号解析、轮回中途热应用、且不参与合并后强校验**，加载期校验够不着它，线上关地域可使某玩家邻接集合为空 ⇒ 闸门产不出 Travel ⇒ 轮回死锁。**改判为结构性查表类、恒启用、flags 不生效**，`content-service.md` 的判据随之细化为「**结构顶点身份优先于抽取身份**」。**代价：地域失去「线上秒关」的运营手段**，如实记下。
 - **新增待答 1 条**：失去 flags 关地域后的运营替代（落 `systems/adventure-event/travel/_index.md` 的待决问题）。
 - **连带**：`content/_index.md` 的 `location/` 类型就绪度由「🟠 载体定名待答」改为「🟢 载体 + 图校验」。
+
+## 2026-08-16i（`/analyze-new-ideas` · 移出 1 条 · 新增 0 条 · 单库）
+
+- **来源**：`inbox/solution-draft-event-outcome-vs-combat-reward.md`（`status: decided`）→ `handoffs/2026-08-16h-grant-source-assembler-criterion.md`。**单库运行**：两个成员按 `(Kind, Scope)` 表只出现在轮回级两类上，而 `contracts/profile-sync.md` §5 把 `characterDiffs` 整体列为不透明段 ⇒ 后端读不到这两个值，对侧库无承接项。
+- **答结 1 条**：`06-meta-progression` 的「`EventOutcome` 与 `CombatReward` 是否终将合并」→ **不合并，两个成员分立保留**，问题关闭并附可观察的重开触发器。→ `answer-logs/log-event-outcome-vs-combat-reward.md`。
+- **判据钉死**：分野看**谁组装出这条 element**，不看它属于哪类事件、也不看它最后被谁写进去。出自 `CombatResult.Spoils` → `CombatReward`（`Finale` 胜利的残卷那一路例外走 `FinaleWin`）；出自通用结算器的 outcome / effect 定义 → `EventOutcome`；出自购买流程 → `ExchangePurchase`。**施加路径不是判据**——三者今天就已走同一条施加链路（都是 `ProfileChangeSpec`、都在 `eventEnd` 同一次 `TryApply`），若按它切，`InitialGrant` 也该一并合并。
+- **顺带答掉两处按事件类型表述会被打穿的边界**：① Explore 揭示出战斗真身时，`EventType` 恒为 `Explore` 而战利品出自 combat-service ⇒ 记 `CombatReward`；② Exchange 的非购买 outcome（对话结果、赠礼）归 `EventOutcome`，只有走购买流程的那一条走 `ExchangePurchase`（这是一条预置判据，Exchange 专场未开时不产生任何取值）。
+- **唯一的张力及其处置**：`(Kind, Scope)` 表中两行逐格相同（❌ ❌ ✅ ✅）是合并方最强的论据；**「行相同」不构成合并判据**——同表中 `PremiumBundle` 与 `AchievementReward` 同样逐格相同而无人主张合并。行相同只说明**挂载面**相同，渠道说的是**由哪条路径给出**，两个正交维度。
+- **附带采纳一条 `eventEnd` 单向组装校验**（`life-cycle-service.md`）：未走过 combat-service 的事件出现 `CombatReward` → `GD.PushError` + 整批拒绝；反向不判非法。判据取「是否产生过 `CombatResult`」，不取 `EventOption.EventType`——照后者判会把揭示出战斗真身的 Explore 事件的合法值误判为非法。
+- **两项取向由用户在草稿评审阶段裁定**（均取推荐项，本次运行未触发 interview）：关闭该问题 · 采纳单向组装校验。
+- **零改动面**：`Source` 成员清单与 code · `(Kind, Scope)` 合法子集表 · 存档 schema（不 bump、无迁移）· 后端契约与 `backend-design-documents/` 全库。
+
+## 2026-08-16j（`/analyze-new-ideas` · 移出 2 条 · 新增 2 条 · **跨库**）
+
+- **来源**：`inbox/solution-draft-plot-data-encoding.md`（`status: decided`）→ `handoffs/2026-08-16i-plot-data-encoding.md`。**跨库运行**：arc 的放量语义与后端 `contracts/content-manifest.md`「flags 对剧本条目无作用点」相抵，两侧对称落笔（后端另有一份 handoff 与一条承接项）。
+- **答结 2 条**：`04-hidden-attributes-plot` 的「AdventurePlot 数据编码与 key points 粒度」（DnD 选分支部分剥为独立条目继续跟踪）与「剧本内容类型的数据形态」（含 content-service 的「剧本例外的可执行化」）。→ `answer-logs/log-plot-data-encoding.md`。
+- **收口要点**：树 = **纯调制，无并行结构**（三条既定纪律各自封死并行结构）· 剧本内容落 **`PlotArcData` + `PlotNodeData`** 两个类型，**正文内嵌节点**（不复用只改不增的定性文案类型，否则 overlay 新增 arc 时写不出正文）· key points **每条已激活 arc 一条**（粒度由悬空降级规则反推，不是体积判据）· 推进落已有的 `eventEnd`、**单步推进** · **不持久化已走分支路径**（无消费方）· `PlotModulation` 六字段 = PlotManager 权力面的第 1 级投影（越权写法没有字段可填）· overlay 剧本例外获得**合并期 `newIds` 双闸**。
+- **可执行化阶梯扩写（通用补注，非剧本特例）**：`.tres` 引用图类纪律的客户端天花板是第 3 级，**等价的第 2 级 = 同一份 `LoadAll()` 校验前移进打包工具、不通过不产包**；成立前提是校验**内嵌在打包工具本身**（否则退化为第 4 级）。阶梯应用表由三处扩为四处。
+- **两项 interview 裁定，均改动了草稿原写法**：① arc 参与 `AllEnabled()` / flags、node 恒启用 ⇒ **改写后端契约**（原写「flags 对剧本条目无作用点」，其前提在 arc/node 分层后不再成立）；② 排队 arc **落存档**（`PlotArcState` 加 `Queued`，触发即写 key point）——草稿原定的「读时重建」在 band 回落后会静默丢掉排队 arc，与它自己的「排队不丢弃」承重理由矛盾。
+- **新增待答 2 条**（均落 `04-hidden-attributes-plot`）：DnD 选分支的触发点与 UI（从原条目剥出）· `PlotModulation` 字段面是否还需扩（轻，纯加法）。**另收窄 1 条**：`02-event-options` 的「叠加顺序」形状收为「多条 `Active` arc 的 `PlotModulation` 与 location 修正如何合并」。
+- **存档面**：`CharacterProfile` 新增 `plotKeyPoint`，bump schema 版本（当前无线上存档 ⇒ 空迁移）。**内容层**：类型登记表的 `adventure-plot/` 一行拆为 `plot-arc/` + `plot-node/`（两轮 `/scaffold-content-type`，仍随事件类顺延）。
+
+
+## 2026-08-17（跨边界承接直接落笔 · 移出 3 条承接项 · 单库）
+
+- **来源**：无草稿——按 `cross-boundary.md` 的关闭条件直接落笔两条**已由对侧定案**的承接项。**单库运行**：两条的权威本体都在后端契约里且已成文，本库只写对位纪律与回链，对侧零改动。→ `answer-logs/log-0817.md`。
+- **承接 ①：`reasonKey` 三处取值集合**（`contracts/auth.md` §10 · `compliance.md` §5）→ **取值表不复述进本库，只回链**；落三件对位纪律：形态 PascalCase 锁死 · **二级文案键由 `code` + `reasonKey` 机械变换**（`ERR_AUTH_SESSION_REVOKED_SIGNED_IN_ELSEWHERE`）· `ErrorText.For` 扩为三参、二级键缺条目时**静默**回落一级键。
+- **连带裁决一处本库自己的张力**：`ERR_` 禁令的**反向审计判据放宽为「前缀匹配」**。二级键与「客户端不维护第二份 `reasonKey` 清单」这两条同时要，反向审计就只能校验到一级键这一层。取舍写进了文档：撞键是**静默显示错文案**（不可见，必须挡），二级键后缀写错只是走未知回落（可降级，放过）。
+- **承接 ②：`deviceId` 的两条要求**（`contracts/auth.md` §4a）→ 既有待决项上追加**跨启动稳定** · **安装实例间不碰撞**，并记下**重装后变化可接受**这条放宽（它排除了「须找卸载后仍存活的系统级标识」那一类方案）。连带落「`deviceId` 永不参与鉴权、客户端不得把任何本地判断挂在它上面」。**落点本身仍未定，待决项不关闭。**
+- **承接 ③：refresh 失败的两条路径**（`contracts/auth.md` §10 末段）→ `RefreshToken()` 的失败拆为**网络失败 → 缓冲通道** / **收到 `auth.session_revoked` → 硬阻塞重登 + 暂停退避**两行表，**判据钉为「收到了明确应答」而非「失败了」**。**这条是一次登记遗漏**：对侧明确点名本库需改，而 08-16 登记的三条承接项一条也没覆盖它。API 面无需扩签名（`OpResult<Session>` 已带 `code`），风险纯在措辞。
+- **⚠ 落笔时捞出两处同源漂移**：「刷新失败视同断线」这句在活文档里有**三处**复述（`account-service.md` · `architecture.md` 的 `Reauth` 默认路径行 · `sync-service.md` 的断线降级段），而承接项只点名了一处。**三处同批同改**——只改被点名的那处，实现者读 `architecture.md` 的处置表仍会写成单路径。**教训已记进 log：跨边界承接落笔后应顺手 grep 一次关键措辞。**
+- **`cross-boundary.md` 待承接由 3 条 → 1 条**（仅剩 `ComplianceManager` 覆盖面切分，那是本库自己的取向、待用户裁决）。**未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）——该小节仍写「三条承接项」，属已知滞后，留待下次全量重估。**不 bump schema · 对后端库零改动。**
+

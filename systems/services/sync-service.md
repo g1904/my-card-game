@@ -349,6 +349,7 @@ Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-
 
 ## 待决问题
 
+- **上行整键回声校验的适用面未穷举（承重）。** `entitlement` 已定：上行时 `bundleGrantOrdinal` 须与后端下发值**逐位相同**，否则整批拒绝并风控。但 `accountInfo` 是**同形的第二处**——后端写三项、客户端只写 `nickname`，同样整键替换上行。缺一份**封闭清单**说明「哪些顶层键的哪些路径受回声校验约束」；逐键临时判必然漏，而漏掉的那一处正是客户端可以静默改写后端权威字段的口子。→ `backend-design-documents/contracts/profile-sync.md`、`systems/services/profile-service.md`。
 - **`pushId` 的后端记忆窗口。** 记忆多少个 / 保留多久属**后端侧**参数，客户端侧语义已定。→ `backend-design-documents/open-questions.md`。（**报文字段名与序列化形态已定**：表达形式 = OpenAPI 3.1 + JSON Schema 单点、两侧各持自己的 DTO，`pushId` / `baseRevision` / `schemaVersion` / `reason` 落 push body 的负载信封段。权威：`backend-design-documents/contracts/envelope.md`。）
 
 ## 对应

@@ -54,7 +54,7 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 - **`Power` 的战斗内运行态存档形态未定。** **入场本身不必存档**（可由两个 Profile 的持有列表 + `status` + `UsableScene` + `CharacterProfile.disabledAbility` 确定性重建）；但「本场已触发 N 次」这类**运行态计数器**须进决策点存档，字段形态未定。→ `systems/services/combat-service.md`、`sync-service.md`。
 - **获取 / 失去触发。** **起手那一份已定：每个角色自带一个绑定神通**（见上）。**仍待定**：在哪些 AdventureEvent 另行获得（闭关顿悟？社交传功？秘境所得？）、能否失去、篇章突破时是否随「全部继承」一并带入下一篇章（既定的篇章继承是**全部继承**，故默认应带入——需确认）。→ `systems/adventure-event/`、`systems/services/life-cycle-service.md`。
 - **与卡牌 / CharacterItem 的边界。** 三者都是轮回内的 build 组件：什么该做成一张卡、什么该做成一件道具、什么该做成一个能力？判据未给。→ `../deck/`、`../item/`。
-- **写入面与存档形态。** 持有列表落在 CharacterProfile 的哪个字段、`status` 开关是否也持久化、写入是否同样经 `profile-service.ProfileManager`（应是）。→ `systems/services/profile-service.md`。
+- **`status` 开关的存档表达。** **写入面已定案**（08-17h）：持有列表落 `CharacterProfile.characterPower`（字段 13，`IReadOnlyList<CharacterPower>`），写入通道 = `ProfileChangeSpec.AbilityElements`，经 `profile-service.ProfileManager.TryApply(spec)`——见 `../_index.md` 的 23 字段表。**仍待定的只剩一条**：`status`（启用 / 禁用）与「拥有 / 失去」这两个正交维度如何编码进 schema。→ `systems/services/profile-service.md` 的同名待决项。
 - **数量与强度尺度。** 一次轮回里预期获得几个、单个的强度量级（相对 PlayerPower 的「轻度提升」定位是更强还是更弱）未定。→ `systems/balance.md`。
 
 ## 对应
