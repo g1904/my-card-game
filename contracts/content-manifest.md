@@ -180,4 +180,5 @@ res://基线  <  user://overlay/  <  flags（仅覆盖 ContentEnabled，不改�
 
 - **多区域一致性**：若内容分发需按区域托管，`contentRoot` 按区域下发已留出自由度，但多区域间 `contentVersion` 是否必须同步推进未定（`02-account-compliance.md`）。
 - **flags 数据源与分桶规则的运营形态**（落 `operations/`）：规则存在哪、由谁改、是否需要审计留痕、按账号计算是否需要缓存层。
+- **flags 回滚须以更高 `flagsVersion` 发布**（`contentVersion` 那条「回滚即前滚」对 flags 的对位条款，本契约尚未写下）。客户端侧已定（2026-08-22）：flags 拉取规则由「版本不同即拉」收紧为「**增大**即拉」，据此开始依赖 `flagsVersion` 单调递增；若某批 flags 以更低版本号发布（回滚、库恢复、区域切换），已观测到更高版本的设备将**再不拉取 flags**，症状为「秒关不生效 / 误关的内容永不恢复」。语义与失败症状见 `game-design-documents/systems/services/content-service.md`「flags：`ContentEnabled` 的第三层」。待定：把该条款写进上方「服务端保证」，以及回滚在运营流程上如何兑现（与「多区域一致性」「按账号计算是否需要缓存层」两条同源）。
 - **flags 是否落地客户端本地缓存以支撑离线开局** —— **归客户端侧裁决**，本库不代为决定。若不缓存，断网启动时抽取池会回到 overlay 的 `ContentEnabled` 值（被秒关的条目在离线时复活）。

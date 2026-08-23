@@ -20,5 +20,6 @@
 
 - **回声校验的适用面与比较口径（08-22 新增 · 承重）。** `contracts/profile-sync.md` §5c 已定「后端写入路径在上行侧只接受回声」，当前的执行面只有 `/entitlement/bundleGrantOrdinal`（整数，数值相等无歧义）。**`/accountInfo` 是同形的第二处**（键内混有后端写入的 `accountSeed` / `createdAtUtc` / `identities` 与客户端写入的 `nickname`，由改昵称触发），尚未定两件事：① 受约束路径的封闭清单如何表述（逐条列举 还是 与后端写入字段表恒等）；② **非整数路径的比较口径**——时间串按时刻还是按字面、对象数组按序还是按集合、是否按原始字节。**② 选错的后果是正常客户端被整批拒绝 = 玩家丢进度**，故 §5c 已明写「落笔之前不得按字节相等实现」。
   **已有一份 `decided` 的方案草稿承接本条**：`inbox/solution-draft-echo-validation-scope.md`（与客户端库同名草稿成对采纳），走 `/analyze-new-ideas` 提炼即关闭。→ `contracts/profile-sync.md` §4 §5 §5c §7a。
+  **承接项（2026-08-22 · 成对采纳未完成）：客户端半已于同日落笔**——组装规则、回声值唯一来源、回声路径不参与钳制 / 补默认 / 归一化、push 前自检，见 `game-design-documents/systems/services/sync-service.md`「后端主动写入的唯一情形」一节（客户端只登记「受约束顶层键」这一层，逐条 path 与比较口径仍以本库为权威、不复述）。**本条余下的后端半仍未落笔**：① `/accountInfo` 的受约束路径清单如何表述；② 非整数路径的比较口径。**在它落笔之前 §5c 的「不得按字节相等实现」原样有效**；客户端半的「不得再加工」纪律在两种口径下都成立，故不阻塞客户端。
 
 - **三条机检断言的承载位置未定（待 `06`）。** 落笔规则与一致性核对方式已于 2026-08-14 全部答结（→ `contracts/_index.md`「契约变更的完成判据」+ `envelope.md` §1；移出记录见 `answer-logs/log-openapi-spec-timing-and-consistency.md`）。**唯一仍开放的是工程承载**：设计库侧是否存在自动化流水线、跑在哪里——随 `06-platform-stack.md` 落定。断言本身与后端栈无关（校验的是 markdown 与 YAML / JSON），**不等 `06`**：在此之前三条以人工清单的前三项形式执行，其余条款不受影响。具体校验工具刻意不点名，只立能力要求：能校验 OpenAPI 3.1 / JSON Schema 2020-12，且能在设计库侧运行。

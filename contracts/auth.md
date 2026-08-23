@@ -194,6 +194,8 @@ account  ──1───n──  identity
 
 漏掉这一条，`envelope.md` §7b 就只是一句无处兑现的话。
 
+**待办（本条的连带缺口，收口手段未定）：** 静默续期使旧客户端可**长期不经协议维度闸门**——`signin` 独占闸门（本条）叠加 30 天滑动续期（§2），一个只走 `refresh` 的客户端在下一次真正 `signin` 之前永不被 `client.version_unsupported` 拦到。**收口手段（滑动续期上限 / 强制 re-signin 周期 / 其他）待定，归本库。** 客户端侧已于 2026-08-22 落笔且**明确不自收口**（客户端自加「距上次 `signin` 超过 N 天即强制回登录屏」会撞其「设备时钟不可信」纪律），权威见 `game-design-documents/systems/services/account-service.md`「refresh token 的持有与失效」，**本库不复述其形态**。
+
 ### 5a. 合规拦截也只在 `signin` 落地（同构纪律）
 
 **`compliance.*` 作为登录拦截，只在 `POST /v1/auth/signin` 的应答中出现。** 业务端点一律不返回合规拦截。
