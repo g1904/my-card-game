@@ -48,6 +48,7 @@ public sealed record ResearchCandidate(
 - **`DeckOperationKind`（六值 · 面板层）与 `DeckChangeOp`（四值 · element 层）是两个枚举，不得合并。** 前者回答「玩家在这个槽里能选什么」，后者回答「卡组变更如何施加」；`GrantItem` 与 `Recuperate` 落 `AbilityElements` / `Elements` 两列，故不出现在后者中。类型定义见 `systems/architecture.md`「共享核心类型」。
 - **文本一律不进快照**：候选的显示名 / 描述由 UI 按 `TargetId` 现场取模板组装，与「文本类字段一律留在模板侧」一致。
 - **`ManaDelta` 在物化时即已掷定并落存档。** 这是「退出重进不能重掷」的落地点，也是风险档能够成立的技术前提——面板上只标注「有风险」，不预先展示结果。
+- **槽内选择不进快照。** 「玩家在槽 0 选了第 2 个候选」这个中间态**没有承载格，也不该有**——它不是物化产出、也不是即时提交，中途退出即丢失（恢复回面板初始态、候选不变），判据与「短缺标记不进快照」同款。语义见 `_index.md`。
 - **`ResolveOutcome` 不新增结构**：resolver 把玩家所选候选翻译为 `DeckElements` / `AbilityElements` / `Elements` 三份 element，照常交给 `eventEnd` 那一次 `TryApply`。
 
 ### 候选取池：两条既有抽取链，零新增抽取代码
@@ -92,7 +93,7 @@ public sealed record ResearchCandidate(
   [FutureEvent-ResearchSlot] instance=<InstanceId> event=<EventId> slot=<SlotIndex> op=<Kind> want=<n> got=<m>
   ```
 
-Source: `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
+Source: `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

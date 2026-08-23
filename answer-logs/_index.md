@@ -23,6 +23,27 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-combat-defeat-consequences.md` | 2026-08-22 | `inbox/archive/solution-draft-combat-defeat-consequences.md` → `handoffs/2026-08-22-combat-defeat-consequences.md` | 1 |
+| `log-mana-baseline-realm-jump.md` | 2026-08-22 | `inbox/archive/solution-draft-mana-baseline-realm-jump.md` → `handoffs/2026-08-22-mana-baseline-realm-jump.md` | 1 |
+| `log-encounter-tighten-fields.md` | 2026-08-22 | `inbox/archive/solution-draft-encounter-tighten-fields.md` → `handoffs/2026-08-22-encounter-tighten-fields.md` | 2 |
+| `log-hidden-stat-grant-direction.md` | 2026-08-22 | `inbox/solution-draft-hidden-stat-grant-direction.md` → `handoffs/2026-08-22-hidden-stat-grant-direction.md` | 1 |
+| `log-card-counters-api-and-key-space.md` | 2026-08-22 | `inbox/solution-draft-card-counters-api-and-key-space.md` → `handoffs/2026-08-22-card-counters-api-and-key-space.md` | 3（另新答定 2 条本批新发现缺口） |
+| `log-singleton-balance-resource-registry.md` | 2026-08-22 | `inbox/solution-draft-singleton-balance-resource-registry.md` → `handoffs/2026-08-22-singleton-balance-resource-registry.md` | 1（另 1 条部分答定） |
+| `log-eventcountlimit-plot-modulation.md` | 2026-08-22 | `inbox/solution-draft-eventcountlimit-plot-modulation.md` → `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` | 1 |
+| `log-plot-tree-chapter-packaging.md` | 2026-08-22 | `inbox/solution-draft-plot-tree-chapter-packaging.md` → `handoffs/2026-08-22-plot-tree-chapter-packaging.md` | 1 |
+| `log-locationcodex-edge-granularity.md` | 2026-08-22 | `inbox/solution-draft-locationcodex-edge-granularity.md` → `handoffs/2026-08-22-locationcodex-edge-granularity.md` | 1（部分移出） |
+| `log-enemy-deck-size-and-fatigue-knob.md` | 2026-08-22 | `inbox/solution-draft-enemy-deck-size-and-fatigue-knob.md` → `handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md` | 2 |
+| `log-purchase-count-statkey.md` | 2026-08-22 | `inbox/archive/solution-draft-purchase-count-statkey.md` → `handoffs/2026-08-22-purchase-count-statkey.md` | 1 |
+| `log-0822.md` | 2026-08-22 | interview 新裁决（无草稿）→ `handoffs/2026-08-22-finale-failure-is-death.md` | 1（另记 12 条同场答定） |
+| `log-future-event-generation-weighting.md` | 2026-08-22 | `inbox/archive/solution-draft-future-event-generation-weighting.md` → `handoffs/2026-08-22-event-generation-weighting-pipeline.md` | 1 |
+| `log-event-outcome-spec-fields.md` | 2026-08-22 | `inbox/solution-draft-event-outcome-spec-fields.md` → `handoffs/2026-08-22-event-outcome-spec-fields.md` | 1 |
+| `log-priority-elevation-conditions.md` | 2026-08-22 | `inbox/solution-draft-priority-elevation-conditions.md` → `handoffs/2026-08-22-priority-elevation-criterion.md` | 1 |
+| `log-remaining-event-decision-points.md` | 2026-08-22 | `inbox/solution-draft-remaining-event-decision-points.md` → `handoffs/2026-08-22-non-combat-decision-points.md` | 1 |
+| `log-enemy-pool-chapter-scoping.md` | 2026-08-22 | `inbox/solution-draft-enemy-pool-chapter-scoping.md` → `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` | 1 |
+| `log-band-boundary-config-placement.md` | 2026-08-22 | `inbox/solution-draft-band-boundary-config-placement.md` → `handoffs/2026-08-22-band-boundary-config-placement.md` | 2 |
+| `log-combat-runtime-counter-persistence.md` | 2026-08-22 | `inbox/archive/solution-draft-combat-runtime-counter-persistence.md` → `handoffs/2026-08-22-combat-runtime-counter-persistence.md` | 1 |
+| `log-echo-validation-scope.md` | 2026-08-22 | `inbox/archive/solution-draft-echo-validation-scope.md` → `handoffs/2026-08-22-echo-validation-scope-client-half.md` | 1 |
+| `log-flags-fetch-throttle.md` | 2026-08-22 | `inbox/solution-draft-flags-fetch-throttle.md` → `handoffs/2026-08-22-flags-fetch-throttle.md` | 1（部分：两项取向待复核仍留清单） |
 | `log-architecture-structural-residuals.md` | 2026-08-19 | `inbox/archive/solution-draft-architecture-structural-residuals.md` → `handoffs/2026-08-19-architecture-structural-residuals.md` | 3 |
 | `log-translation-english-placeholder.md` | 2026-08-19 | `inbox/archive/solution-draft-translation-english-placeholder.md` → `handoffs/2026-08-19-translation-english-placeholder.md` | 1 完整 + 1 部分 |
 | `log-pickmany-shortfall-handling.md` | 2026-08-19 | `inbox/archive/solution-draft-pickmany-shortfall-handling.md` → `handoffs/2026-08-19-pickmany-shortfall-handling.md` | 1 |

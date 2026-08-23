@@ -4,7 +4,10 @@ date: 2026-08-22
 question: flags 拉取的频次护栏 —— 服务端版本短时间连续抖动时，客户端是否需要最小拉取间隔，或只在版本增大时拉
 source: open-questions/05-service-contracts.md → 「flags 拉取的频次护栏（本次归集 · 此前未进清单 · 轻）」（同条登记在 systems/services/content-service.md「待决问题」）
 targets: systems/services/content-service.md（「flags：`ContentEnabled` 的第三层」一节 + `OnFlagsVersionObserved` 行 + 划掉该待决项）· systems/balance.md（「同步 / 内容管线旋钮」表增两行）
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-22 — 合并 interview 裁定退避取纯闸门式（无定时器，故「不为它另开重试机制」原样保留）· 尾随显式封顶（草稿原写法在 body 版本始终低于头部观测值时会自我递归无限发请求）· 回退观测告警改为 PushWarning + 上报一次 · 增大即拉并要求后端补「flags 回滚即前滚」契约条款 · 内存 FlagsVersion 冷启动一律归零 · 沿用服务端等待时间但不加抖动。**草稿的「张力：无 / 前置依赖：无」两处结论已失效**（存在跨库承接项）。**待复核 2 项**：退避 cap 60s · 告警去重口径
+confirmed: 2026-08-22 —— 全部 [采纳推荐 — 待复核] 项经批量评审确认，无推翻
+distilled-to: handoffs/2026-08-22-flags-fetch-throttle.md
 ---
 
 # 方案草稿 — flags 拉取的频次护栏
@@ -130,8 +133,10 @@ observed >  FlagsVersion            →
 ## 仍需用户决定 → **已全部裁决（2026-08-22 · 批量评审）**
 
 > 逐条裁决（`/batch-provide-solution-draft` 合并 interview · 两项均为轻级，用户在打包轮中一并按推荐裁定）：
-> 1. 退避上限取值 → **A · 60 s**（与 push 退避 cap 同值）`[采纳推荐 — 待复核]`
-> 2. 观测到更小版本时的告警去重口径 → **A · 本会话只报一次** `[采纳推荐 — 待复核]`
+> 1. 退避上限取值 → **A · 60 s**（与 push 退避 cap 同值）`[已确认 2026-08-22 · 批量评审]`
+> 2. 观测到更小版本时的告警去重口径 → **A · 上报侧本会话只报一次** `[已确认 2026-08-22 · 批量评审]`
+>
+> **全部待复核项已于 2026-08-22 经批量评审逐项确认，本草稿再无待复核项。**
 
 
 1. **退避上限取值**（`[取向选择]`，轻）

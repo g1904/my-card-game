@@ -4,7 +4,9 @@ date: 2026-08-22
 question: future-event-service 产出一批 eventOptions 时，类型概率修正用什么算子、三层框定按什么顺序叠加、多条 Active arc 的 PlotModulation 与 location 修正如何合并、批次规模 1–5 的两端由什么驱动
 source: open-questions/02-event-options.md → 「生成 / 加权规则与叠加顺序（08-05b 收窄 · 08-15c 再收窄）」
 targets: systems/services/future-event-service.md · systems/game-progression.md · systems/adventure-event/common-properties.md · systems/services/plot-manager.md · systems/adventure-event/travel/_index.md · systems/balance.md
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-22 — 四项取向全部裁决；合并 interview 另裁定批次规模 N = 目标槽位数 + 收缩保底（收缩到 0 补一个 Travel，非单项补位）· `PlotModulation.EventWeights` 由「加成」松动为乘性系数 · 事件侧 `ChapterScope` 加 `(chapter, EventType)` 启动期断言且 Travel 一类豁免 · 十步管线仅适用常规批 · 满级 Finale 走闸门式旁路而非高权重
+distilled-to: handoffs/2026-08-22-event-generation-weighting-pipeline.md
 ---
 
 # 方案草稿 — 可用事件的生成 / 加权运算形态

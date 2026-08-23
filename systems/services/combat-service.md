@@ -6,10 +6,10 @@
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
 - **为何 Combat 需要独立服务，而其余四类不需要。** 五类 AdventureEvent 中**只有 Combat 真正拥有自己的状态机**——回合循环跨多帧推进、有独立的中间态（手牌、场上效果、栈）。Exchange / Research / Explore / Travel 共享同一形状（呈现 → 择一进入 → 扣成本 → 应用产出 → 推拉隐藏属性 → 收口），差异在**数据**而非**代码**，由通用结算器 + 数据驱动的 outcome / effect 定义承担。见 `_index.md` 的拆分轴。
-- **Finale 复用本服务的状态机。** 境界突破是 Combat 的一个变体（独立的结算规则与胜负条件，但同一套回合循环），不另建服务。
+- **Finale 复用本服务的状态机。** 境界突破是 Combat 的一个变体（独立的结算规则与胜负条件，但同一套回合循环），不另建服务。**本服务不负责角色终结**：Finale 失败照常返回一份 `CombatResult`（`Outcome == Defeat`），是否因此终结角色由 life-cycle-service 的终态判定裁定——**判定归生命周期、计算归战斗**这条既有分工在这里无例外。
 - **战斗模型 = mana（出牌）+ 道念（计分与胜负）。** 本服务维护**双方各自的道念（momentum）**作为胜负标尺：**道念高者胜**；`currentMana / manaLimit` 为出牌资源，mana **无曲线**、**每回合开始自动恢复至 `manaLimit`**。**`lifeTotal`（单值，无上限字段）在战斗过程中不被读写**——失败时才在收口时刻按「角色道念 − 敌人道念」的差值扣减 lifeTotal。炼气基线 lifeTotal 10、mana 5/5。见 `systems/scoring.md`、`systems/character-profile/life-total.md`、`mana.md`、`systems/adventure-event/combat/`。
 - **战斗是定长的：固定 10 个回合。** 一场战斗**打满 10 个回合**，**双方各 5 个**（「回合」= 单方的一次行动轮，交替进行），随后比道念、高者胜。**不设提前终止**（无道念阈值胜利、不以卡组耗尽终止）。**推论：TurnManager 是一个固定长度的循环**（`for turn in 1..10`）而非动态终止判定——状态机形状因此确定，且每场战斗的时间开销可预测。
-- **平局 = 只发基础奖励。** 10 回合打满后道念相等时：**不判负、不扣 lifeTotal**，玩家**只获得该事件的基础奖励**（道念差为 0，故无任何厚度加成）。因此 `CombatOutcome` 需要第三个胜负态 `Draw`，且它在收口上落在「胜利侧的最薄一档」——与「道念差是双向刻度」自洽：差值为 0 就是两侧都不加码的那个原点。
+- **平局 = 只发基础奖励（`Standard` 档）。** `Standard` 档打满 10 回合后道念相等时：**不判负、不扣 lifeTotal**，玩家**只获得该事件的基础奖励**（道念差为 0，故无任何厚度加成）。因此 `CombatOutcome` 需要第三个胜负态 `Draw`，且它在收口上落在「胜利侧的最薄一档」——与「道念差是双向刻度」自洽：差值为 0 就是两侧都不加码的那个原点。**`Draw` 只在 `Standard` 一档可达**：另两档 `WinMargin` 为 0，相等即判胜（`Practice` 点到为止 / `Finale` 不落后即通过），`Draw` 分支在那里恒不成立。
 - **道念的运行态骨架。** 战斗开始时本服务为双方各置一个**起始道念 = `baseMomentum`（按各自全局等级，表见 `systems/balance.md`）**；此后道念**由打出的卡牌产出**，且卡牌**可削减对方道念**，**削减在 0 处截断**（无负道念）。**推论：等级差在开局即转化为道念差**，越级挑战的压力有了确切量纲。
 - **奖励由本服务计算，且「获取奖励」是战斗流程的一部分。** 结算量不由 life-cycle-service 拿着 `CombatResult` 的双方道念在 `eventEnd` 再算——**combat-service 按战斗结果算完**，包括按道念差决定的奖励厚度与 lifeTotal 扣减。**推论 ①：`RunCombatAsync` 的流程尾部含奖励环节**——10 回合打完后还要走「胜负判定 → 计算奖励 →（若有可选奖励）等玩家选择 → 收口」，随后才返回 `CombatResult`；它因此仍是形态 C，只是尾部多了一个等待玩家输入的阶段。**推论 ②：不违反「一个事件的收口是一次事务、一个存档点」**——本服务只**计算并确定**奖励，产出的仍是一份 `ProfileChangeSpec`（`Spoils`），真正的写入照旧由 life-cycle-service 在 `eventEnd` 合并为一次 `TryApply`。**分工 = 计算归战斗、施加归生命周期。** **推论 ③：本服务交出的 `Spoils` 内的授予一律记 `Source.CombatReward`**——授予来源的分野判据是「谁组装出这条 element」而非「属于哪类事件」，故一个揭示出战斗真身的 Explore 选项，其战利品同样记 `CombatReward`；唯一例外是 `Finale` 胜利时由道统残卷发放的那一路，走 `Source.FinaleWin`。见 `systems/common-properties.md`。
 - **奖励分两类：强制自动计入 / 可选由玩家择一。** **强制奖励**无需玩家操作、自动计数（例：经验）；**可选奖励**由玩家从若干候选中选择，形态**参照 Slay the Spire** 的战后奖励面板。**推论 ①：战斗后需要一个奖励选择步骤与对应界面**，且因奖励发放归 combat 流程，这一屏在战斗流程内、返回 `CombatResult` 之前（见 `ux/combat-ux.md`）。**推论 ②：`Spoils` 需能表达两类条目**——强制部分计算时即固定，可选部分先呈现候选、再由玩家选择收敛为最终 spec。
@@ -93,7 +93,7 @@
   - **推论 ②：这三条只管结算侧的槽位**（触发式 / 启动式异能在栈上回头问的那些）。**玩家主动出牌的全部槽位在打出前由 UI 按 `slotIndex` 顺序一次收齐，入栈即 `targetState = Resolved`**——`PlayCard` 因此收一个 `TargetRef` 列表，见「API 面」。
   - **推论 ③：一场战斗的决策点总数不再固定。** 自动选定只会**减少**决策点，故 ≈31 个决策点与 ≈93 KB 的量级是**上界而非典型值**，体积护栏不受威胁；D4 的定义（`pending` 写入那一刻）原样成立，只是写入条件更严。
 - **确定性。** 洗牌、敌人行为掷骰等一律用 `life-cycle-service.SeedManager` 派生的 **combat 子流**，与地图 / 商店 / 奖励子流隔离，避免 desync。同一 seed 必须复现同一场战斗。**派生形态 = `Hash64(combatStreamSeed, eventId)`，就这一层，不加 `attemptIndex`**——篇章重试生成的是全新的 `CycleSeed`（见 `life-cycle-service.md`），再叠一层重试计数没有职责。`eventId` 这一层让不同事件的战斗随机互相隔离，成本为零。**敌人抽牌走与玩家抽牌不同的子流**，使玩家侧的一次额外抽牌不打乱敌人牌序。
-- **先后手由 `EncounterSpec.FirstSide` 决定，未指定则随机。** `EncounterSpec` 带一个可空字段 **`FirstSide: Side?`**（`null` = 未指定），由 **future-event-service 在物化 eventOption 时写入**，剧情意图经其下的 **plot-manager** 调制；**未指定时由本服务用 combat 子流掷**，故同一 seed 复现同一个先后手。**推论 ①：本服务只读该字段、不问来源**——与既有「遭遇参数收进 `EncounterSpec`」（`TurnLimit` / `VictoryRule` / 抽牌与手牌上限覆写）完全同形，**不新增对 future-event-service 的运行时依赖**。**推论 ②：与「不设先后手抽牌差」不冲突**——那条说的是不做补偿（先手 tempo 优势在打满回合比总量的结构下不存在），本条说的是谁先动。**推论 ③：掷点消耗的随机落在 D0 之前**，随参战方组装一并反映进持久化的 RNG `State`，退出重进不会改变先后手。
+- **先后手由 `EncounterSpec.FirstSide` 决定，未指定则随机。** `EncounterSpec` 带一个可空字段 **`FirstSide: Side?`**（`null` = 未指定），由 **future-event-service 在物化 eventOption 时写入**——「剧情指定先手」= **内容侧在事件模板（`AdventureEventData`）上直接编排**；**未指定时由本服务用 combat 子流掷**，故同一 seed 复现同一个先后手。**推论 ①：本服务只读该字段、不问来源**——与既有「遭遇参数收进 `EncounterSpec`」（`TurnLimit` / `VictoryRule` / 抽牌与手牌上限覆写）完全同形，**不新增对 future-event-service 的运行时依赖**。**推论 ②：与「不设先后手抽牌差」不冲突**——那条说的是不做补偿（先手 tempo 优势在打满回合比总量的结构下不存在），本条说的是谁先动。**推论 ③：掷点消耗的随机落在 D0 之前**，随参战方组装一并反映进持久化的 RNG `State`，退出重进不会改变先后手。
 - **不设 mulligan。** **玩家抽到什么就是什么**——起始手牌一次发到位，没有换牌 / 调度窗口。**推论：开局不多出一个决策点**（连带不多一个存档点），也不多一次 RNG 消耗；开局方差由「定长 10 回合、不设提前终止」吸收，不需要第二条抹平通道。
 - **抽牌堆不重洗，抽空即疲劳（承重）。** **抽牌堆抽空即为空，弃牌堆不回流**——没有「抽牌堆空时由弃牌堆重洗补充」这条规则。**抽牌堆为空时每尝试抽一张牌，抽牌方失去 1 点道念**（一次抽 N 张即失去 N 点）。
   - **推论 ①（承重）：道念的结算通道有两条**——**卡牌**（行动阶段打出、经栈结算）与**疲劳**（开始阶段抽牌）。疲劳**不入栈、不产生 `PlayResult`**，是抽牌流程内的一次直接扣减。
@@ -103,7 +103,7 @@
   - **推论 ⑤：满手抽不进与疲劳的叠加已定**——两条判定按流程顺序：抽牌堆为空 → 先扣道念（无牌可抽）；抽牌堆非空但满手 → 牌留在抽牌堆、无事发生、**不触发疲劳**（疲劳的触发条件是「牌堆空」，不是「没拿到牌」）。
 - **卡牌侧数值。** **起始手牌 4**（双方同值）· **每回合抽 2** · **手牌上限 7** · **卡组规模：两侧皆不设硬限** · **储物袋上限 9**（计数单位 = **按 `Id` 堆叠后的条目数**）。**推论：卡组规模成为可编排维度**（敌人侧由 `EnemyData` 逐条编排、玩家侧由构筑决定），**其代价由疲劳承接**——小卡组在后期真实失血。敌我对称仍是硬纪律（起手 / 抽牌 / 手牌上限三项完全同值）。取值与推导见 `systems/balance.md`。
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-card-counters-api-and-key-space.md`
 
 ## 战斗存档：`ActiveCombat`
 
@@ -154,14 +154,36 @@ public sealed record CardInstanceSave(
 | `sourceId` | `string` | `CardId`（阵法）或 `PowerId`（神通 / 法则） |
 | `sourceInstanceId` | `string?` | 仅 `PermanentCard`：它原本是卡组里的哪张牌（**闭集的另一半**——牌离开手牌落到战场，实例仍在） |
 | `keywordId` | `string?` | **条目的关键字筛选键**：仅由 `KeywordKind.State` 展开产出的 `Transient` 条目非空。**不可由 `sourceId` 推导**——同一张牌可施加两条不同的关键字状态，两条条目的 `sourceId` 相同；没有这一格，「移除对方所有带某状态的条目」这类 payoff 写不出来。语义见 `systems/character-profile/deck/common-properties.md` |
+| `amount` | `int` | **关键字展开参数**：`KeywordRef.Amount` 的落点，默认 `-1` = 无参数（与 `KeywordRef` 的既定约定同值）。**不可由 `keywordId` 推导**——同一关键字可用不同 `Amount` 施加两次，与 `keywordId` 不可由 `sourceId` 推导逐字同构。`BattlefieldEntryTemplate` 侧不带这一格：`Amount` 来自引用侧的 `KeywordRef`，不是模板的属性 |
 | `ownerSide` | `OwnerSide` | 「属于谁」只是字段，不是住处 |
 | `lifetime` | `EntryLifetime { UntilEndOfTurn, ForTurns, Indefinite }` | 永久物恒为 `Indefinite` 语义（永不被清理） |
 | `countdownSide` | `CountdownSide { Owner, Opponent, Either }` | 以谁的结束阶段为节拍；默认 `Owner` |
 | `remainingTurns` | `int` | 仅 `ForTurns` 有意义；其余档写 `-1` 并在校验中要求如此 |
 | `faceDown` | `bool` | 埋伏（对手只见计数） |
-| `counters` | `Dictionary<string,int>` | **运行态计数器**——`Power` 的「本场已触发 N 次」就落在这里 |
+| `counters` | `Dictionary<string,int>` | **运行态计数器**——`Power` 的「本场已触发 N 次」就落在这里。键约定见下 |
 
 > **`Power` 的战斗内运行态不需要独立结构——它就是战场条目的 `counters`。** 这是「`Power` 是战场条目的一档」这条定案的直接后果，**不新增结构**。生命周期三件套的语义与清理判据见 `systems/character-profile/deck/_index.md`。
+>
+> **未入场的 `Power` 没有计数器落点，这是自洽而非缺口** —— 入场三条与门任一不成立即不入场，它本场也不可能触发。**`PlayerPower`（账号级）的本场计数落在轮回级的 `ActiveCombat` 里不是层级错配** —— 计数的寿命等于这一场战斗，与 `PlayerProfile` 上的持有 / `status` / 残卷语义不同，不构成双写。**敌人的 `Power` 同表承载**（`ownerSide = Enemy`），不另立第二结构。
+
+**`counters` 的键约定（战场条目与 `CardInstanceSave.Counters` 共用同一套，不写成两套）**：
+
+```
+键   ::= <abilityId>                 // 该异能的默认计数器（触发 / 启动次数）
+       | <abilityId> "#" <子名>       // 须登记在该异能的 AbilityData.CounterNames 内
+<子名> ::= ^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$      // 长度 ≤ 32
+// 不变式：键的第一段恒为 AbilityData.Id
+// ':' 前缀保留为未来非异能键的命名空间，当前不使用
+```
+
+- **`#` 前那一段必须能经 `ContentRegistry` 解析出一条 `AbilityData`。** 键的主体是 `AbilityData.Id` 而非 `PowerId` / `CardId`：`PowerData.Abilities` 可含多个异能，「每场限 N 次」的配额天然挂在**某一个异能**上，以条目为单位记数就写不出「A 每场一次、B 不限」。取具名 id 而非自造裸字符串，是为了让键具备与全库其他跨类型引用同款的**悬空校验能力**。
+- **该 `abilityId` 段与其余 `abilityId` 同档，受下方读档校验 ② 约束**（解析不到 → `PushError` + 报出 id），**不开例外**。计数器丢失只影响一次配额，但真悬空意味着内容被删或键被写错，静默丢弃会让一次内容运维动作静默吃掉玩家的配额状态；`Get(id)` 不过滤 `ContentEnabled`，故「战斗中途某条目被线上关闭仍能恢复」这条承诺不依赖于放宽本条。
+- **内容条目 `Id` 的字符集不含 `#` 与 `:`**（含加载期校验），故 `#` 分隔在语法上恒成立、`:` 前缀与异能键天然不相交。该约束是内容 id 的通则，权威在 `systems/common-properties.md`「稳定 Id 键」，此处不复述。
+- **子名须登记在 `AbilityData.CounterNames` 内**，读写两侧都校验（未登记 → `PushError` + 抛）。**正则拦不住拼错**——拼错的名字通常仍然合法，而一个静默开出来的新计数器会让配额闸门永远读到 0，「每场限 N 次」就此静默失效、且只在线上被玩家发现。读侧同样拦，否则「读到 0」与「键根本不存在」在闸门处无法区分。字段与加载期校验见 `systems/character-profile/deck/common-properties.md`。
+- **允许下划线**是刻意的：全库其他 id 段一律 `snake_case`，禁止 `_` 会造出第二套书写习惯，收益仅是名字略短。
+- **值域 `>= 0`；为 0 的键不写入**（等价于「没记过」），与 `CardInstanceSave.Counters`「空则整字段省略」同向——省下的是每个决策点 diff 里的一堆零。
+- **合法的键形态只有这一种，`counters` 不承载非异能计数。** 「关键字状态叠了几层」是**可重算的派生量**——每次 `ApplyState` 产出一条独立的 `Transient` 条目，层数 = 战场上同 `keywordId` + 同 `ownerSide` 的条目计数，一次遍历即得，依「可重算的东西不进存档」判据不该有独立落点。合并成「单条 + 层数」则是语义损失：生命周期三件套逐条独立倒数，合并等于强制多次施加共享同一个过期时刻。故 `Transient` 条目没有 `AbilityData` 主体不构成缺口——它压根不需要计数器；而第一类键覆盖的**配额**天然挂在某一条异能上，关键字侧同样如此（`BattlefieldEntryTemplate` 里就是 `AbilityData[]`）。
+- **`KeywordRef.Amount` 落条目的 `amount` 一格，不进 `counters`。** `counters` 的语义是**计数**（值域 `>= 0`、为 0 不写入、单调 bump），`Amount` 是**参数**——「为 0 的键不写入」对它是错误语义，且键空间一旦承担两族语义，此后每次读键都要先分辨它属于哪一族。
 
 **栈条目**：`stackEntryId` · `kind { PlayedCard, TriggeredAbility, ActivatedAbility }` · `controllerSide`（**决定这次目标选择是否产生决策点**）· `sourceInstanceId` · `sourceEntryId` · `abilityId` · `chosenTargets`（`TargetRef[]`，按槽位顺序）· `targetState { Resolved, AwaitingChoice }`。**栈内位置由数组顺序承载，不落 `position` 字段**——索引即位置，另存一个序号是可以不一致的冗余。
 
@@ -169,11 +191,18 @@ public sealed record CardInstanceSave(
 
 **战斗内道具运行态**：`readonly record struct CombatItemSave(string ItemId, int UsesThisCombat)`。**只落「本场已用几次」**：本场可用道具列表本身是**派生的**（玩家侧按 `UsableScene` 筛储物袋，敌人侧取 `EnemyData` 持有列表），而古宝的总剩余次数**权威在 PlayerProfile**（使用次数即时写，战斗内再存一份就是双写）。`UsesThisCombat` 仍必须存——**本作确实存在「每场限用一次」这类本场配额效果**，它是唯一的载体。
 
+- **两级道具在存档面上完全对称，`CombatItemSave` 一个结构覆盖两级。** 法宝一侧的 `CharacterItem.Charges` 同样即时写 `CharacterProfile`、不攒到收口（权威在 `systems/character-profile/item/_index.md`，此处不复述）；古宝一侧见 `systems/player-profile/player-item/_index.md`。`ItemData.Scope` 是内容侧静态字段，`ItemId` 已唯一决定它是哪一级，故 `CombatItemSave` **不带 `Scope` 字段**（与「`CardType` / `Subtypes` 不落存档」「栈内位置不落 `position`」同款判据）。
+- **敌人侧同样用 `CombatItemSave`，且这是 `UsesThisCombat` 的第二个不可替代用途。** 敌人没有储物袋、道具来自 `EnemyData` 持有列表，没有 Profile 侧的 `Charges` 可写，故**敌人道具的次数上限只能靠 `UsesThisCombat` 对着 `ItemData.Charges`（上限 / 初值）比**。
+
 **不落存档的可重建项**（沿「可重算的东西不进存档」判据）：`isProtected`（`kind == PermanentPower` 即 `true`）· **触发器注册面**（由 `sourceId` 解析出的 `AbilityData` 重建，「谁在监听哪个时点」是纯派生数据）· **`Power` 的入场本身**（由两个 Profile 的持有列表 + `status` + `UsableScene` + **`CharacterProfile.disabledAbility`** 重放；禁用表就在 `CharacterProfile` 上、随存档走，故重建仍是确定性的，**不需要给 `ActiveCombat` 新增任何字段**）· **「本场可用道具」列表**（玩家侧按 `UsableScene` 筛储物袋，**并过滤掉在 `disabledAbility` 内的 `Id`**；敌人侧取 `EnemyData` 持有列表）· 合法目标集。
 
-**读档校验（强制，四个检查点全部命中）**：① `eventInstanceId` 与当前进行中的 `EventOption` 不一致 → `PushError` + **拒绝恢复该战斗**；② `cardId` / `sourceId` / `abilityId` 解析不到 → `PushError` 并报出 id（**注意 `Get(id)` 不过滤 `ContentEnabled`**，故战斗中途某条目被线上关闭仍能恢复——这正是「读取侧不过滤」的用武之地）；③ `pending.stackEntryId` 在 `stack` 中找不到 → `PushError`（内部一致性破损）；④ **三区 `Id` 序列的并集 ≠ `instances` 全集 → `PushError`**（闭集不变式的自校验，是「无凭空生成的牌」买来的一条免费断言）。
+**读档校验（强制，六个检查点全部命中）**：① `eventInstanceId` 与当前进行中的 `EventOption` 不一致 → `PushError` + **拒绝恢复该战斗**；② `cardId` / `sourceId` / `abilityId` 解析不到 → `PushError` 并报出 id（**注意 `Get(id)` 不过滤 `ContentEnabled`**，故战斗中途某条目被线上关闭仍能恢复——这正是「读取侧不过滤」的用武之地）；③ `pending.stackEntryId` 在 `stack` 中找不到 → `PushError`（内部一致性破损）；④ **三区 `Id` 序列的并集 ≠ `instances` 全集 → `PushError`**（闭集不变式的自校验，是「无凭空生成的牌」买来的一条免费断言）；⑤ `counters` 某键的值为负、或 `UsesThisCombat < 0` → `PushError` + 抛，带 `entryId` / `cardInstanceId` / `itemId`（`counters` 两处落点都覆盖；不可能态，与 ③ ④ 同属内部一致性破损）；⑥ `CombatItemSave.ItemId` 不在该侧「本场可用道具」的重建结果内 → `PushWarning` + **丢弃该条**、不阻断恢复（多半是 `disabledAbility` 或 `UsableScene` 中途变化；「本场可用道具」本就是按当前状态重建的派生项，丢弃一条已不可用道具的计数无副作用）。
+
+> **`counters` 键的 `abilityId` 段走 ② 而非 ⑥。** 两者形态相似但语义不同：⑥ 丢弃的是一条**内容仍在、只是本场不再可用**的记录；键解析不到则是真悬空（内容被删或键被写错），与 `sourceId` 悬空同档致命。
 
 **版本化**：本块是新增字段 → 随下一次 schema bump 一起走（当前无线上存档 = 空迁移）。
+
+**本块新增的字段只有战场条目的 `amount` 一格** —— 计数器与道具运行态全部落在既有的 `counters` / `Counters` / `items` 上。`amount` 的量级为 **≤ 4 字节 / `Transient` 条目**，相对单次决策点 2–4 KB 的既有量级可忽略；当前无线上存档 ⇒ **空迁移**，故下述量级与迁移面不受影响。**这一格是在关键字清单为空时先行铺下的**，取舍明确：加它的成本此刻恒为零，不加的成本在第一条带 `Amount` 的 `State` 关键字落地时可能已不为零（届时 schema 或已上线，加格不再是空迁移）。
 
 **已知代价**：单次决策点 diff 量级 **2–4 KB**，一场约 31 个决策点 ≈ 93 KB 本地写（毫秒级原子写，移动端可承受）；`instances` 与三区序列有冗余（**接受**，换来的是「实例表即闭集全集」这条可断言的不变式）；若实测序列化成本超预算，可退化为「战斗内只写本地、`Immediate` push 仅在进入战斗前 / 收口 / 应用失焦」——**这是纯工程优化，不改 schema**。
 
@@ -207,6 +236,8 @@ public sealed record CardInstanceSave(
 - **UX 硬要求：选目标态必须自解释**（交代是哪张牌 / 哪个异能在要求选目标、它要做什么），不能依赖玩家的短期记忆——玩家可能隔几小时才回来。见 `ux/combat-ux.md`。
 - 取消的触发方清单与 `AdvanceStage.Cancelled` 见 `life-cycle-service.md`。
 
+Source: `handoffs/2026-08-22-card-counters-api-and-key-space.md`
+
 ## 管理器
 
 | manager | 职责 |
@@ -217,6 +248,29 @@ public sealed record CardInstanceSave(
 | **BattlefieldManager** | **战场（battlefield）**：场上正在生效的条目、**触发器注册面**（谁在监听哪个时点）与清理。条目分**三档**：**永久物 · 常规**（阵法结算后落场，可被针对，永不被结束阶段清理）· **永久物 · 受保护**（`Power`，开局入场，`IsProtected = true`，唯一后门是效果侧的 `IgnoresProtection`）· **非永久条目**（持续状态，带生命周期标记，结束阶段清理标记为「回合内」的那些）。**静止式异能是一条与栈无关的写入路径**（载体一进场即生效、一离场即失效）。**单一战场记录，不分双场区容器**——条目自带 `OwnerSide` / `IsProtected` / `SourceId`，呈现层按 `OwnerSide` 分区渲染 |
 | **StackManager** | **栈（stack）**：压栈、**LIFO 结算**、连锁触发的解决顺序。**被触发的能力由它压栈**（与触发挂在哪个载体上无关）；结算产生的持续效果落到 BattlefieldManager |
 
+**运行态计数器的消费面按「谁持有谁读写」分落两处，共四个方法、不新增 manager 也不新增事件。** 「每场限 N 次」的闸门若没人读，配额就只是存了而没人管。落点判据是**读写落在持有它的那个 manager 的既有职责内**：战场持有场上的全部准确数据 ⇒ 条目计数落 BattlefieldManager；实例表 `instances` 是 `sides[]` 的字段、战场并不持有不在场的牌（手牌 / 抽牌堆 / 弃牌堆里的牌照样能带本体计数器）⇒ 实例计数落**参战方**。
+
+```csharp
+// BattlefieldManager —— 战场条目一侧
+int  GetCounter(string entryId, string counterKey);          // 缺键 → 0
+void BumpCounter(string entryId, string counterKey, int by); // 仅在异能实际生效时调用
+
+// 参战方接口（CharacterManager / EnemyManager 共享）—— CardInstanceSave.Counters 一侧
+int  GetCardCounter(string cardInstanceId, string counterKey);          // 缺键 → 0
+void BumpCardCounter(string cardInstanceId, string counterKey, int by);
+```
+
+- **两个计数器空间的归属判据直接复用既有那条，不新造：有过期时刻的 → 战场条目；无过期时刻且属于这张牌本体的 → `CardInstance`**（权威见 `systems/character-profile/deck/_index.md`）。即**随条目消亡的计数落 `entry.counters`，随牌本体、整场存活的计数落 `CardInstanceSave.Counters`**。一张 `Enchantment` 同时拥有两个计数器空间不是重复：条目离场即消失（「这个永久物在场期间触发了几次」），实例计数整场存活（「这张牌本场被打出过几次」，即便它已回到弃牌堆）。
+- **卡牌一侧不做同名重载，取不同方法名。** 两族签名同为 `(string, string)` / `(string, string, int)`，重载在编译期完全无法区分，把 `entryId` 传进卡牌一侧会编译照过、运行期静默开一个新计数器。不同方法名是唯一能让编译器帮上忙的形态。
+- **实例计数落两侧共享的参战方接口，敌人侧同样覆盖**（`e#…` 系列实例同样可带本体计数器），与「`DeckModule` 每个 character / enemy 一份」同构。
+- **寻址不需要任何新状态。** 调用点在 StackManager 的结算收口回调，栈条目自带 `controllerSide` 与 `sourceInstanceId` ⇒「找哪一侧的实例表」是现成信息。**不按 `c#` / `e#` 前缀解析实例 id**（那会把发号格式变成隐式契约），**也不建跨侧的全局实例索引**（那是第二份持有关系）。
+- **失败语义（形态 A，见 `systems/architecture.md`「API 契约总则」）：** `cardInstanceId` / `entryId` 不在对应表中 → `PushError` + 抛（闭集不变式已保证它必然存在，找不到 = 内部一致性破损）；`counterKey` 缺失（读）→ 返回 `0`；`by` 使计数降到负数 → `PushError` + 抛（读档校验 ⑤ 在写入侧的提前拦截）；`counterKey` 的 `abilityId` 段解析不到、或 `#` 段未登记 → `PushError` + 抛。
+
+- **计数只在异能实际产生效果的那一刻 +1 —— 弹栈结算成功之后，两族计数器同一时机。** `BumpCounter` 与 `BumpCardCounter` 的**调用点唯一且相同**，落在 StackManager 的结算收口回调里，而不是压栈处或付费处。判据：**一条没结算的异能不该吃掉配额**，而 fizzle（全部有目标的槽位都非法 → 整条不结算）发生在弹栈结算那一刻，晚于压栈与付费。**本体计数不另开「压栈成功即 +1」的第二时机**——那会把「什么时候算数」变成逐计数器记忆的事。
+- **`ActivationCost` 已付但 fizzle 的启动式不吃配额，成本仍不退。** 与「`SelectCost` 不回滚」同一条纪律：已经付出的就是付出了，但没有发生的效果不记账。
+- **配额闸门查两次：宣告 / 触发注册时查一次，结算时再查一次。** 因为计数在结算后才 +1，宣告时读到的是旧值；**连锁触发**（多条同源触发同时压栈）能在同一次结算链内全部通过第一道闸门，结算时的第二次查询让链内第二条到达时读到已 +1 的值、自然被拦。一次额外查询、无新状态——不为配额引入「已预留」这类第二份运行态。
+- **内容侧纪律：「每场限 N 次」类异能必须在效果定义里引用自己 `AbilityData` 的稳定 `Id` 作键，不得自造裸字符串。**
+
 **`DeckModule`（第三级）不是平级 manager。** 抽牌堆 / 手牌 / 弃牌堆的流转与 seeded 洗牌由 CharacterManager 与 EnemyManager 各自持有的 `DeckModule` 承担，**每个 character / enemy 一份**。它与那套共享的参战方接口是同一件事的两面。
 
 **「本场可用道具」是与 `DeckModule` 平级的第三级持有物，且不称储物袋。** 参战方各持一份：**玩家侧 = 储物袋中 `UsableScene` 含 `InCombat` 的筛选结果**，**敌人侧 = `EnemyData` 的道具持有列表**。**储物袋是角色的道具容器（跨战斗内外存在、上限 9 个按 `Id` 堆叠的条目），不是战斗概念**——敌人没有储物袋却同样持有道具，正说明容器与本场视图必须分开。
@@ -225,7 +279,7 @@ public sealed record CardInstanceSave(
 
 **栈与战场是两个区，不是一个。** 栈 = **等待结算**的队列；战场 = **已结算并正在生效**的东西。结算的完整路径：**打出 → 入栈 →（LIFO）弹出结算 → 效果施加 →（若是持续效果）落到战场**。
 
-Source: `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md`
+Source: `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-combat-runtime-counter-persistence.md` · `handoffs/2026-08-22-card-counters-api-and-key-space.md`
 
 ## API 面（契约）
 
@@ -246,16 +300,22 @@ public sealed record EncounterSpec(               // sealed record 而非 struct
     EnemyInstance     Enemy,                      // 单数：本作不存在多敌人场景；恒非空（三档一律有敌人）
     int               TurnLimit,                  // 双方合计回合数；Practice 8 / Standard 10 / Finale 12
     VictoryRule       VictoryRule,
-    Side?             FirstSide,                   // 先手方；null = 未指定 → 由 combat 子流掷。剧情指定时由 future-event-service 物化写入
+    Side?             FirstSide,                   // 先手方；null = 未指定 → 由 combat 子流掷。内容侧在事件模板上编排先手时，由 future-event-service 物化写入
+    int?              InitialDraw,                 // ↓ 覆写组：null = 取 CombatRulesData 默认值
+    int?              DrawPerTurn,                 //   双方同用一组值（起手 / 每回合抽牌 / 手牌上限）
+    int?              HandLimit,
+    int?              EnemyManaLimit,              //   仅敌方；null = 取 CombatRulesData 的 EnemyManaLimit
     string            RewardPoolId,               // 可选奖励抽取池
     ProfileChangeSpec BaseReward);                // 本场 baseReward，物化时定稿
 
 public readonly record struct VictoryRule(
-    int  WinMargin,          // 角色须领先的点数。Standard = 1（严格高于）、Practice = 0、Finale = N
-    );                       // 差额未达 WinMargin → Draw
+    int  WinMargin,          // 角色须领先的点数。Standard = 1（严格高于）、Practice = 0、Finale = 0
+    );                       // d >= WinMargin → Victory；d == WinMargin - 1 且 WinMargin >= 1 → Draw；否则 → Defeat
+                             // ⇒ WinMargin == 0 的两档二值化，Draw 只在 Standard 可达
 
 public readonly record struct CombatResult(
-    CombatOutcome     Outcome,            // Victory | Draw | Defeat（Draw = 未达 WinMargin，只发基础奖励）
+    CombatOutcome     Outcome,            // Victory | Draw | Defeat（Draw = 道念相等，只发基础奖励；仅 Standard 可达）
+                                          // Tier == Finale 且 Outcome == Defeat ⇒ 角色终结（见 life-cycle-service 的终态判定旁路）
     int               CharacterMomentum,  // 收口时角色道念
     int               EnemyMomentum,      // 收口时敌方道念；二者之差：胜 → 奖励厚度，负 → lifeTotal 扣减
     int               RemainingLifeTotal, // 收口扣完之后剩余的 lifeTotal（非「战斗中掉剩的血」）
@@ -329,6 +389,9 @@ public readonly record struct MomentumDelta(
 - **`CombatTier` 是三值枚举而非 bool**：回合数与胜负判据已显式化，**战斗规则不从它派生**；但它是**战斗之外**三处的判据（篇章边界闸门 · ADR-0004 篇章重试 · 道统残卷的累积与兑现），故用三值枚举而非 bool——枚举同时让 `Practice` 有了位置。见 `decisions/ADR-0002-adventure-event-taxonomy.md`。
 - **胜负判据参数化为两个数就够，不做「可替换的判定对象」**：`(1, false)` / `(0, false)` / `(N, false)` 已覆盖全部已陈述需求，无需策略枚举与分发。
 - **`BaseReward` 随物化定稿**（热更不影响进行中的遭遇），与「`EventOption` 产出即定稿」一致；代价是与「overlay 热更即生效」略有张力，**取定稿纪律**。
+- **`EncounterSpec` 的可空覆写组 = `InitialDraw` / `DrawPerTurn` / `HandLimit` / `EnemyManaLimit` 四格，`null` = 取 `CombatRulesData` 的默认值。** 它们与 `TurnLimit` / `VictoryRule` 属同一档遭遇参数旋钮——「更宽容的 `Practice`」最自然的形态之一就是多抽一张。取值与逐格理由见 `systems/balance.md`；**疲劳量刻意不在覆写组内**（同处给出理由）。
+  - **本服务只见定值，不知道剧本存在。** 前三格连同 `TurnLimit` / `WinMargin` 可能已在物化期被剧本的 `PlotModulation.Tighten` 收紧（形态与合并算子见 `systems/services/plot-manager.md`）；`EncounterSpec` 产出即定稿并落存档，**消费侧不回查模板重算**。
+  - **⚠ 已知例外：参战方对称在 mana 这一项被打破。** 「敌人侧规则数值与玩家侧完全同值」这条对称纪律（它支撑着「敌人回合的可读性依赖对称」）对起手 / 抽牌 / 手牌上限三项成立，**对 `manaLimit` 不成立**：敌方取全局常量 `EnemyManaLimit`（初值 `5`，可被本格覆写），而玩家侧 `manaLimit` 随大境界提升而增长，第三章可达 9~12。玩家因此**无法从自己的 mana 节奏推断敌人的行动空间**，图鉴「关键卡牌」一栏的费用参照系也随之偏移。这是已知并接受的代价——敌人的强度差由 `baseMomentum` 与逐条编排的卡组承载，不由 mana 承载。玩家侧的成长语义见 `systems/character-profile/mana.md`，敌方取值见 `systems/balance.md`。
 - **`EncounterSpec` 整份嵌在 `EventOption.Encounter` 上，`EncounterId` 与 `EventOption.InstanceId` 同值的冗余是写明的例外、不是先例。** 本服务只见 `EncounterSpec`、不见 `EventOption`；删掉这一格会让战斗侧日志与 `ActiveCombat` 存档失去溯源键。它与 `LifeSpanAfter` 同款处置——**不得据此放宽「重算得出来的不存」这条判据**。
 - **`CombatSnapshot` 按变更广播 + 缓存**，不是每次访问现组装（含两个列表，UI 每帧读会在热路径分配）；调用纪律 = **每回合 / 每次结算后组装一次**。归 `.claude/rules/csharp-godot-rules.md` 热路径不分配。
 - **运行时视图字段 ≠ 存档 schema**：二者大量重合但不应混为一谈（例如 `PendingTargetRequest.LegalTargets` 明确不必存档，恢复时按当前局面重算）。存档 schema 见上方「战斗存档：`ActiveCombat`」。
@@ -346,7 +409,7 @@ public readonly record struct MomentumDelta(
 - **`CardData` ↔ `CardInstance` 是「模板 ↔ 运行时实例」的另一半**（另一半是 `AdventureEventData` ↔ `EventOption`）：签名里**传实例，不传 `Resource`**；区别在于 `CardInstance` 运行态**可变**（手牌中的临时增益），而 `EventOption` 产出即定稿不可变。见 `systems/architecture.md` 总则 6。
 - **`CombatResult.Spoils` 是 `ProfileChangeSpec` 而非「已写好的变更」。** 本服务只**描述**结果；life-cycle-service 在 `eventEnd` 阶段把它连同 `lifeSpanCost` 与隐藏属性推拉**合并为一次 `TryApply`**，从而「一个事件的收口是一次事务、一个存档点」。战斗**过程中**的血 / mana 变更仍即时经 ProfileManager——**事件内部的主动消费即时提交**，这是同一条纪律的另一半，不是例外；`Spoils` 只承载收口产出。
 
-Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md`
+Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-encounter-tighten-fields.md`
 
 **事件面：**
 
@@ -388,12 +451,13 @@ life-cycle-service.AdvanceEventAsync(eventOption, mode, ct)
 - **引入 battlefield（战场）并新增 BattlefieldManager 与 StackManager 两个 manager；满手时抽牌抽不进（纯上界、无弃牌流量）；触发式效果的载体开放（牌上触发器 / 场上持续状态 / CharacterPower，可再增）；道念下限 0 在每一次结算时截断**。
 - **Finale 不是独立事件类型，而是 Combat 的最重一档 `combatTier`；三档共用战斗状态机** → `decisions/ADR-0002-adventure-event-taxonomy.md`。
 - **合法目标集 = 即时求解的四条可交换过滤（顺序非规则）；结算时逐槽位重检并采部分 fizzle；挂起态三条与门；`PlayCard` 收 `TargetRef` 列表；`PendingTargetRequest` 带 `SlotIndex`；战场条目新增 `keywordId`**。
+- **`counters` 键空间只有 `<abilityId>[#<子名>]` 一种形态（非异能计数不进 `counters`）；子名有正则且须登记在 `AbilityData.CounterNames`；实例侧计数由参战方的 `GetCardCounter` / `BumpCardCounter` 承担、与配额计数同时机；战场条目新增 `amount` 承载 `KeywordRef.Amount`**。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-22-card-counters-api-and-key-space.md`
 
 ## 待决问题
 
-- **Finale 的奖励结构加厚幅度。** 「Finale 是战斗变体、天劫为带定制卡组的 Enemy」与遭遇参数（12 回合 / `WinMargin N`）均已定案；**奖励加厚的具体取值**归 ch1 数值标杆专场。→ `systems/adventure-event/combat/`。
+- **Finale 的奖励结构加厚幅度。** Finale 是战斗变体、天劫为带定制卡组的 Enemy，遭遇参数为 12 回合 / `WinMargin 0`；**奖励加厚的具体取值**归 ch1 数值标杆专场。→ `systems/adventure-event/combat/`。
 - **战斗内容全部未设计。** 卡牌定义与起始卡组、敌人目录、遭遇战编排——均为空白（**回合内的效果 / 状态系统骨架**，见 `systems/character-profile/deck/_index.md`）。→ `systems/adventure-event/combat/`、`systems/character-profile/deck/`。
 - **敌人 AI 的决策形态。** AI 可在自己回合内逐张决策；具体算法、决策粒度、多回合行为倾向、难度旋钮落点均未定义。→ `systems/enemies/`。
 

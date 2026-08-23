@@ -4,7 +4,10 @@ date: 2026-08-22
 question: 三章的 `±2` 赋级带边界放在平衡资源里，还是服务配置里？
 source: open-questions/01-combat.md → 结构与配置的残留 → 带边界的配置落点（08-06b 立 · 08-15d 收窄）
 targets: systems/balance.md（赋级带条目 + 待决问题）· systems/services/future-event-service.md（物化赋级的读取面）· systems/enemies/_index.md（赋级带的接受面）
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-22 — 落点已定（平衡资源）；合并 interview 另裁定一并清理意图机制残留三处 · 删除 future-event-service 中重复且失效的推论⑦ · 行类型改名避开 Band（定为 EnemyLevelRange，容器 EnemyLevelingData）并在 terminology 登记 · 五条校验全落 balance.md · 权重表保持百分数呈现但校验和值须落成确定值。**待复核 3 项**：三章各一行具名字段 · 新开一份资源 · 权重存归一化小数
+confirmed: 2026-08-22 —— 全部 [采纳推荐 — 待复核] 项经批量评审确认，无推翻
+distilled-to: handoffs/2026-08-22-band-boundary-config-placement.md
 ---
 
 # 方案草稿 — 带边界的配置落点
@@ -151,9 +154,11 @@ level = Clamp(characterLevel + WeightedPick(band, mapStream), 1, 22)   // 截断
 ## 仍需用户决定 → **已全部裁决（2026-08-22 · 批量评审）**
 
 > 逐条裁决（`/batch-provide-solution-draft` 合并 interview · 三项均为轻级，用户在打包轮中一并按推荐裁定）：
-> 1. 三章各一行 vs 单一全局值 → **A · 三章各一行具名字段，当前三行同值 `(−2, +2)`** `[采纳推荐 — 待复核]`
-> 2. 新开 `EnemyLevelingData` vs 并进既有平衡资源 → **A · 新开一份，带边界与带内分布权重表同住** `[采纳推荐 — 待复核]`
-> 3. 权重取值单位 → **A · 归一化小数（和为 1）** `[采纳推荐 — 待复核]`
+> 1. 三章各一行 vs 单一全局值 → **A · 三章各一行具名字段，当前三行同值 `(−2, +2)`** `[已确认 2026-08-22 · 批量评审]`
+> 2. 新开 `EnemyLevelingData` vs 并进既有平衡资源 → **A · 新开一份，带边界与带内分布权重表同住** `[已确认 2026-08-22 · 批量评审]`
+> 3. 权重取值单位 → **A · 归一化小数（和为 1）** `[已确认 2026-08-22 · 批量评审]`
+>
+> **全部待复核项已于 2026-08-22 经批量评审逐项确认，本草稿再无待复核项。**
 
 
 1. **三章各一行 vs 单一全局值？**（轻）

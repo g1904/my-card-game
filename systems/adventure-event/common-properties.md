@@ -51,14 +51,27 @@
 
     | | 形态 |
     |---|---|
-    | 候选何时掷定 | **结算时**（`eventEnd` 之前），走 `reward` 子流 |
+    | 候选何时掷定 | **物化时**（随 `EventOption` 一并定稿），走 `Reward` 子流 |
     | 玩家看到什么 | 结算面板展示「失去 A · 得到 B」+ 接受 / 拒绝；禁用型只展示告知，无选择 |
     | 「拒绝」是什么 | 点「拒绝」，什么都不发生（零代价） |
     | 事件内决策点 | **有**，形状与战后奖励面板完全同构 |
-    | 落存档 | 决策点存档记录已掷定的候选；结果进 `PastEventEntry.AppliedChange` |
+    | 落存档 | 候选随 `EventOption.AbilityChangeSlots` 落存档（物化时定稿）；结果进 `PastEventEntry.AppliedChange` |
 
-    **不新增机制**——战后奖励面板已经是「预先算定的候选 + 玩家择一 + 随后并入 `eventEnd` 那一次 `TryApply`」。**候选必须预先算定并落决策点存档**，否则退出重进可以重掷候选。**推论：`PastEventEntry.SelectCost` 的快照形状不受影响**（它只装资源 element），`AppliedChange` 则新增能力 element 与统计 element。规则权威见 `systems/player-profile/player-power/_index.md`，element 形态见 `systems/services/profile-service.md`。
-- **批次规模 = 常态 3 项，取值区间 1–5。** 一批 eventOptions **通常摆 3 个**选项，允许的范围是 **1 到 5**。**推论 ①：批次不是固定宽度**，产出侧要按批给出数量而非套一个常数。**推论 ②：1 项的批次是合法的**，此时「择一进入」退化为「只能进这一个」——它与 `eventPriority = 1` 收窄到单项、以及 Travel 的 20% 随机档天然同形，**不需要额外规则来允许它**。**区间两端由什么驱动**（location？篇章？剧本？）未定，见待决问题。
+    **不新增机制**——战后奖励面板已经是「预先算定的候选 + 玩家择一 + 随后并入 `eventEnd` 那一次 `TryApply`」。**候选必须预先算定**，否则退出重进可以重掷候选；掷定落在物化那一刻，与 Research 槽、Exchange 库存**三个决策点面板的掷定时点由此一致**。承载字段 `AbilityChangeSlot` 的形状见 `systems/services/future-event-service.md`。
+    - **它不由 `OutcomeSpec` 承载。** `ProfileChangeSpec` 的 element 只装已定稿的最终账，而决策点需要的是一份**施加之前**的候选，两者不是同一层东西；`OutcomeSpec.AbilityElements` 相应只承载物化时定稿的**授予**（`Op == Grant`）。
+    - **推论：`PastEventEntry.SelectCost` 的快照形状不受影响**（它只装资源 element），`AppliedChange` 则新增能力 element 与统计 element。规则权威见 `systems/player-profile/player-power/_index.md`，element 形态见 `systems/services/profile-service.md`。
+- **批次规模 = 常态 3 项，取值区间 1–5。** 一批 eventOptions **通常摆 3 个**选项，允许的范围是 **1 到 5**。**推论 ①：批次不是固定宽度**，产出侧要按批给出数量而非套一个常数。**推论 ②：1 项的批次是合法的**，此时「择一进入」退化为「只能进这一个」——它与 `eventPriority = 1` 收窄到单项、以及 Travel 的 20% 随机档天然同形，**不需要额外规则来允许它**。
+  - **区间两端由 `BatchSizeWeights` 驱动**——一张**按篇章分格的五格权重表**（N = 1…5），常规批每次走 map 子流掷定，众数 3、两端稀薄使 1 与 5 成为有记忆点的少见形状。它住平衡资源、**不接受任何按剧情线 / location 的覆盖参数**（与 `TravelFullFanoutChance` 同款收口：批次规模改的是玩家选择空间的宽窄，落在约束面，而 future-event-service 独占约束面的置位权）。取值与校验见 `systems/balance.md`。
+  - **三种结构性场景不走这张表**：配额闸门批（规模 = 邻接数或 1）· `Priority = 1` 收窄批（= 该档条目数，通常 1）· 闸 ②③ 移出条目后（少一项）。
+  - **掷出的 N 是目标槽位数，不是产出数量。** 实际输出允许少于 N（Travel 的 20% 档、闸 ③ 降级），下界由「收缩到 0 时补一个 Travel」的保底规则兜住，故 `1 <= Count <= 5` 恒成立。管线与保底规则见 `systems/services/future-event-service.md`。
+- **`SelectionWeight`（条目基础权重 · 共有字段 · `SelectionWeightGrade` 枚举，默认 `Common`）。** 同类型内各条目被抽中的相对权重，档 → 权重的映射住平衡资源（见 `systems/balance.md`）。
+  - **它补上的是 `Rarity` 被排除时所承诺的那个「权重」。** `AdventureEventData` 不进稀有度维度，理由正是「它的出现由**权重**与优先级控制」——而在此之前那个权重不存在于任何字段上，`PlotModulation.EventWeights` 的乘性系数也就没有基数可乘。两者不同名不同表：`Rarity` 承载跨内容族共用一张 `GrantPoolWeights` 的稀有度语义，本档只承载出现频率。
+  - **取枚举档而非裸 `int`**，是「内容侧不落裸数字、走枚举档 + 平衡表映射」的第三个实例（前两个是 `ExperienceGrade` / `HiddenStatGrade`）：改一张表即可全局调节奏，不必重扫数百个 `.tres`，也避免同类条目在不同作者手里权重漂移。**默认 `Common` ⇒ 内容作者的默认动作是不填。**
+  - **加载期处置：** 枚举天然封闭，无需取值域校验；平衡表映射值 `<= 0` → `PushError`（同 `GrantPoolWeights`「任一档权重为 0 → 池非空却抽不出来」）。
+- **`ChapterScope`（篇章框定 · 共有字段 · `int[]`，空 = 不限）。** 该条目可在哪几个篇章进入候选池，与 `PlotArcData.ChapterScope` / `EnemyData.ChapterScope` **同名同形同义**；取池管线在 `AllEnabled()` 之后按它过滤（见 `systems/services/future-event-service.md` 十步管线第 ① 步）。
+  - **加载期处置：** 取值域 `1..3`，越界 → `PushError` + 条目 `Id` + 越界值；重复值 → `PushWarning` + 去重（**只告警，共享只读模板不写回**）；空数组合法。
+  - **另加一条启动期断言：每个 `(chapter, EventType)` 组合下 `ChapterScope` 命中的条目数 ≥ 1，否则 `PushError` + 该组合。** 与敌人侧的「每 `(eventType, chapter)` 通用池非空」逐字同构。**理由：**`ChapterScope` 一旦落地，「第二章没有任何 Explore 条目」就成了一种可静默编排出来的坏数据；不加断言它只会在运行期以「内容池为空 → `PushError` + 抛」的形式炸在玩家的轮回中途，而坏数据必须在启动期大声失败。粒度取 `(chapter, EventType)` 而非 `(chapter)`——后者宽松到几乎必然通过，等于没有断言。
+  - **`eventType == Travel` 的条目豁免本字段：`ChapterScope` 必须为空，非空 → 加载期 `PushError` + 条目 `Id`（承重）。** **Travel 是结构性通道而非内容**——它不计入 `eventCountLimit`、它的 outcome 不得含 `LifeSpan` 产出，本条是同一族禁令的第三条。**不豁免的后果是直接的**：某个篇章若没有一条 `ChapterScope` 命中它的 Travel 条目，配额闸门批就产不出任何选项，而「邻接集合不经 `AllEnabled()` ⇒ Travel 兜底恒可产出 ⇒ 轮回死锁在规则层不成立」这条承重结论会当场失效。既然 Travel 的目的地取自地域图（三章共用同一张、恒启用），给它一个篇章维度也没有任何可表达的语义。
 - **整批重算的依据 = 角色的整体历程，不是上一批。** 一次事件完成后新的一批**不是在上一批基础上增删**，而是**依角色的整体状态与历程重新产出**——**重度依赖 `pastEvent`**（以及 location 框定与 PlotManager 调制）。
   - **它加强而非改动既有形状**：「AdventureEvent 之间不存在前后连边」讲的是内容侧不预先连线，这条讲的是**产出侧也不承接上一批的形状**——两端都不留连边，批与批之间唯一的信息通道就是角色状态本身。
   - **推论：`pastEvent` 从「历史记录」升为「产出侧的一等输入」。** 它此前的消费方是剧本、履历与诊断；现在 future-event-service 每批都读它。**这不改 `pastEvent` 的 schema**（`Unchosen` 轻摘要正好让产出侧也读得出「玩家回避了什么」），但它把「痕迹必须完整可靠」的重要性又抬了一级。
@@ -75,7 +88,8 @@
   - **有效可选集 = 本批中最高优先级档的全部事件**，同档内玩家自由择一。
   - **置位方唯一 = future-event-service，在物化时置位；PlotManager 不得改变它。** **推论（边界澄清 · 承重）：PlotManager 只调内容不调约束**——它能影响哪些事件进池、以什么权重出现，但**不能通过抬优先级强制玩家做某件事**；剧本要表达强制性，只能靠**把候选池收窄**（整批只出这一类）。这是更诚实的表达：玩家看到的仍是一批可选项，而非一个被系统钉死的选项。
   - **载体类型是 `int`，不塌缩为 `bool`；取值域由断言兑现。** 塌缩要连改三处——`EventOption.Priority` · `PastEventEntry.Priority`（**落存档字段**）· `EventOptionBatch.EffectivePriority` 与「有效可选集 = 本批最高优先级档」这条语义（`bool` 下退化为两次布尔比较）；日后需要第三档时那是一次真实的存档迁移。**保留 `int` 的成本是零，故按「哪一侧日后更贵」选。** 「让类型说实话」这个诉求由**物化组装后断言 `Priority ∈ { 0, 1 }`**（`PushError` + `EventId`）兑现，与「`SelectCost.AbilityElements` 恒空」同一档、同一处。**它是对自己代码的防呆**——置位方本就唯一（future-event-service），内容作者在 `.tres` 上根本没有这个字段可填。
-  - **推论：两档 ⇒ 不存在「优先级 2 压过优先级 1」的层叠语义。** Travel 闸门用的「最高优先级」就是 `1`，与剧情线的强制事件**共用同一档**——两者同批出现时玩家在它们之间自由择一。
+  - **推论：两档 ⇒ 不存在「优先级 2 压过优先级 1」的层叠语义。** Travel 闸门用的「最高优先级」就是 `1`；**同批若出现多个 `1` 档，同档内玩家自由择一**——这条兜底零成本且在日后新增抬升条件时自动生效，故保留它而不删。
+  - **抬升判据由 future-event-service 独占给出：「抬升当且仅当不抬升会使一条结构性规则失效」**，另附三条与门子判据（唯一出口 / 产出侧可确定判定 / 表达结构而非难度叙事）。当前闭合的三条抬升条件、六条被否决的候选、以及「同批多个 `1` 档为何不新增收窄规则」全部归 `systems/services/future-event-service.md`——本处不复述，避免同一条判据出现两个书写位。
 - **寿元消耗 `lifeSpanCost`（`selectCost` 成本类型的一个 element）。** 表示完成该事件对角色**寿元 / lifeSpan** 的扣减；它不是 AdventureEvent 上的独立平铺字段，而是**成本类型 `selectCost` 的组成 element 之一**（见上）。**内容侧以正数量值书写**（`1` = 消耗 1 点寿元），物化时取负。寿元由 life-cycle-service 在事件结算时按 `lifeSpanCost` 扣减，归 0 → `defeated`（大限将至）。
   - **定价是时长旋钮，不是固定基准。** 设计判据是**目标游玩时长**：**ch1 30–40 / ch2 35–45 / ch3 45–55 分钟**（熟练玩家口径）——**寿元预算不变，靠调 `lifeSpanCost` 把时长压回区间**（第三篇章预算 +300 远多于前两章，故定价相应**大幅上调**）。
   - **定价归属 = 「事件类型 × 篇章」的统一定价表，不逐条目手写。** 寿元消耗由 `systems/balance.md` 的一张表给出（如**闭关 Research 比常规事件耗时更长**、`combatTier` 各档可各有取值），**内容条目只在需要体现代价差异时标一个偏移 / 覆盖值**。**Explore 是这条通则的唯一例外**——它自成一行且禁用条目级覆盖，理由与校验见 `explore/_index.md`。
@@ -120,6 +134,66 @@
   - **回升的叙事静默：** 回寿使 `|BandIndex|` 减小 = 靠近常态 ⇒ 不播文案，只更新 band 字段；回滞 δ 挡住阈值上的抖动。见 `systems/services/plot-manager.md`。
   - **不抬高 `ChapterLifeSpanBudget`，也不给寿元设 `Max` 上界。** 前者：回寿后剩余寿元可能超过冻结的分母（百分比 > 100%），这被接受——分母是篇章边界的口径量，章内抬高会让 30% / 10% 阈值在章内漂移，而回滞机制假定阈值不动；>100% 仍落在 Band 0，无呈现问题。后者：加上界会引出「补满时用丹浪费」这一整类挫败感，而 `lifeTotal` 那条线正是专门不设上限来消掉它的。
 - **稳定 Id。** 作为数据资源，每个 AdventureEvent 内容条目有稳定唯一的字符串 `Id`（供 eventOptions 引用、`pastEvent` 轨迹、存档 key points、注册表查找）。Source: `data-resource-rules.md`。
+
+### 模板侧的产出格（`OutcomeSpec` 的参数空间 · 共有字段）
+
+**`AdventureEventData` 上的产出格共五格，`eventType` 不限**（Travel 另受 `LifeSpan` 禁令约束）。它们是**参数空间**，由 future-event-service 在物化时展开成 `EventOption.OutcomeSpec` 与 `EventOption.AbilityChangeSlots`；定稿形态与断言清单见 `systems/services/future-event-service.md`。
+
+```csharp
+[Export] public ExperienceGrade   ExperienceGrade   { get; set; } = ExperienceGrade.None;
+[Export] public int               FailureRatio      { get; set; } = 50;   // 百分比整数，不用 float
+[Export] public HiddenStatGrant[] HiddenStatGrants  { get; set; }         // (Stat, Grade, Direction)；胜负同施
+[Export] public OutcomeRule[]     OnResolvedRules   { get; set; }
+[Export] public OutcomeRule[]     OnFailureRules    { get; set; }
+```
+
+**`OutcomeRule` 的形状照抄 `ExchangeStockRule` / `ResearchSlotSpec` 已有的「规则 → 物化展开」范式，不发明第三种：**
+
+```csharp
+[GlobalClass] public partial class OutcomeRule : Resource
+{
+    [Export] public OutcomeRuleKind   Kind;          // FixedResource | GrantFromPool | DeckOperation
+    // Kind == FixedResource
+    [Export] public CostKey           ResourceKey;   // 可写 key 见下方白名单
+    [Export] public int               Magnitude;     // 正数量值（与 lifeSpanCost 同一条书写约定）
+    [Export] public OutcomeDirection  Direction;     // Gain | Loss —— 取负发生在物化组装，与 SelectCost 同处
+    // Kind == GrantFromPool —— 只用于能力族授予
+    [Export] public ExchangeGoodsKind PoolKind;      // 收窄为 { CharacterItem, CharacterPower }
+    [Export] public RarityTier[]      RarityFilter;  // 空 = 不限
+    [Export] public int               Count = 1;
+    // Kind == DeckOperation
+    [Export] public DeckChangeOp      DeckOp;        // element 层五值
+    [Export] public string            TargetId;      // 定值条目；空 = 从该 Op 对应的池抽
+}
+```
+
+- **`FailureRatio` 用百分比整数不用 `float`。** `AppliedChange` 要求可重放，整数百分比 + `floor` 是可复算的；浮点在跨平台重放上不是。折算口径（同档的 50%、**向下取整、下限 1**）见 `systems/game-progression.md` 与 `systems/balance.md`；折算本身在 `ProfileChangeSpec` 组装时完成，`TryApply` 收到的已是最终整数。
+- **`DeckOp` 取 element 层的 `DeckChangeOp` 五值，不取面板层的 `DeckOperationKind`（承重）。** 后者是 Research 面板「玩家在这个槽里能选什么」的枚举，其中 `GrantItem` 落 `AbilityElements`、`Recuperate` 落 `Elements`，**都不落 `DeckElements`**；且它不含 `AddLooseCard`，而业障入组正走这一个 `Op`。用面板层枚举既装不下要装的、又装进了不该装的。
+- **两个 `Kind` 的职责不重叠：`GrantFromPool` ↔ `AbilityElements`，`DeckOperation` ↔ `DeckElements`。** 故 `PoolKind` 收窄为能力族两值，卡牌 / 功法一律走 `DeckOperation`——否则「从卡牌池抽一张塞进卡组」有两个写法，作者只能靠约定选一个，而断言也没法逐 `Kind` 写死落哪一列。**`PlayerItem` 直接拒绝：事件产出不能给账号级古宝。**
+
+**内容模板加载期校验**（一律 `PushError` + 条目 `Id`）：
+
+| # | 校验 |
+|---|---|
+| 1 | `FailureRatio ∈ [0, 100]` |
+| 2 | `Kind == FixedResource` 时 `ResourceKey ∈ { LifeSpan, LifeTotal, ManaLimit, Jade }` 且 `Magnitude >= 0` |
+| 3 | `Kind == FixedResource` 且 `ResourceKey == ManaLimit` 时 `Magnitude == 1` |
+| 4 | `Kind == GrantFromPool` 时 `PoolKind ∈ { CharacterItem, CharacterPower }` 且 `Count >= 1` |
+| 5 | `Kind == DeckOperation` 且 `TargetId` 非空时须经 `ContentRegistry` 解析（前三个 `Op` 解析功法、后两个解析卡牌） |
+| 6 | `eventType == Travel` 的条目两侧规则不得出现 `ResourceKey == LifeSpan` 且 `Direction == Gain`（既有结构性禁令的模板侧落点） |
+| 7 | `HiddenStatGrants` 内同一 `HiddenStat` 出现两条 → 拒绝（两条同属性的档位值互相覆盖，作者自己也不知道该落哪份） |
+| 8 | `HiddenStatGrants` 内 `Grade == None` → 拒绝（一条什么都不做的 grant 是编排错误，不是缺省） |
+| 9 | `HiddenStatGrants` 内 `Stat == HiddenStat.LifeSpan` → 拒绝（`[采纳推荐 — 待复核]`） |
+
+**`HiddenStatGrant` 的三格 `(Stat, Grade, Direction)`：类型定义与方向位的落点论证见 `systems/architecture.md`「共享核心类型」。** 模板侧只写「哪个属性 · 多大 · 哪个方向」，**符号在物化组装时由 `Direction` 取负**，与 `SelectCost` 的 `lifeSpanCost`、`OutcomeRule.Direction` 同处；作者在模板上从不落负数。
+
+- **校验 8 与 `ExperienceGrade == None` 不同构。** 后者是一个**字段默认值**——缺省即不产出，是内容作者的默认动作；前者是**数组里的一条**，写了一条什么都不做的行是编排错误。这与「不产生无消费方的空条目」同向。
+- **校验 9 堵的是一个真实可写出的口子。** `HiddenStat` 是三成员枚举 `{ Faith, Bloodlust, LifeSpan }`，故作者写得出 `(LifeSpan, Major, Raise)`，而它当场撞三条纪律：① `HiddenStatGrade` 的映射值是 `[0, 100]` 取值域的标定，套不到跨章 100 / 200 / 300+ 的寿元预算上（见 `systems/balance.md`）；② 它给寿元开出**第二个书写位**，绕过 `lifeSpanCost` 定价表与回寿量表这两张时长旋钮；③ **校验 6 只看 `OutcomeRule` 两侧，看不见 `HiddenStatGrants`** ⇒ `eventType == Travel` 不得回寿这条结构性禁令在 grant 侧原本没有落点。
+- **方向位不需要新增去重校验。** 加上方向后 `(Faith, Minor, Raise)` + `(Faith, Minor, Lower)` 会净成 0，而校验 7 本就拒绝同一 `HiddenStat` 出现两条 ⇒ 这个坏形态已被封死。
+
+**`ExperiencePoint` / `Faith` / `Bloodlust` 不在 `FixedResource` 的可写 key 内（承重）。** 它们只能由物化组装从 `ExperienceGrade` / `HiddenStatGrade` 的平衡表映射展开——**「物化后可出现的 key」与「模板可声明的 key」是两张表**。写成一张即让内容作者能落裸数字，同一个产出当场有两个书写位，「内容侧不落裸数字、走枚举档 + 平衡表映射」这条既定范式与平衡表的反推口径同时失效。
+
+**`Elements` 的 outcome 侧取值域收紧是第四条不变式**，与「`AbilityElements` 恒空」「`DeckElements` 恒空」「`LifeSpan` 成本侧非负」三条并列、各自独立成行，同样两处各跑一遍（内容模板加载期 + 物化组装后）。逐条取值见 `systems/services/future-event-service.md`。
 
 ### 物化（materialize）：模板 `AdventureEventData` → 定稿实例 `EventOption`
 
@@ -191,12 +265,12 @@ internal interface IEventResolver          // 按 eventType 注册
 - **接受的代价（明写）：** 中途退出的玩家会停在「已消费一部分」的状态。**这正是玩家的真实意图**，不是半成品状态；「全有或全无」约束的是**每一次提交**内部，不是整个事件。
 - 施加侧的形态与失败语义见 `systems/services/profile-service.md`。
 
-**隐藏属性推拉 = 一份 `HiddenStatGrade`，胜负同施，不套用 `FailureRatio`（承重）。** 一个事件条目为某个隐藏属性标一档，**结算走向不改变施加的量**——战斗胜负、事件成败都施同一份。
+**隐藏属性推拉 = 一份 `HiddenStatGrade` + 一个方向，胜负同施，不套用 `FailureRatio`（承重）。** 一个事件条目为某个隐藏属性标一档并标一个推拉方向，**结算走向不改变施加的量，也不改变方向**——战斗胜负、事件成败都施同一份。
 
 - **判据是语义差异，不是对称性偏好。** 经验有 `FailureRatio`（默认 0.5）是因为经验的语义是「**学到多少**」，失败也学到、按比例折算说得通；隐藏属性的语义是「**做了什么**」——屠戮就是屠戮，胜负不改变行为的性质。
 - **且比率对双向属性无从解释：** 道心可正可负，「失败时道心下降取 50%」讲不通。
 - **日后若确需让胜负推不同的量，正确形态是内容侧第二个可空的档位字段**（可正可负、语义自洽），**不是一个比率**——可空字段不牵动存档迁移。
-- 三档 Combat 的默认口径见 `systems/adventure-event/combat/_index.md`；映射值见 `systems/balance.md`。
+- 三档 Combat 的默认口径见 `systems/adventure-event/combat/_index.md`；映射值与推拉量纲见 `systems/balance.md`；方向格的类型定义见 `systems/architecture.md`「共享核心类型」。
 
 **隐藏属性的跨档定性反馈挂在 `eventEnd`（无新结构）。** 隐藏属性推拉在 `eventEnd` 阶段合并施加；**当某个隐藏属性因本次推拉而跨过一个隐藏档位时，附带一条定性的叙事描述**（不给数字）。它**复用已有的 `ResolveOutcome` → `eventEnd` 链路**，不引入新的结构或阶段。触发规则与档位归 `systems/services/plot-manager.md`，呈现归 `ux/screen-flow.md`。
 
@@ -296,7 +370,7 @@ public enum EventOutcome { Resolved, CombatWon, CombatLost, Aborted }
 - **结算与后果。** 事件结束后其后果影响玩家及未来状态（隐藏属性推拉、eventOptions 重算、location 刷新等）；结算规则因子类型而异——**仅 Combat 走战斗结算**（三个 `combatTier` 档共用同一回合循环与参战方结构，差异在遭遇参数），其余四类为事件式结算，Explore 视其真身而定。
 - **自动存档边界。** 事件为合理的自动存档点之一（每场遭遇战 / 地图节点之后）。Source: `state-save-rules.md`。
 
-Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md`
+Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -307,10 +381,10 @@ Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **可用事件的生成规则：** **数量**（常态 3、区间 1–5）、**重算依据**（角色整体历程，重度依赖 `pastEvent`，不承接上一批）；仍待定：**类型配比**的运算形态、location + AdventurePlot 的叠加顺序、以及**区间两端由什么驱动**（何时收到 1、何时放到 5——location？篇章？剧本？隐藏属性？）。→ 亦见 `systems/game-progression.md`、`systems/services/future-event-service.md`。
+- **五类之间的配比取值未定。** 生成规则的**运算形态已全部给出**（数量由 `BatchSizeWeights` 掷定、类型修正是乘性系数、多 arc 权重相乘 / 白名单取并、十步管线，见上与 `systems/services/future-event-service.md`）；仍待定的是**基础类型权重表 `BaseTypeWeights` 每格填多少**，以及 Combat 内 `combatTier` 三档的配比。→ `systems/balance.md`。
 - **`lifeSpanCost` 定价表的具体取值：** 表的**形态**已定（「事件类型 × 篇章」统一定价表，内容条目只标偏移 / 覆盖值；目标时长驱动、逐篇章上调、闭关更耗）；仍待定**每格填多少**——需以 30–40 / 35–45 / 45–55 分钟反推。→ `systems/balance.md`。
 
-Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md`
+Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md`
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/common-properties.md`（待建）

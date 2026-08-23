@@ -1,6 +1,6 @@
 # mana
 
-> 法力 mana —— **战斗内的出牌资源**（战斗内另一半是道念 / momentum，负责计分与胜负）。**每回合恢复至 `manaLimit`**；`manaLimit` 由事件 cost / reward 推拉；炼气基线 5/5。
+> 法力 mana —— **战斗内的出牌资源**（战斗内另一半是道念 / momentum，负责计分与胜负）。**每回合恢复至 `manaLimit`**；`manaLimit` 由事件 cost / reward 推拉，另在每次大境界提升时 `+1`；炼气基线 5/5。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
@@ -8,8 +8,14 @@
 - **出牌资源 = mana（已定方向）。** 每回合的出牌资源采用 **mana** 模型，其形态参考 **Magic: the Gathering** 与 **Hearthstone**。对齐 `CharacterProfile.Status` 的 `currentMana / manaLimit`。**战斗内的两个量是 mana（出牌）与道念（计分与胜负）**——life 已退到战斗外承接失败惩罚（见 `life-total.md`、`systems/scoring.md`）。
 - **无 mana 曲线。** 不采用递增曲线：既非 Hearthstone 式每回合 +1 上限，也非 MTG 式打地递增。**炼气期标准基线（起始满值）：mana = 5/5。**
 - **战斗中每回合的开始阶段恢复至上限。** 战斗内，每个回合的**开始阶段**、**回合归属方**的 `currentMana` **自动恢复到其当前 `manaLimit`**（满值），且恢复排在「回合开始时」触发**之前**。回合内未用完的 mana **不结转**。**恢复的只是归属方的 mana**——本作没有交互与优先权（见 `systems/services/combat-service.md`），非归属方在对手回合无法出牌，其 mana 在那段时间没有用途，故 mana 的实际语义是「**每次轮到我时刷满**」。
-- **`manaLimit` 的成长属于事件 cost / reward 范畴。** 上限**不随境界自动成长**，而是由 AdventureEvent 的产出 / 成本推高或压低——它是 `ProfileChangeSpec` 的一个变更目标，与灵玉、道具、隐藏属性同属一套推拉体系。**`manaLimit` 下降时，战斗内每回合的恢复上限随之下降。**
-- **推论：mana 不是战斗内的节奏来源。** 每回合固定刷满意味着回合之间的资源量不变化——MTG / Hearthstone 的「曲线爬升」张力不存在。回合间的节奏张力由**道念的累积与反超**（见 `systems/scoring.md`）以及卡牌效果 / 敌人行为承担；构筑的长期成长体现在 `manaLimit` 的推拉上。
+- **`manaLimit` 的成长有两条来源，且共用同一个增量通道。**
+  - **① 常规成长 = 事件 cost / reward 推拉**（主通道）：由 AdventureEvent 的产出 / 成本推高或压低——它是 `ProfileChangeSpec` 的一个变更目标，与灵玉、道具、隐藏属性同属一套推拉体系。
+  - **② 每次大境界提升 `+1`**：进入筑基 `+1`、进入金丹 `+1`（**元婴是轮回终点，不给**），由 life-cycle-service 在**篇章边界**施加一次。取值是平衡资源上的一个常量 `RealmBreakthroughManaBonus`（初值 1，见 `systems/balance.md`）。
+  - **两条来源同走 `CostKey.ManaLimit` 的增量语义、幅度同为 1**，故与下方「单次变动幅度恒为 1」一致，且**不新增字段、不新增存档点、不 bump schema**（跃升只是在篇章边界多写一次既有字段）。
+  - **明确不引入「置值」语义、也不设 mana 的境界基线表。** `ProfileChangeSpec` 全部是增量语义；一张基线表要么配 `max(当前, 基线)` 的置值规则（凭空多出一套「置值还是加值」要每个消费点分辨），要么在玩家已累积到基线之上时产生「跃升反而压低上限」的不可解释情形。境界跨度由 `baseMomentum` 与卡牌的道念产 / 削量承载，**mana 侧只多一个常量、不多一张跨境界曲线表**。
+  - **跃升不是被外生压力要求的，是为突破的实感而给的**：约束面（牌流）三章同形（见下方「篇章预算感」），没有任何数值压力要求基线跳档。它换回的是**三个境界里最直观的资源格数不再几乎不动**，突破在 mana 一侧变得可见。
+  - **`manaLimit` 下降时，战斗内每回合的恢复上限随之下降。**
+- **推论：mana 不是战斗内的节奏来源。** 每回合固定刷满意味着回合之间的资源量不变化——MTG / Hearthstone 的「曲线爬升」张力不存在。回合间的节奏张力由**道念的累积与反超**（见 `systems/scoring.md`）以及卡牌效果 / 敌人行为承担；构筑的长期成长**主要**体现在 `manaLimit` 的推拉上——境界跃升是一条与玩家选择无关的第二来源，但量级远小（整轮回共 `+2`，对一章 `+1~+2` 的推拉预算而言是配角）。
 - **不设 `manaLimit` 下界护栏，不做死牌转化。** `manaLimit` **下降是非常罕见的情形**，不值得为它专门设计下界护栏或「高费卡在费用被压低后转化为可用形态」的规则。极端情形下高费卡成为死牌是**可接受的**。
   - **`ResourceElements` 里的 `Min = 0` 是取值域，不是这里说的下界护栏**（写明以免两者被当作不一致而「顺手统一」）。`manaLimit` 以 `CostKey.ManaLimit` 列入该表，它的 `Min = 0` 只排除「负上限」这个无法定义的状态（每回合恢复到负值讲不通）；被否决的两条护栏——**保底 ≥ 1** 与**死牌转化**——仍然不做。**该行的两个修正列必须留空**：任一列开放，一条法则即可把 ±1 放大为 ±2，直接推翻下方「单次变动幅度恒为 1」这条承重规则。
 
@@ -29,21 +35,32 @@
   - **下降是玩家选来的，不是被施加的（承重）。** 唯一的下降通道要求玩家主动选中一个标注为风险的候选——**没有任何随机惩罚会在玩家未做选择时压低上限**。被系统随机扣上限只产生挫败并让玩家整体回避闭关，而闭关是构筑的唯一落点；自己按下那个按钮则与「明知是死路仍然走」同族。
   - **⚠「战斗不给 `manaLimit`」是一条会被质疑的取向**：它让战斗成为**纯消耗**（花 lifeTotal 风险换灵玉 / 卡牌 / 经验），成长上限全靠非战斗事件。**这是有意的分工**（避免滚雪球），但若篇章内战斗占比过高，玩家会感到成长停滞——**须与事件池分布一并校准**。
   - **分档表本质上是取向**（「闭关是主通道」符合叙事，但也可以是「秘境才是主通道」），改动成本低（改的是事件内容的 reward 配置，不是规则）。
-- **篇章预算感：一章内 `manaLimit` 净增 +1~+2**（炼气起 5 → 第一篇章末 6~7）。推导：`manaLimit` 每 +1，可打出的牌约多 0.5 张 / 回合 ≈ 2.5 张 / 场；而**一场的手牌流入约 14 张（起手 4 + 5×2）、手牌上限 7** —— 若 `manaLimit` 膨胀过快会出现「有 mana 没牌打」，mana 重新变成沉没成本。**上限收紧为 7 后这条耦合更紧**：牌流的有效上界被上限咬掉一截，`manaLimit` 的增长空间随之变窄。**牌流是 `manaLimit` 增长的天花板**，这是两条数值线的真实耦合点，须在 ch1 数值标杆专场一并回归。
+- **篇章预算感：一章内由事件推拉净增 +1~+2**（这条预算不因境界跃升而上调）。推导：`manaLimit` 每 +1，可打出的牌约多 0.5 张 / 回合 ≈ 2.5 张 / 场；而**一场的手牌流入约 14 张（起手 4 + 5×2）、手牌上限 7** —— 若 `manaLimit` 膨胀过快会出现「有 mana 没牌打」，mana 重新变成沉没成本。**上限收紧为 7 后这条耦合更紧**：牌流的有效上界被上限咬掉一截，`manaLimit` 的增长空间随之变窄。**牌流是 `manaLimit` 增长的天花板**，这是两条数值线的真实耦合点，须在 ch1 数值标杆专场一并回归。
+  - **三章末推算**（每章事件推拉 +1~+2，叠加进筑基 / 进金丹各 `+1`，炼气起 5）：
 
-Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md`
+    | | `manaLimit` | 一场可支配 mana（× 己方 5 个回合） | 若平均费用 2，可打出张数 | 相对牌流 14 张 |
+    |---|---|---|---|---|
+    | ch1 末 | **6~7** | 30~35 | 15~17 | 已达饱和（跃升发生在进筑基时，本章不受影响） |
+    | ch2 末 | **8~10** | 40~50 | 20~25 | 溢出 |
+    | ch3 末 | **10~13** | 50~65 | 25~32 | 溢出约两倍 |
+
+    > 「平均费用 2」是**为了让校验可算而取的占位量级，不是提案数值**——`CardData` 的费用格仍是结构占位，真实费用曲线归 ch1 数值标杆专场。
+  - **ch2 / ch3 的溢出是已知且被接受的代价。** 带宽在后两章超过牌流能供给的量，这是「让突破在 mana 一侧可见」这条取向换来的。**若后两章希望 mana 仍是紧约束，正确的旋钮是上调费用曲线或收紧牌流，而不是削掉境界跃升**——这是 ch1 数值标杆专场的一条输入。
+  - **这条推算唯一能被真正反转的前提是「费用曲线是否随境界整体上移」**（高境界的牌普遍更贵 ⇒ 可打出张数同比缩水、溢出收窄）。该前提当前未定，登记在 `systems/balance.md` 的待决问题里。
+
+Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
-- **无曲线 · 每回合恢复至 `manaLimit` · 上限由事件推拉**。
+- **无曲线 · 每回合恢复至 `manaLimit` · 上限由事件推拉，另在每次大境界提升时 `+1`**（增量语义、走 `CostKey.ManaLimit`、幅度恒 1；**无境界基线表、无置值语义**）。
 - **不设下界护栏 / 死牌转化**（`manaLimit` 下降极罕见）。
 - **下降的唯一承载点 = 闭关的玩家自选风险档**；载体为 `CostKey.ManaLimit`，两个修正列恒空。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **更高境界的 mana 基线。** 炼气 5/5 已定；上限既然由事件推拉、且一章净增仅 +1~+2，那么**进入筑基 / 金丹 / 元婴时是否另有一次基线跃升**（还是完全交给事件累积）未定。**注意它与 `lifeTotal` 的分工不同**：`lifeTotal` 已定为境界跃升（见 `life-total.md`），mana 尚未表态。→ `systems/balance.md`。
+*（无。`RealmBreakthroughManaBonus` 初值与「费用曲线是否随境界上移」两项数值待定登记在 `systems/balance.md` 的待决问题。）*
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/mana.md`（待建）。

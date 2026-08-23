@@ -16,6 +16,7 @@
   - **一笔交易本身就是自足事务**（`-jade` + 一条产出），「全有或全无」在这一笔内已闭合，不需要跨笔原子性。
   - **接受的代价（明写）：** 中途退出的玩家停在「已买两件、第三件没买」的状态。**这正是玩家的真实意图**，不是半成品状态。
   - **不新增存档点类型。** 每笔提交是一次 Profile 变更，走既有「变更后由 sync-service 上行」通道，与战斗内即时写入同形；`eventEnd` 的自动存档点照常。
+  - **逐笔提交与刷新那两处同时是事件内决策点**（`X1` / `X2`，见 `systems/services/life-cycle-service.md` 的非战斗四类决策点清单）：**取消点与存档点在此重合，故不新增任何写入动作**——即时提交的两条判据与决策点判据在 Exchange 上指向同一批时刻。收口（玩家点「离开」）是第三个点，并入 `eventEnd` 的单一事务存档点。**面板打开不是决策点**：那一刻的全部状态已由 `TryApply(SelectCost + EventStateChanges[ActiveEvent])` 覆盖。
 - **一笔交易的 spec 形状：** `Elements` 一条 `ChangeElement(Jade, -ListPrice, Add)` + 该商品族对应的产出 element——道具 / 神通走 `AbilityElements` 的 `Grant`（携带 `Source.ExchangePurchase`），功法走 `DeckElements` 的 `LearnTechnique`，单卡走 `DeckElements` 的 `AddLooseCard`（`Tier = -1`，一条 element 一张）。逐族载体见 `common-properties.md`。
 - **`ResolveOutcome` 只带账，不带第二次施加。** resolver 在玩家点「离开」时收口，`ResolveOutcome` 携带 ① 本次已提交的交易清单（**记账用，不再施加**）② 非购买 outcome / effect（对话结果、赠礼、隐藏属性推拉）。②照常并入 `eventEnd` 那一次合并 `TryApply`；①由 life-cycle-service 累加进 `PastEventEntry.AppliedChange`。
 - **商店购买是「余额不足即拒」的唯一消费点。** 事件推进路径不做付得起校验（`selectCost` 无条件施加），主动消费则相反：买不起的商品**灰显并保留价格可见**，不产生一次注定失败的提交。所需的两样东西——`ProfileService.CanAfford(spec)` 与 `ApplyResult.MissingElement`（告诉 UI 差的是哪一样）——因此保留。
@@ -83,6 +84,16 @@
 - **售出即时提交**，与购买同一条路径。
 - **售出走 `Source.ExchangeSell`，与买入侧的 `ExchangePurchase` 分立。** `Source` 的既定职责是「这件东西怎么来的 / 怎么没的」，买与卖在履历、成就与诊断上是两件事；复用会让「购买次数」这类统计永远算不准。它是本子类型唯一的枚举增量，合法子集表只对 `(Item, Character)` 开放，见 `systems/common-properties.md`。
 
+### 交易不产生统计依赖
+
+- **不为「购买次数」设 `StatKey` 成员；交易侧零统计增量。** 四条判据同向：
+  - **零规则消费点，且末位是结构性的。** 定价读「商品族 × 稀有度」表 + `PriceOffset` + 两条折扣通道，刷新价读事件级 `RerolledCount`，残卷掷骰读 `PlayerPowerFragment.Accumulated` / `FinaleWinOrdinal` / 法则计数，礼包兑现读 `BundleGrantOrdinal` / `BundleRedeemedOrdinal`，剧本推进读 `PlotCondition` + `pastEvent` 扫描——没有一处读购买次数。成就发放本身是规则，而统计计数层恒不可被规则读取 ⇒ **「为成就预留」不构成设它的理由**：日后真出现「累计购买 N 件」的成就，`AchievementManager` 也必须有自己的进度模型。
+  - **无展示落点。** 统计计数层字段的唯一合法消费方是 UI，而玩家档案 / 元婴通关证书统计区只列渡劫成功次数与总通关数（见 `ux/screen-flow.md`）；没有已定界面要求呈现购买次数。
+  - **轮回内的那一半已可推导**：数 `pastEvent` 的 `AppliedChange` 里 `Op == Grant` 且 `Source == ExchangePurchase` 的 element 即得本轮回买了几件，这条路径今天就在被 PlotManager 使用。落一个字段装它即第二份真值。
+  - **统计层新增成本近乎为零，故清单的取舍不以「便宜」为理由**（判据本体见 `systems/player-profile/_index.md`）。「篇章重试的账号级累计」与本项完全同形（账号级 · 纯读数 · 成本近零 · 不可事后重建 · 无展示落点）且同样不设；两条同形项若给出相反结论，首批清单就从「有判据」退回「凭偏好」。
+  - **层归属无歧义**：本问题从来不是「哪一层」——判据（这个数会被判定 / 闸门 / 幂等键读取吗）判死在统计侧，`CostKey` 不在选项内。
+- **代价明写（被接受的设计取向）：「你这个账号一共买过多少件东西」没有字段回答，且事后无法追溯重建。** 唯一的逐笔痕迹 `pastEvent` 是 `CharacterProfile` 上的轮回级字段，随轮回清理。日后若要它，只能从加上成员的那一刻起计数、历史归零；补的成本是三步（`PlayerStatistics` 一个只读字段 → `StatKey` 一个同名成员 → 零迁移）+ 一个采集点（每笔购买的即时 `TryApply` 上多挂一条 `StatDelta`），且成员名一经随线上存档写出即永久冻结、不可改名、不可复用。
+
 ### NPC / 势力：风味层，不建数据模型
 
 - **不新建 `NpcData` / `FactionData`，不设好感 / 关系度数值，不跨轮回留存。** 四条依据：
@@ -116,7 +127,7 @@
 - **回寿法宝（补天丹一类）是 `CharacterItem` 族的一个普通商品，零机制增量。** 它使商店成为「灵玉 → 寿元」的一条兑换通道，但**不需要任何新接口**：库存抽取、定价（「族 × 稀有度」表的 `CharacterItem` 行）、购买 spec（`ChangeElement(Jade, -ListPrice)` + `AbilityChangeElement(Grant, Item, Character, id, Source.ExchangePurchase)`）全部照既有路径走。**账号级古宝 `PlayerItem` 一族被结构性排除在这条通道之外**——含寿元产出的 `ItemData.Scope == Player` 在加载期即 `PushError`，见 `systems/character-profile/item/_index.md`。回寿通道的完整形态与平衡护栏见 `systems/adventure-event/common-properties.md`。
 - **商品的内容定义一律归各自的内容子树，Exchange 只承载交易机制。** 五个商品族的定义位置：`Card` → `systems/character-profile/deck/`；`CultivationTechnique` → 同上；`CharacterItem` → `systems/character-profile/item/`；`CharacterPower` → `systems/character-profile/power/`；`PlayerItem` → `systems/player-profile/player-item/`。
 
-Source: `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
+Source: `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-purchase-count-statkey.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -126,13 +137,13 @@ Source: `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` 
 - **仅 `CharacterItem` 一族可售出，准入为代码级常量判据。**
 - **定价走「商品族 × 稀有度」统一表；`ItemData` 不加 `Price` / `Purchasable`。**
 - **NPC / 势力为风味层，不建数据模型。**
+- **交易不产生统计依赖：不为「购买次数」设 `StatKey` 成员**（判据与代价见「交易不产生统计依赖」一节）。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
 - **定价表每格填多少 · 刷新基价与递增量 · 回收率 · 槽位总数上界的取值。** 形态均已定，归 **ch1 数值标杆专场**；且**绝对数字在 jade 的获取渠道答定前无法反推**。→ `systems/balance.md`、`systems/character-profile/currency.md`。
 - **满袋时能否购买道具。** 阻于「储物袋满袋处理」那条待答项——拒收 / 强制择一丢弃 / 库存侧过滤三种处置会给出三套不同的购买前置校验，它同时决定商店库存深度是否需要同步下调。→ `systems/character-profile/item/_index.md`。
-- **是否为「购买次数」设一个 `StatKey` 成员。** 不统计则零依赖。→ `systems/services/profile-service.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/exchange.md`（待建）

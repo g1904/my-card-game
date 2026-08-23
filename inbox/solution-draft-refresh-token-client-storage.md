@@ -4,7 +4,10 @@ date: 2026-08-22
 question: refresh token 的客户端持有形态 —— 具体落点文件、字段面、失效路径与启动期的消费点
 source: open-questions/05-service-contracts.md → 「refresh token 的客户端持有形态未落笔」（同条登记在 systems/services/account-service.md「待决问题」）
 targets: systems/services/account-service.md（新增「refresh token 的持有与失效」一节 + 划掉该待决项）· systems/architecture.md（`user://cache/` 版本判据的逐份落点回链）· ux/screen-flow.md · ux/onboarding.md（仅当取向 3 取 A）
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-22 — 3 项取向全部裁决；合并 interview 另裁定 AccountService.InitializeAsync 上提到 LoginScreen 之前、登录屏降为条件步 · 按后端契约订正本库三处强更闸门记载为「只在登录点」（pull 侧不做版本闸门，由 signin 独占）· 客户端不自收口，收口手段归后端 · 明文落盘的理由改写为「依托平台沙箱 + 后端 rotation 兜底」，不得再挂靠「不承诺防作弊」· ux/onboarding.md 不改。**待复核 2 项**：不存 refreshExpiresAtUtc · 明文落盘
+confirmed: 2026-08-22 —— 全部 [采纳推荐 — 待复核] 项经批量评审确认，无推翻
+distilled-to: handoffs/2026-08-22-refresh-token-client-storage.md
 ---
 
 # 方案草稿 — refresh token 的客户端持有形态
@@ -181,9 +184,11 @@ status: awaiting-review
 ## 仍需用户决定 → **已全部裁决（2026-08-22 · 批量评审）**
 
 > 逐条裁决（`/batch-provide-solution-draft` 合并 interview）：
-> 1. 是否存 `refreshExpiresAtUtc` → **A · 不存** `[采纳推荐 — 待复核]`
-> 2. 凭据的落盘保护强度 → **A · 明文 `user://cache/`，与 `deviceId` 同等对待**（平台密钥库后置而非否决）`[采纳推荐 — 待复核]`
+> 1. 是否存 `refreshExpiresAtUtc` → **A · 不存** `[已确认 2026-08-22 · 批量评审]`（含「`signin` 应答里该字段读取即丢弃」）
+> 2. 凭据的落盘保护强度 → **A · 明文 `user://cache/refresh-token.json`，与 `deviceId` 同等对待**（平台密钥库**后置评估而非否决**；残余风险 root / 越狱 / 备份提取 / 共享设备已知会）`[已确认 2026-08-22 · 批量评审]`
 > 3. 是否落地启动期静默续期 → **已裁决：A · 落地** ⇒ 须同批改写 `ux/screen-flow.md`「登录屏（应用首屏）」为「未持有有效凭据时的首屏」；「静默续期绕过强更闸门」这条新暴露的口子按本稿原样登记，收口手段在后端侧，本库不擅自处置
+>
+> **全部待复核项已于 2026-08-22 经批量评审逐项确认，本草稿再无待复核项。**
 
 
 1. **是否存 `refreshExpiresAtUtc`**（`[取向选择]`）

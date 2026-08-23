@@ -75,11 +75,11 @@
 
   - **`id` 由客户端生成、不向后端申请。** `CharacterProfileDiff` 的键值以下对后端完全不透明，后端从不解析它；向后端申请一个 id 会在轮回开始处插入一次网络往返，而轮回开始是**自动存档点而非阻塞点**。**不用「第 N 个角色」的序号**（要一个账号级计数器 + 一条幂等问题，而角色只增不删却可能并行创建于多篇章，GUID 零协调）；**不用 `characterDataId` 作键**（同一模板可在不同篇章各有一个 ongoing 角色）。它是 diff 的寻址键与全部日志 / 读档校验的定位上下文。
   - **`characterDataId` 是「同一个角色每一局手感相同」的存档载体**，也是 `PlotNodeData.CharacterIds` 比对的那一格。读档校验：解析不到 → **必需缺失** → `PushError` 带 `characterId` + `characterDataId`（角色模板是结构性内容，解析不到即坏档，不能像 `pastEvent` 那样降级）。
-  - **`defeatReason` 不设 `None` 哨兵。** `DefeatReason` 是三值封闭枚举，加一个不该出现的成员会让每个消费点都要处理一个多余分支；可空是 C# 表达「这一维只在某状态下有意义」的既有形态。读档校验：`status == Defeated` 且为 null → **可选缺失** → `PushWarning`（履历少一行，不阻断）；`status != Defeated` 且非 null → 不可能态 → `PushWarning` + 按 null 处理。消费方是元进程界面的角色履历与轮回结束屏。
+  - **`defeatReason` 不设 `None` 哨兵。** `DefeatReason` 是四值封闭枚举（`Discarded` / `LifeSpanExhausted` / `LifeTotalExhausted` / `FinaleFailed`），加一个不该出现的成员会让每个消费点都要处理一个多余分支；可空是 C# 表达「这一维只在某状态下有意义」的既有形态。读档校验：`status == Defeated` 且为 null → **可选缺失** → `PushWarning`（履历少一行，不阻断）；`status != Defeated` 且非 null → 不可能态 → `PushWarning` + 按 null 处理。消费方是元进程界面的角色履历与轮回结束屏。
   - **`TechniqueEntry` 取 `readonly record struct`**（字段少、条目个位数、要落存档且进 diff），与 `StatusAssignment` / `DeckChangeElement` 同款；`PastEventEntry` 与 `EventOption` 字段多，才取引用型。
   - **`looseCard` 是裸 `string` 多重集而非 record 列表**：散牌没有任何随实例变化的状态（`CardInstance` 的运行态只存在于战斗内、随 `activeCombat` 走），一个 `Id` 就是全部信息。
   - 读档校验：`TechniqueId` / `looseCard` 元素解析不到 → **必需缺失** → `PushError`（与 `DeckChangeElement.Id` 的施加侧同口径——悬空 `Id` 写进 Profile 即污染存档）；`Tier < 1` → `PushError`。
-- **`realm` + `level` 是角色的修行位置。** 二者合成**全局等级序**上的位置，是敌人赋级 `±2` 带与 `baseMomentum` 起跑线的判据；篇章突破后 `level` 归位为新境界的初期。**`manaLimit` 不随境界自动成长**，由事件 cost / reward 推拉（见 `mana.md`）。
+- **`realm` + `level` 是角色的修行位置。** 二者合成**全局等级序**上的位置，是敌人赋级 `±2` 带与 `baseMomentum` 起跑线的判据；篇章突破后 `level` 归位为新境界的初期。**`manaLimit` 的常规成长由事件 cost / reward 推拉，另在每次大境界提升时 `+1`**（增量，走 `CostKey.ManaLimit`；见 `mana.md`）。
 - **决策点存档。** 事件推进过程中（含战斗内）在**决策点**落存档，使退出重进恢复到同一局面与同一份 RNG 状态；`selectCost` **不回滚**。存档点清单见 `systems/services/life-cycle-service.md`；**战斗内的 D0–D6 决策点清单见 `systems/services/combat-service.md`**。
 - **`activeCombat`：进行中战斗的中间态（CharacterProfile 上的可空块）。** 战斗开始时创建、`eventEnd` 收口时**置空**；**不进 `pastEvent`**（历史事件只留定稿快照），也**不自带随机流状态**（战斗内随机的 `State` / `DrawCount` 落 `rng.stream[Combat]`）——它是**事件内的中间态，寿命短于一次事件**。
   - **写入通道 = `EventStateChanges`（`Key == ActiveCombat`），与 `activeEvent` 同一列**：combat-service 在每个决策点整块置值，收口时置空。两个中间态字段仍不合并，共用的只是通道。
@@ -231,9 +231,9 @@
   ```
 
   派生规则与恢复语义见 `systems/common-properties.md`；双 `contentVersion` 的诊断用途见 `systems/services/content-service.md`。
-- **角色状态是终态收敛的状态机。** `status` 收敛为 `ongoing | defeated | completed`（`defeated` 的三种原因：discarded / 寿元归 0 / lifeTotal 归 0）；`defeated` 与 `completed` 数据都会在轮回结束时被清理。→ 见 `systems/services/life-cycle-service.md` 与 `decisions/ADR-0004-realm-checkpoint-retry-model.md`。
+- **角色状态是终态收敛的状态机。** `status` 收敛为 `ongoing | defeated | completed`（`defeated` 的四种原因：discarded / 寿元归 0 / lifeTotal 归 0 / 渡劫失败——前三种是资源触底，末一种是篇章闸门）；`defeated` 与 `completed` 数据都会在轮回结束时被清理。→ 见 `systems/services/life-cycle-service.md` 与 `decisions/ADR-0004-realm-checkpoint-retry-model.md`。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md`
 
 ## 子系统导航
 
@@ -243,8 +243,8 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 | 法宝 item | `item/_index.md`、`item/common-properties.md` | **CharacterItem**：轮回级角色道具（含道具设计内容；细节待定）。 |
 | 轮回货币 currency | `currency.md` | 轮回货币 jade 的获取 / 消耗。 |
 | 神通 power | `power/_index.md`、`power/common-properties.md` | **CharacterPower**：轮回级角色能力，**对标账号级 PlayerPower（法则）**（同一概念的两层，分界是生命周期）；随轮回清理，**可承载战斗内触发式效果**。 |
-| 生命总量 lifeTotal | `life-total.md` | **战斗外的耐久 / 失败惩罚承受量**（战斗内不参与，失败结算时按道念差扣减）；**归 0 → defeated**；经 AdventureEvent 恢复；炼气基线 10/10；无曲线。 |
-| 法力 mana | `mana.md` | 每回合出牌资源；**每回合恢复至 `manaLimit`**，上限由事件推拉；炼气基线 5/5。 |
+| 生命总量 lifeTotal | `life-total.md` | **战斗外的耐久 / 失败惩罚承受量**（战斗内不参与，失败结算时按道念差扣减）；**归 0 → defeated**；经 AdventureEvent 恢复；炼气基线 10；无曲线。 |
+| 法力 mana | `mana.md` | 每回合出牌资源；**每回合恢复至 `manaLimit`**，上限由事件推拉、另在每次大境界提升时 `+1`；炼气基线 5/5。 |
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

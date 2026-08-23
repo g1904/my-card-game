@@ -6,6 +6,9 @@
 
 | 草稿 | 类型 | 日期 | 去向 handoff | answer log |
 |------|------|------|--------------|------------|
+| `solution-draft-future-event-generation-weighting.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-event-generation-weighting-pipeline.md` | `answer-logs/log-future-event-generation-weighting.md` |
+| `solution-draft-combat-runtime-counter-persistence.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-combat-runtime-counter-persistence.md` | `answer-logs/log-combat-runtime-counter-persistence.md` |
+| `solution-draft-echo-validation-scope.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-echo-validation-scope-client-half.md`（**只落了客户端半 —— 成对采纳未完成**，后端契约半待另跑一批；对侧 counterpart 见 `backend-design-documents/inbox/` 同名文件） | `answer-logs/log-echo-validation-scope.md` |
 | `solution-draft-architecture-structural-residuals.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-architecture-structural-residuals.md` | `answer-logs/log-architecture-structural-residuals.md` |
 | `solution-draft-translation-english-placeholder.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-translation-english-placeholder.md` | `answer-logs/log-translation-english-placeholder.md` |
 | `solution-draft-pickmany-shortfall-handling.md` | solution-draft | 2026-08-19 | `handoffs/2026-08-19-pickmany-shortfall-handling.md` | `answer-logs/log-pickmany-shortfall-handling.md` |
@@ -41,6 +44,10 @@
 | `draft-0815c.md` | draft | 2026-08-16 | `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` | `answer-logs/log-0815c.md` |
 | `draft-0815b.md` | draft | 2026-08-15 | `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` | `answer-logs/log-0815b.md` |
 | `draft-0815a.md` | draft | 2026-08-15 | `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` | `answer-logs/log-0815a.md` |
+| `solution-draft-combat-defeat-consequences.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-combat-defeat-consequences.md` | `answer-logs/log-combat-defeat-consequences.md` |
+| `solution-draft-mana-baseline-realm-jump.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-mana-baseline-realm-jump.md` | `answer-logs/log-mana-baseline-realm-jump.md` |
+| `solution-draft-encounter-tighten-fields.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-encounter-tighten-fields.md` | `answer-logs/log-encounter-tighten-fields.md` |
+| `solution-draft-purchase-count-statkey.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-purchase-count-statkey.md` | `answer-logs/log-purchase-count-statkey.md` |
 | `solution-draft-monetization-entitlement-and-scope.md` | solution-draft | 2026-08-15 | `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` | `answer-logs/log-monetization-entitlement-and-scope.md` |
 | `solution-draft-claude-rules-design-content-thinning.md` | solution-draft | 2026-08-14 | `handoffs/2026-08-14b-claude-rules-design-content-thinning.md` | `answer-logs/log-claude-rules-design-content-thinning.md` |
 | `solution-draft-common-properties-layering.md` | solution-draft | 2026-08-14 | `handoffs/2026-08-14-common-properties-layering.md` | `answer-logs/log-common-properties-layering.md` |

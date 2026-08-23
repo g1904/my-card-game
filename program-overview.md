@@ -35,7 +35,7 @@
 
 ---
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-11-plot-content-localization.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-22-finale-failure-is-death.md`
 
 ## 二、服务 / 管理器职责矩阵
 
@@ -198,7 +198,8 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      ├─ 记入 CharacterProfile.pastEvent 修行历程（PastEventEntry）  │
 │      └─ CycleStateManager 判定：                                     │
 │           寿元 ≤ 0 或 lifeTotal ≤ 0 ─▶ DefeatCharacter()  ─▶ 阶段 5 │
-│           Finale 通关          ─▶ CompleteChapter() ─▶ 阶段 5      │
+│           Finale 失败 ─▶ DefeatCharacter(FinaleFailed) ─▶ 阶段 5   │
+│           Finale 通过          ─▶ CompleteChapter() ─▶ 阶段 5      │
 │           否则 ─▶ EventBus.Emit(EventResolved)                      │
 │                          ↓                                          │
 │ ⑤ sync-service 自动存档点：LocalCacheManager 原子写 + Push 云端     │

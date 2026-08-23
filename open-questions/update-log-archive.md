@@ -616,3 +616,24 @@
 - **⚠ 落笔时捞出两处同源漂移**：「刷新失败视同断线」这句在活文档里有**三处**复述（`account-service.md` · `architecture.md` 的 `Reauth` 默认路径行 · `sync-service.md` 的断线降级段），而承接项只点名了一处。**三处同批同改**——只改被点名的那处，实现者读 `architecture.md` 的处置表仍会写成单路径。**教训已记进 log：跨边界承接落笔后应顺手 grep 一次关键措辞。**
 - **`cross-boundary.md` 待承接由 3 条 → 1 条**（仅剩 `ComplianceManager` 覆盖面切分，那是本库自己的取向、待用户裁决）。**未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）——该小节仍写「三条承接项」，属已知滞后，留待下次全量重估。**不 bump schema · 对后端库零改动。**
 
+
+## 2026-08-17b（`/analyze-new-ideas` · 移出 0 条 · 新增 2 条 · 单库）
+
+- **来源**：`inbox/solution-draft-travel-mechanics.md`（`status: decided`，四项取向一律取推荐）→ `handoffs/2026-08-17-travel-destination-and-status-change-elements.md`。**单库运行**：全部落点都是客户端的类型形态与结算组装，后端零改动。
+- **本次未答结任何既有待答项，故无 answer log。** 两处缺口此前只被 `02-event-options` 的「`EventOption` 完整物化字段清单未定」**笼统覆盖**，该条被**收窄**（骨架七字段 → 八字段）而非关闭——它剩下的分叉明写为需要一次内容侧 handoff，而目的地是结构性字段，不该等在那条后面。
+- **收口要点 ①：`EventOption` 增第八个字段 `DestinationLocationId`**（非 Travel 为空串），形态与 `RevealedEventId` 同款。它**必须在物化时掷定并落在定稿实例上**——目的地是 map 子流从邻接集合抽出的物化产物，重算不保证同结果，而「产出即定稿、不得回查模板重算」禁止消费侧再抽一次。**Explore 壳在真身为 Travel 时一并填**（防重掷纪律），并由此给 Explore 的泄漏面纪律补了**字段侧的第二个实例**：`RevealedEventId` 与 `DestinationLocationId` 同属揭示前不得进呈现层，两者写在同一条里以免被当成两条纪律。**`PastEventEntry` 不动**（目的地由下一条痕迹给出，三种边界情形均已核查）。
+- **收口要点 ②：`ProfileChangeSpec` 增一列 `StatusChanges`**（`StatusAssignment` = `StatusKey` + `IntValue` + `StringValue`，语义为**绝对置值**）。它一次性关掉四组「已声明并入 `eventEnd` 那次 `TryApply` 却没有 element 形态」的悬空：两个 location 字段 · 三个 band · `ChapterLifeSpanBudget`。值类型与取值域走封闭表 `StatusFields`（与 `ResourceElements` 同款判据）；**`Id` 型解析不到 → `PushError` + 整批拒绝**（跳过会产生「寿元扣了但人没走成」的半套状态）；**恒不走 modifier pipeline**（否则一条法则能改写玩家的地图位置或伪造隐藏属性档位）。
+- **⚠ 承重措辞改写（用户裁决通过）**：`architecture.md`「为什么是三个平级列表」与 `profile-service.md`「三个平级只读列表（承重）」两处的**列表数不再写进承重表述**，改为「**逐条按施加语义分列**」。判据本身不动，改的只是它当前枚举出的实例数——**这样再加一列不必再改一次标题**。同批顺手改的还有 `terminology.md`、`adventure-event/common-properties.md` 与两处「三个列表是否一起落」的行文。**Research 专场将按同一形态另增一列 `DeckElements`（卡组变更载体），字段面归那一场，本次不预设。**
+- **收口要点 ③：组装点在 life-cycle-service，resolver 不变。** 两条 `StatusAssignment` 由本服务在组装 `eventEnd` 的 spec 时从 `option.DestinationLocationId` 读出并置入，与 band 字段同款；**判据写 `DestinationLocationId != ""` 而非 `EventType == Travel`**——后者会漏掉「Explore 揭示出的 Travel 也归 0」（那时 `EventType` 恒为 `Explore`），与 `eventEnd` 组装校验取「是否走过 combat-service」是同一条纪律。
+- **新增待答 2 条**（均落 `05-service-contracts`）：`ResourceElements` 是否增一列 `ApplyOp { Add, Set }`（轻；「这一行是加还是赋」目前只写在散文里）· `plotKeyPoint` 的 element 形态（集合型，`StatusChanges` 装不下，归 plot-manager / profile-service 专场）。
+- **存档面：不额外 bump。** 两个 `Status` 字段此前已随 location 载体落定并 bump 过；`EventOption` 快照多一个字段随「完整物化字段清单」那次 bump 一并处理。**Travel 的规则一律不动**（80/20 · 定价 · 闸门 · 不设途中遭遇 · 换图后无特殊规则）。**未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）。
+
+## 2026-08-17c（`/analyze-new-ideas` · 移出 5 条 · 新增 2 条 · 单库）
+
+- **来源**：`inbox/solution-draft-research-mechanics.md`（`status: decided`，五项取向一律取推荐）→ `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md`。**单库运行**：全部落点都是客户端的结算形态与类型面，后端零改动。移出记录见 `../answer-logs/log-research-mechanics.md`。
+- **收口要点 ①：Research 的结算形态 = 构筑面板，由若干决策槽组成。** 模板持 N 个槽，物化时逐槽预先掷定候选，玩家逐槽择一，全部选择与 `lifeSpanCost` 合并为 `eventEnd` 的**一次** `TryApply`。它是既有决策点面板的**第三个实例**（战后奖励 / 能力置换之后），零新增结构；**槽的复数形态是被开局构筑事件逼出来的**（一门功法 + 一件法宝 = 两个槽），不是为扩展预留。操作清单**闭合为六类**（学新 / 升阶 / 弃置 / 移除散牌 / 得法宝 / 回复 `lifeTotal`），产出面收窄为**卡组 + `manaLimit` + `lifeTotal` + 共有的隐藏属性推拉**。代价不另收资源，全部由 `lifeSpanCost` 的 Research 行承载——再叠灵玉会把一条权衡变成两条，且可能造出「进来了却什么都做不了」的死屏。
+- **收口要点 ②：`ProfileChangeSpec` 增一列 `DeckElements`**（`DeckChangeElement` = `DeckChangeOp` + `Id` + `Tier`）。这是**同一条承重判据的第二次应用**（第一次是同日的 `StatusChanges`）：施加语义根本不同就分列——功法带层数（`Upgrade` 既非 `Grant` 也非 `Remove`）、游离散牌是**多重集**（集合操作的「已持有 → 空操作」会静默吞掉第二张业障）、卡组条目没有 `SourceCode` 挂载面。**`Tier` 写目标层数不写增量**（`AppliedChange` 要可重放）；**恒不走 modifier pipeline**（法则若能把「层数 +1」放大成 +2，「进化 = 整组替换、每层一整套定义」当场失效）；**`selectCost` 内恒为空**，使该处的不变式由一条变两条。**代价如实记：** bump 一次存档 schema（当前无线上存档 ⇒ 空迁移），三处列举需同改。
+- **收口要点 ③：`manaLimit` 下降改挂 Research，做成玩家自选的风险档**（成功 +1 / 失败 −1，物化时掷定并落存档）。它给 Research 补上唯一缺失的张力——否则一个「最贵且必然赚」的事件会成为批次里的无脑首选；并让「不设下界护栏」「不做死牌转化」「高费卡成死牌可接受」三条既有决策第一次有了消费方。**自选而非随机惩罚**是关键的一半：被系统扣上限只会让玩家整体回避闭关，而闭关是构筑的唯一落点。载体 `CostKey.ManaLimit`，`ResourceElements` 该行两个修正列**必须留空**。
+- **收口要点 ④：候选生成零新增抽取代码。** 法宝三选一直接复用 `GrantPoolPicker`（`(Item, Character)` + `count = 3`），功法三选一走 `CultivationTechniqueData` 仓储的 `AllEnabled()` / `DrawPool<T>`（**第五个调用方**）；随机源均取 `RngStream.Reward`（**不新开子流**——用途完全同构且两者从不并发）；候选池不接 modifier pipeline（否则等于开一条「账号级内容改写轮回级构筑运气」的无人校验通道）。
+- **新增待答 2 条**，均落 `03-adventure-event-types.md`：闭关构筑面板的**三个数值格**（`Recuperate` 回复量 · 风险档出现权重 · 开局条目 `lifeSpanCost = 0` 的覆盖登记，归 ch1 数值标杆专场）· **构筑面板的竖屏呈现与风险档标注**（方向已定、形态未设计）。
+- **顺带收窄两条**：`future-event-service` 的「`Priority = 1` 依什么条件抬升」拿到**第二个确定答案**（开局构筑事件；第一个是配额闸门的 Travel）；`01-combat` 的「非战斗四类的决策点清单」欠项由四类减为三类。

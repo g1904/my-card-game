@@ -30,7 +30,7 @@
 ### 道念的规则骨架
 
 - **终止条件 = 固定 10 个回合。** 一场战斗**打满 10 个回合**，**双方各 5 个**（「回合」= 单方的一次行动轮，双方交替），结束时比道念、高者胜。**不设「先到某值即胜」的提前终止，也不以卡组耗尽终止。** 推论：战斗是**定长**的——TurnManager 是一个固定长度的循环而非动态终止判定，每场战斗的时间开销可预测，直接服务于篇章时长控制。
-- **平局 = 只发基础奖励。** 10 回合打满后道念相等时**不判负、不扣 lifeTotal**，只发该事件的**基础奖励**（无任何厚度加成）。这与「道念差是双向刻度」自洽：**差值 0 就是两侧都不加码的那个原点**——负侧的惩罚与胜侧的加厚都从这里向两边展开。落到类型上，`CombatOutcome` 需要 `Draw` 这一态。
+- **平局 = 只发基础奖励。** `Standard` 档打满 10 回合后道念相等时**不判负、不扣 lifeTotal**，只发该事件的**基础奖励**（无任何厚度加成）。这与「道念差是双向刻度」自洽：**差值 0 就是两侧都不加码的那个原点**——负侧的惩罚与胜侧的加厚都从这里向两边展开。落到类型上，`CombatOutcome` 需要 `Draw` 这一态。**它只在 `Standard` 一档可达**：另两档「相等即判胜」，那里没有平局这个中间态。
 - **产出途径 = 卡牌。** 道念由打出的卡牌产生。
 - **削减有两条通道：卡牌与疲劳。** 除卡牌之外，**抽牌堆为空时每尝试抽一张牌，抽牌方失去 1 点道念**（一次抽 N 张即失去 N 点）——**抽牌堆不重洗、弃牌堆不回流**，故卡组是一场战斗内会被真正耗尽的资源。**疲劳不入栈、不产生 `PlayResult`**，是抽牌流程内的一次直接扣减，与卡牌削减共用同一条「下限 0 逐次截断」规则。**推论 ①：卡组规模成为一条真实的构筑取舍**——牌少而精的代价是后期稳定失血，这也是「两侧卡组规模都不设硬限」得以成立的前提（见 `systems/balance.md`）。**推论 ②：不以卡组耗尽终止仍然成立**——耗尽不终止战斗，只是从此每回合失血；定长 10 回合的结构不变。**推论 ③：满手与疲劳互不触发**——抽牌堆非空但满手时牌留在抽牌堆、无事发生、不扣道念；疲劳的触发条件是「牌堆空」，不是「没拿到牌」。
 - **可互相削减。** 卡牌既能给自己加道念，也能削减对方道念——道念是**可攻可守的双向标尺**，不是单向累加的计分器。
@@ -46,6 +46,7 @@
 | **平**（道念相等） | 不变 | 只发 `baseReward`，无任何厚度加成 |
 | **负** | `-= (敌人道念 − 角色道念)`（1:1） | `baseReward`；**少数事件另夹带负向条目** |
 
+- **本表只列结算侧的两列，失败代价不止于此。** `lifeTotal` 扣减是失败的**一条**代价；完整代价面（含未获奖励的机会成本、寿元与时间成本、图鉴与经验的正向产出）逐条列在 `systems/adventure-event/combat/_index.md`，本处不复述。
 - **输了通常只有 `baseReward`。** 失败不是零产出——与「失败侧首次有产出」一脉相承。**常规失败的产出面是两条：EnemyCodex 遭遇即记 + 失败仍给的经验**；**道统残卷的累积已收窄为 Finale 失败专属**，不再是普遍适用的失败侧产出。
 - **额外惩罚**包在 reward 里**，不另立结构。** 少数事件的失败会附带额外惩罚，它就是**奖励结构中的负向条目**。**推论：与 `ProfileChangeSpec` 的带符号约定天然自洽**（`ChangeElement.BaseValue` 负 = 消耗、正 = 产出），故「奖励里夹一条惩罚」不需要任何新类型，仍是同一份 `CombatResult.Spoils`、同一次 `TryApply`。
 - **奖励的计算归 combat-service，施加仍归 life-cycle-service。** 见 `systems/services/combat-service.md`。
@@ -53,7 +54,7 @@
 ### 遭遇档位：10 回合与「道念高者胜」是 `Standard` 档的取值
 
 - **`combatTier { Practice, Standard, Finale }` = Balatro 的 small / big / boss blind 三档对位。** 借的是它的**难度分档结构**，不是计分结构（chips × mult 仍被否决）。
-- **`Standard` 档 = 10 个回合、以道念差判胜负**；**`Practice` 与 `Finale` 档的回合数与胜负条件均可被改写**（前者更简单、后者更难）。**推论 ①：回合数不是常量而是遭遇参数**——TurnManager 仍是定长循环，长度来自这一场遭遇的配置。**推论 ②：胜负条件是可替换的判据**，`Standard` 档的判据即「道念高者胜、相等为平局」。
+- **`Standard` 档 = 10 个回合、以道念差判胜负**；**`Practice` 与 `Finale` 档的回合数与胜负条件均可被改写**（前者放宽到「相等即胜」并缩短窗口，后者放宽到「不落后即通过」但把失败的后果推到顶——失败即角色终结）。**推论 ①：回合数不是常量而是遭遇参数**——TurnManager 仍是定长循环，长度来自这一场遭遇的配置。**推论 ②：胜负条件是可替换的判据**，`Standard` 档的判据即「道念高者胜、相等为平局」。
 
 ### 为何是道念而非 chips × mult
 
@@ -71,7 +72,7 @@
 | `baseMomentum` 表、卡牌道念产出分档、道念差 → lifeTotal 损失 / 奖励厚度的系数 | `systems/balance.md` |
 | 哪些卡牌产 / 削道念 | `systems/character-profile/deck/` |
 
-Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md`
+Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-22-finale-failure-is-death.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -85,7 +86,7 @@ Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **三档奖励厚薄的具体取值。** 遭遇参数（`Practice` 8 / `WinMargin 0`、`Standard` 10 / `(1, false)`、`Finale` 12 / `WinMargin` 3-5-8）；**`BaseReward` 与 `RewardPoolId` 随档位如何调厚薄**未给，归 ch1 数值标杆专场。→ `systems/adventure-event/combat/`、`systems/balance.md`。
+- **三档奖励厚薄的具体取值。** 遭遇参数（`Practice` 8 / `WinMargin 0`、`Standard` 10 / `WinMargin 1`、`Finale` 12 / `WinMargin 0`）；**`BaseReward` 与 `RewardPoolId` 随档位如何调厚薄**未给，归 ch1 数值标杆专场。→ `systems/adventure-event/combat/`、`systems/balance.md`。
 - **卡牌产 / 削道念的量纲基准（已归属专场）。** 「一张牌该产多少」「10 个回合内总产出应达起始值的几倍」——**明确推迟到内容横向扩展阶段的「ch1 数值模型」session**，切入点是起始角色 starter deck 的设计。→ `systems/character-profile/deck/`、`systems/balance.md`。
 
 ## 对应

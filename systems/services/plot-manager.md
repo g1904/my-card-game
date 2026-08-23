@@ -55,7 +55,8 @@
   | **调制通道（主）** | Band 触发 arc → `PlotModulation` 六字段（`TypeWeights` / `EventWhitelist` / `EventWeights` / `EnemyPoolScope` / `LevelBias` / `Tighten`） | 五类一律 |
   | **结算输入通道** | 事件的数据驱动 outcome 求值读取隐藏属性当前值作为**输入项之一** | 五类一律（Combat 侧经 `EncounterSpec` 的既有可调字段体现） |
 
-  - **承重边界：输入侧全开**不**等于把隐藏属性接进胜负判定。** `VictoryRule` 仍是**单字段**（`WinMargin` 一个数），不做可替换的判定对象、无需策略枚举、无需分发。隐藏属性影响一场遭遇的路径是**拧参数**（更凶的天劫模板、更高的 `WinMargin`、更差的起手），不是**加一条并列的判定条件**。例：煞气 Band 3 触发的 arc 用 `Tighten` 拧 `WinMargin`、用 `EnemyPoolScope` 换更凶的天劫模板；道心 Band −2 的 arc 同理。
+  - **承重边界：输入侧全开**不**等于把隐藏属性接进胜负判定。** `VictoryRule` 仍是**单字段**（`WinMargin` 一个数），不做可替换的判定对象、无需策略枚举、无需分发。隐藏属性影响一场遭遇的路径是**拧参数**（更凶的敌人模板、更高的敌人赋级、更差的起手），不是**加一条并列的判定条件**。例：煞气 Band 3 触发的 arc 用 `EnemyPoolScope` 换更凶的天劫模板、用 `LevelBias` 把赋级推向带上沿；道心 Band −2 的 arc 同理。
+    - **`Tighten` 对 `Finale` 整档豁免**（`Tier == Finale` → 跳过整个 `Tighten` 的施加，不是错误、不告警）—— **剧本要加压 Finale，只能走敌人侧的两个字段**。`Tighten` 对 `Practice` / `Standard` 仍有真实效果（`WinMargin` 1 → 2 是有意义的加压），故该字段不是死结构。详见下方「`EncounterTighten`」。
   - **「输入」不含「作为 `selectCost` 消耗」。** 隐藏属性**不进成本侧**：成本侧只放**可如实计价的量**（Band 2 精确展示纪律的全部目的是让玩家自己算出「这一步可能是最后一步」，而隐藏量玩家永远算不出那一格——与「能力 element 恒不出现在 `selectCost`」是同一条判据的第二个实例）；且它**没有消费者**——道心 / 煞气触底不构成终态、截断到 `[0, 100]`，扣了不产生任何可判定的后果。`selectCost` 的 element 清单因此仍只有 `lifeSpanCost` 一项。
 
   **关键的解耦：档多 ≠ 文案多。** 玩家感知到「这条线在动」主要来自**摆在他面前的事件变了**（调制），而不是来自一句旁白。**档数不随文案收窄而减**——砍中间档等于砍掉调制的分辨率，是拿主业去迁就点缀。
@@ -107,7 +108,7 @@
 
 - **跨档叙事文案：挂档位、不挂事件；走内容层；只挂极值档。**
 
-  - **挂档位定义**（每档一组固定候选文案），**不随触发它的事件而变**。三条理由：① 同类先例（Finale「失败但存活」补白）就挂在**状态转换**上、与触发它的事件无关；② 挂事件是 `事件数 × 属性数 × 档数 × 方向` 的组合爆炸（一章 30 事件 × 3 属性 × 2 方向 = 180 条），内容侧不可维护；③ 挂事件会泄露事件与属性的精确映射（「做这件事 → 播这句话」），与「学到方向与因果、学不到精确数值」的边界擦得太近。**局部保留的可能**：日后确需时可在少数标志性事件上加一条覆盖 `Id`，不改本结构。
+  - **挂档位定义**（每档一组固定候选文案），**不随触发它的事件而变**。三条理由：① 同类先例（「渡劫身死」文案）就挂在**状态转换**上、与触发它的事件无关；② 挂事件是 `事件数 × 属性数 × 档数 × 方向` 的组合爆炸（一章 30 事件 × 3 属性 × 2 方向 = 180 条），内容侧不可维护；③ 挂事件会泄露事件与属性的精确映射（「做这件事 → 播这句话」），与「学到方向与因果、学不到精确数值」的边界擦得太近。**局部保留的可能**：日后确需时可在少数标志性事件上加一条覆盖 `Id`，不改本结构。
   - **每档 2–3 条候选，等概率随机取一。****随机源不带种子**——只影响呈现、不产生任何玩法结果，故不占 `SeedManager` 子流。
   - **只有一组文案，没有「上行组 / 下行组」之分。** 配合档号方向定义，触发面收敛为「跨入一个 `|BandIndex|` 更大的档」这一种情形；**回到离常态更近的档一律静默**（只更新 band 字段、不播）。
   - **只有极值档配文案。** 道心 / 煞气**各只有最外一档播**，寿元保持既定两档 ⇒ **全库有文案的档 4 个**（道心 `+2` · 煞气 `3` · 寿元 `1` · 寿元 `2`），**寿元是唯一有两个文案档的属性**。三条依据：
@@ -138,7 +139,7 @@
   }
   ```
 
-  - **档位文案的正文单独成条目**（与 Finale 补白共用那个定性文案类型），本类只持 `Id` 数组——与「快照 / 结构里不存字符串正文」的既有分层一致，也让文案与档位可各自热更。**这条只对档位叙事成立，不推广到剧本正文**：档位文案拆条目是因为每档 2–3 条候选可等概率取一、可单独关掉；剧本节点的正文是一对一、不可替换、与节点同生同灭的，且定性文案类型照旧只改不增（见下方「剧本正文内嵌在节点上」）。
+  - **档位文案的正文单独成条目**（与「渡劫身死」文案共用那个定性文案类型），本类只持 `Id` 数组——与「快照 / 结构里不存字符串正文」的既有分层一致，也让文案与档位可各自热更。**这条只对档位叙事成立，不推广到剧本正文**：档位文案拆条目是因为每档 2–3 条候选可等概率取一、可单独关掉；剧本节点的正文是一对一、不可替换、与节点同生同灭的，且定性文案类型照旧只改不增（见下方「剧本正文内嵌在节点上」）。
   - `HiddenStat` 是枚举 `{ Faith, Bloodlust, LifeSpan }`（API 表已在用这个类型名）。
   - **热更边界（承重）：阈值 / δ / 文案可线上改，档数不可线上增减**（overlay 只改不增 ⇒ 加一档必须发版）。这正是取值域取有界的原因。
   - **档位条目恒启用，文案条目照常参与放量。** 档位解析走**全量视图**、不经 `AllEnabled()` 抽取池——判据是 content-service 的既定不对称（**过滤只在产出侧**，而档位判定是**查表读取**）；关掉一档会在档位表上造出空洞、触发假跨档。故 `HiddenStatBandData.ContentEnabled == false` → 加载期 **`PushError`**；文案条目不受此限（每档 2–3 条候选，关一条只是少一个候选），秒关一条措辞的运营手段因此保留。
@@ -156,19 +157,15 @@
   | **文案正文含属性名 / 阿拉伯数字 / 档位序号** | `PushWarning` + 逐条列出——「不给数字」纪律的可机械检查形态，同 `IgnoresProtection` 的清单式软检查 |
   | `HiddenStatBandData.ContentEnabled == false` | `PushError` |
 
-- **Finale「失败但存活」的叙事补白落在本 manager 的叙事层。** 约 1% 的情形里渡劫失败也能完成篇章、突破境界（见 `systems/adventure-event/combat/_index.md`），「渡劫 = 突破到下一境界」因此需要一句让「失败也能突破」读起来不像笔误的文案。**落点是本处而非 `ux/screen-flow.md`**：它与上方「跨档给定性叙事」是同一类东西——**一句由状态转换触发的定性文案**，走同一条落点（`ResolveOutcome` → `eventEnd` 阶段），**不新增结构**。
+- **「渡劫身死」的定性文案落在本 manager 的叙事层。** Finale 失败即角色终结（见 `systems/adventure-event/combat/_index.md`），这是本作叙事上最重的一刻，值得一句专属的定性文案，而不是与「寿元耗尽」共用一句通用死亡文案。**落点是本处而非 `ux/screen-flow.md`**：它与上方「跨档给定性叙事」是同一类东西——**一句由状态转换触发的定性文案**，走同一条落点（`ResolveOutcome` → `eventEnd` 阶段），**不新增结构**。
 
-  文案两版：
-
-  ```
-  「劫败而身存，破境亦有缺。」
-  「以败换境，以伤换生。」
-  ```
-
-  - **择取规则 = 等概率随机二选一**，不按篇章 / 隐藏属性分化。
+  - **一条文案，不做随机二选一**，也不按篇章 / 隐藏属性分化——终结只发生一次，分化没有可感知的收益。
   - **文案属内容层** —— 走 `res://content/` 基线 + overlay，可热更。**剧本正文同属内容层**，故本 manager 内部没有「云端 / 本地」两类文本之分：两者同经 ContentRegistry 读取，差别只在 **overlay 对剧本条目可新增 `Id`、对定性文案条目照旧只改不增**（见 `content-service.md`）。
-  - **推论：随机源不必带种子。** 二选一只影响呈现、不产生任何玩法结果，故不属于「不用未加种子的 `GD.Randi()` 决定玩法结果」的约束面，也不需要占用 `SeedManager` 的子流。
-  - **承重的边界：这句补白讲的是「失败也能突破」，绝不能暗示道统残卷。** 残卷在失败侧**不给任何文案 / 暗示 / 进度条 / 百分比**——两条文案里没有任何一个字指向掉落概率，这是它们能落地的前提。
+  - **承重的边界：它讲的是「劫下身死」，绝不能暗示道统残卷。** 残卷在失败侧**不给任何文案 / 暗示 / 进度条 / 百分比**——而失败恰恰是残卷累积发生的那一刻，这条边界因此比在别处更吃紧。
+
+- **`Practice` 档战斗失败的定性文案走「力竭负伤 / 自愧不如」的口径。** 与「渡劫身死」同属本叙事层、同一条落点（`ResolveOutcome` → `eventEnd`），**不新增结构**。
+  - **它承担的是一条机制上不打算解决的张力：** `Practice` 被定位为「比试 / 切磋——点到为止」，而失败仍按道念差 1:1 全额扣 `lifeTotal`（理论上可致角色终结）。**不为它给 `lifeTotal` 加折扣系数**——1:1 的价值恰恰在于它没有例外，开一档就要论证另两档为何不开，而「落后 N 点 = 输了掉 N 点」这条通用刻度一旦分档，玩家的心算账本随之分叉。张力因此落在叙事措辞上：写力竭、写自愧，**不写「败于同门之手身受重创」**。
+  - **不为该口径新增档位 / 字段 / 校验**，它是文案写作口径而非结构。规则侧的完整依据见 `systems/adventure-event/combat/_index.md`。
 
 - **寿元 / lifeSpan = 递减的寿命预算。** 炼气起始 **100**、抵达筑基 **+100**、抵达金丹 **+300**、抵达元婴 **+500**（累计 1000；但元婴即游戏终点，该增量**不产生可消耗预算**，只是最后一次数值更新并存档——见 `systems/balance.md`）；**剩余寿元跨篇章结转**（下一篇章预算 = 该章增量 + 上一章剩余，见 `life-cycle-service.md`）。**每完成一个 AdventureEvent 按其 `lifeSpanCost` 扣减寿元**（内容侧为正数量值、物化时取负；`lifeSpanCost` 是 `selectCost` 复合成本类型的一个 element，见 `systems/adventure-event/common-properties.md`）；**递减到 0 → 触发「大限将至」→ 角色 defeated**。寿元是**独立于 `lifeTotal`** 的寿命数值。
 - **寿元告警两段式。** **初始隐藏 → 进入 30% 给一条定性叙事提示 → 进入 10% 转为红字数值倒数。** **不要只在 10% 处给一次告警**：对 100 点的第一篇章预算而言那太晚，来不及做战略调整；30% 的定性提示给出一个可行动的提前量，同时不破坏「数值隐藏」。呈现位置是 **EventOption 选择界面的静态标注**，见 `ux/screen-flow.md`。
@@ -203,6 +200,20 @@
   - **不设 `user://cache/plot/` 与 LRU 预取**——没有要缓存的远端响应；
   - **`sync-service.md` 的降级表里没有「剧本请求」一行**；降级通道只有 push / pull 两条，与剧本无关。
   - **唯一残留的缺失情形是悬空 key point**，走上方的 `PushWarning` + 叙事降级，**不是失败路径**。
+
+- **剧本树不按篇章分包：三篇章的完整剧本树整体随 `res://` 基线发布，更新走 overlay 的文件级增量热更**（`[采纳推荐 — 待复核]`）。不按 `PlotArcData.ChapterScope` 分包、不按 `PlotTier` 分包、不把正文外置只分包正文。**采纳结果是零机制增量**：manifest 不加字段、`manifestSchema` 不提升、`ContentUpdateManager` 不加运行时下载路径、不新增第三处硬阻塞、`PlotArcData` / `PlotNodeData` / `PlotKeyPoint` schema 全不动、不新增任何失败语义或降级分支；后端零参与（服务端不感知内容类别，报文无变化）。
+
+  **承重理由三条：**
+
+  - **分包与「合并后全量强校验」在结构上冲突（最重的一条）。** 下方「剧本条目的加载期校验」是**全量**的：四类悬空校验 + 层级校验 + 可达性 / 含环校验 + `PlotTriggerId` 双向校验。某一包未下载时，跨包引用当场悬空 ⇒ 启动即 `PushError` + 抛。要让分包成立只有三条路，每条都在拆一件承重件：① 放宽剧本侧悬空校验为 `PushWarning` ⇒ 一个真的编排错误与一个「这个包还没下」在日志里长得一模一样；② 给剧本条目造第三种状态「未下载」⇒ 内容层出现既非「存在」也非「不存在」的态，立刻传染到 `Get(id)` / `AllEnabled()` / `newIds` 双闸 / 悬空 key point 降级四处；③ 让边界切在「无跨包引用」处 ⇒ 但 Story arc 按定义贯穿三篇章、`SideStory` 按定义跨篇章、`PlotTriggerId` 按定义跨到档位表——**跨包引用不是可以避开的编排问题，是剧本层级模型本身的形状。**
+  - **强制在线消解的是分包的收益侧。** 玩家启动即须登录 + 跑一次 pull（两处硬阻塞）⇒ 必然处在有网环境；「让用户先玩起来、剩下的慢慢下」这条离线优先产品的核心动机在本作没有对应场景。反过来，分包会造出一个既有设计里不存在的失败态：「推进到第 2 篇章却没网」在不分包下完全无害（剧本在盘上，见上一条「剧本读取没有网络失败路径」），在分包下要么成为第三处硬阻塞，要么成为「整章剧本静默缺席」——后者正是悬空 key point 降级把爆炸半径限制在「不阻塞**其余**剧本线」时要避免的那种放大。
+  - **量级不成立。** 剧本文本落在包体的**百分之一量级**（未压缩 MB 级、落地增量不足 1 MB，约等于一首 BGM，而引擎基线与卡面美术都是数十 MB 级）。为百分之一的收益买一整套分发机制是净亏。此外 overlay 侧**本就已是文件级增量下载**，本题真正问的只剩「随包基线要不要拆」——热更侧的增量能力早已有了。
+
+  **明写的代价（被接受）：** 初装包永远包含全部三篇章的剧本文本，包括玩家可能永远打不到的第 3 篇章。这笔浪费换来「剧本读取没有网络失败路径」这条结构性事实无例外地成立。
+
+  **复核闸（零成本，不是待答项）：** 第二阶段第一批真实剧本条目写完后，实测 `res://content/plot-arc/` + `plot-node/` 的字节总和与应用总包体之比；**仅当占比与绝对值双双越过届时设定的门槛时**才重开分包讨论。留这道闸是因为上述结论是一个**相对**结论，它依赖「美术 / 音频确实是数十 MB 级」这个前提——包体预算若被定成一个极小的数（如小游戏平台的首包限制），要重算。两个门槛值待实测时再定。护栏形态止于**在 `content/plot-arc/_index.md` 与 `content/plot-node/_index.md` 的条目台账记一行「条目数 + 字节总和」**，**不加加载期校验**（那需要定两个当前没有依据的数字）；两个类型档案尚未开张，本项随开张落地。
+
+  **方向性记录：真要缩初装包，落点是平台原生按需资源，不是 manifest 分包。** Android Play Asset Delivery / iOS On-Demand Resources 是**发行侧的打包配置**，不碰 manifest schema、不碰文件级事务的单一提交点、不碰 `LoadAll()` 的一次性合并；平台自己承担下载、缓存、驱逐、续传与失败重试；且它天然选中的资产是美术与音频而非剧本文本——**真到了那天，要拆的也不是剧本树。** 这与 `content-service.md`「不为每日种子 / 排行挑战预留冻结结构，但把正确做法记一句」是同一种纪律：不预留结构，但留下路标，免得将来因为「manifest 已经现成」而回退全局决策。本条**不在后端库留承接**——发行侧配置后端零参与、报文零变化。
 
 ### 剧本树的数据形态
 
@@ -256,26 +267,92 @@
   [GlobalClass]
   public partial class PlotModulation : Resource
   {
-      [Export] public EventTypeWeight[] TypeWeights    { get; set; }  // 事件类型权重修正（软框定）
+      [Export] public EventTypeWeight[] TypeWeights    { get; set; }  // 事件类型权重的乘性系数（软框定）；缺省行 1.0
       [Export] public string[]          EventWhitelist { get; set; }  // 非空 = 候选池收窄到这些 EventId
-      [Export] public EventWeight[]     EventWeights   { get; set; }  // 单条 AdventureEventData 的权重加成
+      [Export] public EventWeight[]     EventWeights   { get; set; }  // 单条 AdventureEventData 权重的乘性系数；缺省行 1.0
       [Export] public string            EnemyPoolScope { get; set; }  // 一个 PlotArcData.Id：框定该 arc 的专属 EnemyData 池
                                                                       // （对上 PoolScope.PlotArcId），通常填本 arc 自己的 Id
       [Export] public int               LevelBias      { get; set; }  // 带内赋级权重偏移；不改 ±2 带边界
-      [Export] public EncounterTighten  Tighten        { get; set; }  // 可空：拧紧遭遇参数（TurnLimit / VictoryRule）
+      [Export] public EncounterTighten  Tighten        { get; set; }  // 可空：拧紧遭遇参数（五格，见下）
   }
   ```
+
+  **`EncounterTighten` = 五格带方向约束的增量，不是绝对覆写值。**
+
+  ```csharp
+  [GlobalClass]
+  public partial class EncounterTighten : Resource   // 内嵌子资源：无 Id、无 ContentEnabled，不进 ContentRegistry
+  {
+      [Export] public int TurnLimitDelta   { get; set; } = 0;   // 恒 <= 0：只减回合，不加回合
+      [Export] public int WinMarginDelta   { get; set; } = 0;   // 恒 >= 0：只抬门槛，不降门槛
+      [Export] public int InitialDrawDelta { get; set; } = 0;   // 恒 <= 0：只减起手，不加起手
+      [Export] public int DrawPerTurnDelta { get; set; } = 0;   // 恒 <= 0：只减每回合抽牌，不加
+      [Export] public int HandLimitDelta   { get; set; } = 0;   // 恒 <= 0：只压手牌上限，不抬
+  }
+  ```
+
+  三格牌流量的基准 = `EncounterSpec` 的可空覆写组（起手抽牌数 / 每回合抽牌数 / 手牌上限），**字段名以 `systems/services/combat-service.md` 的 `EncounterSpec` 为形状权威**；十个界常量的取值住 `systems/balance.md`。
+
+  - **取增量而非绝对覆写值：** 一条 arc 在 `Active` 期间对**整批**候选生效，而这批里的 Combat 可能物化成 `Practice`（`TurnLimit 8`）也可能是 `Standard`（`10`）。绝对值意味着内容作者必须**在写 arc 时就知道它会撞上哪一档**——写 `9` 对 `Standard` 是收紧、对 `Practice` 是放宽，还得再补一条「不许放宽」的钳制。增量对三档一致，且**与 `LevelBias` 同一种语言**：那一格之所以是 bias 而非绝对等级，正是因为基准值逐次不同，这里的基准值（档位默认回合数）同理。
+  - **方向由符号约束焊死，而不是靠字段名提醒。** `Tighten` 的语义是**单向**的：剧本可以加压，不能放水——放水的正确形态是换一个更宽的 `combatTier`，那是模板侧的编排，剧本够不着。写成带符号 delta + 加载期方向校验，使「只能收紧」成为**内容层根本写不出反例**的形态，是「越权的写法在内容层没有字段可填」那条纪律的一次延伸。
+  - **字段面止于这五格，判据两条连用：** ① 上方「新增一格物化字段时是否跟着加一格」的落面判据；② **该格上必须存在一个全序 + 一个单调难度方向**，否则「更紧」写不出来。`Enemy`（引用）、`Tier`（枚举，序不是难度序）、`FirstSide`（二值且无难度序）连「哪边更紧」都表达不出；`RewardPoolId` / `BaseReward` 落产出侧（剧本改产出的正确形态是 `EventWeights` 抬高另一条内容条目的权重）；疲劳量没有覆写基准可拧（见 `systems/balance.md`）。
+  - **`Tier == Finale` 整档豁免**（跳过整个 `Tighten`，不是错误、不告警）。增量形态下「`WinMargin` 恒 `0` 所以拧不动」**并不自动成立**——`0 + 2 = 2` 是有效果的，恒 `0` 需要被显式保护。落成一条 tier 闸而非逐格例外，是因为一条闸同时挡住三格牌流量对**不可逆终局**的调制：`Finale` 失败即角色终结，把玩家不可见的调制接进不可逆判定，与「隐藏属性影响遭遇是拧参数」的可接受度不在同一档。
+  - **`EncounterTighten` 本身不进 `EncounterSpec`、不落存档。** 它是物化期的一个输入，施加完即消失；落存档的是**施加后的五格定值**。combat-service 只见 `EncounterSpec`，不该知道剧本存在 ⇒ 本机制对存档 schema 零改动、零迁移。
+
+  ```csharp
+  [GlobalClass]
+  public partial class EventTypeWeight : Resource
+  {
+      [Export] public EventType Type       { get; set; }
+      [Export] public float     Multiplier { get; set; } = 1.0f;   // 乘性系数；恒 > 0，不设 Travel 例外
+  }
+
+  [GlobalClass]
+  public partial class EventWeight : Resource
+  {
+      [Export] public string Id         { get; set; }              // AdventureEventData.Id
+      [Export] public float  Multiplier { get; set; } = 1.0f;      // 乘性系数；恒 > 0
+  }
+  ```
+
+  **两个权重字段一律是乘性系数，与 location 的类型修正、与赋级带的「调制修正（乘性，只改权重不改支撑集）」同一种权重语言。** 同一段物化管线里两个相邻字段语义相反是纯粹的漂移源：加性的恒等元是 0、乘性是 1，`.tres` 里读不出作者想的是哪一种。
+  **剧本侧连 0 都不给**（恒 `> 0`，不设 Travel 例外）：剧本要表达「这一段不出某类事件」的正确形态是 `EventWhitelist` 收窄候选池——那是既定的、唯一的剧本强制性表达位。
 
   | 既定权力 | 承载字段 |
   |---|---|
   | 影响哪些事件进池、以什么权重出现 | `TypeWeights` · `EventWeights` |
   | 剧本强制性 = 把候选池收窄 | `EventWhitelist` |
   | 框定用哪个敌人池 | `EnemyPoolScope` |
-
   | 偏移带内赋级权重 | `LevelBias` |
   | 拧紧遭遇参数 | `Tighten` |
   | 抬 `eventPriority` | **无字段**——写不出来 |
+  | 改 `eventCountLimit` / 地域配额 | **无字段**——落约束面，且开放它等于借道内容字段间接抬 `eventPriority`（语义与代价见 `systems/game-progression.md`） |
   | 改模板字段 / 改敌人卡组 / 改 item·power 列表 | **无字段**——同上 |
+
+  **多条 `Active` arc 的合并算子（逐字段，同时最多四条）：**
+
+  | 字段 | 合并算子 | 缺省（= 不参与） |
+  |---|---|---|
+  | `TypeWeights` | **相乘**（Π 各 arc 的系数） | 缺省行 1.0，恒等元 |
+  | `EventWeights` | **相乘** | 同上 |
+  | `EventWhitelist` | **非空者取并**；全部为空 = 不收窄 | 空数组 |
+  | `EnemyPoolScope` | **取并**（arc 一侧传全部 `Active` arc 的集合） | 空串 |
+  | `LevelBias` | **相加**，合并后作用于带内权重 | 0 |
+  | `Tighten.TurnLimitDelta` | **取 `min`**（最负者 = 砍得最狠；恒 `<= 0`） | `0`，恒等元 |
+  | `Tighten.WinMarginDelta` | **取 `max`**（最大者 = 门槛抬得最高；恒 `>= 0`） | `0`，恒等元 |
+  | `Tighten.InitialDrawDelta` | **取 `min`**（恒 `<= 0`） | `0`，恒等元 |
+  | `Tighten.DrawPerTurnDelta` | **取 `min`**（恒 `<= 0`） | `0`，恒等元 |
+  | `Tighten.HandLimitDelta` | **取 `min`**（恒 `<= 0`） | `0`，恒等元 |
+  | `Tighten`（整体） | 全为 `null` → `null`；否则逐字段按上五行合并，`null` 参与者视同全 `0` | null |
+
+  - **权重相乘的三条理由：** ① 恒等元是 1 ⇒ 缺省行不需特判（相加时「不修正」要写 0、「翻倍」要写 +100%，两种语义混在同一个数组里，`.tres` 里读不出作者想的是哪一种）；② 相加会让两条 arc 的调制**全有全无地互相湮灭**（arc A 写 `+3`、arc B 写 `-3`，合并后回到基础值，两条线都在「显影」而玩家什么也感知不到），与「排队不丢弃：触发恒定成立，只是延后」正面冲突；③ 与赋级带的「调制修正（乘性）」同构。**正系数下湮灭是连续的而非全有全无**——任一条 arc 单独把某类推高都不会被另一条推成 0。
+  - **白名单取并的三条理由：** ① 两条不同剧情线的 `EventWhitelist` 是两组不相交的 `EventId`，**取交为空是常态而非异常**，而空候选池是既定的「坏数据 → `PushError` + 抛」——一次完全正常的内容编排（煞气 arc 与心魔 arc 同时 `Active`）会把游戏打崩；② 取交让一条 arc **静默取消**另一条的强制性，与「触发恒定成立」同一条纪律相抵；③ 可读性的护栏已由 `MaxConcurrentSideArcs = 2` 与 `ExclusiveGroup` 架好，合并算子不需要再承担一次同样的职责。
+  - **取并的代价明写（被接受）：** 多条 arc 同时收窄时，每条的强制性被稀释为「本批必出这些线之一」而非「本批只出我这条线」。**要表达独占，正确形态是 `ExclusiveGroup`**（同组至多一条 `Active`），那正是它存在的理由；把独占性塞进白名单合并算子等于制造第二个 `ExclusiveGroup`。
+  - **顺带的收益：不存在取交 ⇒ 管线上少一条「白名单收窄后候选池为空」的失败路径**，也不需要发明「空交集则回退取并」的兜底分支。
+  - **`Tighten` 五格取极值而不是相加：** 四条 `Active` arc 各写 `TurnLimitDelta = -1`，相加即 `-4`——`Practice` 的 8 回合掉到 4，把节奏旋钮打穿；对 `DrawPerTurnDelta` 更致命（每回合抽 2 相加两条 `-1` 即归零，牌流量断供），而没有任何一条 arc 的作者意图如此。取极值使**加压幅度的上界 = 单条 arc 写得出的最紧值**，内容评审逐条看得住；这与白名单取并那条「护栏由 `MaxConcurrentSideArcs` 与 `ExclusiveGroup` 架好，合并算子不必再承担一次同样职责」同向。
+  - **五格里四格取 `min`、一格取 `max`，差别只在方向常量而非算子族**：三格牌流量与回合数同属「少 = 更难」，`WinMargin` 是唯一「多 = 更难」的格。五个恒等元一律 `0`，与相乘那两格的 `1.0` 各自成立——不修正的写法在两种语言里都是「不填」，`.tres` 里读不出歧义。
+  - **`min` / `max` 幂等、可交换、可结合** ⇒ 合并顺序不是需要裁决的量（与「乘法可交换 ⇒ location 与 arc 谁先不必定」同构），且**合并算子与施加算子同构**——先合并再施加与逐条施加取最紧，结果相同。**与 `LevelBias` 互不影响**，两者先后同样不是需要定的量。
+  - 这些算子在物化管线里的落位（第几步生效、与 location 修正如何相乘、归一化在哪里发生、`Tighten` 的施加与钳制落在哪一步）见 `future-event-service.md` 的十步管线；**乘法可交换 ⇒ location 与 arc 的先后不是需要定的量。**
 
   **`EnemyPoolScope` 是一个 `PlotArcData.Id`，加载期校验悬空：非空且不在 `PlotArcData` 仓储内 → `PushError`**（带 arc `Id` + 节点 `Id` + 悬空值）。它对上敌人条目一侧的 `PoolScope.PlotArcId`（形态见 `systems/enemies/_index.md`）。**字段允许填入别的 arc 的 `Id`，这是一条有意保留的权力**——把它降级为「隐式取本 arc」会在同时最多四条 `Active` arc 的结构里失去定义；代价（填错只会换个池子）由这条悬空校验从「静默」变为「大声」。
 
@@ -386,8 +463,14 @@
   | 同一节点混有 `BranchChosen` 边与自动边，或同节点两条 `BranchChosen` 边 `ToNodeId` 相同 | `PushError` |
   | `PlotNodeData.ContentEnabled == false` | `PushError` |
   | `Body` 与 `Modulation` 同时为空 | `PushWarning`（既不叙事也不调制的节点是编排失误，不阻塞） |
-  | `EventWhitelist` / `EventWeights` 指向不存在的 `EventId` | `PushError`（overlay 侧另加「必须来自基线」，见 `content-service.md`） |
+  | `EventWhitelist` / `EventWeights` 指向不存在的 `EventId` | `PushError` + arc `Id` + 节点 `Id` + 悬空值（overlay 侧另加「必须来自基线」，见 `content-service.md`） |
+  | `EventTypeWeight.Multiplier <= 0` | `PushError` + arc `Id` + 节点 `Id` + 类型（剧本侧无 Travel 例外） |
+  | `EventWeight.Multiplier <= 0` | `PushError` + arc `Id` + 节点 `Id` |
   | `LevelBias` 绝对值超出内容侧配置的上界 | `PushWarning`（带不越界由赋级函数保证，这里只挡明显的编排失误） |
+  | `Tighten` 的 `TurnLimitDelta` / `InitialDrawDelta` / `DrawPerTurnDelta` / `HandLimitDelta` 中任一 `> 0` | `PushError` + arc `Id` + 节点 `Id` + 越界字段名（方向违规，同 `Multiplier <= 0` 那两行的严厉度） |
+  | `Tighten.WinMarginDelta < 0` | `PushError` + arc `Id` + 节点 `Id`（同上） |
+  | 非空 `Tighten` 但五格皆为 `0` | `PushWarning`（等价于不填，多半是编排遗漏；同 `Body` 与 `Modulation` 同时为空那行） |
+  | `Tighten` 任一 delta 的绝对值超出该格的内容侧上界常量（见 `systems/balance.md`） | `PushWarning`（同 `LevelBias` 越界那行——硬界由物化期钳制保证，这里只挡明显的编排失误） |
 
 - **`Id` 约定。** 与 `plot.band.faith.2` / `location.wilds.bamboo_sea` 的点分小写同构：arc = `plot.arc.<tier>.<name>`（`plot.arc.story.ashen_lineage`）· node = `plot.node.<arc-name>.<两位序号>`（`plot.node.ashen_lineage.03`）。
   **node 的 `Id` 带 arc 名是有意的**：合并后校验能在**不解引用**的前提下先做一次廉价的命名一致性检查，且 overlay 新增一条 arc 时它的全部新 `Id` 共享同一前缀，人工评审一眼可辨。
@@ -399,7 +482,7 @@
   - **道心 / faith** —— 跨入 Band `−2`（0–19）→ 触发 **「心魔滋生」** 剧情线（经 `PlotTriggerId`）。**该档无叙事文案**，剧情线与调制是它唯一的显影通道。
   - **寿元 / lifeSpan** —— 递减到 0 → 触发 **「大限将至」**（角色 defeated）。**它对应终态而非任何一档**，不经 `PlotTriggerId` 通道。
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md`
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md`
 
 ## 管理器角色 / API 面（契约）
 > _总则与共享类型见 `systems/architecture.md`「API 契约总则」。**本 manager 纯本地，永不跨进程边界，故全部方法为形态 A**（剧本内容属本地内容层）。_
@@ -429,7 +512,7 @@ Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` 
   ```
 
   - **`TryResolvePlot` 的 `bool` 语义：** 任一 key point 惰性 → 该条不产 segment；**全部 arc 都惰性 / 无 `Active` arc → 返回 `false`**，调用方跳过叙事与调制、轮回继续。
-  - **`ModulateEventOptions` 的输入 = 全部 `Active` arc 的 `PlotModulation` 之并。** 多条 arc 同时调制时的合并规则（白名单取交还是取并、权重相乘还是相加）归「框定叠加顺序」那条待答项（见 `future-event-service.md`），字段形态不受它影响。
+  - **`ModulateEventOptions` 的输入 = 全部 `Active` arc 的 `PlotModulation` 之并**，逐字段按上方「多条 `Active` arc 的合并算子」表合并（权重相乘 · 白名单非空者取并 · `LevelBias` 相加 · `Tighten` 五格逐格取极值）。
   - **无 `PlotRequest`**（无远端请求，key points 直接来自传入的 `CharacterProfile`）。
 
 **只有 `ChooseBranch` 投影到服务门面上。** 前三个方法是宿主服务 `ComputeEventOptions` 物化链条**内部**的一环，不被跨服务调用（manager 纪律）；`ChooseBranch` 因需要玩家输入，故由 future-event-service 以同名方法转发。
@@ -452,8 +535,6 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 
 ## 待决问题
 
-- **多条 `Active` arc 的 `PlotModulation` 如何合并。** 白名单取交还是取并、权重相乘还是相加——阻于 `future-event-service.md` 的「框定叠加顺序」。**只影响合并算法，不影响字段形态**（见「剧本树的数据形态」）。
-- **剧本内容的体积与分发粒度。** 三篇章的完整剧本树随包 + overlay 会有多大？是否需要按篇章分包 / 按进度增量下载（复用 manifest 的文件级事务即可，但**分包边界**未定）。剧本随包意味着它是一笔真实的包体 / 下载量成本。
 - **DnD 式选分支：** 触发点、UI、以及玩家可见 / 不可见分支的边界未定。
 - **隐藏属性清单与推拉触发：** 已定 **道心 / 煞气 / 寿元** 三项且均隐藏，**取值域、档位表、阈值与回滞已定案**（见「意图」）；仍待定：是否还有其他隐藏属性、**增减触发（哪些 AdventureEvent 推拉、各推哪一档 `HiddenStatGrade`）**、每条剧情线的具体内容与 key points。**Combat 三档已有默认口径**（`Practice` 推道心不推煞气 · `Finale` 胜负同推道心，见 `systems/adventure-event/combat/_index.md`），它是这条待答项的一个子集，其余四类与逐条目编排仍欠。（寿元的消耗侧与回复侧均已定案：回复通道存在、只走 outcome 侧，且**回升 = 档号减小 = 静默**，不改任何结构，见 `systems/adventure-event/common-properties.md`。）→ 亦见 `life-cycle-service.md`、`systems/balance.md`。
 - **`HiddenStatGrade` 的三个映射值随 ch1 数值标杆专场校准。** 初值 `Minor 2 / Standard 5 / Major 10` 与「每属性每篇章跨档 2–4 次」是**反推验收项，不是死数字**，其校验依赖上一条的「增减触发」。**档位结构、阈值形态、文案形态、呈现形态均不被它阻塞**——它约束的是标定，不是结构。→ `systems/balance.md`。

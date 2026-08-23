@@ -17,7 +17,7 @@
   - **该掷定对常规出场与配额闸门一律适用**——规则只有一条，不按场景分叉。**它落到批次时怎么占位，见下方「掷定的批次占位」。**
   - **80 / 20 是全局常量，不可被剧本调制。** `TravelFullFanoutChance = 0.80` 住平衡资源（可线上调），**只有一份全局值，不接受任何按剧情线 / location 的覆盖参数**——与「赋级函数不接受任何区间覆盖参数」同款收口：不给这个口子，就不存在「谁有权用它」。
     - **依据 ①：** PlotManager 的边界是「只调内容不调约束」。掷定改变的是**玩家的选择空间宽窄**（多个可选目的地 vs 一个被指定的目的地），这落在**约束面**——允许剧本推拉它等于开一条绕过该边界的后门。
-    - **依据 ②（承重）：** `LocationCodex` 记连边 ⇒ 「提前两步规划路线」是跨轮回知识的变现通道。剧本若能悄悄把随机档拉高，这份积累会在玩家不知情时失效——而他连「被调过」都感知不到。
+    - **依据 ②（承重）：** `LocationCodex` 记连边 ⇒ 「提前两步规划路线」是跨轮回知识的变现通道。剧本若能悄悄把随机档拉高，这份积累会在玩家不知情时失效——而他连「被调过」都感知不到。**这条依据的信息基础是确定的**：去过一个地域即显影它的全部邻接（显影粒度与半径见 `systems/player-profile/codex/_index.md`），故闸门给出的每个目的地，玩家都能预知它又通向哪里。**显影半径同样是约束面参数，与本条同款收口——不设旋钮。**
     - **「迷途」仍可表达，换一条既有通道**：让该剧情线的候选池多出 Explore 条目（Explore 遮罩的 Travel 必走随机档）——这正是「剧本靠收窄候选池表达强制性」的标准用法，不需要新旋钮。
   - **Explore 揭示出的 Travel 必为随机那一档**（见 `../explore/_index.md`）——秘境把人带到别处，本就不该让人挑。
   - **20% 档不产生死局**：即便只剩一个目的地，轮回仍可推进（`selectCost` 无条件可支付）。
@@ -27,7 +27,17 @@
   - **推论：地域迁移是被规则驱动的必经节点**，每个 location 都有一个确定的出口时刻。**进程的形状由此清晰：一次篇章 = 若干 location 的串联，location 之间由 Travel 缝合。**
   - **闸门给多个目的地：** 收窄后剩下的是**若干个并列的 Travel 选项**，各指向 **`locationMap`** 上当前 location 的一个邻接地域——**「去哪」本身是一次真实的玩家决策**（80% 的场景；另 20% 只给一个，见上）。**推论：这是逐批择一的线性进程里唯一一个带地理含义的分岔点**；因 `locationMap` 对玩家不可见，第一次走是盲选，随 `LocationCodex` 积累而变成有信息的选择——**跨轮回的知识增长在此变现**。
   - **Travel 不占用所在 location 的 `eventCountLimit` 配额：** 配额只计「选择进入并结算」的事件，**离开的动作本身不算做事**。
-  - **推论：Travel 同时是死局兜底。** 配额用尽后 Travel 顶上，保证**任何时刻至少有一个可推进的选项**——且它必然可被选中（`selectCost` 无条件可支付，见 `../common-properties.md`）。**兜底成立的前提是邻接集合恒非空**：故 location 与 `locationMap` 恒启用、出度 ≥ 1 由加载期校验封住（见 `systems/game-progression.md`）。
+  - **推论：Travel 同时是死局兜底，且有两个触发面。** 兜底保证**任何时刻至少有一个可推进的选项**——且它必然可被选中（`selectCost` 无条件可支付，见 `../common-properties.md`）。**兜底成立的前提是邻接集合恒非空**：故 location 与 `locationMap` 恒启用、出度 ≥ 1 由加载期校验封住（见 `systems/game-progression.md`）。
+
+    | 触发面 | 情形 | 产出 |
+    |---|---|---|
+    | **配额闸门** | `LocationEventCount >= EventCountLimit` | 整批归 Travel，规模 = 邻接数（或 1） |
+    | **常规批的收缩保底** | 常规批经 20% 档缩水与闸 ③ 降级后 `Options.Count` 收缩到 0 | 补**一个** Travel，该批规模 = 1 |
+
+    - **收缩保底不是单项补位。** 它不重新取池、不挑条目，只走这条恒可产出的通道；「本服务不设单项补位」管的是「批次少一项时不另取一条填补」，而本条管的是「批次空掉时仍有一个出口」，两者不是同一件事。管线落位见 `systems/services/future-event-service.md`。
+    - **两个触发面共用同一条通道，故兜底的前提也只有那一条**（邻接集合恒非空），不需要第二套保证。
+
+  - **Travel 条目的 `ChapterScope` 必须为空（加载期 `PushError`）。** 篇章框定对 Travel 不适用——它是结构性通道而非内容，目的地取自三章共用的同一张地域图，给它一个篇章维度没有可表达的语义；而一旦某章没有命中的 Travel 条目，上表两个触发面同时失效、轮回死锁。禁令与其余两条（不计入 `eventCountLimit` · outcome 不得含 `LifeSpan` 产出）同族，字段语义见 `../common-properties.md`。
 
 - **掷定的批次占位（规则仍只有一条，此处只说它怎么落到批次上）。**
 
@@ -41,6 +51,8 @@
   - **配套硬约束：`locationMap` 的最大出度 ≤ 5**（闸门批次规模 = 出度，而批次区间上限是 5）。校验归 `systems/game-progression.md`。**副作用是正面的**——出度 ≤ 5 也让 `LocationCodex` 的连边词条在竖屏上一屏可读。
 
 - **常规出场概率 = location 的事件类型出现概率修正里的 Travel 一行，不设第二个机制。** Travel 是 `eventType` 五值之一，与其余四类走**同一条加权抽取**；「荒野常出 Travel（路多）、洞天罕出 Travel（深居）」由内容侧填该行表达。**Travel 的常规出场因此不需要任何新字段。**
+  - **运算形态 = 乘性系数**（缺省 1.0，乘在基础类型权重上，五类系数乘完后一次归一化）；**Travel 一行的取值域是 `>= 0`，其余四类是 `> 0`**。语义与依据见 `systems/game-progression.md`，落位见 `systems/services/future-event-service.md` 的十步管线第 ④ 步。
+  - **`k` = 本批 N 个槽位中类型抽中 Travel 的次数**，是批次规模 N 与类型分布的**副产品，不是独立旋钮**——它由类型指派那一步（有放回抽 N 次、按各类型可用条目数封顶）直接给出，`k` 可为 0。
   - **推论：Travel 的类型修正允许被修正到 0** = 该地域常规不出 Travel、只在配额闸门时出场（闸门路径不受类型修正影响，死局兜底仍成立）。这给了「某个类型能否被修正到 0」那条待答项一个**在 Travel 上安全的正面答案**；其余四类不适用本推论。
 
 - **Travel 的代价 = `lifeSpanCost` 定价表的 Travel 一行，取非 0 的低值。** 代价走既有通道、不新增机制；内容条目默认不填、取表值。
@@ -57,9 +69,13 @@
 
 - **与篇章 / 境界推进不耦合。** Finale 的出现条件是「角色已达本境界巅峰」，是一条**等级条件**，与所在 location 无关；**Finale 不绑定特定 location，不设「渡劫场」地域**。篇章切换时当前 location 继承。理由与推论见 `systems/game-progression.md`。
 
+- **Travel 零事件内决策点 ⇒ 一经选中不可取消（承重）。** 整条结算路径上**没有任何玩家输入**——目的地在物化时已掷定并落在 `DestinationLocationId` 上，两条 `StatusAssignment` 由 life-cycle-service 在 `eventEnd` 组装。`ct` 只在决策点被观察 ⇒ Travel 上无观察位。
+  - **取消请求不改变本次事件的结局**：流程走到收口、`pastEvent` 照常记，`AdvanceEventAsync` 返 `AdvanceResult(Success: true, FailedAt: None)`，退出在收口**之后**才生效。返 `Cancelled` 会让编排顶点按「这一步还没结束」处理一个已结束的事件。语义表与逐类决策点清单见 `systems/services/life-cycle-service.md`。
+  - **代价可忽略**：Travel 的结算是**纯内存计算**（不含战斗、不含面板、不消耗事件内随机），毫秒级，玩家感知不到「点了退出还要等一下」。**Explore 揭示出的 Travel 同样适用**。
+
 - **Travel 的 `pastEvent` 痕迹记出发地。** Travel 是唯一一类会在自己结算过程中改变 `PastEventEntry.LocationId` 的事件，故明写：**记出发地**（与其余四类一致——都是「这一步发生在哪」），目的地由**下一条痕迹**的 `LocationId` 自然给出。不新增字段；`LocationCodex` 从痕迹序列读出的路径因此连贯。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -72,8 +88,6 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **事件类型出现概率修正的运算形态。** Travel 的常规出场走这条既有通道已定；**该修正本身是乘性 / 加性 / 白名单 + 权重**未定，故「Travel 分得几个槽位」的算子形态待它答定。→ `systems/services/future-event-service.md`、`systems/game-progression.md`。
-- **常规批次里 Travel 的槽位数 `k` 从何而来。** 截断口径已定（80% 档受 `k` 截断）；`k` 的取得依赖**批次规模区间两端由什么驱动**这条未答项。→ `systems/services/future-event-service.md`。
 - **Travel 一行的具体定价。** 结构性约束已定（> 0，且为常规事件基准的 1/3 ~ 1/2）；**绝对数字**归 ch1 数值标杆专场。→ `systems/balance.md`。
 - **失去 flags 关地域后的运营替代。** location 恒启用 ⇒ 无法线上秒关一个问题地域。若日后确有此需求，需另设一条**不改图**的通道（例：把该地域的 `EventCountLimit` 压到 1 让人快速离开）；本次不预设形态。→ `systems/services/content-service.md`。
 

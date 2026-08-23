@@ -4,7 +4,10 @@ date: 2026-08-22
 question: `EventOutcomeSpec` 的内部字段面——产出效果原语的表达、`OnResolved` / `OnFailure` 两侧各自的列、经验失败折算的数据形态
 source: open-questions/02-event-options.md → 「`EventOutcomeSpec` 的内部字段面（08-17 新增 · 承重）」
 targets: systems/services/future-event-service.md · systems/adventure-event/common-properties.md · systems/architecture.md（共享核心类型）· systems/adventure-event/explore/_index.md · systems/services/profile-service.md
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-22 — 4 项取向全部裁决；合并 interview 另裁定承重句不写列数 + 补齐 architecture 的 CodexElements · 经验/隐藏属性三个 key 排除出 OutcomeRule 白名单 · ManaLimit 幅度恒 1 · 事件产出不得给账号级古宝（正向白名单收窄）· 置换/禁用候选前移到物化时掷定并落 EventOption.AbilityChangeSlots（非 OutcomeRule 第四个 Kind）。**待复核 2 项**：GrantFromPool 不加池断言 · OutcomeRule 不支持多选一
+confirmed: 2026-08-22 —— 全部 [采纳推荐 — 待复核] 项经批量评审确认，无推翻
+distilled-to: handoffs/2026-08-22-event-outcome-spec-fields.md
 ---
 
 # 方案草稿 — `EventOutcomeSpec` 的内部字段面
@@ -257,8 +260,10 @@ public sealed record EventOutcomeSpec(
 > 逐条裁决（`/batch-provide-solution-draft` 合并 interview）：
 > 1. 隐藏属性推拉：两侧各存一份 vs 顶层 `Always` → **已裁决：A · 两侧各展开一份**
 > 2. Explore 壳的 `OutcomeSpec` 取壳模板还是真身模板 → **已裁决：A · 取真身模板**（须在文档写明「成本取壳、产出取真身」这条不对称及其理由，见「与既有决策的张力」）
-> 3. `GrantFromPool` 型产出要不要加载期池断言 → **A · 不加** `[采纳推荐 — 待复核]`
-> 4. `OutcomeRule` 是否支持多选一 / 加权掷一条 → **A · 不支持** `[采纳推荐 — 待复核]`
+> 3. `GrantFromPool` 型产出要不要加载期池断言 → **A · 不加** `[已确认 2026-08-22 · 批量评审]`（短缺时物化期降级 + `PushWarning`）
+> 4. `OutcomeRule` 是否支持多选一 / 加权掷一条 → **A · 不支持** `[已确认 2026-08-22 · 批量评审]`（一条规则一条产出）
+>
+> **全部待复核项已于 2026-08-22 经批量评审逐项确认，本草稿再无待复核项。**
 
 
 1. **隐藏属性推拉：两侧各存一份，还是顶层加第三格 `Always`？**

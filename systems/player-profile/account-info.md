@@ -20,7 +20,7 @@
 
 | 字段 | 类型 | 写入方 | 说明 |
 |---|---|---|---|
-| `AccountId` | `string` | 后端 | `Session.AccountId` 的持久化投影，展示用 |
+| `AccountId` | `string` | 后端 | `Session.AccountId` 的持久化投影，展示用。**不在后端写入封闭表内 ⇒ 不受回声约束**（写入方是后端 ≠ 受回声约束，见下） |
 | `AccountSeed` | `ulong`（序列化为 hex16） | 后端 | 见上方 |
 | `CreatedAtUtc` | `DateTime` | 后端 | 注册时间，玩家档案屏展示 |
 | `Identities` | `IReadOnlyList<BoundIdentity>` | **后端** | 绑定渠道列表，见下 |
@@ -34,11 +34,14 @@ public readonly record struct BoundIdentity(LoginChannel Channel, DateTime Bound
 - **不持有账号状态（受限 / 封禁）。** 它的真值在服务端且随时可变，客户端的表现全部由登录应答分支与 `compliance.*` 错误码承载。持有一份副本没有消费点，且会在会话中途过期——封禁发生时本地那份仍写着「正常」，这比没有更坏。
 - **`Identities` 是只读投影，客户端从不写它。** 绑定关系的权威在后端；绑定 / 解绑成功后**靠一次 pull 取回**，不本地追加。本地追加会在弱网下造出一份与云端不一致的展示，其错误形态是玩家看到一个其实没绑上的渠道。渠道侧的用户标识（openid 一类）是后端内部键，**不进客户端、不进存档**。
 - **`Nickname` 反向：客户端是写入方，后端只判定。** 提交经 `account-service` 走一次服务端判定（敏感词与改名频次），**接受后由客户端写进本字段**并随既有 push 上行——因此改昵称**不需要**绑后 pull 那一步。客户端只做长度与空白这类无争议的输入约束：自带一份词表就是第二权威，且改词表要发版。
-- **字段增删即 schema 版本 bump。** 老档缺字段以默认值补齐（空列表 / 默认时间 / 空昵称），无损迁移。
+- **`accountInfo` 是一个受回声约束的顶层键。** `AccountSeed` / `CreatedAtUtc` / `Identities` 三条在后端写入封闭表内，客户端每次改昵称都会随整键替换把它们一并提交上去 ⇒ 上行时只能原样回声最近一次 pull 的值。**`AccountId` 不在那张表内，不受此约束。** 组装规则、缺失 / 越界 / 归一化的处置与 push 前自检见 `systems/services/sync-service.md`；逐条 path 与比较口径的权威在 `backend-design-documents/contracts/profile-sync.md`。
+- **向 `identities` 元素追加字段是两侧同批落笔的变更。** 客户端持有的 `BoundIdentity` 是强类型 record，反序列化 → 再序列化会**静默丢掉**它不认识的字段 ⇒ 下一次回声当场失败、整批被拒。故它与「移动或重命名一条透明路径」同档，不适用「后端加字段零配合」那条便利。
+- **字段增删即 schema 版本 bump。** 迁移分两路：**客户端写入的字段缺失以默认值补齐**（空昵称），无损；**回声路径缺失走必需缺失处置**——`GD.PushError` + `accountInfo` 顶层键本次不进 diff + 触发一次 pull 重取权威值，**不补默认值**。补默认值等于拿客户端造出来的值去回声，会在正常老档上稳定把上行打成整批拒绝 ⇒ 按 `Conflict` 丢弃本地缓冲 ⇒ 丢玩家进度。
+  - **代价须明写：** 老档在拿到一次成功 pull 之前 `accountInfo` 不可提交 ⇒ **那一刻改昵称会失败**。但 pull 是启动链的硬阻塞第三步、成功 pull 是进入主菜单的前提，**该窗口在实践中不存在**；分支仍被实现，是为了让它真的发生时留下 `PushError` 台账而不是静默错值。玩家侧无额外表现——不新增错误码、不新增翻译键。
 
 报文形态、绑定端点与错误码的权威在 `backend-design-documents/contracts/auth.md`；`Identities` / `CreatedAtUtc` 由后端写入 profile 的路径见 `backend-design-documents/contracts/profile-sync.md` §5。
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md`
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-22-echo-validation-scope-client-half.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

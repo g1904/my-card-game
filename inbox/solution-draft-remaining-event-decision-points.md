@@ -4,7 +4,10 @@ date: 2026-08-22
 question: 战斗之外三类事件（Exchange / Explore / Travel）的事件内决策点清单
 source: open-questions/01-combat.md → 「结构与配置的残留」→「战斗之外的事件类型的决策点清单」（亦见 systems/services/life-cycle-service.md 的同名待决项）
 targets: systems/services/life-cycle-service.md · systems/adventure-event/exchange/_index.md · systems/adventure-event/explore/_index.md · systems/adventure-event/travel/_index.md · systems/adventure-event/research/_index.md
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-22 — 3 项取向全部裁决；合并 interview 另裁定置换/禁用候选前移到物化时掷定、落 EventOption 定稿字段（故「零结构增量」那句须改写）· life-cycle-service 的「每个决策点立即原子写」全称表述一并改写 · Travel 零决策点上取消请求返 Success 且取消在收口后生效 · Research 中途退出照既有返 Cancelled 并保留 activeEvent。**待复核 2 项**：X0 标记 · 不触发第二次写入口径
+confirmed: 2026-08-22 —— 全部 [采纳推荐 — 待复核] 项经批量评审确认，无推翻；其中「非战斗类决策点不触发第二次写入」一项**连带确认**它对 life-cycle-service「每个决策点立即原子写本地缓存」全称表述的改写（降为「该时刻若产生了尚未落盘的新状态才写」）
+distilled-to: handoffs/2026-08-22-non-combat-decision-points.md
 ---
 
 # 方案草稿 — 非战斗四类事件的事件内决策点清单
@@ -173,8 +176,11 @@ X3  Exchange 收口     玩家点「离开」                并入 eventEnd 单
 
 > 逐条裁决（`/batch-provide-solution-draft` 合并 interview）：
 > 1. Research 槽的「已选未提交」是否落存档 → **已裁决：A · 不落**（`ActiveEventState` 不加格；本项与「置换 / 禁用候选的承载格」作为同形问题合并裁决 ⇒ **置换候选另找落点，不共用新格**）
-> 2. Exchange 的「面板打开」要不要显式 X0 标记 → **A · 不要** `[采纳推荐 — 待复核]`
-> 3. 是否把「非战斗类决策点不触发第二次写入」写成明文口径 → **A · 写进 `life-cycle-service.md`** `[采纳推荐 — 待复核]`
+> 2. Exchange 的「面板打开」要不要显式 X0 标记 → **A · 不要** `[已确认 2026-08-22 · 批量评审]`
+> 3. 是否把「非战斗类决策点不触发第二次写入」写成明文口径 → **A · 写进 `life-cycle-service.md`** `[已确认 2026-08-22 · 批量评审]`
+>    —— **连带一并确认**：这条口径改写了 `life-cycle-service.md`「每个决策点立即原子写本地缓存」那句**全称表述**，降为「**该时刻若产生了尚未落盘的新状态才写**」。用户在 2026-08-22 合并 interview 中连同该连带一并确认。
+>
+> **全部待复核项已于 2026-08-22 经批量评审逐项确认，本草稿再无待复核项。**
 
 
 1. **Research 槽的「已选未提交」是否落存档？**（承重 —— 此前无答案）

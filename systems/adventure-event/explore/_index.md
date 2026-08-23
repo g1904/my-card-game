@@ -64,7 +64,14 @@
   | 3 | 真身不是另一个 Explore（不嵌套） | 由 #2 蕴含，**仍单列一条以给出可读的报错**——「不嵌套」是元类型定义，值得一条自己的消息 |
   | 4 | Explore 条目不得标 `lifeSpanCost` 的条目级偏移 / 覆盖值 | 同上（见上方定价侧纪律） |
 
-  四条与**物化组装后**那条断言（`SelectCost` 不读真身任何成本字段 · `SelectCost.AbilityElements` 恒空）共享同一个 Explore 校验段，避免散落。
+  四条与**物化组装后**那两条断言（`SelectCost` 不读真身任何成本字段 · `SelectCost.AbilityElements` 恒空）共享同一个 Explore 校验段，避免散落。
+
+- **壳的 `OutcomeSpec` 由真身模板物化：「成本取壳、产出取真身」是一条有意的不对称（承重）。** 物化一个 Explore `EventOption` 时，`OutcomeSpec`（以及 `AbilityChangeSlots`）一律取 `RevealedEventId` 指向的**真身模板**的产出格展开，而 `SelectCost` 一律取 Explore 壳自己的那一份。**物化组装后加一条断言，与上述两条同处、同档（`PushError`）。**
+  - **成本侧取壳的唯一理由是防泄漏**——Band 2 精确展示会让成本数值成为真身类型的指纹。**产出在揭示前从不展示**（遮罩态卡面只取 Explore 模板自己的显示名 / 描述 / 风味文案 / 图标），该理由在产出侧整条不成立。
+  - **产出侧的理由是防重掷，且已由 `Encounter` / `DestinationLocationId` 立过先例**：抽取型产出若等到揭示那一刻才掷，玩家退出重进即可重刷一件更合意的产出。
+  - **取壳的后果是同一份数据两种行为**：一个「秘境里的商店」除了买卖之外拿不到真身条目写好的任何 outcome，真身模板的产出格在被遮罩时整条失效——而同一条目作为普通选项出现时它是生效的。
+  - **必须把这条不对称写明**，否则后来者读到两条相反的处置会去「统一」其中一条，而统一到哪一侧都造成实际损坏（统一取壳 ⇒ 真身产出整条失效；统一取真身 ⇒ 成本数值成为指纹）。
+  - **附带收益：** 「`eventType == Travel` 的条目 outcome 侧不得含 `LifeSpan` 产出」这条结构性禁令在遮罩路径上自动覆盖——被遮罩的真身本身就是 Travel 条目，模板侧校验与物化侧断言照常命中。取壳的话该禁令在这条路径上会失效。
 
 ### 揭示的结算形态
 
@@ -81,6 +88,7 @@
   - **resolver 的选取判据是真身，不是 `EventOption.EventType`。** `EventType` 恒为 `Explore`，照它选会把一个战斗真身送进 `GenericEventResolver`。这是既有「两个 resolver 的拆分轴是有没有状态机、不是有几个类型」的直接落地，也与 `Source` 的「按谁组装出这条 element 判」是同一条判据的镜像（Explore 揭示出战斗真身时战利品出自 combat-service）。
   - **`IsRevealed` 因此是本次结算内的瞬态标志，痕迹侧无消费方**（`PastEventEntry` 靠恒存的 `RevealedEventId` 即可回溯）。**字段保留**：派生后的那一份落 `CharacterProfile.activeEvent`，退出重进后呈现层读它判断「这一步已经揭示过了」——`IsRevealed == true` ⇒ 直接呈现真身，不再播揭示转场。承载与读档校验见 `systems/character-profile/_index.md`。
   - **揭示不新增决策点、不新增存档点类型，但本地写照常发生。** 判据链：`ct` **只在决策点被观察** ⇒ 揭示与随后进入的第一个决策点之间**不存在可退出窗口**；而三种真身各自的第一个可退出点都是既有的（Combat 真身 → 「进入战斗前」那个 `Immediate` flush 点 · Exchange 真身 → 商店面板的事件内决策点 · Travel 真身 → 无玩家输入，直接走到收口）。**新增一个揭示专属存档点换到的只是「强杀后不重播一次转场动画」**——强杀那一路本就回落到最近决策点，重进后重看一次揭示**只重看**、不改真身（`RevealedEventId` 在物化时就已定）。
+  - **Explore 自身零决策点；揭示后按真身接入该类的决策点清单**（Combat 真身 → D0–D6 · Exchange 真身 → X1–X3 · Travel 真身 → 无）。逐类清单见 `systems/services/life-cycle-service.md`。**推论：真身为 Travel 时该事件整条不可取消**——壳没有观察位、Travel 也没有。
 - **不给部分线索（危险度提示 / 类型图标暗示）（承重）。** 定价侧已用两条纪律封死「用成本数值反推真身」、展示侧本已无泄漏面，而**一个机械的危险度档位 / 类型图标等价于把真身类型直接印在卡上**——三类真身的危险度分布是可学习的（Combat 高、Exchange 低），玩过十次的玩家会把「危险度」直接读成「是不是架」，Explore 随之退化为一个换皮的 Combat 标签，元类型的全部价值消失。二值的「凶险 / 平和」标同样是可学习的映射，只是分辨率低一档。
   - 「这个秘境格外凶险」的表达位**已经让渡给文案与美术**（见上方放弃条目级成本旋钮那条）；给一个机械线索档就是把那个旋钮从另一侧拿回来。
   - **风味文案允许暗示气氛，但不得建立可学习的映射**——「洞口渗出血腥气」这类写法只要不与真身类型形成一一对应就无害。这**无法机械检查**，属作者自律，写进类型档案的作者须知。
@@ -92,7 +100,7 @@
 - **这不是缺陷，正是 Explore 的定价**——元类型出售的就是「不知道」。若为它补一条「秘境内的战斗不得越级」之类的保护，等于用规则把风险抹平，Explore 随之失去存在理由；且它会成为 `±2` 带那条**无例外硬规则**的一个例外，而该规则明写不接受例外。
 - **风险的界仍由 `±2` 带给出**（赋级规则挂在 Enemy 上、`combatTier` 三档一视同仁），已经足够：秘境里的战斗不会比常规战斗更超纲，只是玩家事前不知道有没有。它与「打不过也得打是正常出口」自洽——产出侧本就不欠可战胜保证。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -110,7 +118,6 @@ Source: `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handof
 
 - **两个待实测初值。** 真身占比 `5 : 3 : 2` 归 ch1 数值标杆专场回归校准；揭示转场时长 ≈ 1.2s 是纯手感项，只能在真机上调。形态均已定，只欠取值。→ `systems/balance.md`、`ux/screen-flow.md`。
 - **定价表 Explore 行的取值。** Explore 自成一行、不由真身推导已定；**填多少**待 ch1 数值标杆专场。→ `systems/balance.md`。
-- **事件类型出现概率修正的运算形态**（乘性 / 加性 / 白名单 + 权重）未定 ⇒ 「Explore 一行如何被 location 修正」只有形状没有算子。**不阻塞本页任何一条。** → `systems/services/future-event-service.md`、`systems/game-progression.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/explore.md`（待建）

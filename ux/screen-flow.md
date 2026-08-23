@@ -4,9 +4,9 @@
 
 ## 意图
 
-完整前置流程:**登录屏 → 主菜单 → (切换篇章) → 轮回**。
+完整前置流程:**[登录屏] → 主菜单 → (切换篇章) → 轮回**。登录屏是**条件步**——启动时若本地凭据静默续期成功则直接进主菜单。
 
-- **登录屏(应用首屏)。** 含**服务条款(T&S)**;背景是一段 **live2d 风格循环动画视频**(氛围演出,美术 TBA,先留空占位)。登录入口用于**在线存档**;渠道优先级见下,**首版实现手机与微信两个入口**(两步握手与渠道呈现依据见 `ux/onboarding.md`)。**强制账号登录——没有游客(Guest)入口**,不支持不登录直接进入。
+- **登录屏(未持有有效凭据时的首屏)。** 启动期的静默续期成功即跳过它;缺失 / 无效 / 续期失败才呈现(路径与失败三分支见 `systems/services/account-service.md`「refresh token 的持有与失效」,启动链位置见 `systems/architecture.md` 总则 4)。含**服务条款(T&S)**;背景是一段 **live2d 风格循环动画视频**(氛围演出,美术 TBA,先留空占位)。登录入口用于**在线存档**;渠道优先级见下,**首版实现手机与微信两个入口**(两步握手与渠道呈现依据见 `ux/onboarding.md`)。**强制账号登录——没有游客(Guest)入口**,不支持不登录直接进入。
 - **主菜单(登录后)。** 核心操作是**切换篇章以开始一次轮回**——在**已解锁**篇章中择一作为该次轮回的起始篇章。首玩者**只能从炼气(第一篇章)开始**,其余篇章选项**隐藏**,后续解锁后才出现(门禁细节见 `onboarding.md`)。
 - **主菜单入口按钮**(各自是 PlayerProfile 数据模型的视图层,字段名与形态的权威见 `systems/player-profile/_index.md` 的完整字段表):
 
@@ -99,7 +99,7 @@
   - **战斗外可用的道具在此面板内可直接使用**(详情卡片上一个「使用」键);战斗内可用的**在此只能查看**,标注「须在战斗中使用」。
   - 战斗内那一份筛选视图称**「随身」**(角标 + 底部抽屉),见 `ux/combat-ux.md`。
 - **两段告警的呈现细节 = 静态标注于 EventOption 选择界面。** 形态是**静态标注**(static annotation):数值 / 文案随事件结算而变,**平时静止**,不做持续跳动 / 计时器感的动画。位置**只在 EventOption 选择界面**——即玩家做抉择、也正是寿元被消耗的那个界面;**不做全局 HUD、不进战斗内**(见 `ux/combat-ux.md`)。
-- **「渡劫成功次数」与「总通关数」是两个数,并列展示且允许不相等。** 数据源分属两层:**渡劫成功次数**读 `PlayerProfile.PlayerPowerFragment.FinaleWinOrdinal`(规则字段层,统计侧刻意不另设 Finale 胜利数字段);**总通关数**读统计计数层的 `TotalCyclesCompleted`(完成整个轮回 = 三篇章全通 · 抵达元婴)。一次通关贡献 3 次 Finale 参与、至多 3 次胜利,而 Finale 胜利可完全不伴随通关,故**二者在任何账号上都不相等**。**呈现纪律:措辞不得暗示二者应当一致**;渡劫成功次数不计入 1% 的「失败但存活」,因此它可能小于已完成的篇章数——**该差值是有味道的信息,不是 bug**。落点为玩家档案与元婴界面(通关证书)的统计区。
+- **「渡劫成功次数」与「总通关数」是两个数,并列展示且允许不相等。** 数据源分属两层:**渡劫成功次数**读 `PlayerProfile.PlayerPowerFragment.FinaleWinOrdinal`(规则字段层,统计侧刻意不另设 Finale 胜利数字段);**总通关数**读统计计数层的 `TotalCyclesCompleted`(完成整个轮回 = 三篇章全通 · 抵达元婴)。一次通关贡献 3 次 Finale 参与、至多 3 次成功,而 Finale 成功可完全不伴随通关,故**二者在任何账号上都不相等**。**呈现纪律:措辞不得暗示二者应当一致**;渡劫成功次数恒等于已完成的篇章数,而通关要求三篇章连成一次完整轮回——**中途身死的那些篇章成功照样计数**。落点为玩家档案与元婴界面(通关证书)的统计区。
 - **隐藏属性跨档时给一条定性叙事。** 道心 / 煞气 / 寿元的**数值继续完全隐藏**,但**跨入一个离常态更远的档位时**在事件收口处给一条定性描述(「你于静室枯坐三日,心念澄明。」「你的指节泛起一层洗不去的暗红。」)。**只在跨档时触发**,不是每次结算都播——稀缺才有分量。玩家学到**方向与因果**,学不到精确数值,因而无法做电子表格式优化。规则与档位归 `systems/services/plot-manager.md`;它复用既有的 `eventEnd` 阶段,无新结构。
 - **跨档叙事的呈现形态。**
   - **播在事件结算面板内,一档一行——不是独立弹层。** 独立弹层 = 新结构(违「无新结构」)+ 在最频繁的操作上多一次点击(违 `combat-ux.md`「不在最高频操作上加模态」的既定纪律)。
@@ -153,7 +153,7 @@
 - **三种终局态共用一个阻塞屏。** 需更新(强更)、被挤下线、存档读取失败三者形态同构,收敛为一个 `BlockingNoticeScreen` + 变体表(全屏 · 无返回 · 主按钮永不是「继续游玩」 · 底部诊断编号可长按复制)。**三个变体不等于三处硬阻塞**——阻塞点仍是既定两处。见 `ux/error-and-blocking-ux.md`。
 - **美术挂点占位。** 循环视频、图标、卡面等 TBA;组合场景时为其保留可轻松替换的挂点,先用占位 / 免费资源。
 
-Source: `handoffs/2026-07-16-...` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-...` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-...` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md`
+Source: `handoffs/2026-07-16-...` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-...` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-...` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

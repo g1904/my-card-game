@@ -17,6 +17,7 @@
   - **`Scope == Player` 时 `Charges > 0` 是硬约束**（古宝定义上有使用次数限制，违反 → 加载时 `PushError`）；法宝可为「无限（-1）」。
   - **使用次数即时经 `ProfileManager.TryApply` 写 PlayerProfile，不攒到收口。** 与「战斗过程中的变更即时经 ProfileManager，`Spoils` 只承载收口产出」一致，且**堵死「用完退出重进恢复次数」的窗口**。
   - **推论（承重）：道具是战斗内唯一会即时写 Profile 的卡牌行为。** 其余所有牌都是战斗内运行态（道念、手牌、战场条目战斗结束即消失），而古宝的次数是**账号级持久数据**。既有定案「战斗内的一切写入经 ProfileManager」正好承接这条，无需新机制。
+  - **战斗内的道具运行态只落「本场已用几次」，剩余次数不落战斗存档。** 剩余次数的唯一权威是本处持有条目上的 `Charges`（即时写），在战斗存档里再存一份就是无机制保证相等的第二个落点。决策点存档的字段形态见 `systems/services/combat-service.md`。
   - **推论：古宝是付费战斗价值的主要承载者。** premium bundle 给的是随机 1 法则 + 随机 2 古宝，而**次数限制天然是节流阀**——让付费收益是「关键时刻多几次转圜」而非「永久变强」。见 `systems/monetization.md`。
 
 - **古宝可被「本轮回禁用」，也可被置换。** 与法则 / 神通 / 法宝完全对称，**含 `ThisCycle` 档**：
@@ -27,7 +28,7 @@
 
 > 具体的使用次数模型、可购字段等共有属性见 `common-properties.md`。
 
-Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md`
+Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-22-combat-runtime-counter-persistence.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -36,7 +37,6 @@ Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · 
 > _尚未解决，需要一次 handoff/决策。_
 
 - **PlayerItem 机制未设计。** **已定：战斗内形态 = `CardType.Item`、`Charges > 0` 为硬约束、次数即时写 PlayerProfile**（见上）。**仍未设计**：道具种类目录、次数如何补充、可购价格 / 库存、战斗外的效果形态。
-- **战斗内道具运行态的存档形态未定。** 决策点存档须能恢复「本场已用掉哪些道具、各自剩余次数」；字段形态需与战场条目、`Power` 运行态一并落定。→ `systems/services/combat-service.md`、`sync-service.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/player-item/`（待建）。

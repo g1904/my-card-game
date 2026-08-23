@@ -124,7 +124,7 @@ game-feature-branch/
 
 **`text/` 不是内容层。** 翻译资源**随包分发，不走 overlay / flags 热更**——它不进抽取池、不被存档引用、无 `Id`、不参与 `AllEnabled()`；把它塞进 overlay 会把一条被刻意限窄的热更通道撑宽。全库 UI 文案统一走翻译键，见 `ux/error-and-blocking-ux.md`。**渠道配置 `ChannelConfig`（更新地址的兜底来源）同属随包数据、按导出预设不同**，不是硬编码。
 
-**分区表是开放表**：一个分区一个 CSV、文件名小写、键形态 `<PARTITION>_<CONTEXT>_<NAME>`，随屏幕落地增补。**内容文案不在 `text/` 内**——卡面描述、事件正文、跨档叙事、Finale 补白走 `content/` 的条目内嵌 `LocalizedText`，两层共用同一个语言开关（封闭二值 `zh` / `en`，启动期单点归一）。规范与判据见 `ux/error-and-blocking-ux.md` 与 `ux/_index.md`。
+**分区表是开放表**：一个分区一个 CSV、文件名小写、键形态 `<PARTITION>_<CONTEXT>_<NAME>`，随屏幕落地增补。**内容文案不在 `text/` 内**——卡面描述、事件正文、跨档叙事、渡劫身死文案走 `content/` 的条目内嵌 `LocalizedText`，两层共用同一个语言开关（封闭二值 `zh` / `en`，启动期单点归一）。规范与判据见 `ux/error-and-blocking-ux.md` 与 `ux/_index.md`。
 
 **一个文件夹 = 一个服务及其全部 manager。** 文件夹边界即服务边界——视觉上一眼看出「这个 manager 属于谁」。
 

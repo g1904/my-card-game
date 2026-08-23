@@ -35,12 +35,13 @@
   - **战斗中立即生效，但该路径当前不可达。** 规则表述是「禁用一经写入即在全部生效面上立即生效，包括进行中的战斗」；而唯一写入点是 `TryApply`、唯一施加时机是 `eventEnd`（战斗已收口），故落地是**一条不变式 + 一处断言**：施加 `Disable` 时若 `activeCombat != null` 则复用 `IgnoresProtection` 已有的战场移除路径（不新写第二条），并在 `#if DEBUG` 下 `PushWarning` 大声失败。
   - **可见性：** 角色面板 / 元进程界面**照常列出**被禁用条目（仍被持有），呈灰态 + 徽标，按 `Duration` 三档给文案「下一事件失效 / 本篇章失效 / 本轮回失效」，**长按查看来源事件**（由 `SourceInstanceId` 反查 `pastEvent`）；施加禁用的那一刻在事件结算面板上必须明确告知；**战斗屏不呈现被禁用条目**（它们不在场上，且竖屏分区已是压力最大的一处）。
   - 字段与到期规则见 `../_index.md` 的 `disabledAbility`；element 形态见 `systems/services/profile-service.md`。
+- **`Power` 的战斗内运行态 = 战场条目的 `counters`，不新增结构。** 入场本身不必存档（可由两个 Profile 的持有列表 + `status` + `UsableScene` + `CharacterProfile.disabledAbility` 确定性重建）；「本场已触发 N 次」这类运行态计数器随战场条目整表进每一个决策点存档。**未入场的神通没有计数器落点，是自洽而非缺口**——三条与门任一不成立即不入场，它本场也不可能触发。键约定、值域、读档校验与消费面 API 的权威在 `systems/services/combat-service.md`。
 - **神通可被置换移除。** 置换型剥夺**四类通用，但只同类型置换**——同池判据 = `(Kind, Scope)` 全同 + 同 `Rarity` + 排除已持有。完整候选池与对价规则见 `../../player-profile/player-power/_index.md`。
 - **每个角色自带一个神通，且与角色绑定。** 角色升格为有身份的模板 `CharacterData` 后，**神通有了第一条确定的获取渠道：开局随角色分配**——同一个角色的每一局，自带的神通都相同。**推论：神通不是「纯靠事件掉落」的浮动项**，每局至少有一个确定的起手神通，它与两门绑定功法共同构成这个角色的可辨认手感。**事件侧的获取 / 失去触发仍待定**（本次只答了起手那一份）。见 `../_index.md`。
 - **它是轮回内 build 的一部分。** 与 deck（卡组）、CharacterItem / 法宝（角色道具）并列——一次轮回里「我这局变强了多少」由这三者共同承载，而 PlayerPower 承载的是「跨轮回我强了多少」。
 - **有自己的图鉴：CharacterPowerCodex。** 图鉴族（见 `../../player-profile/codex/`）为角色能力单列一本。**图鉴是账号级、跨轮回持久的**，而 CharacterPower 本身随轮回清理：轮回结束后能力没了，但「见过它」这条知识留下。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-22-combat-runtime-counter-persistence.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -51,10 +52,9 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 > _尚未解决，需要一次 handoff/决策。_
 
 - **与 PlayerPower 的复用边界（承重）。** **战斗内那一半已答定**：两层**共用一个 `PowerData` 定义**，由条目上的 `Scope: AbilityScope { Character, Player }` 声明自己属于哪一层——与 `Item` 完全对称（**不按 Power / Item 分裂成两个 scope 枚举**：两个枚举值域与语义完全相同，保留两个会逼 element 侧写一层无意义的转换）。仍待定的是**战斗外那一半**：capability flag / modifier pipeline 的注册面是否也两层共用、持有列表与清理规则的落点。→ `../../player-profile/player-power/common-properties.md`、`systems/services/profile-service.md`。
-- **`Power` 的战斗内运行态存档形态未定。** **入场本身不必存档**（可由两个 Profile 的持有列表 + `status` + `UsableScene` + `CharacterProfile.disabledAbility` 确定性重建）；但「本场已触发 N 次」这类**运行态计数器**须进决策点存档，字段形态未定。→ `systems/services/combat-service.md`、`sync-service.md`。
 - **获取 / 失去触发。** **起手那一份已定：每个角色自带一个绑定神通**（见上）。**仍待定**：在哪些 AdventureEvent 另行获得（闭关顿悟？社交传功？秘境所得？）、能否失去、篇章突破时是否随「全部继承」一并带入下一篇章（既定的篇章继承是**全部继承**，故默认应带入——需确认）。→ `systems/adventure-event/`、`systems/services/life-cycle-service.md`。
 - **与卡牌 / CharacterItem 的边界。** 三者都是轮回内的 build 组件：什么该做成一张卡、什么该做成一件道具、什么该做成一个能力？判据未给。→ `../deck/`、`../item/`。
-- **`status` 开关的存档表达。** **写入面已定案**（08-17h）：持有列表落 `CharacterProfile.characterPower`（字段 13，`IReadOnlyList<CharacterPower>`），写入通道 = `ProfileChangeSpec.AbilityElements`，经 `profile-service.ProfileManager.TryApply(spec)`——见 `../_index.md` 的 23 字段表。**仍待定的只剩一条**：`status`（启用 / 禁用）与「拥有 / 失去」这两个正交维度如何编码进 schema。→ `systems/services/profile-service.md` 的同名待决项。
+- **`status` 开关的存档表达。** **写入面已定**：持有列表落 `CharacterProfile.characterPower`（字段 13，`IReadOnlyList<CharacterPower>`），写入通道 = `ProfileChangeSpec.AbilityElements`，经 `profile-service.ProfileManager.TryApply(spec)`——见 `../_index.md` 的 23 字段表。**仍待定的只剩一条**：`status`（启用 / 禁用）与「拥有 / 失去」这两个正交维度如何编码进 schema。→ `systems/services/profile-service.md` 的同名待决项。
 - **数量与强度尺度。** 一次轮回里预期获得几个、单个的强度量级（相对 PlayerPower 的「轻度提升」定位是更强还是更弱）未定。→ `systems/balance.md`。
 
 ## 对应

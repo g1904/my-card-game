@@ -38,8 +38,8 @@
   - **不与 `sync-envelope.json` 合并**：信封按 `accountId` 校验、切账号时整份丢弃，本值会被**连坐清掉**，正是上面那条要防的错误。
   - **不与 refresh token 同文件**：两者失效口径**恰好相反**——refresh token 是鉴权材料、必须在切账号 / 登出时失效，本值必须切账号不变。同处一份文件会逼出一条「清一半留一半」的写入路径，而那正是最容易写错、错了以后症状（每次切账号被挤一次）指向不明的形态。
 - **归属 = `AuthManager` 私有，不出任何服务的 API 面。** 唯一消费点是 `signin` 上行，**不提供 `TryGetDeviceId()` 这类公开取值方法**——一个公开取值口就把「挂个本地判断」变成一行代码的距离。私有化把「不得把任何本地判断挂在它上面」这条纪律从**纪律阶梯第 4 级（评审清单）抬到第 1 级（跨服务代码里根本写不出来）**，与 `internal sealed` manager、`AccountSeed` 不出 API 面同款手法。**代价照录：客服排障时无法让玩家直接报设备号**（后端侧以 `(accountId, deviceId)` 为键的反查路径仍在）。
-- **不落 `sync-service.LocalCacheManager`**，两条独立理由：① 边界纪律禁止本服务伸手进 sync-service 的 manager，而 sync-service 的 API 面上也不该出现「替我原子写一个任意文件」这种方法；② **启动顺序对不上**——签名发生在 `LoginScreen` 之后、`ContentService.RefreshFlagsAsync` 之前，那一刻 sync-service 尚未初始化。
-- **时机 = 惰性**（首次组装 `signin` 请求时才读文件）。**启动链第一步跑在登录之前**，此时生成一个只有 `signin` 用得上的值没有任何收益，且登录屏之前没有降级落点。
+- **不落 `sync-service.LocalCacheManager`**，两条独立理由：① 边界纪律禁止本服务伸手进 sync-service 的 manager，而 sync-service 的 API 面上也不该出现「替我原子写一个任意文件」这种方法；② **启动顺序对不上**——签名发生在本服务的初始化期内、`ContentService.RefreshFlagsAsync` 之前，那一刻 sync-service 尚未初始化。
+- **时机 = 惰性**（首次组装 `signin` 请求时才读文件）。**启动链第一步跑在登录之前**，此时生成一个只有 `signin` 用得上的值没有任何收益；而静默续期那条路径根本不组装 `signin` 请求，提前生成的值在它上面一次也用不到。
 - **必须先落盘成功、内存里才认（承重）。** 若允许「先上行、后落盘」，一旦写盘失败就形成「本次上行用了 X，盘上没有 X」：下次启动生成 Y，玩家**每次启动都自己把自己挤下线一次**，且这个症状永不自愈。
 
   | 情形 | 判定 | 处置 |
@@ -63,7 +63,66 @@
   后两行正是「不按 `accountId` 分区」的兑现点：**切账号与重登都不产生一次假的挤下线。**
 - **存档 schema 零影响、零迁移；后端零改动、零新增义务。**
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `decisions/ADR-0003-online-cloud-authority.md`
+### refresh token 的持有与失效
+
+refresh token **不进 `Session`**，由本服务落 `user://cache/`（契约对位：`backend-design-documents/contracts/auth.md` §2 §4 §4a；rotation、宽限窗口与 TTL 的语义以契约为权威，本库不复述）。
+
+- **落点 = `user://cache/refresh-token.json`，字段 `{ schemaVersion: int, accountId: string, refreshToken: string }`。** 原子写走共享静态工具 `AtomicJsonFile` · 跨启动保留 · 不进存档 / 不进 Profile / 不上云。
+- **独立一份文件，不与任何既有文件合并**：
+
+  | 不与谁合并 | 理由 |
+  |---|---|
+  | `device-id.json` | **失效口径恰好相反**——本文件必须在切账号 / 登出时失效，设备标识必须切账号不变；同处一份文件会逼出一条「清一半留一半」的写入路径 |
+  | `sync-envelope.json` | 失效口径虽相同，但① 归属服务不同（本文件归 `AuthManager`，信封归 `sync-service.LocalCacheManager`）；② 启动顺序对不上——静默续期发生在登录期，那一刻 sync-service 尚未初始化；③ 合并后**一次信封丢弃会连坐清掉登录态**，玩家侧表现是一次凭空的强制重登 |
+  | `flags.json` | 归 content-service；且 flags 是可降级的缓存，登录凭据不是 |
+  | `device-settings.json` | 设备维度、切账号不变，与本文件相反；且它是玩家可见设置，本文件不是 |
+
+- **`accountId` 必须在**：它正是「切账号即失效」这条性质的载体，与 `sync-envelope.json` / `flags.json` 同纪律。**这与 `device-id.json` 刻意没有这一格恰好相反**——那份文件是「这一格不存在，该错误在结构上不可能被写出来」，本文件则是「这一格存在，切账号清除才有判据」。两条纪律各自成立。
+- **不存过期时刻。** 客户端没有任何一处可以合法地据它分支：设备时钟不可信是既定纪律，一台时钟快了一个月的设备会拒绝去尝试一个其实完全有效的刷新 ⇒ 凭空一次强制重登；而「refresh token 是否仍有效」的唯一权威是后端的 `auth.session_revoked` 应答，试一次的代价只是一次请求。**存一个不允许被读的字段，只会等着被人读。** 连带：**`signin` 应答里的 `refreshExpiresAtUtc` 客户端读取即丢弃**——这一句必须明写，否则读者会以为是漏了。
+- **不存 access token**（15 分钟即过期、`Session` 已在内存持有，落盘只是把一份短寿凭据写进磁盘，扩大泄漏面而零收益）；**不存渠道 / 手机号 / 昵称等便利字段**（那是 UI 便利、不是鉴权材料，若确有需求落 `device-settings.json`，不与凭据同处）。
+- **带 `schemaVersion`，与 `device-id.json` 的处置刻意不同。** 判据是**这份文件的结构会不会增长到需要逐版迁移**（见 `systems/architecture.md`），不是字段数：本文件是多字段信封、与 `sync-envelope.json` 同形；且配套口径「版本不认识就整份丢弃」在这里是安全的——**丢弃一份 refresh token = 玩家多登录一次，丢弃一份 `device-id.json` = 一次假换设备 + 一次假挤下线**。两者不在同一量级。**这条对照须写在此处**，否则读者会按「都是 `user://cache/` 小文件」照抄错误的一侧。
+- **明文存放，不上平台密钥库。** 理由是**依托各平台的应用沙箱 + 后端 rotation 与「窗口外重放即吊销全部会话」兜底**（`auth.md` §4）；同时不改变任何契约，日后换实现无需两侧配合。**这条不挂靠「不承诺防作弊」那条威胁模型**——那条的成立前提是「作弊者只损害自己」，而凭据泄漏的受害者是账号所有者本人以外的人，两者不同类。**已知残余风险照录**：root / 越狱设备、系统备份提取、共享设备上的他人访问——沙箱在这三种情形下不成立。平台密钥库（Android Keystore / iOS Keychain）是**后置评估项而非否决项**。
+- **失效路径穷举六条，处置只有「删除文件 + 清内存」与「覆写」两种：**
+
+  | # | 时刻 | 处置 |
+  |---|---|---|
+  | 1 | **登出成功**（`SignOutAsync` 返回成功） | 删除文件 —— 主动登出的玩家预期就是「下次要重新登录」 |
+  | 2 | **收到 `auth.session_revoked`**（refresh 应答 / 业务请求应答两个到达路径） | 删除文件 + 走既定硬阻塞重登；该 token 服务端已失效，留着只会在下次启动多打一次必然失败的请求 |
+  | 3 | **`signin` 成功且 `accountId` ≠ 文件中的** | 覆写为新账号的新 token —— 切账号即失效的兑现点 |
+  | 4 | **`signin` 成功且 `accountId` 相同**（同设备重登） | 覆写（后端原地替换会话，旧 refresh token 立即失效） |
+  | 5 | **每次 refresh 成功**（rotation） | 覆写为应答中的新 token |
+  | 6 | **读取时解析失败 / 缺字段 / 版本不认识 / `accountId` 为空** | 删除文件 + 走登录屏（见下表） |
+
+- **读取与写入的失败处置：**
+
+  | 情形 | 判定 | 处置 |
+  |---|---|---|
+  | 文件不存在 | 可选缺失（首次运行 / 已登出的正常态） | 走登录屏。**不打任何日志**——它是最常见的正常态 |
+  | 解析失败 / 字段缺失 / 版本不认识 / `accountId` 空串 | 可选缺失（异常） | `GD.PushWarning("[Auth-RefreshToken] cached refresh token invalid, discarding; path=user://cache/refresh-token.json")` + 删除 + 走登录屏 |
+  | 落盘失败（写入时） | 可选缺失（异常） | `GD.PushWarning("[Auth-RefreshToken] persist failed; session valid for this launch only")` + **本次进程内存持有该 token，不阻塞登录**。后果照录：下次启动需重新登录（一次性、可自愈） |
+
+  **三处一律 `PushWarning` 而非 `PushError` + 抛**：缺它不阻断任何流程，最坏后果是玩家多登录一次；抛会把一次可降级的缓存问题升级成**登不上游戏**。
+  **⚠ 本文件刻意不沿用 `deviceId` 的「必须先落盘成功、内存里才认」（承重）。** 那条纪律成立是因为 deviceId 的「盘上没有」会造成**永不自愈**的症状；本文件落盘失败的症状是一次性的，照那条处理反而更糟——它会让一次写盘失败**当场作废一个刚拿到的有效会话**。**判据是「失败症状是否自愈」，不是「是不是凭据」**；这条须与规则同处，否则读者会误以为两处不一致是漏改。
+- **rotation 的落盘时机：先拿到应答 → 再落盘 → 再更新内存。** 60 秒宽限窗口是弱网重放的保险，**不作为落盘失败的兜底**，不得写成设计依赖。
+- **待发队列不受本文件影响。** 队列条目的淘汰路径只有既定三条（被后端接受 / 按云端权威丢弃 / 切账号清空）；本文件的删除不淘汰任何队列条目，切账号时的队列清空由信封 `accountId` 不匹配那条既定路径承担。
+- **归属 = `AuthManager` 私有，不出任何服务的 API 面。** **不提供 `TryGetRefreshToken()` 这类公开取值方法**——它是鉴权材料，一个公开取值口就把「把 token 记进日志 / 塞进诊断面板 / 上报到统计」变成一行代码的距离。唯一消费点是 `RefreshTokenAsync` 与 `SignInAsync` 的应答处理，两者都在 `AuthManager` 内。**文件 I/O 落在 `AuthManager`、不沉进 `HttpAccountBackend`**：离线实现也要能走通静默续期路径，且文件 I/O 不该在传输层（与 `deviceId` 的填充点同源）。**任何日志只写 path 与判定结果，绝不写凭据值**——含前缀 / 后缀截断形式，截断值仍是凭据的一部分且对排障无用。
+- **消费点 = 启动期静默续期。** 跨启动保留一个 refresh token，当且仅当有人在启动时用它。本服务的 `InitializeAsync` 排在登录屏**之前**（见「API 面」），其内部：
+
+  ```
+  读 user://cache/refresh-token.json
+    缺失 / 无效  → 呈现登录屏（既有路径）
+    有效         → RefreshTokenAsync()
+        成功                  → 得到 Session，跳过登录屏，直接进启动链下一步
+        auth.session_revoked  → 删除文件 → 呈现登录屏
+        网络失败              → 呈现登录屏并附「重试」
+  ```
+
+  **三分支在报文层面是穷举的**：`refresh` 端点的错误码只有 `auth.session_revoked` 与 `server.unavailable` 两条（`auth.md` §8），不存在第四条路径。
+  **启动期的 refresh 失败不走会话期内的那两条分流。** 那两条（网络失败视同断线走缓冲通道 / `session_revoked` 硬阻塞重登）都以会话期内为前提——有进行中的轮回、有待发队列、有不能回退的存档点；**启动期这三样一样都没有**。故两种失败一律落回登录屏，那是「未登录」的既定正常态（`TryGetSession` 已定为可选缺失）。**本节不新增阻塞点**（阻塞点的穷举清单见 `sync-service.md`「三条不变式」①；登录屏不是阻塞屏）。
+  **协议维度的强更闸门只在 `signin` 判定，`refresh` 永不判定**（`auth.md` §5），故靠静默续期长期在线的旧客户端在协议维度上不经过闸门，直到它下一次真的走 `signin`。**本库不代为收口**——收口手段（滑动续期上限、强制 re-signin 周期）全在后端侧，客户端自加一条「距上次 `signin` 超过 N 天则强制回登录屏」会撞「设备时钟不可信」这条既定纪律。承接项见 `backend-design-documents/contracts/auth.md` §5。
+- **API 面零改动**：不新增方法、不改 `Session`、不改任何签名；`RefreshTokenAsync()` / `SignInAsync()` / `SignOutAsync()` 的现有形态原样承载全部六条失效路径。**存档 schema 零影响、零迁移；后端零改动、零新增义务。**
+
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-22-refresh-token-client-storage.md` · `decisions/ADR-0003-online-cloud-authority.md`
 
 ## 管理器
 
@@ -74,7 +133,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 
 ## API 面（契约）
 
-> 总则与共享类型见 `systems/architecture.md`「API 契约总则」。本服务实现 `IBootstrappable`（启动链第二步，`LoginScreen` 之后）。
+> 总则与共享类型见 `systems/architecture.md`「API 契约总则」。本服务实现 `IBootstrappable`（**启动链第二步，登录屏之前**——它的 `InitializeAsync` 内部先做静默续期，登录屏只在续期未成功时才呈现，见「refresh token 的持有与失效」）。
 
 | 方法 | 形态 | 完整签名 | 失败语义 |
 |------|------|----------|----------|
@@ -123,9 +182,6 @@ Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-
 ## 待决问题
 
 - **ComplianceManager 的客户端侧覆盖面。** 实名 / 防沉迷 / 注销 / 数据导出中，哪些环节由客户端呈现与拦截、哪些纯后端裁决，切分未定。→ `decisions/ADR-0003`。后端 / 账号系统的具体选型与合规实现归**后端库**：`backend-design-documents/open-questions.md`。
-- **refresh token 的客户端持有形态。** 后端已定「不进 `Session`、落 `user://cache/`」，客户端侧的具体文件与失效路径未定。
-  **一条硬约束已成立：不得与 `user://cache/device-id.json` 合进同一文件**——refresh token 是鉴权材料、**必须**在切账号 / 登出时失效，而设备标识**必须**切账号不变。同处一份文件会逼出一条「清一半留一半」的写入路径，而那正是最容易写错、错了以后症状指向不明的形态。落点形态（`user://cache/` 下的单字段 json · 原子写 · 跨启动保留）可直接复用「`deviceId` 的生成与持久化」一节。
-  **连带纪律：设备标识只是裁决与观测的输入，永不参与鉴权。** 它由客户端自报、可任意伪造，故客户端侧**不得**把任何本地校验、缓存归属或降级判断挂在它上面——唯一用途是随 `signin` 上行。理由与后端一侧同源（`backend-design-documents/contracts/auth.md` §4a），本库不复述。
 - **多设备并发登录的云端裁决规则。** 后登录挤下线？拒绝？归**后端库**。客户端侧的表现已定（被挤下线 → 硬阻塞重登 → 先 pull 后 flush，见「意图」），仅剩裁决策略本身待后端定。
 
 ## 对应

@@ -96,7 +96,7 @@
   - **应用挂起期间不补偿、不追赶。** 恢复前台时按恢复那一刻重新起算下一次退避，**不重置阶梯层级**，也不为挂起时长补发多次重试——滞留计时器已如实记录玩家离线了多久，补发只会在恢复瞬间打出一串必然同时失败或同时成功的请求。
 - **一行索引（本节不复述别处的降级）：** 内容与 flags 侧的降级见 `content-service.md`；身份侧的刷新失败分流见 `account-service.md`。
 - **三条不变式（新增失败态时先拿它们核对）：**
-  1. **阻塞点是穷举的四处**：登录 / 启动 pull 的版本闸门、被后端明确挤下线、启动 pull 失败本身（迁移失败落在它之内），以及购后 pull 的主菜单内重试。**没有第五处。**
+  1. **阻塞点是穷举的四处**：**登录点**的版本闸门（协议维度的 `client.version_unsupported` 只在 `signin` 判定，pull 侧不判——权威见 `backend-design-documents/contracts/profile-sync.md` §2）、被后端明确挤下线、启动 pull 失败本身（存档 schema 维度的迁移失败落在它之内），以及购后 pull 的主菜单内重试。**没有第五处。**
   2. **「回退存档点」在任何降级路径上零次出现。** 云端权威只在**冲突**与**迁移失败**处生效，两者都不把玩家已打完的进度倒回去。
   3. **降级只有三种形状**：进队列 + 退避（push 侧）· 用上一个已知好值（内容 / flags 侧）· 硬阻塞并给出唯一动作（身份 / 权威档侧）。**新的失败态必须归入这三种之一，不得发明第四种。**
 - **token 失效 / 被挤下线：** `RefreshToken()` 静默刷新；**刷新的失败按判据分流**——**网络失败**（发不出 / 收不到 / `server.unavailable`）**视同断线**走同一缓冲通道（不另开一套），**收到 `auth.session_revoked` 应答**则走下一条的硬阻塞、并**暂停退避重试**（重试必然失败）；被后端**明确挤下线** → **硬阻塞**要求重登，重登后同样**先 pull 后 flush**。判据与理由见 `account-service.md`，本文不复述。
@@ -140,7 +140,21 @@
   - 重试路径走后端的**收据幂等读**（`purchase.md`），`receiptId` 随待兑现态持久化。**但它只是加速补查的优化，不是正确性的承载者**：正确性由 `/entitlement` 两字段之差（`bundleGrantOrdinal > bundleRedeemedOrdinal`）承载。**跨启动补入口因此是「每次启动 pull 之后、进入主菜单之前比较一次两字段」**，不依赖本地待兑现态是否还在——本地态存在时可省掉一次「先 verify 再 pull」的往返。字段与不变式见 `systems/player-profile/_index.md`。
   - UI 是 Store 流程内的**全屏模态进度态**（`STORE_` 分区文案），**不是 `BlockingNoticeScreen` 的变体**——它不由任何后端 `code` 触发且有自愈路径，故不进变体表；**硬阻塞仍只有既定两处**，本处不新增拦截点。形态见 `ux/error-and-blocking-ux.md`。
   - **否决「允许离开、下次启动补兑现」**：兑现被推迟到不确定的时刻，期间玩家看不到自己买的东西。**否决「本地先乐观兑现、后端复算兜底」**：等于客户端有权发货，正是购买段权威分配里已明确否决的那条。
-- **上行组装 `entitlement` 键时必须原样回声 pull 下来的 `bundleGrantOrdinal`，客户端永不自行赋值（承重）。** diff 语义是「顶层键出现即整键替换」⇒ **每一次兑现 push 都会提交 `entitlement` 整键**（其中真正变化的只有客户端写的 `bundleRedeemedOrdinal`），因此每次兑现都会被后端拿这一位与云端值比对。**不一致即该批被拒**——校验规则、拒绝语义与其风控处置的权威在 `backend-design-documents/contracts/profile-sync.md`，本库不复述。**客户端侧不新增任何分支**：收到该情形的 `Conflict` 一律走既有处置（以云端为准、丢弃本地缓冲、重新 pull，随后按两字段之差重新判定是否仍有待兑现）。
+- **上行组装受回声约束的顶层键时，键内后端写入路径必须原样回声最近一次 pull 下来的值，客户端永不自行赋值（承重 · 通则）。** diff 语义是「顶层键出现即整键替换」⇒ 客户端只要改动键内自己写的那一半，就必然把后端写入的那一半**一并提交上去**（兑现 push 提交 `entitlement` 整键、改昵称 push 提交 `accountInfo` 整键），因此每一次都会被后端逐条与云端值比对，**不一致即该批被拒**。校验规则、逐条 path、比较口径、拒绝语义与其风控处置的权威在 `backend-design-documents/contracts/profile-sync.md`，**本库一字不复述**。
+  - **哪些顶层键受约束，由机械导出规则给出，不另建清单：** 某顶层键受约束 ⟺ 后端写入字段封闭表中存在一条以该键开头的 path。**当前恰为两个：`accountInfo`（改昵称时提交）· `entitlement`（兑现时提交）。** 这不是巧合而是同一件事的两面——一条路径够格进写入表 ⟺ 它的真值只可能在服务端产生、客户端无其他通道取到它 ⟺ 客户端提交的任何值都只能是回声。**推论（承重）：日后向写入表加一行，该 path 所属的顶层键自动进入回声约束，不需要第二次决定。** 两份清单必然各自漂移，而漂移的形态正是「某条路径进了写入表却没进回声清单」——那正是这条纪律要关掉的口子。本库只在 `systems/player-profile/_index.md` 字段表的写入通道列标注顶层键这一层，逐条 path 回链后端契约。
+  - **组装规则：回声值的唯一来源是最近一次 pull 的权威快照**（`ProfileService` 内存态）。客户端**永不自行赋值、永不由本地历史推算、永不沿用上一次 push 的值**；**不为回声值另存一份缓存文件**——那即第二权威，且它与快照的不一致无任何机制能发现。`ProfileChangeSpec` 对这些路径**不提供写入通道**（无对应列 / `AllowedOps` 为空），把「客户端改写后端字段」从纪律抬到跨服务代码里根本写不出来，与 `deviceId` 私有化同款手法。
+  - **回声路径不参与读档钳制、缺省补齐与格式归一化（承重）。** 这三条通则各自都合理，作用在回声路径上却会让客户端拿一个**自己造出来的值**去回声 ⇒ 整批拒绝 ⇒ 按 `Conflict` 丢弃本地缓冲 ⇒ **丢玩家进度**，而症状完全指不向触发它的那次操作（「改一次昵称丢一场战斗」）。处置三条：
+
+    | 情形 | 处置 |
+    |---|---|
+    | 权威快照中该路径**缺失**（老档 / 迁移补齐面） | **该顶层键本次不进 diff**（浅合并下「未出现 = 保持不变」，云端值原样存活）+ `GD.PushError` 带 path + **触发一次 pull 重取权威值** |
+    | 该路径**越界 / 不合法** | 同上——**不钳制、不改写**。钳制等于用客户端算出的值覆盖后端权威值 |
+    | 该路径**格式需要归一化**（时间串、hex 大小写） | **不归一化**，按 pull 下来的原值提交；反序列化 → 再序列化的往返不得改变它的线上表示 |
+
+    **读档校验对客户端自己写的那一半照常生效**：`BundleRedeemedOrdinal` 的两向钳制不受影响——它读 `BundleGrantOrdinal` 只是**读**，不写回，回声不被破坏。
+  - **push 前自检落在 `ProfileSyncManager` 组装出口一处。** 发出请求之前，对 diff 中每个受约束顶层键的每条后端写入路径断言「与权威快照相同」；**不同 → 用快照值强制改写回声值 + `GD.PushError`（带 path、快照值、组装值）+ 本批照常发出**。理由：正确值就在手边，玩家不该为一次客户端 bug 付出停滞或丢进度的代价，可见性由 `PushError` 台账承担（代价是它会「修好」一个 bug 的表现，因此台账必须被看）。**缺失分支不在这里处理**——组装期已把缺失的键整个剔出 diff，出口断言只面对「两值都在但不等」这一种情形；让唯一出口承担两种处置会把它变成分叉点。断言收敛到一处，与「请求头组装与应答头解析收敛到 `src/Core/` 的一处」同构。
+  - **自检不替代后端校验。** 客户端自检可被改包绕过，防篡改仍由后端承担；自检防的是**客户端自己的 bug**，那才是这条路径上概率最高的失败源。且客户端无法从一次 `sync.conflict` 分辨「多设备」与「我改写了后端字段」（同码同处置），**可观测性只能由本地自检承担**。
+  - **判据：「客户端侧不新增任何分支」约束的是收到 `Conflict` 之后，而自检发生在发出之前，两者不在同一层。** 收到该情形的 `Conflict` 一律走既有处置（以云端为准、丢弃本地缓冲、重新 pull，随后按两字段之差重新判定是否仍有待兑现）；本条**不新增 `OpError` 取值、不新增 `SyncState` 值、不新增错误码映射行**。
 - 于是冲突窗口在结构上被关闭：**那一刻客户端没有任何未上行的变更，`Conflict` 分支不可能踩到。** CAS 三分支表与「冲突一律以云端为准」原样成立，不为购买开任何例外。
 - **否决「购买入口在轮回内可用 + 为它设计冲突合并」**——等于为一个可以靠时机纪律消除的问题引入字段级三路合并，而那已被 `ADR-0003` 明确排除。
 - **这条纪律同时是一条 UX 结论**：礼包入口在轮回内 / 战斗内 / 结算流程内**不存在**——不是观感取舍，是同步模型的结构要求（因此「重试耗尽时提示购买」在结构上就不可行，见 `ux/screen-flow.md`）。
@@ -198,10 +212,11 @@
 > **Profile 里有一小撮字段是后端读得懂的**（复算与不变式校验的输入），它们的 **JSON path 本身就是契约的一部分**。逐条清单的权威在 `backend-design-documents/contracts/profile-sync.md` §5，本库不复制。
 
 - **移动或重命名任一透明路径 = 破坏性契约变更**，必须 bump `schemaVersion` 并与后端同批改——与「重命名跨边界枚举值」同一条纪律。
+- **向受约束顶层键内的对象追加字段，同样是两侧同批落笔的变更（承重）。** 向不透明段追加一个字段本来不需要后端配合，但在回声路径上不是：客户端持有的是强类型 record（如 `BoundIdentity`），反序列化 → 再序列化会**静默丢掉**它不认识的字段 ⇒ 下一次回声当场失败 ⇒ 整批拒绝。故「追加」与「移动 / 重命名」同档，不适用「加字段零配合」那条便利。受约束顶层键的判定见上方「后端主动写入的唯一情形」一节。
 - **为什么它比普通重构危险：** 把某个字段挪个位置、改个名，在客户端侧是纯重构（老档靠迁移无损通过），但**在后端侧会静默变成「这个字段消失了」**——复算退化为空操作，**且两侧都不会报错**。后端对缺失的透明路径记告警级台账、不拒绝上行，使这类漂移在线上可见，但那是事后发现，不是防线。
 - **先按人工清单执行，暂不机械化。** 落在「纪律的可执行化」阶梯的低档是有意的——不为一条**尚无实例**的纪律先行造工具。**留一条触发条件：首次真的发生透明路径漂移（后端告警台账记到第一条）时，回头把它升级为机械检查**，而不是等它攒够教训。
 - **diff 的序列化形态须与契约的顶层键浅合并逐字对齐**：`PlayerProfileDiff` 中出现的顶层键即整键替换、未出现的保持不变、空对象 = 无变化、**不表达删除**（`PlayerProfile` 只增不删，无需删除语义）。`CharacterProfileDiff` 同理，整体替换该 `characterId` 下的值。键值以下的结构对后端完全不透明——**本服务因此不得依赖后端做任何逐元素合并**。
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-echo-validation-scope-client-half.md`
 
 ## 管理器
 
@@ -349,7 +364,6 @@ Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-
 
 ## 待决问题
 
-- **上行整键回声校验的适用面未穷举（承重）。** `entitlement` 已定：上行时 `bundleGrantOrdinal` 须与后端下发值**逐位相同**，否则整批拒绝并风控。但 `accountInfo` 是**同形的第二处**——后端写三项、客户端只写 `nickname`，同样整键替换上行。缺一份**封闭清单**说明「哪些顶层键的哪些路径受回声校验约束」；逐键临时判必然漏，而漏掉的那一处正是客户端可以静默改写后端权威字段的口子。→ `backend-design-documents/contracts/profile-sync.md`、`systems/services/profile-service.md`。
 - **`pushId` 的后端记忆窗口。** 记忆多少个 / 保留多久属**后端侧**参数，客户端侧语义已定。→ `backend-design-documents/open-questions.md`。（**报文字段名与序列化形态已定**：表达形式 = OpenAPI 3.1 + JSON Schema 单点、两侧各持自己的 DTO，`pushId` / `baseRevision` / `schemaVersion` / `reason` 落 push body 的负载信封段。权威：`backend-design-documents/contracts/envelope.md`。）
 
 ## 对应

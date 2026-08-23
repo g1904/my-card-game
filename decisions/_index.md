@@ -4,6 +4,10 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| [ADR-0028](ADR-0028-upstream-echo-validation-scope.md) | 上行整键回声校验升为通则；受约束顶层键由写入表机械导出 | Accepted | 2026-08-22 | systems/services/sync-service.md, systems/player-profile/_index.md, systems/player-profile/account-info.md |
+| [ADR-0027](ADR-0027-location-codex-vertex-unlock.md) | `LocationCodex` 显影粒度 = 顶点级解锁，连边是呈现层派生 | Accepted | 2026-08-22 | systems/player-profile/codex/_index.md, codex/common-properties.md, systems/adventure-event/travel/_index.md |
+| [ADR-0026](ADR-0026-event-generation-weighting-pipeline.md) | eventOptions 生成 / 加权 = 十步管线；类型修正为乘性系数 | Accepted | 2026-08-22 | systems/services/future-event-service.md, systems/services/plot-manager.md, systems/game-progression.md, systems/adventure-event/common-properties.md |
+| [ADR-0025](ADR-0025-finale-failure-is-character-death.md) | Finale 失败即角色终结；判定二值化，`WinMargin` 在该档退场 | Accepted | 2026-08-22 | systems/adventure-event/combat/_index.md, systems/game-progression.md, systems/services/life-cycle-service.md, systems/balance.md |
 | [ADR-0023](ADR-0023-premium-entitlement-and-redemption.md) | 付费凭证 = `PlayerEntitlement` 两字段；购买段后端权威、兑现段客户端演算 | Accepted | 2026-08-19 | systems/monetization.md, systems/player-profile/_index.md, systems/services/sync-service.md, ux/screen-flow.md |
 | [ADR-0022](ADR-0022-research-build-panel.md) | Research 结算形态 = 复数决策槽的构筑面板 | Accepted | 2026-08-17 | systems/adventure-event/research/_index.md, research/common-properties.md, systems/character-profile/deck/_index.md |
 | [ADR-0020](ADR-0020-event-transaction-discipline.md) | 事件的事务纪律：收口一次事务；事件内主动消费即时提交 | Accepted | 2026-08-17 | systems/adventure-event/common-properties.md, systems/services/profile-service.md, systems/adventure-event/exchange/_index.md |

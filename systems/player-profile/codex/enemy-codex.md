@@ -50,13 +50,13 @@
     2. **禁止「本回合」类动态措辞**——图鉴给静态知识，不给动态情报。
     3. **④ 的弱点必须可行动**——玩家读完要知道**该改什么打法**（「他吃不消连续的高费单发」可行动；「他很强」不是）。否则这一项是废话，也辜负了「死亡至少换来知识」的设计意图。
   - **写作规格是可观的成本**（每个敌人 150–280 字 × 5 项结构化文案，且要过「无数字」的审阅）。**缓解：给一份模板 + 两三个范例词条放进内容制作流程**，让作者照着填——上述长度区间正是为此而设。
-- **关键卡牌列 3 张，由 `EnemyData.KeyCardIds` 显式标注，不做自动挑选。** 样本卡组 15 张，3 张 ≈ 玩家能记住的上限且足够勾勒路数（2 张不足以表达「路数」，5 张变成背卡表）。
+- **关键卡牌列 3 张，由 `EnemyData.KeyCardIds` 显式标注，不做自动挑选。** 样本卡组通常十余张，3 张 ≈ 玩家能记住的上限且足够勾勒路数（2 张不足以表达「路数」，5 张变成背卡表）。
   - **为何不自动挑选**（例如按出现次数 / 最高费用）：自动挑出的往往是**最平庸的低费填充牌**；关键卡是**叙事与教学的选择**（「这三张能让玩家理解他的路数」），属内容作者职责、不是统计问题；**词条文案挂模板且是静态的**，自动挑选会随卡组改写而漂移，与词条的静态性不一致；显式字段还可被 overlay 热更单独修正。
   - 加载校验：每个 id 必须存在于该模板的样本卡组内 → 否则 `PushError`（带模板 `Id` + 卡牌 `Id`）；数量 > 3 或 < 2 → `PushError`；数量 = 0 但词条已启用 → `PushError`。
   - **物化改写必须保留这 3 张**（否则图鉴与玩家实际遭遇对不上，而图鉴是**唯一的事前信息来源**）→ 违反则 `PushWarning` + 该次改写回退；**`OverridesDeck == true` 的定制卡组条目显式豁免**。见 `systems/enemies/`。
 - **慷慨度维持 3 张关键卡，不给样本卡组完整列表（承重）。** 本图鉴是事前知识的主通道，「是否该给得更多」因此是一个真实的问题；结论是**先不动机制**，三条理由：
-  1. **完整 15 张列表把词条从「事前知识」推向「事中情报」。** 知道全表的玩家可在战斗中做「他还剩哪些牌」的推算——那是读牌堆，属事中情报，而「事前知识 vs 事中情报」这条分层是图鉴与战斗信息体系共存的**前提**，不是可微调的旋钮。3 张只勾勒路数，不支持这种推算。
-  2. **它与两条既有结论同时相抵。** 「关键卡 3 张（5 张变成背卡表）」与「总长 150–280 字、一屏读完不需滚动」是同一件事的两面；15 张卡名 + 说明必然突破一屏，进而逼出分页或分档解锁，而分档解锁本身已被否决。
+  1. **完整卡组列表把词条从「事前知识」推向「事中情报」。** 知道全表的玩家可在战斗中做「他还剩哪些牌」的推算——那是读牌堆，属事中情报，而「事前知识 vs 事中情报」这条分层是图鉴与战斗信息体系共存的**前提**，不是可微调的旋钮。3 张只勾勒路数，不支持这种推算。
+  2. **它与两条既有结论同时相抵。** 「关键卡 3 张（5 张变成背卡表）」与「总长 150–280 字、一屏读完不需滚动」是同一件事的两面；整副卡组的卡名 + 说明必然突破一屏，而卡组规模不设硬限，词条长度会随内容编排无上界地涨——进而逼出分页或分档解锁，而分档解锁本身已被否决。
   3. **慷慨度上调有一个更便宜、可回退的旋钮：**③「运作方式」与 ④「特点与弱点」的写作厚度。④ 本就被要求「必须可行动」；若实测知识不足，先把 ③④ 写厚——**纯内容侧调整、零机制成本、可逐条回退**，远早于动机制。
   - **退让阶梯（属实测调整，不是重新裁决）：** 加厚 ③④ → 把 `KeyCardIds` 的**数量上界**由 3 放宽到 5（加载校验的 `> 3 → PushError` 改为 `> 5 → PushError`，**下界 2 不动**；纯数据改动，词条仍在一屏内）→ **再之后**才考虑全表。给出这条阶梯，是为了让「慷慨度不够」将来有一条不必重开分层裁决的出路。
   - **已知代价照录：** 首次面对陌生敌人的信息劣势维持现有水平，而该水平尚未经实测检验。
@@ -70,7 +70,7 @@
 
 > 条目共有字段与解锁语义见 `common-properties.md`；图鉴族总览见 `_index.md`。
 
-Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-19-codex-entry-schema.md`
+Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

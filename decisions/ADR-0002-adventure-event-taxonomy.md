@@ -27,7 +27,7 @@
   |---|---|---|
   | `Practice` | small blind | `TurnLimit 8` · `WinMargin 0`（道念相等即胜） |
   | `Standard` | big blind | `TurnLimit 10` · 道念高者胜 |
-  | `Finale` | boss blind | `TurnLimit 12` · `WinMargin` ch1 3 / ch2 5 / ch3 8 |
+  | `Finale` | boss blind | `TurnLimit 12` · `WinMargin 0`（不落后即通过；落后即角色终结） |
 
   **`combatTier` 是必需的，不是修饰。** Finale 是篇章边界闸门、ADR-0004 篇章重试模型的锚点、道统残卷的唯一累积源与兑现点；这三处都需要一个**可机械判定**的判据。靠内容 `Id` 或 location 配置去认出「这是渡劫」是反模式（见 `data-resource-rules.md`「绝不用场景路径、数组索引或显示名作内容的键」的同源理由）。
 - **Explore 是元类型，继承遮罩语义。** 遮罩一个**固定的**事件（在该 Explore 内容条目上已指定，**非点击时临时生成**），进入时才揭示。可被遮罩的真身取值域 = **Combat / Travel / Exchange**；**Research 不可被遮罩**（卡组编辑是玩家主动规划的动作，藏起来只制造挫败），**Explore 自身不可嵌套**（元类型定义使然）。
@@ -39,7 +39,7 @@
 ## Consequences
 - **内容 schema：** 每个 `AdventureEvent` 数据条目带一个类型枚举（**五值**）；`eventType == Combat` 的条目另带 `combatTier`（三值）。`Explore` 需要一个「揭示」机制，在进入时映射到其被遮罩的固定事件。
 - **结算路径不变，仍是两个 resolver。** `CombatEventResolver` 接 `Combat` 一类（三档共用），`GenericEventResolver` 接其余四类。收为五类后这条拆分更干净：**resolver 的数量与 `eventType` 的数量本就不对应**，因为拆分轴是「有没有状态机」，不是「有几个类型」。
-- **Practice / Finale 的既有设计整体保留**，只是挂载点从 `eventType` 移到 `combatTier`：Finale 的天劫 Enemy、`±2` 赋级带、`WinMargin` 初值、「一篇章一个 Finale、败后不可重战」、「失败但存活仍完成篇章」、残卷规则；Practice 的 small blind 参数与 `EnemyData.EncounterScopes` 两层敌人池（`[Practice]` / `[Combat]` 改为按档位取值），全部照旧。
+- **Practice / Finale 的既有设计整体保留**，只是挂载点从 `eventType` 移到 `combatTier`：Finale 的天劫 Enemy、`±2` 赋级带、遭遇参数初值、「一篇章一个 Finale、败后不可重战」、残卷规则；Practice 的 small blind 参数与 `EnemyData.EncounterScopes` 两层敌人池（`[Practice]` / `[Combat]` 改为按档位取值），全部照旧。
 - **落实「并非每个事件都是战斗」**：五类中只有 `Combat` 走战斗结算，其余四类是事件 / 抉择流程；`Explore` 视其真身可能落到战斗结算上。
 - 无独立的休整节点类型；恢复必须由 Combat / Research 事件承载，或由其它系统（法宝 / 属性）提供。
 - **`combatTier` 的字段形态：它是模板常量，落 `EncounterSpec.Tier`（由 future-event-service 物化时从模板代入），`EventOption` 与 `PastEventEntry` 两处都不加独立字段**——呈现与履历两个消费方本就要按 `EventId` 查模板取显示名，tier 在同一次查表里拿到。见 `systems/adventure-event/combat/_index.md`。

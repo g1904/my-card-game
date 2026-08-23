@@ -80,12 +80,109 @@
     - **三条理由全是既有纪律的直接推演：** ① 产出侧同受防重掷约束——抽取若留到结算那一刻现掷，退出重进即可重掷产出，这正是 Research 候选与 Exchange 库存被前移到物化的同一条理由；② 产出侧同受「不得回查模板重算」约束——overlay 热更可在轮回进行中覆写模板，结算时回查等于同一事件在呈现与结算两处看到不同数据；③ `AppliedChange` 只记**施加之后**的最终账，而决策点（置换面板的「失去 A · 得到 B」候选）需要一份**施加之前就已定稿**的候选。
     - **与「模板上的 outcome / effect 定义不进快照」不冲突**：那条管 `PastEventEntry`（本次掷定的结果已在 `AppliedChange` 里，再存一份权重表是无用中间态）；固化的结果落在**当前批 eventOptions 的存档**里，痕迹侧照旧不存。
   - **未选项的 outcome 白掷是既有代价，不是新代价。** 一批 3–5 个选项的产出全部预掷 ⇒ 未选项的产出永不施加。这与 `SelectCost` / `ResearchSlots` / `ExchangeStock` 在未选项上白算完全同构；RNG 消耗照常由 `DrawCount` 持久化，确定性不受影响。
-  - **物化后断言两条**（`PushError` + `EventId`）：`Priority ∈ { 0, 1 }`；`OutcomeSpec != null`——**无产出的事件用空 spec 表达，不用 `null`**，避免下游到处判空。`Priority` 不设加载期检查：它从不是 `AdventureEventData` 上的字段，一个不存在的 `[Export]` 面没有「检出它出现了」的机制，纪律靠文字与置位方唯一保证。
-  - **物化日志：** `[FutureEvent-Materialize] instance=<InstanceId> event=<EventId> type=<EventType> prio=<n> cost=<lifeSpan> outcomeRolls=<n>`。
+  - **outcome 的抽取链是复用，本服务不新增抽取代码。** 能力族产出调 `profile-service.TryPickGrantableMany(kind, scope, rng, n)`，内容族走对应仓储的 `AllEnabled()` / `DrawPool<T>` 加权无放回抽取——与 Research 候选、Exchange 库存逐字同款。**随机源 = `RngStream.Reward` 子流，不新开子流。**
+  - **批内抽取顺序必须固定，且是一条确定性要求（承重）。** 一次 `ComputeEventOptions` 会为同批 3–5 个选项**连续**在 `Reward` 子流上抽取（Research 候选 + outcome 产出），「三个用途从不并发」这条既有论证是**结算期**的论证，在批物化期不再自明。**顺序定为：按 option 在批内的索引升序；单个 option 内按「Research 槽 → `OnResolvedRules` 数组序 → `OnFailureRules` 数组序」。** 不定死顺序则两种实现能从同一种子产出不同批次，属能上线、线上不可见的一类缺陷。落一条 `#if DEBUG` 顺序断言（记录抽取调用序列并与上述顺序比对，不符即 `PushWarning` + 序列）。
+  - **outcome 型取池短缺按分界判据降级，不新增闸 ①。** 事件产出没付过钱 ⇒ **降级到更少 + `PushWarning`（want / got）**，不拒绝、不拦事件。闸 ① 存在的理由是「不能留空面板」，而事件产出不是面板——少发一件不产生死屏、不卡玩家。`[采纳推荐 — 待复核]`
+  - **`OutcomeRule` 不支持「多选一 / 加权掷一条」：一条规则一条产出。** 「随机三选一」由 `GrantFromPool` + `RarityFilter` 表达；具名的互斥产出拆成多个内容条目。本库对这类口子的收口方式是不给——真需要时补一个字段是纯加法，而先做再退回要改存档结构。`[采纳推荐 — 待复核]`
+  - **outcome 物化日志：** `[FutureEvent-Outcome] instance=<InstanceId> event=<EventId> side=<Resolved|Failure> rule=<Kind> want=<n> got=<m>`。
+  - **物化后断言三条**（`PushError` + `EventId`）：`Priority ∈ { 0, 1 }`；`1 <= EventOptionBatch.Options.Count <= 5`（带 `BatchId`；下界由收缩保底显式兑现，上界由 `BatchSizeWeights` 的支撑集与 `locationMap` 出度 ≤ 5 两侧共同保证）；`OutcomeSpec != null`——**无产出的事件用空 spec 表达，不用 `null`**，避免下游到处判空。`Priority` 不设加载期检查：它从不是 `AdventureEventData` 上的字段，一个不存在的 `[Export]` 面没有「检出它出现了」的机制，纪律靠文字与置位方唯一保证。
+  - **物化日志：** `[FutureEvent-Materialize] instance=<InstanceId> event=<EventId> type=<EventType> prio=<n> prioReason=<QuotaGate|InitialBuild|Finale|None> cost=<lifeSpan> outcomeRolls=<n>`。抬升原因**并进这一行、不另开日志点**——它与 `prio` 同源同粒度（逐实例的物化产出），且根约定的日志标签形态是 `[System-Method]`，而 `Priority` 不是方法名。
 - **选择约束只有一条轴，且由本服务独占置位。** `eventPriority` 是**唯一**约束玩家选择权的字段——**不设第二个约束字段**；它是上述物化模型的一个特例——**不由内容作者在 `.tres` 写死**，而由本服务在物化这一批时**动态置位**：
   - **取值域两档：`0`**（常态，玩家可从本批任选）与 **`1`**（本批一旦出现，有效可选集收窄为该档）。语义详见 `systems/adventure-event/common-properties.md`。
   - **置位方唯一 = 本服务；PlotManager 不得改变它。** **推论（边界澄清 · 承重）：PlotManager 只调内容不调约束**——它影响哪些事件进池、以什么权重出现，但**不能通过抬优先级强制玩家做某件事**；剧本的强制性只能靠**把候选池收窄**表达。
-- **批次规模 = 常态 3、区间 1–5。** 本服务每次产出的 `EventOptionBatch` **通常含 3 项**，允许 1 到 5。**批次不是固定宽度**——产出侧要按批给出数量，不能套一个常数；**1 项的批次合法**（与 `Priority = 1` 收窄到单项、Travel 20% 随机档同形，不需要额外规则允许它）。区间两端由什么驱动未定，见待决问题。
+- **抬升判据：写一条判据，不列一张清单（承重 · 与物化判据 / 快照判据并列的第三条）。** `[采纳推荐 — 待复核]`
+
+  > **抬升当且仅当：不抬升会使一条结构性规则失效。**
+
+  三条子判据逐条可机械核对，**取与门**（三条皆成立才准入）：
+
+  | # | 子判据 | 它挡住什么 |
+  |---|---|---|
+  | **(a)** | 该选项是某条**结构性规则的唯一出口**——不选它，那条规则无法兑现 | 挡住「这个事件很重要 / 很稀有 / 很贵」这类**风味性**抬升 |
+  | **(b)** | 收窄条件**由产出侧可确定判定**（配额计数 · 篇章 · `pastEvent` · 角色等级），**不读隐藏属性、不读剧本状态** | 挡住 PlotManager 借道本服务抬升——它要读的正是剧本状态 |
+  | **(c)** | 抬升表达的是**结构**，不是**难度**或**叙事** | 挡住「本批全是打不过的战斗，抬一个安全选项」这类过度保护 |
+
+  - **(b) 是这条判据最值钱的一半**：它把「PlotManager 只调内容不调约束」从一句纪律变成一条可机械核对的准入条件。剧情线关键节点之所以不能抬升，不是因为不想，而是它的触发条件必然读剧本状态、直接被 (b) 拒。
+  - **判据比清单值钱的理由**：清单会随内容增长被不断追加，每次追加都要重开「这一条该不该进」的辩论；判据把辩论一次性收敛为三次机械核对。**代价明写**：它给本服务再加一条必须被后来者遵守的纪律，密度是有成本的。
+- **依判据得出的抬升清单，当前闭合为三条。**
+
+  | 条件 | 判定式 | (a) | (b) | (c) |
+  |---|---|---|---|---|
+  | **配额闸门 Travel** | `Status.LocationEventCount >= location.EventCountLimit` | ✅ 离开当前 location 的唯一出口 | ✅ 读计数器 | ✅ |
+  | **开局构筑事件** | `chapter == 1` 且 `pastEvent` 为空 | ✅ 开局底盘的唯一来源 | ✅ 读篇章 + 一等输入 `pastEvent` | ✅ |
+  | **Finale** | `level == 该境界末级`（13 / 17 / 21） | ✅ 篇章边界的唯一出口，且不可重战 | ✅ 读等级 | ✅ |
+
+  - **开局构筑事件的判定式读的全是既有可读状态。** `chapter == 1` ⟺ 炼气新角色（ch2 / ch3 只能由续章进入，角色已有完整卡组与法宝）；`pastEvent` 为空 ⟺ 这是 `StartCycle` 写的那一批。**不引入 `CharacterProfile` 的新格、也不给本服务开跨批次入参**——前者是一次为可推出量付的存档 schema 迁移，后者与「本服务不持有跨批次状态」正面冲突。
+  - **ch1 的篇章重试算作「新角色首批」，照常抬升。** ch1 的篇章起始存档就是一个尚未做过任何构筑的空白炼气角色，「开局底盘的唯一来源」这条结构性规则在它身上成立。排除它会让 ch1 重试（上限无限，是最常走的一条路）永远拿不到那门功法与那件法宝。**收窄排除的是 ch2 / ch3 的续章与重试**：篇章继承 = 全部继承 ⇒ 底盘已完整，(a) 不成立；不收窄则续章首批会被一个不必要的强制构筑事件占满一整批。
+  - **Finale 不写「本篇章尚未结算过 Finale」的守卫。** 通过（`d >= 0`）即离开本篇章、失败（`d < 0`）即角色终结——两支都离开本篇章，故「本篇章已结算过 Finale 而角色仍留在本篇章」这一状态不存在，守卫恒不可达。为一个不可达的分支写扫描是纯负债。见 `systems/adventure-event/combat/_index.md`。
+  - **满级那一批的 Finale 恒进候选池、不参与类型加权**（闸门式旁路，见上方十步管线）——抬升需要有对象，加权只能提高概率。两条规则成对成立，缺一条另一条即落空。
+  - **满级恰逢配额用尽 ⇒ 先 Travel 一次再渡劫，且不会丢失 Finale。** 闸门分支整批替换 ⇒ 本批只有 Travel；Travel 不计入配额、Finale 不绑定 location ⇒ 换图后新 location 的 `LocationEventCount == 0`，走常规分支，等级条件仍成立、照常抬升。代价只是多花一格 Travel 的低价寿元。
+- **明确被否决的抬升候选（写下来，防止日后被逐个加回）。**
+
+  | 候选 | 被哪条子判据拒 | 说明 |
+  |---|---|---|
+  | **剧情线关键节点** | **(b)** | 触发条件必然读剧本 / 隐藏属性状态。剧本的强制性**只能靠收窄候选池**表达，这是承重边界 |
+  | **寿元 Band 2 时强制某类事件**（如强制一个回寿事件） | **(b)** + 承重取向 | Band 是**呈现门控**，推进规则层从不读它；且「明知是死路仍然走」是明写的承重取向，抬升等于用规则把它取消 |
+  | **稀有 / 高价值 / 高 `RarityTier` 事件** | **(c)** | 纯风味。稀有度已有自己的表达位（抽取权重） |
+  | **「本批全是打不过的战斗」时抬一个安全选项** | **(c)** + 承重定案 | 产出侧明写不做过度保护、不欠可战胜保证；难度的界由 `±2` 赋级带给出已经足够 |
+  | **ch2 / ch3 的篇章重试后首批** | **(a)** | 篇章继承使底盘完整，无结构性规则需要兑现 |
+  | **付费礼包 / 账号级持有状态触发的抬升** | **(b)** + 分层 | 账号级持有改写轮回级的选择约束，与「一条法则不得改写轮回级定稿实例」同源同重 |
+
+- **同批多个 `1` 档：不新增任何收窄规则（三条独立依据）。**
+  1. **在当前伪码下它是结构上不可达的分支**：闸门分支**整批替换**（该批里没有别的类型，第二类抬升项进不来）；开局构筑事件只出现在 `pastEvent` 为空的那一批，此时 `LocationEventCount == 0` ⇒ 必走非闸门分支，与闸门互斥；Finale 只出现在非闸门批，与闸门同样互斥，而它与开局构筑事件在时间上互斥（首批时 `level == 1`）。**为一条不可达的分支写规则是纯负债。**
+  2. **两档语义已明写「同档内自由择一」**，它零成本、且在日后新增抬升条件时自动生效，**保留它作为兜底**而不是删掉。
+  3. **任何「`1` 档内再排序」的规则事实上等于引入第三档**，而「两档 ⇒ 不存在层叠语义」是明写形态；它还会立刻长出「谁有权用这个排序」这个口子，本库对这类口子的收口方式是不给。
+- **抬升的落地面无结构增量。** 三条条件读的全是既有可读状态（`Status.LocationEventCount` · `chapter` · `pastEvent` · `realm` + `level`）；**不新增字段 / 枚举 / 加载期校验，不 bump 存档 schema**。抬升原因**不入快照**——它可由 `Priority` 加当时的 `LocationId` / `Seq` / 等级重算得出，按快照判据不存；回溯「这一步是不是被闸门收窄的」由已落存档的 `PastEventEntry.Priority` 加物化日志的 `prioReason` 回答。
+
+  ```
+  ComputeEventOptions 的置位段（落在既有物化流程内，不新增方法）：
+
+    若 Status.LocationEventCount >= location.EventCountLimit：
+        闸门分支（既有）：整批 Travel，Priority = 1，prioReason = QuotaGate
+        返回
+
+    常规分支：全部选项 Priority = 0
+    若 chapter == 1 且 pastEvent 为空：
+        开局构筑事件（若已进批）Priority = 1，prioReason = InitialBuild
+    若 level == 该境界末级（13 / 17 / 21）：
+        Finale 选项 Priority = 1，prioReason = Finale
+
+    EffectivePriority = Max(o.Priority)         ← 既有
+    物化后断言 Priority ∈ { 0, 1 }               ← 既有
+  ```
+
+- **批次规模 = 常态 3、区间 1–5。** 本服务每次产出的 `EventOptionBatch` **通常含 3 项**，允许 1 到 5。**批次不是固定宽度**——产出侧要按批给出数量，不能套一个常数；**1 项的批次合法**（与 `Priority = 1` 收窄到单项、Travel 20% 随机档同形，不需要额外规则允许它）。**常规批的规模由 `BatchSizeWeights` 掷定**（按篇章分格的五格权重表，走 map 子流；取值与加载期校验见 `systems/balance.md`）；**三种结构性场景不走这张表**——配额闸门批（= 邻接数或 1）、`Priority = 1` 收窄批（= 该档条目数）、闸 ②③ 降级后（少一项）。
+- **eventOptions 的生成 / 加权 = 一条十步管线（适用范围 = 常规批）。** 下述十步描述**常规批**；**闸门批在 ① 之前短路**——`LocationEventCount >= EventCountLimit` 成立即走上方的 Travel 段伪码，整批归 Travel，不进本管线（它的取池链是邻接集合、不经 `AllEnabled()`，硬塞进同一条管线会模糊那条明写的例外）；`Priority = 1` 收窄批同理由 `systems/adventure-event/_index.md` 的既有规则给出。
+
+  ```
+  ① 取池        AllEnabled<AdventureEventData>() → 按 ChapterScope 命中当前篇章过滤
+  ② 白名单收窄   全部 Active arc 的非空 EventWhitelist 取并 → 收窄支撑集；全部为空 = 不收窄
+  ③ 条目级闸     闸 ②（Research 槽 / Exchange 库存的可产出性）+ Explore 壳的真身过滤
+                → 不合格条目本次不进候选池（PushWarning）
+  ④ 类型分布     w_type(t) = BaseTypeWeights(t) × LocationMod(t) × Π_arc PlotTypeMod(arc, t)
+                → 在 ①②③ 之后仍有条目的类型上归一化
+  ⑤ 批次规模 N   按当前篇章的 BatchSizeWeights 掷定（map 子流），N ∈ [1, 5]
+  ⑥ 类型指派     逐槽按 ④ 的分布有放回抽 N 次，且按各类型收窄后的可用条目数封顶
+                （抽满一类即把它移出分布并重新归一）；Travel 抽中几次即槽位数 k
+  ⑦ 条目抽取     槽内按 w_event = SelectionWeightGrades[SelectionWeight] × Π_arc EventWeights 系数，
+                无放回抽取（同批不重复 EventId）
+  ⑧ Travel 段    照上方伪码：掷 map 子流 → 80% 从邻接抽 min(k, 邻接数) 个 / 20% 抽 1 个
+  ⑨ 逐项物化     赋级 / Research 候选 / Exchange 库存 / OutcomeSpec / SelectCost 取负 / Priority 置位
+  ⑩ 收缩保底 + 断言
+  ```
+
+  - **类型修正是乘性系数，支撑集不变（承重）。** location 的类型修正一行被定义为「**软**（改权重，不改可及性）」，而只有正的乘性系数天然满足这条定义：加性偏移做不到（一个大负偏移把权重按到 0 或负，可及性就没了，还要额外裁「负权重怎么办」），「白名单 + 权重」本身就是**硬**框定且与 `PlotModulation.EventWhitelist` 撞权威。它也与赋级带已定的「调制修正（乘性，只改权重不改支撑集）+ 截断重分配」逐字同构——同一段物化管线、同一个 map 子流、同一批调制源不能有两套权重语义。取值域与校验归 `systems/game-progression.md`（location 侧）与 `plot-manager.md`（剧本侧）。
+  - **乘法可交换 ⇒「location 与 arc 谁先」不是一个需要裁决的量。** 需要真正定序的只剩 ②（支撑集）与 ⑤（规模），而它们各自只有一个来源。
+  - **seeded RNG 是消费者，不是并列的第三层框定（承重）。** location 与 `PlotModulation` **改支撑集与权重**，map 子流**在已定形的分布上掷**。写成第三层会让人以为存在「RNG 先于框定」的可能形态，而那形态不存在。本管线不新开子流，RNG 消耗计入 map 子流的 `DrawCount` 并照既有纪律持久化。
+  - **收窄支撑集（②③）必须先于算权重（④）。** 否则会算出一个包含空类型的分布，抽中即落空——而本服务不设单项补位，落空只能整格丢掉，等于让批次规模被静默腐蚀。先收窄再归一，空类型自动退出分母。闸 ②③ 排在 ② 之后而非之前，是因为白名单可能把一整类条目筛没，先跑池计数是白算；且闸 ② 的口径明写「与实际抽取链同口径」，而抽取链是收窄后的那一条。
+  - **⑥ 有放回、⑦ 无放回。** 一批里出现两个 Combat 是正常的（`combatTier` 三档共用一个类型）；出现同一个 `EventId` 两次不是——与 Exchange `PickMany` 无放回「同批不出现重复商品」同款理由。⑥ 的封顶是同一条纪律在类型层的前置落地：不封顶则某类型抽中 m 次而收窄后只剩 `< m` 条条目时槽位落空，批次宽度会被内容池丰度间接影响，而「玩家可从批次宽度反推内容池状态」正是被否决的形态。
+  - **⑧ 单列在 ⑦ 之外**：Travel 的目的地取自邻接集合，那是唯一不经 `AllEnabled()` 的取池，不能混进 ⑦ 的内容池抽取。
+  - **⑩ 收缩保底：`Options.Count` 收缩到 0 时补一个 Travel。** 触发面是 Travel 20% 档缩水与闸 ③ 降级叠加到把整批清空（`N = 1` 本就有基础概率，故这不是理论不可达的分支）。**它不是单项补位**——不重新取池、不挑条目，只走既有的 Travel 死局兜底通道（邻接集合恒非空、`selectCost` 无条件可支付）。「不设单项补位」管的是「批次少一项时不另取一条填补」，本条管的是「批次空掉时仍有一个可推进的出口」，两者不是同一件事。
+  - **满级后的 Finale 条目是本管线之前的一条闸门式旁路，不是一个高权重条目（承重）。** 角色已达本境界巅峰时，该篇章的 Finale 条目**恒进候选池并直接占一个槽位**，判定发生在 ④ 类型分布与 ⑥ 类型指派**之前**，**不参与类型加权**。
+    - **加权只能提高概率，而篇章推进需要的是必现。** 写成高权重条目就存在一批又一批抽不到它的可能，角色卡在巅峰等级上无法推进。
+    - **旁路形态同时封死一条越权面：** 若 Finale 靠类型加权出场，一条把 Combat 排除在 `EventWhitelist` 之外的剧本 arc 即可间接封死篇章推进——而 PlotManager **只调内容不调约束**，它不该有这条能力。旁路发生在白名单收窄与类型加权之前，剧本够不着它。
+  - **「策划 vs 随机」不设旋钮。** 策划度已由三条既有通道逐级承载（`Priority = 1` 完全策划 / `EventWhitelist` + `EventWeights` 半策划 / 类型分布 × 条目权重的加权随机），是可算的**涌现量**而非要拍板的数字。为它开一个「策划度」参数会落在约束面，且没有任何消费方能说出 0.3 与 0.4 有什么区别。
+  - **物化日志：** `[FutureEvent-Weight] location=<Id> arcs=<n> N=<n> dist=<Combat:.42,Exchange:.18,...> k=<n>`。一批只在屏幕切换点产出一次，不落任何热路径（与「逐候选条目算一次池计数」同款代价论证）。
 - **重算依据 = 角色的整体历程，不是上一批（承重）。** 新一批**不在上一批基础上增删**，而是依角色的整体状态与历程重新产出——**`pastEvent` 是本服务的一等输入**（与 location 框定、PlotManager 调制、map 子流并列）。**「更新后」这三个字是硬要求**：收口那一次事务里本次事件的账与新 `pastEvent` 条目必须已经算进去，故 life-cycle-service 先取一份**只读投影**（`profile-service.Project(spec)`）再调本方法，把新一批放回同一次提交——**收口仍是一次事务、一个存档点**。**推论：本服务不持有跨批次的状态**；批与批之间唯一的信息通道是 CharacterProfile 本身，这与「模板不可写回」「产出即定稿」共同保证了本服务是无记忆的纯产出侧。
 - **批次刷新只有一种形态：整批重算（承重）。** 玩家面对一批 eventOptions 唯一能做的是**择一进入**；**每完成一次选择，本服务整批重算**——**选中一个即等价于跳过了其余全部**，故**不设跳过通道**。
   - **不设单项补位。** 本服务的 API 面是**四个**方法，没有 `TryRefill` 一类的单项补位方法——一旦有它，就要跟着回答「补位落空怎么办」「不生成付不起的事件」「不生成整批不可选的批次」一整串问题，而整批重算让这些问题不存在。
@@ -95,17 +192,22 @@
 - **敌人物化 = 一条五旋钮管线，输入固定、顺序固定、产物落存档。**
 
   ```
-  输入：EnemyData（经 ContentRegistry.AllEnabled() 取池，按 PoolScope / location / 全部 Active arc / 篇章 / eventType 框定）
+  输入：EnemyData（经 ContentRegistry.AllEnabled() 取池，按 PoolScope / location / 全部 Active arc
+        / ChapterScope / EncounterScopes 框定）
       + CharacterProfile（全局等级、所在篇章、隐藏属性）
       + location 框定
       + PlotManager 框定（框定敌人池 + 赋级权重偏移，不触及模板字段）
       + SeedManager 的 map 子流
 
-  ① 框定 + 选模板  ← PoolScope（通用条目恒进池，地点 / arc 专属条目叠加）+ location + 篇章 + eventType 框定 → 加权抽取
-  ② 赋级          ← 角色全局等级 ±2 带 + 权重表
+  ① 框定 + 选模板  ← EncounterScopes.Contains(spec.Tier) + PoolScope（通用条目恒进池，地点 / arc 专属条目叠加）
+                    + location + ChapterScope 命中 currentChapter（单值 int，取自 CharacterProfile.chapter）→ 加权抽取
+  ② 赋级          ← 角色全局等级 ±2 带 + 权重表（BandFor(chapter)，见 systems/balance.md）
   ③ 卡组结构对齐   ← 以 ② 的等级为输入（仅费用曲线对齐与风味替换，不加第二条强度曲线）
   ④ item / power 持有列表  ← 直接取自模板（不由剧本调制改写）
-  ⑤ 遭遇参数      ← eventType（Combat 10 回合 / WinMargin 1；Practice 8 / 0；Finale 12 / N）
+  ⑤ 遭遇参数      ← combatTier 代入五格：TurnLimit / WinMargin（Standard 10 / 1；Practice 8 / 0；Finale 12 / 0）
+                    + 三格牌流量 InitialDraw / DrawPerTurn / HandLimit（模板未覆写则取 CombatRulesData 默认值）
+  ⑤b 剧本收紧     ← 全部 Active arc 的 PlotModulation.Tighten 五格合并 → 施加 → 钳制 → 断言
+                    （Tier == Finale 整档跳过；只施加一次；与 LevelBias 互不影响）
 
   产出：EnemyInstance（定稿 · immutable · 随 EncounterSpec 嵌在 EventOption.Encounter 上落存档，
         不在战斗开始时二次展开）
@@ -117,23 +219,51 @@
     |------|---------|-----------|
     | **卡组改写** | 结构对齐（费用曲线与该等级的 `manaLimit` 相称）、风味替换（同族异名）、埋伏张数增减 | 用「等级越高牌越强」再加一条强度曲线；**由剧情线临场改写** |
     | **item / power 列表** | **直接取自模板**（boss 与天劫的「不可被移除的场上特性」写在其专属条目上） | **由剧本调制增删**；突破 `IgnoresProtection` 的配额 |
-    | **遭遇参数** | 按 eventType 改写 `TurnLimit` 与 `VictoryRule` | 用它抵消等级带的约束 |
+    | **遭遇参数** | 按 `combatTier` 代入五格（`TurnLimit` · `VictoryRule` · 三格牌流量），再由剧本的 `Tighten` **单向收紧** | 用它抵消等级带的约束；用剧本**放宽**任一格 |
 
   - **卡组改写的表达形式**：常规敌人走**算子式**，boss / 天劫走**多套预制**（含天劫的定制卡组），二者并存。
   - **一条可在物化时机械检查的改写上界：必须保留模板标注的 `KeyCardIds`。** 否则图鉴会与玩家实际遭遇的敌人对不上——而图鉴是事前知识的主通道。违反 → `PushWarning` + **该次改写回退**；**`OverridesDeck == true` 的定制卡组条目显式豁免**（图鉴条目自带说明）。
   - **确定性与存档**：全部改写走 map 子流；产物 `EnemyInstance` **随 `EventOption` 落存档、不重算**（overlay 热更 + seeded RNG 使重算不保证同结果）。
   - **⚠ 前置依赖（诚实标注）**：「结构对齐」与「风味替换」目前**没有量纲**（费用曲线、道念产出量纲未定），故旋钮 ③ 在 ch1 数值标杆专场之前**只是一个框架，不能落地为具体改写算子**。
 - **剧情线不可调制敌人模板；剧情线与地点各自可拥有专属敌人模板池（承重）。** 差异化的表达位从「改写模板内容」整体移到「**换一个池子抽**」：
-  - 每个 `EnemyData` 带 **`PoolScope`**（通用池 / 某地点专属 / 某 arc 专属）；抽取时按 `EncounterScopes`（事件类型作用域）+ `PoolScope`（地点 / arc，逐维度与门、空维度恒真，arc 一侧传**全部 `Active` arc 的集合**）+ 篇章框定叠加，全部在 `AllEnabled()` 之后。**通用条目恒进池，专属条目是叠加而非替代**——池归属的唯一权威在敌人条目一侧，location 条目不持敌人清单（见 `systems/enemies/_index.md`）。
+  - 每个 `EnemyData` 带 **`PoolScope`**（通用池 / 某地点专属 / 某 arc 专属）；抽取时按 `EncounterScopes`（遭遇档位作用域，`CombatTier[]`）+ `PoolScope`（地点 / arc，逐维度与门、空维度恒真，arc 一侧传**全部 `Active` arc 的集合**）+ `ChapterScope`（篇章框定，空 = 三章通用，入参是单值 `currentChapter`）叠加，全部在 `AllEnabled()` 之后。**通用条目恒进池，专属条目是叠加而非替代**——池归属的唯一权威在敌人条目一侧，location 条目不持敌人清单（见 `systems/enemies/_index.md`）。
   - 「大限将至」线上的绝境敌人 = **该线专属池里的一条完整 `EnemyData`**（自带更凶的样本卡组与 power），**不是**把通用条目临场改凶。
   - **PlotManager 的权力因此收敛为三项：框定用哪个池 · 偏移带内赋级权重 · 拧紧遭遇参数。它碰不到模板的任何字段。**
     这份权力面在内容侧有一个**逐条投影的承载类型 `PlotModulation`**（六个 `[Export]` 字段，一一对应上述三项加事件层的两项权重）：越权的写法在内容层**根本没有字段可填**——`eventPriority`、模板字段、敌人卡组、item / power 列表都不在其中。类型定义见 `plot-manager.md`。
   - **好处**：改写幅度天然有界 · 图鉴词条与玩家实际遭遇恒对得上（专属条目有自己的词条）· 可确定性复算。**代价**：内容量上升（每条专属敌人都是一个完整条目，含图鉴五项词条），归内容排期。
-  - **两个字段的缺失语义不同**：`EncounterScopes` 空数组 → 加载期 `PushError`（漏填会静默缩小抽取池）；`PoolScope` **允许为空**（= 通用池），不报错。
+  - **三个框定字段的缺失语义各不相同**：`EncounterScopes` 空数组 → 加载期 `PushError`（`Contains` 恒假 ⇒ 漏填即写了永不进池的死条目）；`PoolScope` **允许为空**（= 通用池），不报错；`ChapterScope` **空数组合法**（过滤写成 `Length == 0 ||`，空即恒真 ⇒ 漏填只是范围偏宽，不是死条目）。逐字段的校验口径见 `systems/enemies/common-properties.md`。
   条目定义见 `systems/enemies/`。
 - **遭遇参数由本服务在物化时从 `AdventureEventData` 代入 `EncounterSpec`。** `TurnLimit` / `VictoryRule` / `RewardPoolId` / `BaseReward` 全部在物化时定稿，**`EnemyData` 完全不携带**——否则同一个敌人条目无法同时用于 Practice 与 Combat。**依据 = 唯一物化点 + 产出即定稿**：消费侧不得回查模板重算，故 `EncounterSpec` 必须自带取值，不能只带一个 `EncounterId` 让 combat-service 回查。**物化时代入也是剧本调制的天然挂点**（PlotManager 可拧紧遭遇参数）。类型形态见 `systems/services/combat-service.md`。
+
+- **剧本收紧的施加侧全在本服务（旋钮 ⑤b）。** 输入 = 全部 `Active` arc 的 `PlotModulation.Tighten` 按逐格算子合并出的一份五格增量（类型形态、方向约束与合并算子见 `systems/services/plot-manager.md`；十个界常量的取值见 `systems/balance.md`——**两处均只回链，本节不复述定义与数字**）。落位固定在**旋钮 ⑤ 之后、`EncounterSpec` 定稿之前**，**整批只施加一次**。
+  - **`Tier == Finale` 整档跳过**（不是错误、不告警），闸的理由见 `plot-manager.md`。
+  - **与 `LevelBias` 互不影响** ⇒ 两者的先后不是需要裁决的量。
+  - **施加式：每格的 `Clamp` 一侧写硬界常量，另一侧写该格的施加前值本身。**
+
+    | 格 | 施加式 |
+    |---|---|
+    | `TurnLimit` | `Clamp(v + TurnLimitDelta, MinTurnLimit, v)` |
+    | `WinMargin` | `Clamp(v + WinMarginDelta, v, MaxWinMargin)`（反向格；`v` 恒 `>= 0`） |
+    | `InitialDraw` | `Clamp(v + InitialDrawDelta, MinInitialDraw, v)` |
+    | `DrawPerTurn` | `Clamp(v + DrawPerTurnDelta, MinDrawPerTurn, v)` |
+    | `HandLimit` | `Clamp(v + HandLimitDelta, MinHandLimit, v)` |
+
+    （`v` = 该格的施加前值，即旋钮 ⑤ 代入的档位默认值或模板覆写值。）
+
+  - **把施加前值写成 `Clamp` 的一侧，是为了让「永不放宽」不依赖方向校验。** 方向由加载期校验保证（delta 符号越界 → `PushError`），但**加载期校验够不着 overlay 推上来的坏数据**；施加式自带这条边界后，即便一条 `TurnLimitDelta = +3` 绕过校验落到这里，`Clamp` 的上界仍是 `v` ⇒ 结果不高于施加前值。**收紧管线因此在数据层面单调**，与「越权的写法在内容层根本没有字段可填」是同一条纪律在物化侧的延伸。
+  - **三格牌流量在此必须代入定值。** `EncounterSpec` 的三格是可空覆写组（`null` = 取 `CombatRulesData` 默认值），但**一旦本步产生非零收紧，该格不得再留 `null`**——产出即定稿、消费侧不回查模板重算，留 `null` 会让 combat-service 读回未收紧的默认值。
+  - **物化期钳制 5 条，一律削平而非拒绝**（一条 overlay 推上去的坏 `Tighten` 应当被削平，而不是让这一批 eventOptions 产不出来——与「合法池不足 3 条目时显式降级、不静默」同一条纪律：降级但留痕）。任一格被硬界削平 → `PushWarning`，带**全部 `Active` arc 的 `Id`** + 字段名 + want / got。
+  - **`EncounterTighten` 本身不进 `EncounterSpec`、不落存档**：它是本步的一个输入，施加完即消失；落存档的是**施加后的五格定值**。⇒ 本机制对存档 schema 零改动、零迁移。
+  - **物化日志并进 `[FutureEvent-Materialize]`：**
+
+    ```
+    [FutureEvent-Materialize] tighten=<turnΔ>/<marginΔ>/<initΔ>/<drawΔ>/<handΔ>
+    ```
+
+    记的是**实际生效的增量**（钳制之后的差值），不是合并出的原始 delta——否则被削平的那一批日志会与存档里的定值对不上。
+
 - **成本量值取负发生在本服务的物化组装阶段。** 内容作者在 `AdventureEventData` 上以**正数量值**标注 `lifeSpanCost` 等成本（「耗 3 点寿元」写 `3`）；**本服务在组装 `SelectCost` 时取负**填入 `ChangeElement.BaseValue`，从而满足既定的带符号约定（负 = 消耗，正 = 产出）。这条转换**只在此处发生一次**——下游（life-cycle-service / ProfileManager）拿到的一律是带符号 spec，不做任何符号推断。
-- **战斗类事件在物化时精确标注敌人等级。** `combatTier` 三档的 `EventOption` 需向玩家**精确展示敌人的等级**（否决模糊的危险度档位）——玩家据此与自身等级比对，理解意图为何被遮蔽，并把「越级挑战」当作可主动选择的风险 / 回报。
+- **战斗类事件在物化时精确标注敌人等级。** `combatTier` 三档的 `EventOption` 需向玩家**精确展示敌人的等级**（否决模糊的危险度档位）——玩家据此与自身等级比对，把「越级挑战」当作可主动选择的风险 / 回报。
 - **敌人也由本服务物化：`EnemyData` → 充实 / 改写 → 指派给事件。** 敌人的**静态数据**集中在 **`EnemyData`** 集合（稳定 `Id` + 图鉴文案 + 基准数值 + **样本卡组**；玩家侧的那一面即 EnemyCodex）。本服务在物化一个战斗类事件时：**取出一份模板 → 依情境充实 / 改写（enrich / modify）→ 把结果指派给该事件**。**`EnemyData` 另需两个持有列表字段：item 持有列表与 power 持有列表**——**敌人没有储物袋**（那是角色的道具容器），道具与 `Power` 直接挂在模板上；战斗组装时 item 列表成为敌人侧的「本场可用道具」，power 列表按 `UsableScene` 过滤后入场为受保护永久物。**这给「物化时充实 / 改写」多了两个可调旋钮**（除等级与样本卡组外，还可调这一场敌人带哪些道具 / 特性）。
 
   - **敌人等级由此答定：它不是模板上的死值，而是物化产物。** 同一个敌人模板可在不同篇章、不同情境下以不同等级出场——这正是「多数属性由物化决定」在敌人上的应用。
@@ -143,16 +273,16 @@
 
 - **赋级的合法区间 = 角色当前等级 `±2` 的对称带（三章统一 · 承重）。** 物化赋级落在 `[角色等级 − 2, 角色等级 + 2]` 内，在全局序 **1–22** 上截断。
   - **它是一条相对 `diff` 的带，不是按境界给的绝对天花板**，且**同时给出上界与下界**（此前只有上界）。
-  - **三章的带边界全部是内容侧可调数值。** **本服务只读「当前篇章的带」这一个概念，不为分章写分支**；落点与加载时校验见 `systems/balance.md` 的待决问题。
+  - **本服务只读「当前篇章的带」这一个概念，不为分章写分支**（读取面 = `BandFor(chapter)` 一次取值）。带边界与带内权重同住一份平衡资源，**资源形态与加载期校验见 `systems/balance.md`**。
+  - **PlotManager 不得改带边界，只能对带内权重施加乘性调制**（只改权重不改支撑集）——与本服务权力面三项中的「偏移带内赋级权重」是同一条。
   - **赋级规则挂在 Enemy 上，不挂在事件类型上** ⇒ **`combatTier` 三档一视同仁**。天劫只是 Enemy 的一种，不享有等级规则上的例外（见 `systems/adventure-event/combat/`）；Practice 的「低风险」由回合数与胜负门槛承担，**不由「派个更弱的对手」承担**。
   - **推论 ①（承重 · 三章全部成立）：「一次惨败打穿耐久」由规则层封住。** 上界统一为 `+2`，最坏落差为 9（炼气十三层 `baseMomentum` 15 遇筑基中期 24），在 `lifeTotal` 10/10 之内。
   - **推论 ②：越阶遭遇只出现在每个境界的末两级**——12 · 13 → 筑基；16 · 17 → 金丹；20 · 21 → 元婴。**三章统一**，越阶压迫感自动向篇章尾部集中，与 Finale 落在篇章边界同向。
   - **推论 ③：`±2` 是无例外的硬规则。** 任何调制源（PlotManager、location 框定、事件模板、Finale）都不得产出带外 `diff`；**赋级函数不接受任何区间覆盖参数**——不给这个口子，就不存在「谁有权用它」的问题。调制源只能改**带内权重**。
-  - **推论 ④：上界档不必然越阶。** `diff = +2` 只在境界末两级才是越阶；境界中段的 `+2` 是同阶，照常按 `diff` 门槛给信息。
+  - **推论 ④：上界档不必然越阶。** `diff = +2` 只在境界末两级才是越阶；境界中段的 `+2` 是同阶。
   - **推论 ⑤：本服务不需要境界表。** 赋级 = 全局序上一次加减 + 截断；境界边界的特殊性由 `baseMomentum` 的跨度放大自然承载。
-  - **推论 ⑦：带内分布权重表**（三段权重 × 调制修正 × 截断重分配 × 批内去重），见 `systems/balance.md`。**截断重分配必须显式实现**：全局序 1–22 截断后落空的档位权重按比例并入带内剩余档，否则 L1 · L2 的抽取会出现权重和不为 1 的实现分歧。
   - **推论 ⑥：元婴（全局 22）**——角色 21 时带为 `[19, 22]`；抵达 22 即轮回终点，实际不产生遭遇。
-  - **推论 ⑦：带只约束「能出到几级」，不约束分布。** 带内各档（ch1 七格 / ch2 · ch3 五格）以什么权重出现，仍归本服务的加权规则（待定）。
+  - **推论 ⑦：带内分布权重表**（五档权重 × 调制修正 × 截断重分配 × 批内去重），见 `systems/balance.md`。**截断重分配必须显式实现**：全局序 1–22 截断后落空的档位权重按比例并入带内剩余档，否则 L1 · L2 的抽取会出现权重和不为 1 的实现分歧。
 - **Research 的构筑面板候选在物化阶段掷定，随 `EventOption` 落存档。** 模板上的 `ResearchSlotSpec[]` 在本服务物化时展开为 `ResearchSlot[]`：逐槽按 `AllowedOperations` 取候选池、抽 `CandidateCount` 条、并为每条掷定它附带的 `ManaDelta`（风险档为 `±1`，其余为 `0`）。
   - **随机源 = `RngStream.Reward` 子流，不新开子流**：`Reward` 已承载完全同构的用途（候选预先掷定 + 落存档 + 绝不重抽），而奖励候选与构筑候选从不并发。
   - **两条取池链均为复用，本服务不新增抽取代码**：法宝候选直接调 `profile-service` 的 `TryPickGrantableMany(Item, Character, rng, 3)`；功法候选走 `CultivationTechniqueData` 仓储的 `AllEnabled()` / `DrawPool<T>` 加权无放回抽取，**它是 `DrawPool<T>` 的第五个调用方**。
@@ -196,7 +326,7 @@
 - **Explore 的揭示落在既有 `eventStart` 阶段内，不新增服务方法。** 揭示是 `revealed = option with { IsRevealed = true }` 一次派生（当前批里那份原实例不动，符合「产出即定稿」）；**resolver 按真身的 `eventType` 选取，不按 `EventOption.EventType`**——后者恒为 `Explore`，照它选会把一个战斗真身送进 `GenericEventResolver`。这与下条的组装判据是同一条纪律的两处应用。
 - **通用结算器从 outcome / effect 定义算出的授予一律记 `Source.EventOutcome`。** 授予来源的分野判据是**谁组装出这条 element**，不是事件类型：Research / Explore / Travel 的 outcome 授予、以及 Exchange 中**不走购买流程**的 outcome（对话结果、赠礼）同归此值；走购买流程的那一条走 `Source.ExchangePurchase`，由 combat-service 交出的 `Spoils` 走 `Source.CombatReward`。**推论：Explore 选项按其揭示后的真身归类**——`EventType` 恒为 `Explore` 而真身在 `RevealedEventId`，一个揭示出战斗真身的选项，其战利品出自 combat-service，故不记 `EventOutcome`。见 `systems/common-properties.md`。
 
-Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
+Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md`
 
 ## 管理器
 
@@ -228,6 +358,7 @@ public sealed record EventOption(                 // 定稿实例：immutable �
     IReadOnlyList<ResearchSlot> ResearchSlots,    // Research 的构筑面板决策槽（候选已掷定）；其余类型为空
     IReadOnlyList<ExchangeOffer> ExchangeStock,   // Exchange 的定稿库存（商品与标价已掷定）；其余类型为空
     int                RerolledCount,             // Exchange 已刷新次数；供刷新价递增与存档恢复
+    IReadOnlyList<AbilityChangeSlot> AbilityChangeSlots,  // 置换 / 禁用的决策点候选（物化时掷定）；无此类产出时为空
     EventOutcomeSpec   OutcomeSpec,               // 产出侧定稿载体：抽取 / 权重已掷定，结算时只选一侧
     EncounterSpec      Encounter                  // 战斗真身非空、其余为 null；EnemyInstance 嵌在其内
     );
@@ -240,7 +371,123 @@ public sealed record EventOptionBatch(
 // 本批的每一项都是必做项，唯一的推进方式是择一进入。
 ```
 
-**`OutcomeSpec`（类型 `EventOutcomeSpec`）= 产出侧的定稿载体，顶层按结算走向分侧。** 它顶层分 `OnResolved` / `OnFailure` 两侧，**不按事件类型分侧**——与「授予来源的分野判据 = 谁组装出这条 element」同一条判据。**内部分解 ⟨待定：归「效果关键字体系与目标规则」那次专门 handoff⟩**：产出的效果原语表达、两侧各自的列、经验失败折算的数据形态都在那次落定，本处只定「载体存在于 `EventOption` 上」「固化时点如上」「顶层按结算走向分侧」三件事。
+**`OutcomeSpec`（类型 `EventOutcomeSpec`）= 产出侧的定稿载体，顶层按结算走向分侧。** 它顶层分 `OnResolved` / `OnFailure` 两侧，**不按事件类型分侧**——与「授予来源的分野判据 = 谁组装出这条 element」同一条判据。
+
+```csharp
+public sealed record EventOutcomeSpec(
+    ProfileChangeSpec OnResolved,     // 恒非 null；无产出时为空 spec
+    ProfileChangeSpec OnFailure);     // 同上
+```
+
+- **两侧的载体类型复用 `ProfileChangeSpec`，不新建窄类型。** 三条依据全部来自既有形状：**成本与产出共用一个类型**是明写形态（产出侧另造窄类型等于把已合并的东西重新分叉）；`eventEnd` 的五步组装第 ① 步本就是拼各列，选中一侧后直接并入、零 element 翻译；`SelectCost` 已示范「复用宽类型 + 恒空列断言」这套纪律，读者不需要学第二套。**代价明写**：outcome 侧多数列恒空，需逐列断言（见下）。
+- **术语纪律：这里的产出原语叫「产出 element」，不叫「效果」（承重）。** 本库「效果」一词有**两个所指**——战斗侧的效果原语（`EffectData` 的原子操作 + `KeywordData` + `TargetSlot` / `EffectScope` / `EntryFilter`，作用于战场条目与手牌、寿命一场战斗）与本处的产出 element（`ProfileChangeSpec` 各列，作用于 `CharacterProfile` / `PlayerProfile` 的字段、经 `ProfileManager.TryApply` 施加、跨事件持久）。**两套作用面不相交**：战斗效果原语没有一个写 Profile，而一个事件产出里根本没有战场。混用同一个词会让人以为产出面依赖战斗侧的关键字体系，而它不依赖。与「字段名取 `OutcomeSpec` 而非 `Outcome`」同源的防混淆纪律。
+
+**两侧各自开放的列 = `Elements` / `AbilityElements` / `DeckElements` 三列，其余各列恒空。** 判据一句（写判据而非清单）：**内容作者能如实声明的量才进 `OutcomeSpec`；由服务算出绝对值、或由代码采集的，一律不进。**
+
+| `ProfileChangeSpec` 列 | outcome 侧 | 依据 |
+|---|---|---|
+| `Elements`（资源） | ✅ | 经验 / 寿元回复 / `lifeTotal` / `manaLimit` / 隐藏属性 / 灵玉走它；key 取值域另收紧，见下 |
+| `AbilityElements`（能力） | ✅ | **只承载物化时定稿的授予**（`Op == Grant`）；置换 / 禁用走 `EventOption.AbilityChangeSlots` 的决策点，见下 |
+| `DeckElements`（卡组） | ✅ | 功法的学 / 升 / 弃、散牌的增删；与能力侧同为「`SelectCost` 恒空、只能在 outcome 侧」 |
+| `Stats`（统计计数） | ❌ | 统计由各消费点代码采集，内容侧声明它等于让一个 `.tres` 伪造统计数字 |
+| `StatusChanges`（Status 规则字段） | ❌ | band 与 location 字段由 life-cycle-service **算出绝对值**后置入（band 要读前值 + 回滞），内容侧写不出绝对值 |
+| `PlotElements`（剧本） | ❌ | 推进逻辑归 PlotManager 独占；内容条目直接推进剧本 = 绕过「剧本表达强制性只能靠收窄候选池」这条边界 |
+| `EventStateChanges`（事件态） | ❌ | 整块中间态，由 life-cycle-service / combat-service 组装；`AppliedChange` 累加时本就要剔除它 |
+| `RngElements`（RNG 子流） | ❌ | 唯一组装路径是 `SeedManager.AttachRngState(spec)` |
+| `TraceElements`（履历） | ❌ | 一次事件恰一条痕迹，由 life-cycle-service 组装；内容侧写它即自指 |
+| `SettingChanges`（账号级设置） | ❌ | 设置只在设置屏发起，永不发生在事件结算里 |
+| `CodexElements`（图鉴解锁） | ❌ | 触发采集与去重归 `CodexManager`；内容侧声明会与它的组装打架，`AppliedChange` 记的账与提交的 spec 不一致 |
+
+**恒空列的表述逐列穷举，不写列数。** 与「`ProfileChangeSpec` 的列表数不进承重表述」同一条纪律：列随字段族增长，写死数字等于每加一列就要回改一次承重句。
+
+**`Elements` 内的 key 取值域收紧（outcome 侧的第四条不变式）。** `Elements` 开放不等于全部 `CostKey` 开放：
+
+| `CostKey` | 物化后可出现 | 说明 |
+|---|---|---|
+| `ExperiencePoint` · `Faith` · `Bloodlust` | ✅（**只由服务展开**） | 由物化组装从 `ExperienceGrade` / `HiddenStatGrade` 的平衡表映射展开；**`OutcomeRule` 写不出它们**，见下方两层分野 |
+| `LifeTotal` · `ManaLimit` · `Jade` | ✅ | 事件产出的常规面；`ManaLimit` 另受幅度约束，见下 |
+| `LifeSpan` | ✅（**仅正向**） | 回寿通道 A；成本侧恒 ≤ 0、产出侧恒 ≥ 0。**`eventType == Travel` 的条目该 key 恒不得出现**（既有结构性禁令） |
+| `PowerFragment*` 七 key | ❌ | 道统残卷由 life-cycle-service 在 Finale 收口时组装（含账号级掷骰与幂等键），内容条目声明它 = 一个 `.tres` 能伪造发放记录 |
+| `BundleRedeemedOrdinal` | ❌ | 付费兑现水位；`BundleGrantOrdinal` 更是后端独占、根本不是 `CostKey` 成员 |
+
+- **「物化后可出现的 key」与「模板可声明的 key」是两张表，不是一张（承重）。** 把它们写成同一张表会让内容作者能直接写 `FixedResource(ExperiencePoint, 7)` / `FixedResource(Faith, 12)`——**同一个产出当场有两个书写位**（枚举档 + 裸数字），而「内容侧不落裸数字、走枚举档 + 平衡表映射」正是经验与隐藏属性的既定范式，平衡表的反推口径会因此失效。故 `OutcomeRule.FixedResource` 的可写 key 收窄为 **`LifeSpan` / `LifeTotal` / `ManaLimit` / `Jade`** 四个，加载期拒绝其余；`ExperiencePoint` / `Faith` / `Bloodlust` **只能由物化组装从档位表展开**。
+- **`ManaLimit` 的单次变动幅度恒为 1，产出侧必须显式闭合。** `manaLimit` 的两个修正列被封死正是为了守住这条承重规则；若内容侧能写任意 `Magnitude`，一个 `.tres` 即可把 ±1 放大为 ±3，且**能上线、线上不可见**（要到玩家吃到 +3 才发现）。故加一条加载期校验 + 一条物化断言：`ResourceKey == ManaLimit ⇒ Magnitude == 1`。它是 `ResearchCandidate.ManaDelta ∈ { -1, 0, +1 }` 的对偶。
+
+**`AbilityElements` 只承载 `Op == Grant`，且作用域恒为 `Character`（正向白名单）。** 合法子集表对 `Source.EventOutcome` 一行只开 `(Power, Character)` / `(Item, Character)` 两格——法则 `(Power, Player)` 与**古宝 `(Item, Player)` 双双为 ❌**。故断言写成一条**正向**判定：`Op == Grant` ∧ `Scope == Character` ∧ `Source == EventOutcome`。
+
+- **正向白名单替掉两条负向排除。** 负向写法每新增一个 ❌ 格就要回来补一条，与「合法子集表是静态查表」的既有形态不同构；正向写法与该表逐格对齐，表翻一格即校验跟着变。
+- **事件产出不能给账号级古宝（承重）。** 古宝是账号级持久资产；由轮回内事件产出会改变账号级经济，也会绕开「账号级授予只走残卷 / 付费 / 成就」三条既定渠道。`GrantFromPool` 的 `PoolKind` 相应拒绝 `PlayerItem`。
+
+**置换 / 禁用不由 `OutcomeSpec` 承载，走 `EventOption.AbilityChangeSlots` 的决策点（承重）。** 置换型剥夺与三档禁用需要**一份施加之前就已定稿的候选**给玩家做决策，而 `ProfileChangeSpec` 的 element 只承载已定稿的最终账——两者不是同一层东西。
+
+```csharp
+public sealed record AbilityChangeSlot(       // 定稿 · immutable；物化时掷定，退出重进不重掷
+    int             SlotIndex,
+    AbilityChangeOp Op,                       // Remove（置换的失去侧）/ Disable；恒不为 Grant
+    AbilityKind     Kind,
+    AbilityScope    Scope,                    // 恒为 Character
+    string          LoseAbilityId,            // 被剥夺 / 被禁用的目标，已掷定
+    string          GainAbilityId,            // 置换的得到侧，已掷定；纯禁用为空串
+    DisableDuration Duration,                 // Op == Disable 时有效；否则缺省
+    bool            AllowDecline);            // 置换 = true（拒绝零代价）；禁用型 = false（只告知）
+```
+
+- **形状与 `EventOption.ResearchSlots` 同构，随机源同为 `RngStream.Reward` 子流。** 两者都是「物化时掷定的决策点候选 + 落存档 + 绝不重抽」，不发明第二套形态。
+- **掷定时点前移到物化时，与「抽取在物化时掷定」一条纪律收口。** 三个决策点面板（Research 槽 · Exchange 库存 · 置换 / 禁用候选）由此掷定时点一致，既有的不对称消失；防重掷也更严——留到结算那一刻现掷，玩家退出重进即可刷一个更合意的置换对象。
+- **`OutcomeSpec` 侧因此可写死 `Op == Grant`。** resolver 在结算时把玩家的选择翻译为 `Remove` + `Grant`（同 `PairKey`）或 `Disable` 三类 element，并入 `eventEnd` 那一次 `TryApply`；`ResolveOutcome` 不新增结构。
+- **存档 schema 有一格增量（如实记）：** `EventOption` 新增 `AbilityChangeSlots` 一格 ⇒ 随同批 bump（当前无线上存档 = 空迁移）。`PastEventEntry` **不受影响**——本次掷定的结果已在 `AppliedChange` 里，候选本身按既有判据（重算不出来**且有消费方**）在事件收口后无消费方。
+
+**模板侧的参数空间与加载期校验见 `systems/adventure-event/common-properties.md`；本服务只负责把它物化成上述定稿实例。**
+
+**物化组装后的断言清单**（`PushError` + `EventId` + `InstanceId`）：
+
+| # | 断言 |
+|---|---|
+| 1 | `OutcomeSpec != null`（既有，保留） |
+| 2 | 两侧的 `Stats` · `StatusChanges` · `PlotElements` · `EventStateChanges` · `RngElements` · `TraceElements` · `SettingChanges` · `CodexElements` **逐列恒空**（穷举，不按数量核对） |
+| 3 | 两侧 `Elements` 中不得出现 `PowerFragment*` 七 key 与 `BundleRedeemedOrdinal` |
+| 4 | 两侧 `Elements` 中 `Key == LifeSpan` 时 `BaseValue >= 0`（成本侧那条的镜像） |
+| 5 | 真身口径的 `eventType == Travel` 时两侧不得出现 `Key == LifeSpan`（既有结构性禁令的物化侧对偶） |
+| 6 | 两侧 `Elements` 中 `Key == ManaLimit` 时 `\|BaseValue\| == 1` |
+| 7 | 两侧 `AbilityElements` 每条：`Op == Grant` ∧ `Scope == Character` ∧ `Source == EventOutcome` |
+| 8 | 每条 `ChangeElement.Op ∈ ResourceElements[Key].AllowedOps` |
+| 9 | `AbilityChangeSlots` 每条：`Op ∈ { Remove, Disable }` ∧ `Scope == Character`；`Op == Remove` 时 `GainAbilityId` 非空 |
+| 10 | Explore 壳：`OutcomeSpec` 由 `RevealedEventId` 指向的模板物化（见 `systems/adventure-event/explore/_index.md`） |
+| 11 | 两侧 `Elements` 中 `Key ∈ { Faith, Bloodlust }` 时 `BaseValue != 0`（模板校验 8 的物化侧对偶；`Op == Add` 已由断言 8 覆盖） |
+| 12 | 两侧 `Elements` 中 `Key ∈ { Faith, Bloodlust }` 各至多一条（模板校验 7 的物化侧对偶，与断言 4 / 5「成本侧那条的镜像」同款分工） |
+| 13 | `EncounterSpec.Tier == Finale` ⇒ 五格遭遇参数全等于该档默认值（`Tighten` 整档豁免的物化侧对偶） |
+
+**断言 5 是既有禁令的物化侧对偶，在「Explore 产出取真身」的处置下继续成立**——若产出取壳，一个遮罩着回寿 Travel 的秘境就能绕过该禁令。
+
+**经验的失败折算在物化组装时完成，`FailureRatio` 不进定稿实例。**
+
+```
+物化时：
+  base   = ExperienceGradeTable[chapter][ExperienceGrade]      // 平衡表映射，已含篇章放大
+  OnResolved.Elements += ChangeElement(ExperiencePoint, +base, Add)
+  fail   = max(1, floor(base × FailureRatio / 100))            // 百分比整数；向下取整、下限 1
+  OnFailure.Elements  += ChangeElement(ExperiencePoint, +fail, Add)
+```
+
+- 它兑现三条既有纪律：**结算时只选一侧、不掷骰也不算数** · **element 只承载已定稿的量** · **`AppliedChange` 可直接重放**。
+- **`ExperienceGrade == None` 时两侧都不产出该 element**（而不是产出一条 `+0`），与「无产出用空 spec 不用 `null`」同向：不产生无消费方的空条目。
+**隐藏属性推拉的展开：符号由 `HiddenStatGrant.Direction` 在此产生。**
+
+```
+物化时（对 HiddenStatGrants 逐条）：
+  v    = HiddenStatGradeTable[g.Grade]                        // 正量；见 systems/balance.md
+  sign = g.Direction == Raise ? +1 : -1
+  key  = g.Stat == Faith ? CostKey.Faith : CostKey.Bloodlust
+  OnResolved.Elements += ChangeElement(key, sign * v, Add)
+  OnFailure .Elements += ChangeElement(key, sign * v, Add)    // 胜负同施，不套 FailureRatio
+```
+
+- **取负只在此处发生一次**，与 `SelectCost` 的 `lifeSpanCost` 取负、`OutcomeRule.Direction` 取负同处；下游拿到的一律是带符号 spec，不做符号推断。三格的类型定义与方向位的落点论证见 `systems/architecture.md`「共享核心类型」，模板侧的加载期校验见 `systems/adventure-event/common-properties.md`。
+- **本服务不新增任何钳制点。** `[0, 100]` 的截断发生在 `Evaluate(spec)` 施加到 Profile 字段那一刻（`Faith` / `Bloodlust` 两行的两个修正列恒 `null` ⇒ pipeline 不介入），spec 与快照记**未截断值**；截断不构成 `ApplyResult.Fail`。
+- **`Grade == None` 的条目不在此产出一条 `+0`**——它已在模板加载期被拒绝，与 `ExperienceGrade == None`（字段默认值，缺省即不产出）不同构。
+- **隐藏属性推拉在两侧各展开一份相同 element，不加顶层第三格 `Always`。** 两份由物化时的**同一段组装代码**从模板上**同一个** `HiddenStatGrants` 字段展开，不存在两处真值；加一格会把顶层从两侧变成三格、走向映射表要重写，且立刻要回答「`Aborted` 时 `Always` 施不施加」——那正是最不该新开的分叉。冗余的实际体积 = 每侧至多 2 条 element。方向位不改变这条。
+
+**Explore 壳的 `OutcomeSpec` 由真身模板物化：「成本取壳、产出取真身」是一条有意的不对称（承重）。** 成本侧取壳的理由是 Band 2 精确展示会让成本数值成为真身类型的指纹；**产出在揭示前从不展示**（遮罩态卡面只取 Explore 模板自己的文案与图标），该理由整条不成立。而防重掷的理由在产出侧成立且已由 `Encounter` / `DestinationLocationId` 立过先例：抽取型产出若等到揭示后再掷，退出重进即可重刷。**不写明这条不对称，后来者读到两条相反的处置会去「统一」其中一条——统一到哪一侧都造成实际损坏**（统一取壳 ⇒ 真身条目的产出格在被遮罩时整条失效，同一份数据两种行为；统一取真身 ⇒ 成本数值成为指纹）。落地断言见 `systems/adventure-event/explore/_index.md`。
 
 - **字段名取 `OutcomeSpec` 而非 `Outcome`**：`PastEventEntry.Outcome`（`EventOutcome` 枚举）与 `Source.EventOutcome`（授予来源枚举成员）都在同一条链路上被同时提及，三者同名不同物会让层间类型一致性无从机械核对。
 - **结算走向 → 施加哪一侧的映射（明写，不留实现分歧）：**
@@ -249,7 +496,7 @@ public sealed record EventOptionBatch(
   |---|---|
   | `EventOutcome.Resolved`（非战斗类正常结算） | `OnResolved` |
   | `EventOutcome.CombatWon` | `OnResolved` |
-  | `CombatOutcome.Draw`（打满道念相等） | `OnResolved` —— 与「平：只发 `baseReward`、不扣 `lifeTotal`」对齐 |
+  | `CombatOutcome.Draw`（`Standard` 档打满道念相等；另两档不可达） | `OnResolved` —— 与「平：只发 `baseReward`、不扣 `lifeTotal`」对齐 |
   | `EventOutcome.CombatLost` | `OnFailure` |
   | `EventOutcome.Aborted`（支付后短路，未进 resolver） | **两侧皆不施加** |
 
@@ -287,10 +534,8 @@ public sealed record EventOptionBatch(
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **生成 / 加权规则未定。** **location 层的形态**（事件类型概率修正 + `eventCountLimit`）、**每批数量**（常态 3、区间 1–5）、**重算依据**（角色整体历程，重度依赖 `pastEvent`，不承接上一批）、**Travel 段的物化伪码**均已给出；仍待定：类型修正的**运算形态**（乘性 / 加性 / 白名单 + 权重，其余四类能否修正到 0）、月圆之夜式策划与随机权重的配比、location 框定 / PlotManager 调制 / seeded RNG 的**叠加顺序**、以及**批次规模区间两端由什么驱动**（它同时决定常规批里 Travel 的槽位数 `k` 从何而来）。→ `systems/game-progression.md`、`systems/adventure-event/common-properties.md`。
-- **`EventOutcomeSpec` 的内部字段面未定。** 顶层载体、固化时点与「按结算走向分侧」已定（见「意图」）；**内部分解**——产出效果原语的表达、`OnResolved` / `OnFailure` 两侧各自的列、经验失败折算的数据形态——此前登记为「阻于效果关键字体系与目标规则」，**该前置已于 08-16c 收口**（`KeywordData` 内容层条目 + target / scope 分开建模并共用 `EntryFilter`，见 `systems/character-profile/deck/common-properties.md`）。**故本条的阻塞来源需重新确认**：若确已解除，它就只欠自身落笔，可单独排一次专场。→ `systems/character-profile/deck/common-properties.md`。
-- **框定叠加顺序。** location 框定、PlotManager 调制、seeded RNG 三者的叠加顺序与优先级未定。**问题形状已收窄为「多个 `PlotModulation` 与 location 修正如何合并」**（白名单取交还是取并、权重相乘还是相加）——「剧本用什么调制」已有答案，调制的承载类型与字段面见 `plot-manager.md`，本条只欠合并算法。→ `systems/game-progression.md`、`systems/services/plot-manager.md`。
-- **`Priority = 1` 依什么条件抬升。** **取值域（两档）与置位方（本服务独占，PlotManager 不得改）**；**两个确定的抬升条件已知**——配额用尽后的 Travel 闸门，以及起始批次里的开局构筑事件（Research）。仍待定：本服务还依什么条件把某个选项抬到 `1`（剧情线关键节点？），以及**同批出现多个 `1` 档时是否需要额外收窄规则**（当前语义：同档内自由择一）。→ `systems/adventure-event/common-properties.md`。
+- **五类之间的配比未定（`BaseTypeWeights` 的取值）。** 它以**乘性**方式参与类型分布、归一化在类型分布层发生**已定**（见「意图」的十步管线）；仍待定的是表里每格填多少，以及 Combat 内 `combatTier` 三档的配比。→ `systems/balance.md`、`systems/adventure-event/common-properties.md`。
+- **三条抬升子判据作为准入闸的密度成本**（`[采纳推荐 — 待复核]`）。判据本体与三条子判据已按推荐落笔（见「意图」），仍待用户复核的是：给本服务再加一条必须被后来者遵守的纪律是否值得，还是只保留当前三条清单。→ 本文件「抬升判据」小节。
 
 Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md`
 

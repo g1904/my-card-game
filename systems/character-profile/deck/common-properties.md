@@ -24,6 +24,7 @@
 
   // AbilityData : Resource
   //   Id / Kind / ActivationCost(ProfileChangeSpec?，仅 Activated) / TriggerWhen(仅 Triggered) / Effect
+  //   CounterNames(string[]，可空) —— 该异能声明的子计数器名；默认计数器（无 # 段）无须登记
   // TriggerConditionData : Resource
   //   TimingId("turn.start" / "turn.end" / "card.played"…) / OwnerScope / Filter(次类型、费用区间等)
   ```
@@ -40,9 +41,14 @@
   | `AbilityKind == Triggered` 时 `TriggerWhen` 非空 | `PushError` |
   | `Subtypes` 中每个 id 须在次类型注册表中存在 | `PushError`，报出悬空 id |
   | 次类型须与主类型匹配 | `PushError` |
+  | `CounterNames` 每个元素匹配子计数器名正则 | `PushError`，带 `Id` 与 `.tres` 路径 |
+  | 同一异能内 `CounterNames` 重复 | `PushError`，带 `Id` 与重复项 |
+  | `CounterNames` 非空但该名从未被任何效果定义使用 | `PushWarning` —— 与「关键字未被任何 `KeywordRef` 引用」同构 |
+
+  **`CounterNames` 把子计数器名从裸字符串提升为有登记、可悬空校验的标识**，使 `counters` 键的两段获得对称的校验能力——这正是当初选用具名 `AbilityData.Id` 作键主体的那条理由的另一半。不登记的后果不是「不够整洁」：拼错的子名会静默开一个新计数器，配额闸门读到的永远是 0，「每场限 N 次」就此静默失效且只在线上被玩家发现；正则拦不住这一类，因为拼错的名字通常仍然合法。**它是静态内容字段、不落存档**（与 `CardType` / `Subtypes` 同款）。子名正则、键语法与运行期读写两侧的校验见 `systems/services/combat-service.md`「`counters` 的键约定」。
 - **打出一张卡的结算（共有流程）。** 费用支付（mana）→ 目标选择 → 效果流水线依序执行 → 触发器响应事件。（具体阶段待设计。）**生命周期链路按 `CardType` 分叉**：`Sorcery` / `Affliction` 结算后进弃牌堆；`Enchantment` 结算后作为**永久物**落战场；`Item` 不经卡组、结算后进弃牌堆或按次数消耗；`Power` 开局入场且**永不入栈、永不离场**。
 
-Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`
+Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-22-card-counters-api-and-key-space.md`
 
 ## 效果关键字体系
 
@@ -67,6 +73,8 @@ Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`
 
 - **`BattlefieldEntryTemplate` = 非永久战场条目字段表的内容侧模板**：`AbilityData[]` + 默认 `Lifetime` / `CountdownSide` / `RemainingTurns`。字段语义与清理判据的权威在 `_index.md`「回合内状态 = 生命周期三件套」，此处不复述。
 - **参数化 = 单个 `Amount` 占位，不做通用表达式。** `KeywordData.HasAmount : bool`；引用侧写 `KeywordRef(KeywordId, Amount)`。通用表达式会把「效果是数据不是代码分支」拖回一个需要求值器与沙箱的小语言，而 overlay 热更一段脚本的风险面远大于改一个数值。**取值域与具体数字归 ch1 数值标杆专场**（`systems/balance.md`）。
+  **`State` 展开时 `Amount` 落战场条目的 `amount` 一格**（默认 `-1` = 无参数，与 `HasAmount == false` 的约定同值）——同一关键字可用不同 `Amount` 施加两次，故它不可由 `keywordId` 推导；`BattlefieldEntryTemplate` 不带这一格，因为 `Amount` 来自引用侧的 `KeywordRef` 而非模板的属性。字段表见 `systems/services/combat-service.md`。
+- **关键字状态的叠加层数没有独立落点，也不需要。** 每次 `ApplyState` 产出**一条独立的 `Transient` 条目**，层数 = 战场上同 `keywordId` + 同 `ownerSide` 的条目计数，一次遍历即得。合并成「单条 + 层数」会强制多次施加共享同一个过期时刻，而生命周期三件套本就是逐条独立倒数的。
 - **展开在结算时做，不在加载时内联。** 否则 overlay 热更改一个关键字的定义时，已加载的卡牌拿的是旧展开——`XxxData` 是 ContentRegistry 里的共享只读单例，不能回写。这与「读取侧不过滤 `ContentEnabled`」是同一种收口。
 
 ### 清单归零，机制保留
@@ -77,7 +85,7 @@ Source: `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md`
 - **准入判据照抄次类型的两条**：① 至少 **3 个内容条目**共享它；② 至少 **1 处目标筛选或 payoff 引用它**。**没有 payoff 的关键字就是风味词**，风味写进描述文本——这条纪律正是防止清单长成一批 filler 的机制。
 - **重建时机 = ch1 内容横向扩展阶段**，切入点同为 starter deck 的设计过程。关键字的正确清单只能从「哪些组合真的重复了 ≥3 次」倒推，而当前内容条目数为零；预铺一批等于制造一批要在 ch1 专场全部重写的 filler。
 
-Source: `handoffs/2026-08-16c-effect-keywords-and-targeting.md`
+Source: `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-22-card-counters-api-and-key-space.md`
 
 ## 目标（target）与作用域（scope）
 
@@ -162,6 +170,7 @@ Source: `handoffs/2026-08-16c-effect-keywords-and-targeting.md`
 - **关键字 = 内容层注册表条目 `KeywordData`（两种 `KeywordKind`，不新增第四类效果载体）；单 `Amount` 参数；展开在结算时做；清单归零、机制保留 + 两条准入判据。**
 - **目标 target 与作用域 scope 分开建模，共用同一个 `EntryFilter`；「效果须显式声明目标类别」只约束 `TargetSlots`。**
 - **一槽位 = 恰好一个目标；`SideConstraint` 相对施放者解析；`EntryFilter` 组合语义恒为 AND；`HandCard` 槽位强制 `Self` 且只吃 `RequiredSubtypes`。**
+- **`AbilityData` 增 `CounterNames`（子计数器名登记，加载期三条校验，不落存档）；`KeywordRef.Amount` 落战场条目的 `amount` 一格；叠加层数由同 `keywordId` + 同 `ownerSide` 的条目计数重算，不设独立计数器。**
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_

@@ -4,7 +4,10 @@ date: 2026-08-22
 question: `Priority = 1` 依什么条件抬升（配额闸门与开局构筑事件之外还有哪些），以及同批多个 `1` 档是否需额外收窄规则
 source: open-questions/02-event-options.md → 「`Priority = 1` 依什么条件抬升（08-06c 收窄）」
 targets: systems/services/future-event-service.md · systems/adventure-event/common-properties.md · systems/adventure-event/combat/_index.md · systems/adventure-event/research/_index.md
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-22 — 3 项取向全部裁决；合并 interview 另裁定判定式改写为 chapter == 1 且 pastEvent 为空（真正零结构增量）· ch1 篇章重试算新角色首批照常抬升 · 删 common-properties 那句「与剧情线的强制事件共用同一档」· 抬升原因并进既有物化日志。**Finale 守卫不写**（失败必死后通过与失败两支都离开本篇章，守卫恒不可达）；**退让位「下调 WinMargin」整条改写**（该字段在 Finale 已退场）。**待复核 1 项**：三条抬升子判据作为准入闸
+confirmed: 2026-08-22 —— 全部 [采纳推荐 — 待复核] 项经批量评审确认，无推翻
+distilled-to: handoffs/2026-08-22-priority-elevation-criterion.md
 ---
 
 # 方案草稿 — `Priority = 1` 的抬升条件与同档共现规则
@@ -176,9 +179,11 @@ ComputeEventOptions 内的置位段（伪码，落在既有物化流程中，不
 > 逐条裁决（`/batch-provide-solution-draft` 合并 interview）：
 > 1. Finale 是否抬升为 `Priority = 1` → **已裁决：A · 抬升**（连带：`game-progression.md` 那条「多重进度闸」的警惕由用户裁定不阻挡本项；退让位仍为下调 `WinMargin`，而非回退抬升）
 > 2. 开局构筑事件是否收窄为「新角色首批」 → **已裁决：A · 收窄**（`research/_index.md`「起始批次中必有一个强制事件」须改为「**炼气新角色**的起始批次」）
-> 3. 三条子判据是否写进主题文档作为准入闸 → **A · 写进 `future-event-service.md`** `[采纳推荐 — 待复核]`
+> 3. 三条子判据是否写进主题文档作为准入闸 → **A · 写进 `future-event-service.md`** `[已确认 2026-08-22 · 批量评审]`
 >
 > 连带（前置交叉）：本稿「前置依赖」里那条弱依赖现已生效——**「满级后 Finale 恒进候选池、不参与类型加权」须作为并列输入带进 `solution-draft-future-event-generation-weighting.md` 的生成 / 加权落笔**。
+>
+> **全部待复核项已于 2026-08-22 经批量评审逐项确认，本草稿再无待复核项。**
 
 
 1. **Finale 是否抬升为 `Priority = 1`？**（本条的唯一实质取向 · 承重）

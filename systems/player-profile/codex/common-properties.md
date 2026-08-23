@@ -64,9 +64,11 @@ public readonly record struct CodexEntry(string Id);
 - **推论：「词条正文不含阿拉伯数字」这条口径纪律的适用范围只及 EnemyCodex**，不是全族通则。整族通用的是**「给静态知识，不给动态情报」**——两者不是同一条。不明写这条边界，后来者会把四本词条也做成结构化文案。
 - **`CodexFlavor` 挂在 `PowerData` / `ItemData` 的顶层**，一格覆盖四本能力 / 道具图鉴（`Player*` 与 `Character*` 共用同一内容类）。挂载面与可选字段的校验口径见 `systems/common-properties.md`。**与「展示文案不进图鉴条目」完全一致**：存档侧仍然只有 `Id`。
 - **六本一律不分档解锁**，直接来自「解锁是一次性的全量写入」。四本能力 / 道具类的词条本就短，分档在它们身上尤其没有意义。
-- **LocationCodex 只共用上述通用部分**：同一个 `CodexEntry(string Id)`、同一条写入通道、同一套读档校验；它的连边显影粒度与其余词条深度仍待答，见 `_index.md`。
+- **LocationCodex 只共用上述通用部分**：同一个 `CodexEntry(string Id)`、同一条写入通道、同一套读档校验；其余词条深度仍待答，见 `_index.md`。
+  - **连边不是存档态。** `locationCodex` 的每条 `CodexEntry` 只对应**一个去过的地域**（`Id == LocationData.Id`），连边由呈现层从 `LocationMapData` 现算——存档 / 写入通道 / 校验 / schema 版本一格不动，无迁移面、后端零配合。派生式与显影口径见 `_index.md`。
+  - **因此本文档的四条既有约束对它逐条成立**：`Id` 是可经 `ContentRegistry` 解析的稳定 `Id`（不用复合键）· 触发是抵达、搭在已有提交上（零新增提交点）· 条目数恒 ≤ location 条目总数，体积护栏与完成度分母口径不破 · `CodexEntry` 不加格，六本形状仍然相同。
 
-Source: `handoffs/2026-08-19-codex-entry-schema.md`
+Source: `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md`
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/codex/common-properties.md`（待建）。

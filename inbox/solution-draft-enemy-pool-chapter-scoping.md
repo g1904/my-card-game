@@ -4,7 +4,10 @@ date: 2026-08-22
 question: 敌人取池的第三层「篇章框定」由哪个字段承载？`EnemyData` 的现有字段面（`EncounterScopes` / `PoolScope` / `OverridesDeck`）没有任何一格表达篇章。
 source: open-questions/01-combat.md → 内容与数值的残留 → 敌人池的篇章框定载体未定（08-17 新增 · 承重）
 targets: systems/enemies/_index.md（`EnemyData` 字段表 + 取池三层 + 待决问题）· systems/enemies/common-properties.md（共有字段表 + `PoolScope` 加载期校验四条）· systems/services/future-event-service.md（物化取池的框定输入）· content/_index.md（敌人类型开张时的字段核对清单）
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-22 — 3 项取向全部裁决；合并 interview 另裁定 EncounterScopes 就地订正为 CombatTier[]（草稿照抄了与 ADR-0002 相抵的一侧）· 通用池保留既有的「或两字段皆空」分支 · Travel 一类豁免 ChapterScope（否则「Travel 兜底恒可产出 ⇒ 无轮回死锁」这条承重结论失效）· Finale 行空池校验放宽为含专属条目 · 境界词文案扫描改为纯结构判定 · content/_index.md 本次不改。**事件侧 ChapterScope 归 generation-weighting 分片落笔**。**待复核 1 项**：ChapterScope 命名
+confirmed: 2026-08-22 —— 全部 [采纳推荐 — 待复核] 项经批量评审确认，无推翻
+distilled-to: handoffs/2026-08-22-enemy-pool-chapter-scoping.md
 ---
 
 # 方案草稿 — 敌人池的篇章框定载体
@@ -162,7 +165,9 @@ var pool = ContentRegistry.AllEnabled<EnemyData>()
 > 1. 是否保留「篇章框定」这一层 → **已裁决：A · 保留，落成 `EnemyData.ChapterScope : int[]`**。
 >    **跨分片扩展（合并裁决）：`AdventureEventData` 同样新增同名同形的 `ChapterScope : int[]`** —— 两处是同一个空格（事件侧的取池链第 ① 步此前只有 `AllEnabled()`），用户裁定两侧同形，不分开处置。事件侧的落笔见 `solution-draft-future-event-generation-weighting.md`。
 > 2. `ChapterScope` 空数组的语义 → **已裁决：A · 空 = 不限（三章通用），不报错**（与 `PlotArcData.ChapterScope` 同名同义）
-> 3. 字段是否就叫 `ChapterScope` → **A · 是** `[采纳推荐 — 待复核]`
+> 3. 字段是否就叫 `ChapterScope` → **A · 是** `[已确认 2026-08-22 · 批量评审]`
+>
+> **全部待复核项已于 2026-08-22 经批量评审逐项确认，本草稿再无待复核项。**
 
 
 1. **是否保留「篇章框定」这一层？**（承重取向）

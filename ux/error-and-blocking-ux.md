@@ -244,7 +244,7 @@
 
 | 档 | 触发 | 含义 | 呈现 | 阻塞 |
 |---|---|---|---|---|
-| **③ 强更** | `client.version_unsupported`（登录 / 启动 pull） | 完全不能玩 | **全屏阻塞屏**（见下） | 硬阻塞 |
+| **③ 强更** | `client.version_unsupported`（**仅登录点**） | 完全不能玩 | **全屏阻塞屏**（见下） | 硬阻塞 |
 | **② 需更新** | `UpgradeRequired == true` | 还能玩，但进度上不去 | **常驻状态指示改写** + 既定软阻塞模态第二变体 | 非模态 / 既定软阻塞 |
 | **① 建议更新** | `X-Recommended-App-Version` > 本机版本 | 无实际影响 | **主菜单一条可关闭横幅** | 永不 |
 
@@ -283,7 +283,7 @@
 
 | 变体 | 触发 | 文案键 | 主按钮 | 次按钮 | 底部编号 |
 |---|---|---|---|---|---|
-| **需更新** | `client.version_unsupported`（登录 / 启动 pull） | `ERR_CLIENT_VERSION_UNSUPPORTED` | 去更新 | 退出游戏 | `#requestId` |
+| **需更新** | `client.version_unsupported`（**仅登录点**） | `ERR_CLIENT_VERSION_UNSUPPORTED` | 去更新 | 退出游戏 | `#requestId` |
 | **被挤下线** | `auth.session_revoked` | `ERR_AUTH_SESSION_REVOKED` | 重新登录 | 退出游戏 | `#requestId` |
 | **存档读取失败** | `OpError.Migration`（启动 pull） | `ERR_LOCAL_MIGRATION_FAILED` | 重试 | 退出游戏 | `fromVersion→toVersion` |
 
@@ -299,7 +299,7 @@ public readonly record struct BlockingNoticeSpec(
 
 **共同纪律：全屏、无返回**（系统返回键 = 退出游戏，**不是绕过**）· **主按钮永不是「继续游玩」** · **底部编号可长按复制**（禁 hover-only 可供性，长按是触控等价物）。
 
-> **⚠ 三个变体 ≠ 三处硬阻塞。** 硬阻塞点仍是既定的**两处**——登录 / 启动 pull 闸门与被后端明确挤下线；迁移失败落在「启动 pull」那一处**之内**。`systems/architecture.md` 总则 7 的「硬阻塞只有两处，且只由已知 `code` 触发；未知 `code` 永不新增第三处」原样成立。
+> **⚠ 三个变体 ≠ 三处硬阻塞。** 由后端 `code` 触发的硬阻塞点仍是既定的**两处**——**登录点**的版本闸门与被后端明确挤下线。「存档读取失败」变体**不由任何 `code` 触发**：它是本地迁移器在启动 pull 路径上做的**存档 schema 维度**判定（云端 `schemaVersion` 高于客户端支持上界），与协议维度的 `minAppVersion` 提升无关——**两者同因不同径，改一侧不牵动另一侧**。阻塞点的穷举清单见 `systems/services/sync-service.md`「三条不变式」①。`systems/architecture.md` 总则 7 的「硬阻塞只有两处，且只由已知 `code` 触发；未知 `code` 永不新增第三处」原样成立。
 
 #### 判据：什么不进这张变体表
 

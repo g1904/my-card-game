@@ -7,6 +7,50 @@
 > **只保留最近 10 条。** 更早的条目原样移入 [`update-log-archive.md`](update-log-archive.md)（按时间正序），
 > 一字未改、仅换了文件——本日志与归档合起来即全部历史（`decisions/ADR-0005`：台账不无限膨胀）。
 
+## 2026-08-22d（`/write-adr --lib=game` · 固化 4 条 · 新登记候选 2 条 · 只写 `decisions/` 与「下一阶段」）
+
+- **来源不是候选清单**——`open-questions.md` 的「下一阶段」当时明写「当前无待固化的 ADR 候选」，那句写于 08-19 清账之后。本次候选全部由**扫 `handoffs/` 中 `status: distilled` 的散落定案**得到：08-22 单日新增 22 份 handoff，逐份按「能否被单独推翻而不牵动其余」与既有 ADR 的粒度线筛选。
+- **建 4 份 ADR（均已逐条回主题文档核实事实已落地）：** `ADR-0025` Finale 失败即角色终结 · `ADR-0026` eventOptions 十步管线 · `ADR-0027` `LocationCodex` 顶点级显影 · `ADR-0028` 上行整键回声校验通则。
+- **2 条够格但暂不建档，改登记进「下一阶段」**：剧本树不分包 · 单例平衡资源进 ContentRegistry。两者的主项或承载机制仍标 `[采纳推荐 — 待复核]`，按铁律「待复核不当作用户拍板」不建 `Accepted` 的 ADR。
+- **其余 16 份 08-22 handoff 判为字段级 / 参数级收口**（`EncounterTighten` 字段面 · `HiddenStatDirection` · counters 键空间 · `mana +1` · `eventCountLimit` 不可调制 · 购买次数 `StatKey` · 敌人卡组规模 · `ChapterScope` · 带边界配置落点 · flags 拉取护栏 · `Priority = 1` 判据 · 非战斗决策点清单 · `EventOutcomeSpec` 字段面 · 运行态计数器 · refresh token 落点 · `Practice`/`Standard` 失败后果），低于既有 ADR 的粒度线，不建档。
+- **未动主题文档、未动 `## derive 就绪度`、未动任何分片的问题条目。**
+
+## 2026-08-22c（`/batch-analyze-new-ideas game` 补跑 · 11 份草稿 · 移出 15 条 · 新增 10 条 · 修 8 处活文档漂移 · 单库无跨边界）
+
+- **起因是一处阻断发现**：上一轮批量的 `answers.md`（5 轮 interview 全部裁决完毕）已落盘，但**它的 Phase B 从未执行**——11 份草稿仍在 `inbox/` 顶层、无 handoff，三个裁决产物 `EncounterTighten` / `EnemyManaLimit` / `HiddenStatDirection` 在全库主题文档中零承载。用户裁定先补跑 Phase B，再做收尾。
+- **写入面高度重叠 ⇒ 切 5 个波次串行**（`balance.md` 被 6 个 worker 争用、`plot-manager.md` 4 个、`combat-service.md` / `content-service.md` 各 2~3 个）。每波内 `balance.md` 与 `plot-manager.md` 各只有一个 owner，无并行写同一文件。
+- **移出 15 条**（各记 answer log）：counters 家族三条（非异能计数器 / `CardInstanceSave.Counters` 读写 API / 子名字符集与登记）· 样本卡组规模两处矛盾 · 疲劳量是否可调 · 更高境界的 mana 基线 · `EncounterTighten` 字段面 · `HiddenStatGrant` 推拉方向 · `eventCountLimit` 能否被剧本调制 · `LocationCodex` 显影粒度（部分）· 剧本内容的体积与分发粒度 · 购买次数 `StatKey`（**同题两处登记，主题文档侧与分片侧同批移出**）· 失败后果的其余部分 · 散落平衡旋钮兜底大表 vs 逐份切 · 单例平衡资源如何进 ContentRegistry（降为待复核）。
+- **三条逆推荐裁决**：① `manaLimit` **每次大境界 +1**（增量语义、走既有 `CostKey.ManaLimit`）——**显式推翻 `answer-logs/log-0730b.md` 第 4 条**；② `EncounterTighten` **一并覆盖五格**（原推荐两格），新增三格牌流量各需一个上界常量与下界钳制，否则剧本能把每回合抽牌压到 0；③ 内容 / 呈现类轻项只逐项问三条失败后果，其余按推荐。
+- **两处本批新发现的真缺口，当场答定**：`KeywordRef.Amount` 展开成 `Transient` 条目后无承载字段（→ 战场条目增 `amount:int`，默认 `-1`）· 敌人侧 `manaLimit` 全库无取值来源（→ `EnemyManaLimit = 5` 住 `CombatRulesData`，可被 `EncounterSpec` 覆写；**参战方对称在 mana 一项被打破，已在 `combat-service.md` 列名为已知例外**）。
+- **新增 10 条**：`01-combat.md` +6（`EncounterTighten` 三格界常量取值 · `EnemyManaLimit` 初值校准 · 卡牌费用曲线是否随境界上移 · 三条待复核归并条目）· `02-event-options.md` +6（三条 `HiddenStat*` 待复核 · `LocationCodex` 边缘顶点与半径 · `eventCountLimit` overlay 边界 · 词条深度改写保留）· `04-hidden-attributes-plot.md` +1（剧本树不分包的三项配套裁决）。
+- **本批 20 项 `[采纳推荐 — 待复核]` 全部维持待复核**（铁律 ①）：按推荐落笔，但留在待答清单。**后果：11 份草稿中 7 份不满足归档前置条件第三条，留在 `inbox/` 顶层**；4 份（`encounter-tighten-fields` / `purchase-count-statkey` / `mana-baseline-realm-jump` / `combat-defeat-consequences`）全项正式拍板，已归档。
+- **修 8 处活文档漂移**：`enemies/common-properties.md`「规模 15」孤例 · `enemy-codex.md` 三处「15 张」· `deck/_index.md` 手牌上限 9→7（**此前未进任何待答清单的纯漏改**）· `character-profile/_index.md` 与 `combat/_index.md` 两处「炼气基线 10/10」· `combat/_index.md` 的 `manaLimit`「不随境界自动成长」· `EncounterSpec.FirstSide`「剧情指定」措辞（`PlotModulation` 六字段无一格能表达先手 ⇒ 改为**内容侧在事件模板上编排**）· `exchange/_index.md` ↔ `03-adventure-event-types.md` 同题两处登记 · 本分片顶部摘要块（单行 1578 字 + 考古段）压成一句回链 `answer-logs/`。
+- **两处漂移按用户裁决跳过**：`../open-questions.md` 第 82 / 106 行落在「derive 就绪度」小节内，该小节由 `/assess-derive-readiness` 独占写入，留待下次全量重估。
+- **仍欠一步（与本批无关的既有积压）**：上批 14 项 `[采纳推荐 — 待复核]` 已于第 5 轮确认转正，但对应条目尚未移出 `open-questions/`，故上批 7 份草稿仍留顶层。
+
+## 2026-08-22b（`/batch-analyze-new-ideas game 全部 solution draft` · 10 份草稿 + 1 次 interview 新裁决 · 移出 9 条 · 新增 21 条 · 跨库承接 3 条）
+
+- **范围**：`inbox/` 顶层全部 10 份 `solution-draft-*`（均已过用户评审）。Phase A 十个 worker 并行只读校验产出 🔴 31 · 🟠 33 · `[采纳推荐 — 待复核]` 15，去重并追加跨草稿核对后收敛为 20 问，一场合并 interview 全部裁决；Phase B 按写入面分 5 个波次落笔。
+- **用户在 interview 中提出一条推翻既有设计的新裁决（不属任何草稿）：Finale 失败必死。** 「移除 finale 结算认定失败后存活的场景，章节立即结束」+ 判定二值化（`d >= 0` 通过 / `d < 0` 失败，`Draw` 归入胜利侧取最低档奖励）。它单独成一个波次、排在全部草稿之前，因为它推翻的正是其余分片要引用的承重前提。
+  - **改动面 22 份主题文档 + 3 份 ADR**：`ADR-0004` Decision 第 4 条**实质推翻**（战斗失败不再「不终结角色」——`Finale` 档失败是独立终结原因）· `ADR-0002` 的「整体保留」清单剔除「失败但存活仍完成篇章」· `ADR-0016` 论据自足化。
+  - **`game-progression.md` 的承重结论整条反转**：「渡劫的胜负不是篇章推进闸门」→「胜负即闸门」。
+  - **`DefeatReason` 三值 → 四值**（新增 `FinaleFailed`），且终态判定从**纯查表驱动**变为「查表 + 一条显式旁路」——Finale 失败不是资源触底、没有对应 `CostKey`，塞不进 `ResourceElements` 表。**这个口子已明写**，否则实现侧会以为照表走就行。
+  - **一条差点静默失效的承重机制**：残卷 `PlayerPowerFragment.Accumulated` 是账号级写入，而 `DefeatCharacter` 会清理终态数据。失败恒等于死亡后，若不写死顺序，「Finale 失败累积残卷」会在**每一次**失败上丢 ⇒ 100% 失效。已在 `life-cycle-service.md` 明写「账号级残卷累加先于角色终结提交」。
+  - **`WinMargin` 在 Finale 退场**：胜负线固定为 0 后它在该档没有消费者，`VictoryRule` 单字段三档共用故取值恒 0，并明写两条纪律（不是难度旋钮 · `Practice` 与 `Finale` 同取 0 是巧合、不得提共享常量）。Finale 因此**失去唯一的难度旋钮**，`balance.md` 已如实写下这一点并指向三条替代手段。
+  - **「奖励最低档」零成本**：代入既定数值验算，`0 <= d < WinMargin` 整个区间的 `advantage` 上界仅 0.13 / 0.125 / 0.093，本就整体落在 `Tier.Narrow`（险胜档），由既有换算规则自动兑现。
+  - 通过所需追分 ch1 8→5 / ch2 18→13 / ch3 33→25（降 24–38%）；ch3 重试上限维持 ∞/3/1、不做补偿（用户裁定）。
+- **跨草稿交叉核对抓到的东西**（批量相对逐次运行的独有产出）：
+  - **一处真矛盾**：`event-outcome-spec` 与 `remaining-decision-points` 各自独立撞上「置换 / 禁用候选的掷定时点」，两个 worker 推荐方向一致但**承载形状不同**（`OutcomeRule` 第四个 Kind vs `EventOption` 定稿字段）。合一为后者，逐次运行时第二个 session 会直接覆盖第一个。
+  - **一处误报已拦下**：有 worker 把 `future-event-service.md` 的 `Finale 12 / 0` 判为 Finale 重构的遗留，实为正确（三档共用单字段）；已撤回该修改指令。
+  - **三处「同一事实多份副本」**：生成 / 加权规则 5 份 · 硬阻塞枚举 3 种 · 「登录屏 = 应用首屏」3 处。
+  - **两份草稿自身的事实错误**：`combat-runtime-counter` 称 `item/_index.md` 未表态（实已明写）· `echo-validation` 与其后端对侧草稿的「前置依赖」双双过时（实已落笔）。若照草稿写会造重复条目或改坏已正确的内容。
+  - **`flags-throttle` 自称「张力：无 / API 零改动」被推翻**：存在一处自我递归无限发请求的 bug，且因 flags 无「回滚即前滚」契约，「增大即拉」在版本回滚后会让设备**永久停拉**。
+- **移出 9 条**（各记 answer log）：生成 / 加权规则与叠加顺序 · `EventOutcomeSpec` 内部字段面 · `Priority = 1` 抬升条件 · 战斗之外的决策点清单 · 战斗内运行态存档形态 · 敌人池篇章框定载体 · 带边界配置落点 · 上行整键回声校验适用面 · refresh token 客户端持有形态 · flags 拉取频次护栏。
+- **新增 21 条**：`01-combat.md` +9（赋级资源三项待复核 · `ChapterScope` 命名待复核 · 单例平衡资源如何进 ContentRegistry · 非异能计数器 · `CardInstanceSave.Counters` API · 子计数器名字符集 · 样本卡组规模两处矛盾 · X0 标记待复核 · 不触发第二次写入口径待复核）· `02-event-options.md` +5 · `05-service-contracts.md` +4 · `06-meta-progression.md` +1（死亡 / 轮回结束屏尚无设计）· `cross-boundary.md` +1（球在对侧的三条）。
+- **15 项 `[采纳推荐 — 待复核]` 全部维持待复核状态**（用户裁定）：按推荐落笔，但留在待答清单不随本批移出。**后果：10 份草稿中 7 份不满足归档三前置条件，留在 `inbox/` 顶层。**
+- **跨库**：三条承接项写入 `backend-design-documents/`（回声校验后端半 · flags 回滚即前滚条款 · 静默续期闸门收口手段），两侧互相回链。**⚠ 回声校验两侧草稿明写须成对采纳，本批只落客户端半 —— 成对采纳尚未完成。**
+- **未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）。
+
 ## 2026-08-22（`/summarize-open-questions --game` · 全量对账 · 移出 0 条 · 归集 10 条 · 修平主题文档 9 处 · 单库）
 
 - **范围**：客户端库全部主题目录（`vision/` · `systems/**` · `art/**` · `ux/`）的 `## 待决问题` / `## 待解问题` / `## Open questions` 小节，逐条与 `open-questions/` 九个分片对账。不引入新想法、不裁决任何问题。
@@ -134,25 +178,3 @@
 - **明写接受一处张力：** 「精确展示敌人等级让越级挑战可主动选择」在 Explore 路径上失效。**这不是缺陷，正是元类型的定价**——补一条「秘境内战斗不得越级」等于用规则抹平风险，且会成为 `±2` 带那条无例外硬规则的例外。
 - **新增待答 1 条**（落 `03-adventure-event-types.md`）：Explore 的两个待实测初值——真身占比 `5:3:2`（归 ch1 数值标杆专场）与转场时长 ≈ 1.2s（纯手感项）。**本次不替既有待答「寿元告警是否伴随音效 / 震动」拍板**，两者是独立问题。
 - **顺带修三处滞后措辞**：`03` 分片仍把「遮罩下的成本呈现」列为 Explore 待答，而它已由成本侧收口那场答结；`adventure-event/common-properties.md` 与 `02` 分片仍写 `EventOption` 骨架「八字段」，实为九字段。**不 bump schema · 不新增服务方法 / manager · 对后端库零改动 · 未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）。
-
-## 2026-08-17c（`/analyze-new-ideas` · 移出 5 条 · 新增 2 条 · 单库）
-
-- **来源**：`inbox/solution-draft-research-mechanics.md`（`status: decided`，五项取向一律取推荐）→ `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md`。**单库运行**：全部落点都是客户端的结算形态与类型面，后端零改动。移出记录见 `../answer-logs/log-research-mechanics.md`。
-- **收口要点 ①：Research 的结算形态 = 构筑面板，由若干决策槽组成。** 模板持 N 个槽，物化时逐槽预先掷定候选，玩家逐槽择一，全部选择与 `lifeSpanCost` 合并为 `eventEnd` 的**一次** `TryApply`。它是既有决策点面板的**第三个实例**（战后奖励 / 能力置换之后），零新增结构；**槽的复数形态是被开局构筑事件逼出来的**（一门功法 + 一件法宝 = 两个槽），不是为扩展预留。操作清单**闭合为六类**（学新 / 升阶 / 弃置 / 移除散牌 / 得法宝 / 回复 `lifeTotal`），产出面收窄为**卡组 + `manaLimit` + `lifeTotal` + 共有的隐藏属性推拉**。代价不另收资源，全部由 `lifeSpanCost` 的 Research 行承载——再叠灵玉会把一条权衡变成两条，且可能造出「进来了却什么都做不了」的死屏。
-- **收口要点 ②：`ProfileChangeSpec` 增一列 `DeckElements`**（`DeckChangeElement` = `DeckChangeOp` + `Id` + `Tier`）。这是**同一条承重判据的第二次应用**（第一次是同日的 `StatusChanges`）：施加语义根本不同就分列——功法带层数（`Upgrade` 既非 `Grant` 也非 `Remove`）、游离散牌是**多重集**（集合操作的「已持有 → 空操作」会静默吞掉第二张业障）、卡组条目没有 `SourceCode` 挂载面。**`Tier` 写目标层数不写增量**（`AppliedChange` 要可重放）；**恒不走 modifier pipeline**（法则若能把「层数 +1」放大成 +2，「进化 = 整组替换、每层一整套定义」当场失效）；**`selectCost` 内恒为空**，使该处的不变式由一条变两条。**代价如实记：** bump 一次存档 schema（当前无线上存档 ⇒ 空迁移），三处列举需同改。
-- **收口要点 ③：`manaLimit` 下降改挂 Research，做成玩家自选的风险档**（成功 +1 / 失败 −1，物化时掷定并落存档）。它给 Research 补上唯一缺失的张力——否则一个「最贵且必然赚」的事件会成为批次里的无脑首选；并让「不设下界护栏」「不做死牌转化」「高费卡成死牌可接受」三条既有决策第一次有了消费方。**自选而非随机惩罚**是关键的一半：被系统扣上限只会让玩家整体回避闭关，而闭关是构筑的唯一落点。载体 `CostKey.ManaLimit`，`ResourceElements` 该行两个修正列**必须留空**。
-- **收口要点 ④：候选生成零新增抽取代码。** 法宝三选一直接复用 `GrantPoolPicker`（`(Item, Character)` + `count = 3`），功法三选一走 `CultivationTechniqueData` 仓储的 `AllEnabled()` / `DrawPool<T>`（**第五个调用方**）；随机源均取 `RngStream.Reward`（**不新开子流**——用途完全同构且两者从不并发）；候选池不接 modifier pipeline（否则等于开一条「账号级内容改写轮回级构筑运气」的无人校验通道）。
-- **新增待答 2 条**，均落 `03-adventure-event-types.md`：闭关构筑面板的**三个数值格**（`Recuperate` 回复量 · 风险档出现权重 · 开局条目 `lifeSpanCost = 0` 的覆盖登记，归 ch1 数值标杆专场）· **构筑面板的竖屏呈现与风险档标注**（方向已定、形态未设计）。
-- **顺带收窄两条**：`future-event-service` 的「`Priority = 1` 依什么条件抬升」拿到**第二个确定答案**（开局构筑事件；第一个是配额闸门的 Travel）；`01-combat` 的「非战斗四类的决策点清单」欠项由四类减为三类。
-
-## 2026-08-17b（`/analyze-new-ideas` · 移出 0 条 · 新增 2 条 · 单库）
-
-- **来源**：`inbox/solution-draft-travel-mechanics.md`（`status: decided`，四项取向一律取推荐）→ `handoffs/2026-08-17-travel-destination-and-status-change-elements.md`。**单库运行**：全部落点都是客户端的类型形态与结算组装，后端零改动。
-- **本次未答结任何既有待答项，故无 answer log。** 两处缺口此前只被 `02-event-options` 的「`EventOption` 完整物化字段清单未定」**笼统覆盖**，该条被**收窄**（骨架七字段 → 八字段）而非关闭——它剩下的分叉明写为需要一次内容侧 handoff，而目的地是结构性字段，不该等在那条后面。
-- **收口要点 ①：`EventOption` 增第八个字段 `DestinationLocationId`**（非 Travel 为空串），形态与 `RevealedEventId` 同款。它**必须在物化时掷定并落在定稿实例上**——目的地是 map 子流从邻接集合抽出的物化产物，重算不保证同结果，而「产出即定稿、不得回查模板重算」禁止消费侧再抽一次。**Explore 壳在真身为 Travel 时一并填**（防重掷纪律），并由此给 Explore 的泄漏面纪律补了**字段侧的第二个实例**：`RevealedEventId` 与 `DestinationLocationId` 同属揭示前不得进呈现层，两者写在同一条里以免被当成两条纪律。**`PastEventEntry` 不动**（目的地由下一条痕迹给出，三种边界情形均已核查）。
-- **收口要点 ②：`ProfileChangeSpec` 增一列 `StatusChanges`**（`StatusAssignment` = `StatusKey` + `IntValue` + `StringValue`，语义为**绝对置值**）。它一次性关掉四组「已声明并入 `eventEnd` 那次 `TryApply` 却没有 element 形态」的悬空：两个 location 字段 · 三个 band · `ChapterLifeSpanBudget`。值类型与取值域走封闭表 `StatusFields`（与 `ResourceElements` 同款判据）；**`Id` 型解析不到 → `PushError` + 整批拒绝**（跳过会产生「寿元扣了但人没走成」的半套状态）；**恒不走 modifier pipeline**（否则一条法则能改写玩家的地图位置或伪造隐藏属性档位）。
-- **⚠ 承重措辞改写（用户裁决通过）**：`architecture.md`「为什么是三个平级列表」与 `profile-service.md`「三个平级只读列表（承重）」两处的**列表数不再写进承重表述**，改为「**逐条按施加语义分列**」。判据本身不动，改的只是它当前枚举出的实例数——**这样再加一列不必再改一次标题**。同批顺手改的还有 `terminology.md`、`adventure-event/common-properties.md` 与两处「三个列表是否一起落」的行文。**Research 专场将按同一形态另增一列 `DeckElements`（卡组变更载体），字段面归那一场，本次不预设。**
-- **收口要点 ③：组装点在 life-cycle-service，resolver 不变。** 两条 `StatusAssignment` 由本服务在组装 `eventEnd` 的 spec 时从 `option.DestinationLocationId` 读出并置入，与 band 字段同款；**判据写 `DestinationLocationId != ""` 而非 `EventType == Travel`**——后者会漏掉「Explore 揭示出的 Travel 也归 0」（那时 `EventType` 恒为 `Explore`），与 `eventEnd` 组装校验取「是否走过 combat-service」是同一条纪律。
-- **新增待答 2 条**（均落 `05-service-contracts`）：`ResourceElements` 是否增一列 `ApplyOp { Add, Set }`（轻；「这一行是加还是赋」目前只写在散文里）· `plotKeyPoint` 的 element 形态（集合型，`StatusChanges` 装不下，归 plot-manager / profile-service 专场）。
-- **存档面：不额外 bump。** 两个 `Status` 字段此前已随 location 载体落定并 bump 过；`EventOption` 快照多一个字段随「完整物化字段清单」那次 bump 一并处理。**Travel 的规则一律不动**（80/20 · 定价 · 闸门 · 不设途中遭遇 · 换图后无特殊规则）。**未动 `## derive 就绪度`**（`/assess-derive-readiness` 独占）。
-

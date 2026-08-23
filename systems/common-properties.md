@@ -10,6 +10,7 @@
 ### 稳定 Id 键
 - 每个内容条目都有一个**稳定、唯一的字符串 `Id`**。Id 是其他一切引用的键（存档文件、注册表查找、跨系统交互）。**绝不用场景路径、数组索引或显示名作为内容的键。** Source: `.claude/rules/data-resource-rules.md`。
 - 显示字符串（名称、描述）与 `Id` **分离**，可改动 / 本地化而不破坏引用。
+- **`Id` 的字符集不含 `#` 与 `:`**（加载期校验，违规 → `PushError` + 报出 `Id` 与 `.tres` 路径）。这两个字符是**复合键的结构位**：`#` 已被战斗内 `counters` 键用作「异能 id / 子计数器名」的分隔符，`:` 保留为未来非异能键的命名空间前缀。把它们排除在 `Id` 之外，使任何以 `Id` 打头的复合键都能无歧义地切分，且日后开出 `:` 命名空间时与既有 id 天然不相交、无需迁移。条目 `Id` 的形态规范见 `content/_index.md`；`counters` 键的完整语法见 `systems/services/combat-service.md`。
 
 ### 字段命名与类型一致性
 - 类、方法、属性、信号、导出字段用 `PascalCase`；私有字段 `_camelCase`；与 Godot C# API 大小写一致。Source: `.claude/rules/csharp-godot-rules.md`。
@@ -128,7 +129,7 @@
 - **rules 里那份摘要的合法形态 = 一句祈使 + 标识符名 + 一句代价 + 一条直指本库的回链**——**越界清单、归属分类与三条机械规则见 `decisions/ADR-0005` 的「### 2. 规则层的具体形态」，本处不复述**。违反即制造第二权威：两份表会各自漂移，而本库没有任何机制能发现它们不一致。
 
 
-Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-14b-claude-rules-design-content-thinning.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md`
+Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-14b-claude-rules-design-content-thinning.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-22-card-counters-api-and-key-space.md`
 
 ## 内容共有字段
 
@@ -190,7 +191,7 @@ public partial class LocalizedText : Resource
 }
 ```
 
-- **挂载面 = 一切面向玩家的内容文本字段：** `CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PowerData` 的**显示名 · 描述 · 风味文案**；`PowerData` / `ItemData` 顶层的图鉴风味文案 `CodexFlavor`（可选，见下）；`HiddenStatBandData` 的档位叙事条目；Finale「失败但存活」补白；AdventurePlot 的剧本正文与分支文本。
+- **挂载面 = 一切面向玩家的内容文本字段：** `CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PowerData` 的**显示名 · 描述 · 风味文案**；`PowerData` / `ItemData` 顶层的图鉴风味文案 `CodexFlavor`（可选，见下）；`HiddenStatBandData` 的档位叙事条目；Finale 的渡劫身死文案；AdventurePlot 的剧本正文与分支文本。
 - **不挂载：** `Id`、任何数值、任何枚举、`ContentEnabled` / `Rarity` / `ExclusiveSource` 等结构字段。
 - **可选的 `LocalizedText` 字段：「缺失」= 字段本身为 `null`（承重）。** 有的展示文本字段本就可以整段不存在（`CodexFlavor` 是第一个：图鉴详情页缺它就不渲染风味段）。**这类字段留空的形态是 `.tres` 里不挂这个子资源**，语言强校验只对**已挂上的 `LocalizedText`** 执行；挂了却默认语言为空串仍是坏数据。
   - **不引入「必填 / 可选字段分类清单」**：那会长出一份要逐字段维护的表，且每加一个展示文本字段都要先回答「它属哪一类」——把一条可机械判定的校验降级为要读上下文。

@@ -18,7 +18,7 @@
 |---|---|---|---|
 | `Practice` | small blind | `TurnLimit 8` · `VictoryRule(WinMargin 0)` | 比试 / 切磋——低风险历练，**道念相等即判胜**（点到为止） |
 | `Standard` | big blind | `TurnLimit 10` · `VictoryRule(WinMargin 1)`（= 道念高者胜） | 常规遭遇 |
-| `Finale` | boss blind | `TurnLimit 12` · `VictoryRule(WinMargin N)`，`N` = ch1 3 / ch2 5 / ch3 8 | 篇章边界高潮：渡劫 / 突破至下一境界 |
+| `Finale` | boss blind | `TurnLimit 12` · `VictoryRule(WinMargin 0)` | 篇章边界高潮：渡劫 / 突破至下一境界——**不落后即通过，落后即角色终结** |
 
 - **`combatTier` 是必需的锚点，不是修饰。** Finale 是**篇章边界闸门**、**ADR-0004 篇章重试模型的锚点**、**道统残卷的唯一累积源与兑现点**——这三处都需要一个可机械判定的判据；靠内容 `Id` 或 location 配置去认出「这是渡劫」是反模式。
 - **档位落在 `EncounterSpec` 上，与 `TurnLimit` / `VictoryRule` / `RewardPoolId` / `BaseReward` 同层**，由 future-event-service 在物化时从 `AdventureEventData` 模板代入；`EnemyData` 完全不携带——否则同一个敌人条目无法同时用于 `Practice` 与 `Standard`。落在 `EncounterSpec.Tier`，**`EventOption` 与 `PastEventEntry` 两处都不加独立字段**——走 `EventId` → 模板溯源。
@@ -26,27 +26,33 @@
   - **两个消费方都不需要新字段，因为它们本来就要查模板。** 选择区区分「切磋 / 遭遇 / 渡劫」与履历读出「这一步是不是渡劫」都已按 `EventId` 取显示名 / 描述 / 图标，**tier 在同一次 `ContentRegistry.Get()` 里免费拿到**；剧本条件填 `PlotCondition.EventResolved` 的 `EventId` 即可，不需要新条件类型。
   - **额外收益：Explore 的遮罩纪律少一个守点。** 壳的 `EventId` 指向 Explore 模板（模板上没有 tier），真身的 tier 在 `RevealedEventId` 的模板上，而 ViewModel 在 `IsRevealed == false` 时这两个字段一个都不读已是既定纪律。把 tier 拷成壳实例上的一格，就多出一个必须记得「遮罩态不许读」的字段。
   - **唯一的退化情形（明写）：** 某条目在新 `contentVersion` 中被删除 ⇒ 该痕迹按既定语义降级为「仅标识可读」（`PushWarning`，履历显示为未知条目，不阻断读档），此时 tier 与显示名一同读不出，**不构成额外损失**。
-- **难度旋钮是 `WinMargin`，节奏旋钮是回合数。** Practice 减到 8 回合：追分窗口少 2 回合，但追分要求从「反超」降到「追平」，两侧相抵，净效果是**更简单且更快**——快正是 small blind 该有的节奏，直接服务篇章时长控制。Finale 反而**加到 12 回合而非减少**：若同时减回合会退化为**纯粹的起跑线检定**（谁 `baseMomentum` 高谁赢），玩家一整个篇章攒起来的 build 无从表达——**Finale 是 build 的检验场，「更难」体现在门槛，不体现在窗口。**
-- **推论：`CombatOutcome.Draw` 在 `Practice` 档永不可达**（相等即胜）——干净的退化，不是缺陷，但呈现层需知晓。
+- **回合数是节奏旋钮。** Practice 减到 8 回合：追分窗口少 2 回合，但追分要求从「反超」降到「追平」，两侧相抵，净效果是**更简单且更快**——快正是 small blind 该有的节奏，直接服务篇章时长控制。Finale 反而**加到 12 回合而非减少**：若同时减回合会退化为**纯粹的起跑线检定**（谁 `baseMomentum` 高谁赢），玩家一整个篇章攒起来的 build 无从表达——**Finale 是 build 的检验场**，12 回合是给 build 表达自己的窗口。
+- **`WinMargin` 不是 Finale 的难度旋钮。** 三档的 `WinMargin` 取值分别由各自的语义直接推出（点到为止 / 高者胜 / 不落后即通过），**没有一档把它当作可调的难度参数**。Finale 的难度校准手段见 `systems/balance.md`。
+- **`Practice` 与 `Finale` 同取 `WinMargin 0` 是巧合，不是共性（承重）。** 两者出自两条互不相干的理由——前者是「点到为止，打平即通过」，后者是「非胜即败，不落后即渡过」；两档的回合数、奖惩、残卷挂载、失败后果**全部不同**。**不要把两档的 `VictoryRule` 提取成共享常量**，那会把一个数值巧合固化成一条不存在的规则。
+- **推论：`CombatOutcome.Draw` 只在 `Standard` 档可达。** 另两档各自退化：`Practice` 因门槛为 0 而相等即胜，`Finale` 因二值化而非胜即败。**两端退化都是干净的**，不是缺陷，但呈现层需知晓。
 - **`EnemyData.EncounterScopes` 按档位取值。** 不另立一批「切磋对手」条目：同门师兄、道友一类标 `[Practice]`，凶兽、魔修一类标 `[Standard]`，两者皆可的标 `[Practice, Standard]`。**承重论据 = 图鉴的正向增益**——共享池使玩家能**先在低风险的 Practice 档遇到并解锁某个敌人的图鉴，再在 Standard 档正式对上它**。敌人的行动既不作事前预告，图鉴就是**事前知识的主通道**，这条「先遇见、再对上」的路径因此是可读性的重要来源；另立一批则图鉴要么翻倍、要么分裂成两套，且敌人条目是本作最重的内容单元之一。见 `systems/enemies/`。
 - **三档一视同仁的规则（无例外）：** 敌人赋级一律落在角色当前等级 `±2` 带内。**低风险 / 高难度全部由遭遇参数承担，不由「派个更弱 / 更强的对手」承担。**
 
 ### `Finale` 档：篇章边界的境界突破
 
-- **篇章边界高潮。** Finale 出现在篇章（Chapter）边界，对应修行阶梯上境界的跃迁（炼气 → 筑基 → 金丹 → 元婴）；一次轮回含三个篇章。通过后角色进入新境界，**等级归位为新境界的初期**（见 `systems/game-progression.md`）。
+- **篇章边界高潮，两个出口。** Finale 出现在篇章（Chapter）边界，对应修行阶梯上境界的跃迁（炼气 → 筑基 → 金丹 → 元婴）；一次轮回含三个篇章。**通过**（`d >= 0`）则角色进入新境界、**等级归位为新境界的初期**、篇章推进并落存档点（见 `systems/game-progression.md`）；**未通过**（`d < 0`）则**角色当场终结、本篇章不推进**。两个出口之外没有第三种走向。
+- **勉强通过（`d` 接近 0）拿到的是最低档奖励，这由既有换算自动兑现。** 强制奖励走线性 `1:1`，`d = 0` 时加成恰为 0；可选奖励走归一化 `advantage` 三档，代入各章 `baseMomentum` 后 `d` 的低区间整体落在**险胜 `Tier.Narrow`**。**不为此另立奖励线**——「最低档」是既有两条换算规则的自然结果，新增一条线等于给一个已被满足的需求造结构。**已知代价（接受）：** `Tier.Narrow` 不为该区间独占，「刚好打平」与「小幅领先」拿到同一档可选奖励，只在强制奖励的线性量上有差。换算与门槛见 `systems/balance.md`。
 - **渡劫的对手 = 天劫，天劫是一个 Enemy。** 天劫作为敌人条目存在，**带定制卡组**——这是「每个 enemy 各持有一个卡组」的直接应用。
 - **天劫同受赋级约束，无等级规则上的例外。** 合法区间同样是角色当前等级 `±2`。
   - **推论 ①（自洽性验证）：** 篇章末角色处在境界巅峰（全局 13 / 17 / 21），下一境界的初期是 14 / 18 / 22 —— **`diff` 恰为 +1，稳稳落在 `±2` 带内**。「渡劫 = 突破到下一境界」这句叙事**不需要为它开任何规则口子**就能成立。
   - **推论 ②：天劫走同一条物化路径**（`EnemyData` → 充实 / 改写 → 指派），特殊性全落在**定制卡组**与**遭遇参数**上，**不落在等级上**。
-- **⚠ Finale 存在三重压迫叠加**：（a）开局落后 5 / 13 / 25；（b）`WinMargin` 额外门槛；（c）失败时道念差最大 ⇒ 扣 `lifeTotal` 最狠。三条**都是既有定案的必然结果**，`WinMargin` 是其中唯一新增的一条，故初值取得保守（不到开局落差的一半），12 回合是对（a）的部分补偿。**`WinMargin` 是双向的第一旋钮：实测过难先砍它、实测偏易先加它，两个方向都优先于动回合数。**
-- **Finale 失败不直接 `defeated`（承重）。** **不设 `DefeatReason.FinaleFailed`** —— `DefeatReason { Discarded, LifeSpanExhausted, LifeTotalExhausted }` 旁已明写「战斗失败本身不终结角色，只扣 lifeTotal」，加一条等于给这条纪律开例外。**死亡通道已经存在**：Finale 失败按 1:1 扣 `lifeTotal`，而 Finale 的道念差本就最大，很容易打穿 → 经既有的 `LifeTotalExhausted` 自然导向 defeated。**结果上「Finale 失败常常等于死」，但走的是既有通道。** 失败后 `lifeTotal` 未归零即可继续消耗寿元找事件；篇章边界失败的语义由 ADR-0004 承担。
+- **⚠ Finale 存在二重压迫叠加**：（a）开局落后 5 / 13 / 25；（b）**失败即角色终结**——压迫的顶点不是「扣得最狠」，而是不可逆的终结。两条**都是既有定案的必然结果**：(a) 出自 `baseMomentum` 表，(b) 出自篇章闸门语义。12 回合是对 (a) 的部分补偿。**这两重都不是可调的旋钮**——(a) 动它会同时改变全部战斗的起跑线，(b) 是二值的。Finale 的难度校准手段见 `systems/balance.md`。
+- **Finale 失败即 `defeated`（承重）。** `d < 0` ⇒ 角色在该事件收口的同刻终结，走 **`DefeatReason.FinaleFailed`** 这条**独立的终结通道**——它不是资源触底，故不经 `LifeTotalExhausted`，也不由终态资源表驱动，而是终态判定上的一条显式旁路（形态见 `systems/services/life-cycle-service.md`）。**渡劫的胜负就是篇章推进的闸门**：胜则突破，败则本次轮回的该角色终结。篇章边界失败之后的去向（篇章重试）由 ADR-0004 承担。
+  - **失败时那笔按道念差 1:1 扣的 `lifeTotal` 照常扣**（合进该事件 `eventEnd` 的那一次 `TryApply`），只是它不再是死亡判据——`CombatResult.RemainingLifeTotal` 与结算呈现照旧有定义。
 - **每个篇章只有一个 Finale，失败后不可在同一篇章内再次挑战。** 天劫是篇章的**一次性收口**，不是可反复刷的遭遇。想再渡一次这一劫，只能**重走整个篇章**（篇章重试，ch2 / ch3 另有上限 3 / 1，付费 9 / 3）。
   - **推论（承重）：残卷的可刷性由结构封死。** 每个角色每篇章**至多累积一次或掷骰一次，且二者互斥**；要多累积一次得付出 30–55 分钟重走一章的代价。**道统残卷因此不需要任何额外的冷却 / 次数上限规则**（见 `systems/player-profile/player-power/_index.md`）。
-- **Finale 失败但存活（约 1%）⇒ 篇章照常完成、境界照常突破（承重）。**
-  - **承重推论：渡劫的胜负不是篇章推进的闸门。** 胜负只决定两件事——`lifeTotal` 的损失量，以及**残卷是否兑现**（发放只认胜利；失败但存活者照常累积、但不掷骰不发放）。
-  - **叙事补白：归 `systems/services/plot-manager.md` 的叙事层**，与「隐藏属性跨档定性叙事」同一条落点（`ResolveOutcome` → `eventEnd`），不新增结构。文案两版：**「劫败而身存，破境亦有缺。」/「以败换境，以伤换生。」**，**等概率随机二选一**、**属内容层**（有稳定 `Id`、需启动期校验，故 overlay 对它照旧**只改不增**）；**两版均不得暗示道统残卷**。
-- **Finale 是道统残卷的唯一累积源与唯一兑现点。** 失败累积 · 胜利掷骰 · 在**该 Finale 的 eventReward 界面**即时发放，全部并入该事件 `eventEnd` 的那一次 `TryApply`——**不新增结算阶段、不新增存档点**。**失败侧不给玩家任何提示**（无文案 / 无进度条 / 无百分比）。完整规则见 `systems/player-profile/player-power/_index.md`。
+- **「渡劫身死」有一条专属的定性叙事。** 归 `systems/services/plot-manager.md` 的叙事层，与「隐藏属性跨档定性叙事」同一条落点（`ResolveOutcome` → `eventEnd`），不新增结构；**属内容层**（有稳定 `Id`、需启动期校验，故 overlay 对它照旧**只改不增**）。它**不得暗示道统残卷**——残卷对玩家彻底隐含。
+- **Finale 是道统残卷的唯一累积源与唯一兑现点。** 失败累积 · 通过掷骰 · 在**该 Finale 的 eventReward 界面**即时发放，全部并入该事件 `eventEnd` 的那一次 `TryApply`——**不新增结算阶段、不新增存档点**。**失败侧不给玩家任何提示**（无文案 / 无进度条 / 无百分比）。**累积发生在角色终结的同一刻**，故它那笔账号级写入的提交顺序是承重的——顺序纪律见 `systems/services/life-cycle-service.md`。完整规则见 `systems/player-profile/player-power/_index.md`。
 - **Finale 不承担经验供给（由经验模型推出）。** 天劫的 `diff = +1` 隐含一条硬约束：**角色必须在进入 Finale 之前就已升满本境界**，否则 `±2` 带会给出一个更低的天劫等级，「渡劫 = 突破到下一境界」的叙事随之破裂。**推论 ①：全部升级所需经验必须由篇章的常规事件段供满**，Finale 自身的 `ExperienceGrade` 取 `None` 或 `Minor`。**推论 ②：Finale 的出现条件 = 角色已达本境界巅峰**——不需要新机制，`eventPriority = 1` 已能表达（与 `eventCountLimit` 达成后 Travel 封锁同批的用法同构）。见 `systems/game-progression.md`。
+- **Finale 以 `Priority = 1` 出场（承重）。** 角色达本境界巅峰（全局 13 / 17 / 21）的那一批，Finale 选项被 future-event-service 抬到 `1` 档，本批有效可选集随之收窄为它——篇章边界因此是一个**确定的必经节点**，与配额闸门 Travel 同形。**它不是新机制**：`eventPriority` 就是本库用来表达这件事的唯一字段；用「保证必现但 `Priority = 0`」替代需要产出侧另造一条「某条目必进本批」的机制，那等于造第二条约束轴。抬升判据与置位段伪码见 `systems/services/future-event-service.md`。
+  - **代价明写（接受）：取消了「先补一补 `lifeTotal` 再渡劫」的备战窗口。** 满级那一刻其余选项即被封锁，玩家无法再插入一个回寿或构筑事件。这是在既有二重压迫（开局落后 5 / 13 / 25 · 失败即角色终结）之上叠的第三重。
+  - **实测过苛时的退让位**：**内容侧编排「满级前一批必有一个带 `Recuperate` 的 Research」**，以及 `systems/balance.md` 列出的三条 Finale 难度校准手段（天劫的赋级带位置 · 天劫定制卡组的强度 · `TurnLimit`）——**而不是回退抬升**。`WinMargin` 在该档恒为 0，不是可用的退让位。
+  - **与「满级后 Finale 恒进候选池、不参与类型加权」成对成立**（闸门式旁路，见 `systems/services/future-event-service.md`）：抬升需要有一个对象，抽漏一次则本批无 Finale 可抬。
 - **全部 Finale 均为天劫战；不设非战斗形态的境界突破路径（承重）。** 境界突破只有一条路径——打赢天劫。
   - **推论 ①：`EncounterSpec.Enemy` 恒非空。** 不存在「无敌人的 Finale」这一分支，`TurnLimit` / `FirstSide` 因此恒有意义。
   - **推论 ②：`CombatEventResolver` 无内部分派**，三档一律走 `combat-service.RunCombatAsync`。
@@ -55,17 +61,19 @@
 
 ### 三档与隐藏属性
 
-- **隐藏属性对五类事件的输入与输出两侧全开，Combat 三档不例外。** 产出侧走 `HiddenStatGrade`（可选字段、不填 = 不推），输入侧走**调制通道**（Band 触发 arc → `PlotModulation`）与**结算输入通道**（数据驱动 outcome 求值读取当前值）。**输入侧全开不等于把隐藏属性接进胜负判定**——`VictoryRule` 仍是单字段，隐藏属性影响一场遭遇的路径是**拧参数**（更凶的模板、更高的 `WinMargin`、更差的起手），不是加一条并列的判定条件。权威见 `systems/services/plot-manager.md`。
+- **隐藏属性对五类事件的输入与输出两侧全开，Combat 三档不例外。** 产出侧走 `HiddenStatGrade`（可选字段、不填 = 不推），输入侧走**调制通道**（Band 触发 arc → `PlotModulation`）与**结算输入通道**（数据驱动 outcome 求值读取当前值）。**输入侧全开不等于把隐藏属性接进胜负判定**——`VictoryRule` 仍是单字段，隐藏属性影响一场遭遇的路径是**拧参数**（更凶的敌人模板、更高的敌人赋级、更差的起手；`Standard` 档另可拧 `WinMargin`），不是加一条并列的判定条件。权威见 `systems/services/plot-manager.md`。
 - **三档的默认推拉口径**（内容编排口径，逐条目可覆盖）：
 
   | 档位 | 道心 faith | 煞气 Bloodlust |
   |---|---|---|
-  | `Practice` | 推（正向为主），**对位低一档** | **默认不推** |
-  | `Standard` | 逐条目编排 | 推（杀伐类条目） |
-  | `Finale` | **胜利与失败都推** | 逐条目编排 |
+  | `Practice` | 推 `Raise`，**对位低一档** | **默认不推** |
+  | `Standard` | 逐条目编排（方向随条目语义） | 推 `Raise`（杀伐类条目） |
+  | `Finale` | **胜利与失败都推 `Raise`** | 逐条目编排 |
+
+  方向位是 `HiddenStatGrant` 的第三格 `HiddenStatDirection { Raise, Lower }`（沿数值轴，不含价值判断），类型定义与落点论证见 `systems/architecture.md`。
 
   - **`Practice` 不积煞气**：`WinMargin 0`「道念相等即判胜」正是**点到为止**的机制表达——切磋是磨砺心性，不是杀伐。「对位低一档」沿用 `ExperienceGrade` 已有的档位偏置范式（低风险 ⇒ 产出对位低一档），不是新规则。
-  - **`Finale` 胜负同推道心**：渡劫这件事本身塑造道心，成败只改变塑造的内容，不改变「它发生了」。**推拉不套用 `FailureRatio`**，胜负同施一份 `HiddenStatGrade`（理由见 `systems/adventure-event/common-properties.md`）。
+  - **`Finale` 胜负同推道心**：渡劫这件事本身塑造道心，成败只改变塑造的内容，不改变「它发生了」。**扩大「胜」的定义不改变施加量**——两支同施一份，判定线挪到哪里都不影响这一条。**推拉不套用 `FailureRatio`**，胜负同施一份 `HiddenStatGrade`（理由见 `systems/adventure-event/common-properties.md`）。
   - **Finale 不消耗隐藏属性**：`selectCost` 照定价表取 `Combat × Finale` 那一格，不额外扣道心 / 煞气——成本侧只放可如实计价的量，而隐藏量玩家永远算不出那一格。
   - 映射值归 ch1 数值标杆专场，见 `systems/balance.md`。
 
@@ -77,7 +85,7 @@
 - **胜利侧也读道念差（换算 = 两条支路）。** 赢多少也算数：**道念差越大，奖励越厚**（碾压 > 险胜）。道念差因此是一个双向刻度——胜侧给奖励厚度，负侧扣 lifeTotal。**换算分两条支路**：**强制奖励（可数量）走线性 `1:1 × 可调单价`**（「1 点道念差 = 1 个 `rewardPerMomentum` 单位」，单价逐篇章下调）；**可选奖励（品质）走归一化 `advantage` 三档**（险胜 / 优胜 / 碾压，只改候选池的稀有度权重、不改数量）。公式、单价表与门槛见 `systems/balance.md`。
 - **负侧换算 = 1:1。** 失败时 `lifeTotal -= (敌人道念 − 角色道念)`——道念差就是损失量，中间不隔系数。`momentum` 为 **`>= 0` 的 Integer**。
 - **回合数与胜负判据是遭遇参数，落在 `EncounterSpec` 上**（不落 `EnemyData`），三档取值见上方档位表。**推论：10 回合与「道念高者胜」是 `Standard` 这一档的默认值，不是全局常量**。借的是 blind 的难度分档结构，不是它的计分结构。取值与理由见 `systems/balance.md`。
-- **胜负判据参数化为一个数，不做「可替换的判定对象」。** `VictoryRule(int WinMargin)`：`d = 角色道念 − 敌人道念`；`d >= WinMargin` → `Victory`；否则 → `Draw`。代入已陈述的全部需求（`Standard` `1`、`Practice`「打平即通过」`0`、`Finale`「必须领先 N 点」`N`）已完全覆盖——**无需策略枚举、无需分发**。
+- **胜负判据参数化为一个数，不做「可替换的判定对象」。** `VictoryRule(int WinMargin)`：`d = 角色道念 − 敌人道念`；**`d >= WinMargin` → `Victory`；`d == WinMargin − 1` 且 `WinMargin >= 1` → `Draw`；`d < WinMargin − 1` → `Defeat`**。代入已陈述的全部需求（`Standard` `1`、`Practice`「打平即通过」`0`、`Finale`「不落后即通过」`0`）已完全覆盖——**无需策略枚举、无需分发**。**`WinMargin == 0` 的两档因此二值化**（`Draw` 分支的条件恒不成立），Finale 侧 `d < 0` 的 `Defeat` 即角色终结。
 - **卡牌结算 = stack，但不含交互与优先权（承重）。** 借入 MTG 的 **stack**（先入栈、后进先出、「打出」与「结算」分两个时刻）；**但 instant / 栈非空时出牌与优先权传递整体不借**——理由是它们**拉长时长、决策点过多、复杂度高而深度收益小**。**推论：「双方各 5 个回合、我打完换你打」的简单交替成立**，且**「定长 = 每场时长可预测」成立**。规则细则见 `systems/character-profile/deck/`。
 - **回合结构 = 三步。** **开始阶段**（回合归属方 mana 恢复至 `manaLimit` → 触发「回合开始时」→ 抽牌）→ **行动阶段**（唯一出牌阶段，只有归属方出牌）→ **结束阶段**（触发「回合结束时」→ 清理回合内的非永久条目）。**中文侧统一以「阶段」收尾、英文侧统一以 `step` 收尾**（`start step` / `action step` / `end step`；**不借 `main phase` 一词**）。**出牌时机是唯一的、且是全局规则**：自己回合的行动阶段、栈为空时——**`sorcery speed` 一词亦不借**。**三步是回合归属方的流程，双方不同时走**：每一方在自己的回合内各走一套完整的三步，「回合开始 / 回合结束」是有归属方的时点，不是双方同步的公共时刻。**不设战斗步骤、不设双主阶段**——**推论：没有 MTG 式的攻击阶段**，道念的产出与卡牌侧削减全部经由行动阶段打出的卡牌（另一条独立通道是开始阶段抽牌触发的疲劳，见下）。完整结构与步内顺序的意义见 `systems/services/combat-service.md`。
 - **先后手：剧情可指定，否则随机。** 先手方由 **`EncounterSpec.FirstSide`**（可空）承载，由 future-event-service 物化 eventOption 时写入（剧情意图经 plot-manager 调制）；**未指定时由 combat 子流掷**，同一 seed 复现同一个先后手。与「不设先后手抽牌差」并行不悖——后者说不做补偿，前者说谁先动。
@@ -93,9 +101,31 @@
 ### 结算产物
 
 - **胜：** `baseReward` + 按道念差加厚；**平：** 只发 `baseReward`；**负：** `baseReward`，**少数事件另夹带负向条目**（额外惩罚**包在 reward 里**，不另立结构——与 `ProfileChangeSpec` 的带符号约定自洽）。
+
+- **`Practice` / `Standard` 两档失败不另加规则层的额外后果（承重）。** 失败的代价**已经有六条**，只是它们分散在五份文档里、从不并排出现，故结算表看起来只有 `lifeTotal` 一列。**六条代价（本表只并列既有定案，不含新增）：**
+
+  | # | 代价 | 量级 / 形态 | 权威 |
+  |---|---|---|---|
+  | ① | **扣 `lifeTotal`** | `= 敌人道念 − 角色道念`，1:1 无截断；炼气基线仅 10，最坏开局落差 9 ⇒ 一次惨败几乎打穿整条耐久线 | `systems/scoring.md` · `systems/character-profile/life-total.md` |
+  | ② | **已支付的 `lifeSpanCost` 打了水漂** | 无条件施加、支付先于结算、不因失败退还；寿元归 0 即 `defeated` | `systems/adventure-event/common-properties.md` |
+  | ③ | **占掉一个 `eventCountLimit` 名额** | 纯计数、不分胜负；名额有限 ⇒ 它挤掉的是另一个本可选的事件 | `systems/game-progression.md` |
+  | ④ | **经验按 `FailureRatio` 折半** | 50%、向下取整、下限 1；供需比仅 1.15–1.20 ⇒ 反复失败真实导致卡级，而卡级的终点是寿元耗尽而等级未满 → `defeated` | `systems/game-progression.md` |
+  | ⑤ | **失去胜利侧的全部奖励厚度** | 线性 `1:1 × rewardPerMomentum` 加厚归零、`advantage` 三档不适用；失败只发 `baseReward` | `systems/scoring.md` · `systems/balance.md` |
+  | ⑥ | **隐藏属性照推，且推的是同一份量** | 胜负同施一份 `HiddenStatGrade`、不套 `FailureRatio` ⇒ 输掉一场杀伐类 `Standard` 照样积满煞气 | `systems/adventure-event/common-properties.md` |
+
+  **不另加的四条依据（各自独立成立）：**
+  1. **`FailureRatio` 取 50% 而非更低，其论证前提逐字就是「失败已经付了 `lifeTotal` 的硬代价」。** 再加一层后果等于抽掉那次论证的前提——若失败代价不够重，该调的是 `FailureRatio`，不是在旁边并联一条新惩罚。两处不能各调各的。
+  2. **代价 ② ③ ④ 隐形但真实**（寿元在 Band 0 / Band 1 不显示数字、配额无专门呈现、经验折半玩家算不出）。**这是呈现问题，不是机制问题**——用加惩罚去解决呈现不足，是给一个已被满足的需求造结构，与 Finale「勉强通过不另立奖励线」是同一条克制。
+  3. **失败已是一条通向死亡的连续曲线。** ①（耐久触底 → `LifeTotalExhausted`）与 ④（卡级 → 寿元耗尽）是两条独立的终结路径，一次失败同时把角色往两条线上推。再加第三条压力源改变的不是「失败有代价」，而是**容错量**——而容错量的旋钮是 `baseMomentum` 表 / 赋级带 / `lifeSpanCost` 定价表 / `FailureRatio`，不是新增一条后果。
+  4. **它撞休闲定位与「炼气可无限重试」的手感。** `Practice` 被定位为低风险历练，加重惩罚是正面撞击；给 `Standard` 单独加则两档失去共用同一套结算代码的前提之一（三档共用结算，差异只在 `EncounterSpec` 的参数）。
+
+  - **两档的差异化不需要为失败侧另立，三个既有旋钮已自动兑现：** `TurnLimit` 8 / 10 ⇒ 失败时的道念差期望更小，代价 ① 自动更轻；`WinMargin` 0 / 1 ⇒ 判负门槛更靠后，同一场对局在 `Practice` 更可能落在「平即胜」；`ExperienceGrade` 档位偏置 ⇒ 折半后 `Practice` 本就更薄。再加定价表按 `combatTier` 分格，代价 ② 也有现成的分档位。**`Practice` 的「低风险」四条全部由既有参数承担**，这正是「低风险 / 高难度全部由遭遇参数承担」的直接兑现。
+  - **内容编排口径：`Practice` 条目默认不挂负向 `OnFailureRules`。** 这是编排偏好，**不设加载期校验**——`OnFailureRules` 本就是内容层的例外通道，为一个 tier 关死它是把编排偏好升格成结构约束，量级不匹配；有故事分量的切磋因此仍有书写位。`Standard` 侧的频次口径见 `systems/balance.md`。
+  - **`Practice` 的「点到为止」与「输得够惨仍可能终结一个耐久见底的角色」之间的张力交给叙事层**，不为它松动 1:1（松动的代价是通用刻度分档）。失败的定性文案取「力竭负伤 / 自愧不如」一类，落 `systems/services/plot-manager.md` 的既有叙事层，零新增结构。
 - **奖励分两类：强制自动计入（例：经验）/ 可选由玩家择一（参照 Slay the Spire 的战后奖励面板）。** **推论：战斗后需要一个奖励选择步骤**，且它在战斗流程内——**奖励计算与发放归 combat-service**，写入仍由 life-cycle-service 在 `eventEnd` 一次施加。
+- **Combat 条目允许声明事件级产出（`OutcomeRule` 的 `GrantFromPool` 等），它与战利品是两条通道（编排须知）。** 战利品出自 `CombatResult.Spoils`、记 `Source.CombatReward`、取值来自 `EncounterSpec.BaseReward` / `RewardPoolId`；事件级产出出自条目模板的产出格、记 `Source.EventOutcome`——**分野判据仍是「谁组装出这条 element」**，两者并存于同一次结算是合规的。**代价明写：** 玩家会看到同一场战斗掉了两批东西，而战后奖励的厚度轴**不覆盖后一批**。故内容作者为 Combat 条目编排事件级产出时须自行把它算进该条目的总产出，不要当作免费附加。字段面与校验见 `systems/adventure-event/common-properties.md`。
 - **不是 StS 纯 HP，也不是 Balatro 的 chips × mult。** 道念是**双方对抗的相对量**（比谁高），不是对抗静态阈值的绝对量——与「敌人也出牌、双方对称」的参战方模型一致。
-- **mana = 无曲线 · 每回合恢复至 `manaLimit`。** 不采用 mana 曲线（既非 Hearthstone 式每回合 +1 上限，也非 MTG 式打地递增）：战斗内**每回合的开始阶段、回合归属方的 mana 自动恢复到 `manaLimit`**（恢复的是本回合归属方的 mana——非归属方无法出牌，其 mana 在对手回合无用途）；`manaLimit` 本身**由 AdventureEvent 的 cost / reward 推拉**（可升可降），不随境界自动成长；**不设下界护栏**（下降极罕见）。**炼气期标准基线（起始满值）：** lifeTotal = **10/10**、mana = **5/5**。
+- **mana = 无曲线 · 每回合恢复至 `manaLimit`。** 不采用 mana 曲线（既非 Hearthstone 式每回合 +1 上限，也非 MTG 式打地递增）：战斗内**每回合的开始阶段、回合归属方的 mana 自动恢复到 `manaLimit`**（恢复的是本回合归属方的 mana——非归属方无法出牌，其 mana 在对手回合无用途）；`manaLimit` 的成长有两条来源、同走 `CostKey.ManaLimit` 的增量语义：**由 AdventureEvent 的 cost / reward 推拉**（可升可降，主通道），外加**每次大境界提升 `+1`**（在篇章边界施加一次，常量 `RealmBreakthroughManaBonus`）；**不设下界护栏**（下降极罕见）。语义与三章末推算见 `systems/character-profile/mana.md`。**炼气期标准基线（起始满值）：** lifeTotal = **10**、mana = **5/5**。
 
 ### 危险度 = 精确标注敌人等级
 
@@ -132,7 +162,7 @@
 - **敌人的战斗强度以 `baseMomentum` 为主刻度。** 等级 → 起始道念 → 开局领先量，这是越级压迫感的直接来源；**卡组保持强度中立、不叠第二条强度曲线**。
 - **敌人等级是物化产物**，落在角色等级 `±2` 带内（三章统一），随物化产物落进 `EventOption` 精确标注给玩家。**其唯一消费点是 `baseMomentum` 起跑线**（`diff` 没有第二个消费者，见 `systems/balance.md` 的待决问题）。见 `systems/services/future-event-service.md`、`systems/balance.md`。
 
-Source: `handoffs/2026-07-13.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md`
+Source: `handoffs/2026-07-13.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-combat-defeat-consequences.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -141,23 +171,25 @@ Source: `handoffs/2026-07-13.md` · `handoffs/2026-07-23-adventure-plot-hidden-s
 - **战斗固定 10 回合（双方各 5）；道念由卡牌产出、可互削、下限 0、起始 = `baseMomentum`；胜利侧按道念差给奖励厚度**。
 - **敌人静态数据 = `EnemyData`；敌人等级为 future-event-service 的物化产物**。
 - **敌人的行动不作任何事前预告**（不设揭示档位 / 行动类别标注 / 回合级描述 / 探查通道）；**敌人回合的可读性由逐步执行反馈 + 敌人图鉴 + 战场承担，逐步反馈是硬要求**。
-- **mana 无曲线 · 每回合恢复至 `manaLimit`、炼气基线 10/10 · 5/5**。
+- **mana 无曲线 · 每回合恢复至 `manaLimit`（由事件推拉，另在每次大境界提升 `+1`）、炼气基线 lifeTotal 10 · mana 5/5**。
 - **危险度 = eventOptions 上精确标注敌人等级（否决模糊档位）；承重理由 = 看到等级即看到起跑线**。
 - **引入 battlefield（战场）及 BattlefieldManager / StackManager；触发载体开放；道念下限 0 逐次结算截断；满手抽不进**。
 - **卡牌类型五分 + 异能三分 + 永久物 + 次类型体系；触发条件可跨归属方（埋伏成立）；敌人同样持有 item 与 power**。
 - **敌人赋级的合法区间 = 相对角色等级的 `±2` 带**（三章统一，`combatTier` 三档一视同仁，`±2` 为无例外的硬规则，**不按境界给绝对上界**）；**埋伏进入敌人卡池**。
 - **遭遇参数（回合数 / `VictoryRule`）落 `EncounterSpec`；enemies 归 `systems/enemies/`**。
-- **`VictoryRule` 是单字段 `(int WinMargin)`、`CombatOutcome` 是三值 `{ Victory, Draw, Defeat }`**——**不加 `DrawCountsAsLoss`（三档恒 `false`）、不加 `Fled`（无任何机制支撑逃跑）**，那两个都是没有消费者的死结构。
+- **`VictoryRule` 是单字段 `(int WinMargin)`、`CombatOutcome` 是三值 `{ Victory, Draw, Defeat }`**——**不加 `DrawCountsAsLoss`（三档恒 `false`）、不加 `Fled`（无任何机制支撑逃跑）**，那两个都是没有消费者的死结构。`Draw` 本身仍有真实消费者（`Standard`），不是死结构。
 - **Combat 为五类分类法之一；Practice / Standard / Finale 收为 `combatTier` 三档，不各占一个 `eventType`** → `decisions/ADR-0002-adventure-event-taxonomy.md`。
-- **三档遭遇参数初值**（`Practice` 8 / `WinMargin 0`；`Standard` 10 / 高者胜；`Finale` 12 / `WinMargin` 3-5-8）；**`EncounterScopes` 按档位取值**。
+- **三档遭遇参数初值**（`Practice` 8 / `WinMargin 0`；`Standard` 10 / 高者胜；`Finale` 12 / `WinMargin 0`）；**`EncounterScopes` 按档位取值**。
 - **天劫 = 带定制卡组的 Enemy，同受 `±2` 赋级带约束，无等级例外**。
-- **每篇章一个 Finale、败后不可重战；失败但存活亦完成篇章；Finale 是道统残卷的唯一累积源与兑现点**。
+- **每篇章一个 Finale、败后不可重战；Finale 失败即角色终结（`DefeatReason.FinaleFailed`）、本篇章不推进；Finale 是道统残卷的唯一累积源与兑现点**。
+- **Finale 以 `eventPriority = 1` 出场**（满级那一批有效可选集收窄为它），代价是取消备战窗口；退让位走内容编排与 `systems/balance.md` 的三条难度校准手段，不回退抬升。
 - **全部 Finale 均为天劫战，不设非战斗形态的境界突破路径**（`EncounterSpec.Enemy` 恒非空、`CombatEventResolver` 无内部分派）。
 - **隐藏属性对五类事件输入与输出两侧全开；`Practice` 推道心不推煞气、`Finale` 胜负同推道心，推拉不套 `FailureRatio`**。
-- **平局 = 10 回合打满道念相等 → 只发基础奖励、不扣 `lifeTotal`（`CombatOutcome.Draw`）**；`Practice` 档 `WinMargin = 0` 使 `Draw` 在该档**永不可达**——干净的退化，呈现层需知晓。
+- **平局 = `Standard` 档打满 10 回合道念相等 → 只发基础奖励、不扣 `lifeTotal`（`CombatOutcome.Draw`）**；`Practice` 与 `Finale` 两档 `WinMargin = 0` 使 `Draw` 在这两档**永不可达**（一端相等即胜、一端非胜即败）——两端退化都干净，呈现层需知晓。
+- **`Practice` / `Standard` 失败不另加规则层的额外后果**（六条既有代价已足；`Practice` 默认不挂负向 `OnFailureRules` 是软口径、不设校验；`lifeTotal` 扣减维持 1:1 三档统一，「点到为止」的张力交叙事层）。
 - **敌人图鉴的慷慨度维持「关键卡 3 张、不给样本卡组完整列表」**，上调走「加厚 ③④ 写作 → `KeyCardIds` 上界放宽至 5 → 才考虑全表」的退让阶梯，不重开信息分层裁决 → `systems/player-profile/codex/enemy-codex.md`。
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md`
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-combat-defeat-consequences.md`
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
@@ -167,10 +199,9 @@ Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` 
 - **敌人 AI 的规划形态：** AI 可在自己回合内逐张决策，不受「回合级一次性规划」约束。具体算法、规划粒度（一次性 vs 逐张）、多回合行为倾向、难度旋钮落点均未定义。→ `systems/enemies/`。
 - **是否要一条「花代价买信息」的通道：** 当前没有这样的通道。若要建，须先定义标的（敌人抽牌堆顶 N 张 / 敌人本场可用道具 / 其他）。→ `systems/character-profile/deck/`。
 - **敌人平衡：** 敌人各等级的道念**产出**能力（起始值已由 `baseMomentum` 给定）、随境界 / 篇章缩放未定。→ `systems/balance.md`。
-- **失败后果的其余部分：** 胜利奖励随道念差变厚已定；失败除扣 lifeTotal 外是否另有后果未定（**`Finale` 档失败 = 不另开终结通道**，见上）。
-- **三档的奖励厚薄：** 回合数与胜负门槛已定；**`BaseReward` 与 `RewardPoolId` 的取值**（`Practice` 是否相应变薄、`Finale` 加厚多少）未定，归 **ch1 数值标杆专场**。→ `systems/balance.md`。
+- **三档的奖励厚薄：** 回合数与胜负判据已定（`Finale` 12 回合、三档 `WinMargin` 0 / 1 / 0）；**`BaseReward` 与 `RewardPoolId` 的取值**（`Practice` 是否相应变薄、`Finale` 加厚多少）未定，归 **ch1 数值标杆专场**。→ `systems/balance.md`。
 - **叙事一致性的编写口径：** 标为 `[Practice, Standard]` 的敌人条目，其图鉴与台词须同时说得通「切磋」与「厮杀」两种语境——具体口径归 `systems/player-profile/codex/enemy-codex.md` 的写作规格。
-- **三档各推哪一档 `HiddenStatGrade`（内容编排）：** 三档的默认口径与「胜负同施、不套 `FailureRatio`」已定（见上方「三档与隐藏属性」）；**逐条目的推拉编排与映射值**仍随「隐藏属性的增减触发」那条待答项与 ch1 数值标杆专场一并定。→ `systems/services/plot-manager.md`、`systems/balance.md`。
+- **三档各推哪一档 `HiddenStatGrade`（内容编排）：** 三档的默认档位 + 方向口径与「胜负同施、不套 `FailureRatio`」已定（见上方「三档与隐藏属性」）；**逐条目的推拉编排与映射值**仍随「隐藏属性的增减触发」那条待答项与 ch1 数值标杆专场一并定。→ `systems/services/plot-manager.md`、`systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/combat.md`（待建）

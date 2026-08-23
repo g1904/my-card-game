@@ -9,7 +9,7 @@
 - **一层极简的卡牌构筑：** 一副起始 deck，外加通过 AdventureEvent 获得/移除卡牌。
 - **带 seed 的轮回**（**同一 `contentVersion` 内**可复现）以及位于篇章边界的单一**存档/记录点**。
 - **竖屏、触控**——在手机上单手可玩。
-- **前置屏幕外壳：** 登录屏（T&S + 循环视频占位 + **强制账号登录**）→ 主菜单（切换已解锁篇章、PlayerProfile / PlayerPower / Achievement / Settings 入口）。**已移除游客态**——所有玩家必须登录账号后才能游玩。见 `ux/screen-flow.md`。
+- **前置屏幕外壳：** 登录屏（T&S + 循环视频占位 + **强制账号登录**；**条件步**——本地凭据静默续期成功即跳过，形态见 `ux/screen-flow.md`）→ 主菜单（切换已解锁篇章、PlayerProfile / PlayerPower / Achievement / Settings 入口）。**已移除游客态**——所有玩家必须登录账号后才能游玩。见 `ux/screen-flow.md`。
 - **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。见「平台与约束」。
 - **premium bundle 端到端。** 支付接入（Google Play Billing / App Store / 微信支付三渠道）+ Store 屏 + 购后兑现。它是客户端唯一必须引入第三方 SDK 的地方，牵动 Godot 导出配置与各平台构建。形态见 `systems/monetization.md`。
 

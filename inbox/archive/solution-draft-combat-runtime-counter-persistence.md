@@ -4,7 +4,9 @@ date: 2026-08-22
 question: 战斗内运行态计数器（`CharacterPower` / `PlayerPower` 的「本场已触发 N 次」、`PlayerItem` / `CharacterItem` 的「本场已用掉哪些、各自剩余次数」）的决策点存档字段形态如何落定？
 source: open-questions/01-combat.md → 结构与配置的残留 → 战斗内运行态的决策点存档形态
 targets: systems/services/combat-service.md（`ActiveCombat` 小节）· systems/character-profile/power/_index.md（待决问题「`Power` 的战斗内运行态存档形态未定」）· systems/player-profile/player-item/_index.md（待决问题「战斗内道具运行态的存档形态未定」）· systems/character-profile/item/_index.md
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-22 — 三项取向全部裁决；合并 interview 另裁定计数写在结算成功那一刻（fizzle 不吃配额）· `counters` 键悬空统一为 `PushError` + 抛（不开例外）· 配额闸门结算时双查 · `AbilityData.Id` 不得含 `#`。**事实订正**：草稿称 `character-profile/item/_index.md` 未表态法宝即时写，实为已明写，该文件本次不改
+distilled-to: handoffs/2026-08-22-combat-runtime-counter-persistence.md
 ---
 
 # 方案草稿 — 战斗内运行态计数器的存档形态

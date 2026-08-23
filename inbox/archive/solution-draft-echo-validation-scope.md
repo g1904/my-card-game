@@ -5,7 +5,9 @@ question: 上行整键回声校验的适用面未穷举 —— 哪些顶层键�
 source: open-questions/05-service-contracts.md → 「上行整键回声校验的适用面未穷举（08-19 新增 · 承重）」
 targets: systems/services/sync-service.md（「后端主动写入的唯一情形」一节 + 「透明路径的稳定性纪律」一节）· systems/player-profile/_index.md（字段表第 1 / 14 行的写入通道列）· systems/player-profile/account-info.md（字段表 + 老档补默认值那一句）
 counterpart: backend-design-documents/inbox/solution-draft-echo-validation-scope.md
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-22 — 三项取向全部裁决；合并 interview 另裁定 `BundleGrantOrdinal < 0` 由「钳制到 0」改为「`PushError` + 不进 diff + 重新 pull、不钳制」（它是回声路径，钳制会把正常老档打成整批拒绝）· `AccountSeed` 补默认值的第二处一并松动 · 改昵称失败窗口不进 UI。**草稿的「前置依赖」一节已过时**：后端回声规则本体已落笔、回链现已有效。**⚠ 本批只落客户端半 + 后端承接项，成对采纳尚未完成**
+distilled-to: handoffs/2026-08-22-echo-validation-scope-client-half.md
 ---
 
 # 方案草稿 — 上行整键回声校验的适用面（客户端侧）

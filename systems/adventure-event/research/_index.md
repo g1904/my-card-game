@@ -6,7 +6,7 @@
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
 - **闭关（Research）= 玩家调整 / 升阶自己的卡组。** 一种非战斗 AdventureEvent 子类型，走事件式结算；语义上是角色静修钻研，机制上是**轮回内构筑的落点**——升阶 / 弃置 / 学新功法都发生在这里。见 `systems/character-profile/deck/_index.md`。
-- **开局那个强制的构筑事件归 Research。** 起始批次中**必有一个强制事件**，让玩家选**一门功法**与**一件法宝**（各三选一）——形态取 Slay the Spire 第一章的味道。它是 Research 的一个条目，**不需要第六类**；承载机制是既有的 `eventPriority = 1`（本批有效可选集收窄为该档），**不新增机制**。**推论：Research 既定起手形状（开局），也承担整个轮回的多轮构筑（途中）**——两者是同一类事件的两种编排。
+- **开局那个强制的构筑事件归 Research。** **炼气新角色**的起始批次（含 ch1 的篇章重试）中**必有一个强制事件**，让玩家选**一门功法**与**一件法宝**（各三选一）——形态取 Slay the Spire 第一章的味道。它是 Research 的一个条目，**不需要第六类**；承载机制是既有的 `eventPriority = 1`（本批有效可选集收窄为该档），**不新增机制**。**推论：Research 既定起手形状（开局），也承担整个轮回的多轮构筑（途中）**——两者是同一类事件的两种编排。
 - **Research 不可被 Explore 遮罩。** 卡组编辑是玩家主动规划的动作，把它藏在未知后面只制造挫败，不制造张力。见 `../explore/_index.md`。
 - **不单列「休养 / Rest」。** 休养语义并入 战斗 或 闭关——闭关承担其中的静养 / 修整语义。见 `systems/adventure-event/_index.md`、`terminology.md`。
 - **闭关比常规事件耗时更长。** 这是寿元定价上的一条既定差异：定价表里 Research 的 `lifeSpanCost` 高于常规事件。表的形态与取值归 `systems/balance.md`。
@@ -19,6 +19,8 @@
 - **槽的复数形态是被开局构筑事件逼出来的，不是为扩展预留。** 开局要求「一门功法 + 一件法宝，各三选一」= 同一事件内的**两个**槽；常态条目填 1 个槽。若只支持单槽，开局事件就必须另设机制，而它已明写「不需要新机制」。
 - **它与「一批只有一次操作：择一进入」不冲突**——那条约束的是**批次层**，槽是**事件内部**的结算结构，与战后奖励面板在事件内做一次选择同层。
 - **候选掷定的时机 = 物化阶段，随 `EventOption` 落存档。** 依据是「候选必须预先算定并落决策点存档，否则退出重进可以重掷」加上「物化产出的数值必进快照」。**这同时是风险档能够成立的前提**——结果已定、只是尚未展示。字段形态见 `common-properties.md`。
+- **槽内选择不落存档；决策点在此的语义是「可退出点」。** 每个决策槽各是一个事件内决策点（`R1`），但**不触发第二次写入**——候选已在 `activeEvent.Option.ResearchSlots` 里。**玩家在多槽面板上选了一半退出，重进读 `activeEvent.Option` 直接重开面板：恢复回到面板初始态，候选一字不变、槽内选择丢失**；`AdvanceEventAsync` 照常返 `AdvanceResult(Success: false, FailedAt: Cancelled)`，`activeEvent` 保留、`pastEvent` 未记。
+  - **依据：决策点存档的全部理由是关掉「退出重进即重掷」的窗口**，而候选在物化时即已掷定并落存档 ⇒ 该窗口本就不存在，剩下的只是几次点击的便利。代价可量化：常态条目 1 个槽（重选 0 次）、开局构筑事件 2 个槽（至多重选 1 次）。给 `ActiveEventState` 加一格装「已选未提交」则要 bump 存档 schema 并连带一条「槽数 / 索引一致性」读档校验（overlay 调低 `CandidateCount` 后旧索引可能越界），不成比例。逐类决策点清单见 `systems/services/life-cycle-service.md`。
 
 ### 操作清单 = 六类，闭合
 
@@ -66,7 +68,10 @@
 
 ### 开局构筑事件 = 上述形态的一个内容条目，无任何专属规则
 
-- **`eventPriority = 1`**（本批有效可选集收窄为该档），置位方是 future-event-service——故它是「`Priority = 1` 依什么条件抬升」那条待答项的**第二个确定答案**（第一个是配额闸门的 Travel）。
+- **`eventPriority = 1`**（本批有效可选集收窄为该档），置位方是 future-event-service。**抬升被收窄为「炼气新角色的起始批次」**——判定式 `chapter == 1 且 pastEvent 为空`，读的全是既有可读状态。
+  - **ch1 的篇章重试落在收窄之内、照常抬升**：ch1 的篇章起始存档就是一个尚未做过任何构筑的空白炼气角色，「开局底盘的唯一来源」这条规则在它身上成立；排除它会让 ch1 重试（上限无限，是最常走的一条路）永远拿不到那门功法与那件法宝。
+  - **收窄排除的是 ch2 / ch3 的续章与重试**：篇章继承 = 全部继承 ⇒ 角色已有完整卡组与法宝，「开局底盘」这条结构性规则不存在；不收窄则续章首批会被一个不必要的强制构筑事件占满一整批。想给每章开头一次确定的构筑机会是**内容编排口径**，用一个高权重的普通 Research 条目即可表达，不必占用约束轴。
+  - 抬升判据与当前闭合的三条抬升条件见 `systems/services/future-event-service.md`。
 - **两个决策槽**：槽 1 限定 `LearnTechnique`（候选 3），槽 2 限定 `GrantItem`（候选 3）。
 - **两槽均 `AllowDecline = false`。** 开局底盘明写为「2 门角色绑定功法 + 1 门选来的功法 + 1 件选来的法宝」，允许拒绝会让底盘残缺；且它是玩家的第一屏，不该以「什么都不选」开场。**常态条目的默认值相反，是 `true`**（见 `common-properties.md`）。
 - **`lifeSpanCost` 取 0 的条目级覆盖。** 它是被强制进入的第一个事件，收寿元等于开局即扣而玩家未做出任何取舍。这落在「个别事件可在表值之外设更小的覆盖值」这条既有通道内，不需要新规则。
@@ -74,7 +79,7 @@
   - **缺席是一次大声失败的运营事故**（`PushError` + 上报），运行期唯一可能的成因是 flags 把功法 / 法宝池关到见底。**不新增任何降级路径或补发机制**——空池是运营事故，不是玩法分支。
   - 反面的做法是运行期静默把 `AllowDecline` 改成 `true` 让它照常出场：那用「静默改写一条内容侧的强约束」换「不缺席」，而开局底盘残缺的后果贯穿整个轮回，且玩家与运营都看不见发生过什么。
 
-Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
+Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
