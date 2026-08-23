@@ -14,6 +14,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 | `systems/*` | `systems/`（类模型化结构） |
 | `data/*` | `systems/`（类定义：字段 / 内嵌类型）+ `content/`（条目实例层：一条内容一份文档 + 类型档案） |
 | `scenes/*` | `ux/`（screen-flow、combat-ux、onboarding） |
+| ViewModel 层（知识层无对应文件） | `systems/viewmodel.md`（呈现期对象的横切纪律：依赖方向 / 生命周期 / 组装源 / 重组装触发面 / 缓存归属） |
 | `autoloads/*` | `systems/services/`（七服务 + 层级词表 + 各服务 API 契约表） |
 | 美术 / 音频（知识层无对应文件） | `art/`（`visuals/` · `soundtracks/`；只存 vision / 参考登记 / guide，**生成出的二进制资产归 `game-feature-branch/`**——目前一件都还没有） |
 | 协议契约（客户端只有投影） | `backend-design-documents/contracts/`——**报文形态的权威在后端库**，本库只定客户端的调用形状 |
@@ -37,7 +38,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 - **层级：service ⊃ manager ⊃ module ⊃ processor ⊃ handler**（现有实例止于第三级 `DeckModule`）。 七个服务以 autoload 存在，各自命中「①自有状态机 / ②事务性跨字段写 / ③外部 I/O 边界」三判据之一；manager 是服务内部的普通 C# 对象。清单见 `autoloads/_index.md`。
 - **拆分轴 = 生命周期层 + 行为边界，不是数据类型。** 不按 power / item / card 各开服务，也不为五类 AdventureEvent 各开服务——只有 Combat 真有状态机，其余差异在**数据**而非代码。
 - **两条唯一入口 + 一个编排顶点：** 内容读取 = `content-service.ContentRegistry`；档案写入 = `profile-service.ProfileManager.TryApply(spec)`；编排顶点 = game-progression（非服务，串联核心循环）。
-- **展示层三层：** 静态文案留在 `XxxData : Resource`（类型 `LocalizedText`）→ 运行时 / 存档态只带 `Id` + 可变状态 → 呈现期 ViewModel 组装（不落存档、不进云端负载）。
+- **展示层三层：** 静态文案留在 `XxxData : Resource`（类型 `LocalizedText`）→ 运行时 / 存档态只带 `Id` + 可变状态 → 呈现期 ViewModel 组装（不落存档、不进云端负载）。三层并列定义在 `systems/architecture.md`「展示层契约」，**第三层的展开权威已单列 `systems/viewmodel.md`**。
 - **文案两条链路、一个语言开关：** 界面走 `res://text/` 翻译键（随包、发版才改），内容走条目内嵌 `LocalizedText`（overlay 可热更），二者共用 `TranslationServer.GetLocale()`。归属判据（四问）→ `ux/_index.md`。
 - **物化模型：** `AdventureEventData`（模板）→ future-event-service（**唯一物化点**）→ `EventOption`（**产出即定稿、不可变、落存档**）。同一通则也适用于 `EnemyData` → `EnemyInstance`。→ `systems/architecture.md`「总则 6」。
 - **核心循环一批只有一次操作：择一进入。** 跳过通道整体不存在，别为「跳过」写任何分支；选择约束只剩 `Priority` 一条轴，future-event-service 独占置位。→ `systems/game-progression.md`

@@ -22,4 +22,8 @@
 
 ## 平衡与配置
 - 可调数值（花费、伤害、掉落权重、ante 缩放）存放在导出字段或专门的平衡资源中 —— **不**硬编码在系统逻辑里。系统从数据中读取数值。
+- **平衡资源也经 ContentRegistry，用 `Content.Single<T>()` 取，调用方不写 `Id` 字面量。**
+  直读 `res://content/balance/*.tres` 会绕过 overlay 覆盖层与合并后强校验——「平衡数值可热更而不发版」当场失效。
+  `ISingletonContent` 标记接口、编译闸与加载期条数校验见
+  `game-design-documents/systems/services/content-service.md`。
 - 让内容保持可加性：新增一张卡牌 = 新增一个 `.tres`，而不是编辑某个 switch 语句。在可行处，优先使用数据驱动的效果定义，而非逐卡编码。

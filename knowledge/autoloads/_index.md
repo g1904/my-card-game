@@ -24,7 +24,7 @@
 
 **combat-service 的五个 manager 分区：** 属于某一方的 mana / 道念 / 手牌 / 卡组归两个参战方 manager；**栈与战场是两个区，划线判据是「是否在场上生效」而非「属于谁」**，TurnManager 因此是纯粹的回合状态机。→ `systems/services/combat-service.md`
 
-**非服务的横切件：** **EventBus**（autoload `Node`，广播既成事实 → `standards/signal-eventbus.md`）、**game-progression**（屏幕流程编排顶点）、**ViewModel**（呈现期对象）、**BootstrapScreen**（`main` 场景，驱动启动 → `scenes/_index.md`）。
+**非服务的横切件：** **EventBus**（autoload `Node`，广播既成事实 → `standards/signal-eventbus.md`）、**game-progression**（屏幕流程编排顶点）、**ViewModel**（呈现期对象 → `systems/viewmodel.md`）、**BootstrapScreen**（`main` 场景，驱动启动 → `scenes/_index.md`）。
 
 ## 承重纪律
 

@@ -12,7 +12,7 @@
 
 ## 承重纪律（写代码时会改变写法的那几条）
 
-1. **原子写，绝不原地覆盖**（临时文件 → rename）——写入中途崩溃不得损坏上一份存档。→ `systems/services/sync-service.md`
+1. **原子写，绝不原地覆盖**（临时文件 → rename）——写入中途崩溃不得损坏上一份存档。**`user://` 的原子写只有一处实现：共享静态工具 `AtomicJsonFile`**，`deviceId` / refresh token 一类设备维度小文件与存档缓存同走它，别各写一遍。→ `systems/services/sync-service.md`、`systems/services/account-service.md`
 2. **断线绝不回退存档点、绝不阻塞玩家**：变更进本地待发队列重试；唯一硬阻塞是启动 Pull 失败。→ `systems/services/sync-service.md`
 3. **存档点 ≠ push**：每个逻辑存档点立即本地原子写，只有网络 push 受防抖约束；应用失焦 / 挂起必须立即 flush。**软阻塞闸门只计事件级存档点，不计战斗内决策点。** → `systems/services/sync-service.md`
 4. **决策点是战斗状态机唯一可以停下来的地方**，战斗态落 `CharacterProfile` 上的可空 `ActiveCombat` 块；恢复回到该选择点、不允许反悔。→ `systems/character-profile/_index.md`、`systems/services/combat-service.md`

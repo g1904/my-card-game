@@ -4,7 +4,7 @@
 
 ## 代码现状
 
-**项目没有任何场景。** `game-feature-branch/` 只有 `icon.svg`；`project.godot` **未设主场景**、无 `[autoload]`。下列全是**规划**。添加 / 重命名场景时更新本文件。
+**项目没有任何场景。** `game-feature-branch/` 只有 Godot 脚手架（`project.godot`、`icon.svg`、`.godot` 缓存、git 属性文件），无 `.tscn` / `.cs`；`project.godot` **未设主场景**、无 `[autoload]`。下列全是**规划**。添加 / 重命名场景时更新本文件。
 
 ## 屏幕流程
 
@@ -43,11 +43,11 @@
 
 ## 承重纪律
 
-- **屏幕不直接读服务内部字段**：呈现期由 UI 层组装 ViewModel（静态文案 + 运行时状态 + capability 可见性），**不落存档、不进云端负载**、不被服务反向依赖。→ `systems/architecture.md`
+- **屏幕不直接读服务内部字段**：呈现期由 UI 层组装 ViewModel（静态文案 + 运行时状态 + capability 可见性），**不落存档、不进云端负载**、不被服务反向依赖。→ `systems/viewmodel.md`
 - **呈现决策归呈现层**：`CapabilitiesChanged` 是空负载，各 UI 组件自行订阅并自查 `Has(flag)`——业务层完全不知道这些 PlayerPower 存在。→ `standards/signal-eventbus.md`
 - **EventBus 订阅在 `_Ready`、退订在 `_ExitTree`**：C# 泛型事件漏退订即泄漏且**不会报错**。→ `standards/signal-eventbus.md`
 - **UI 文案一律走 `res://text/` 翻译键，全库不写任何文案字面量**（`ERR_*` 由 `code` 机械变换而来，不得手写）；**内容文案不走翻译键**，它走条目内嵌的 `LocalizedText`。→ `ux/error-and-blocking-ux.md`、`ux/_index.md`（归属四问）
-- **切语言后 ViewModel 不会自己变**：`LocalizedText` 不经 `TranslationServer`，ViewModel 层须订阅翻译变更并重新组装一次，否则界面已是英文而卡面仍是中文。→ `ux/_index.md`
+- **切语言后 ViewModel 不会自己变**：`LocalizedText` 不经 `TranslationServer`，ViewModel 层须订阅翻译变更并重新组装一次，否则界面已是英文而卡面仍是中文。→ `systems/viewmodel.md`
 - **场景是视图，不放数值**：玩法数值在 `.tres`，由注册表加载。→ `standards/godot-scene-conventions.md`
 - **敌人的行动不作任何事前预告**，可读性由敌人回合的逐步执行呈现独占承担——别加「蓄力 / 破绽」式状态标记，那是换名字把预告装回来。→ `ux/combat-ux.md`
 - **呈现层只认档位、不认档位的来源**：碾压 / 越阶两道硬门不自我声明，UI 不加标注也不给替代线索。→ `ux/combat-ux.md`

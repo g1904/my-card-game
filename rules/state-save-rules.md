@@ -19,7 +19,9 @@
 ## 存档 / 读档
 - **强制在线 · 云端权威（取代先前「仅离线，无网络」）。** 进度实时同步云端，本地↔云端冲突**以云端为准**；本地 `user://` 仅作缓存 / 离线临时态，不再是权威存档。方向来源：`game-design-documents/vision/scope.md` 与 `game-design-documents/handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md`。（后端 / 账号 / 冲突合并的实现细节仍在设计中。）
 - 原子写入与版本化仍适用——对本地缓存写入与上行云端负载都要原子、带版本。
-- **原子写入：** 先序列化到临时文件，再重命名覆盖真实文件，这样写入中途崩溃也不会损坏存档。
-- **给存档加版本**：带一个 schema 版本字段和一条迁移路径。当存档结构变化时，提升版本并在读取时处理旧版本（迁移或优雅拒绝）—— 绝不在较旧的存档上崩溃。**这条按判据适用于多字段的结构体（存档聚合、缓存 / 上行信封）**；`user://cache/` 下**单字段的设备维度小文件不带版本**——迁移面为空，且「版本不认识就整份丢弃」对某些此类文件有害。判据与逐份落点在设计库：`game-design-documents/systems/common-properties.md` 与 `systems/architecture.md`。
+- **原子写入：** 先序列化到临时文件，再重命名覆盖真实文件，这样写入中途崩溃也不会损坏存档。**`user://` 的原子写只有一处实现（共享静态工具 `AtomicJsonFile`）**——各写一遍就是各漏一处 rename 语义。→ `game-design-documents/systems/services/account-service.md`
+- **给存档加版本**：带一个 schema 版本字段和一条迁移路径。当存档结构变化时，提升版本并在读取时处理旧版本（迁移或优雅拒绝）—— 绝不在较旧的存档上崩溃。
+  **但不是每份 `user://` 文件都带版本**：单字段的设备维度小文件不带，无脑加版本会让「版本不认识就整份丢弃」误伤它们。
+  判据与逐份落点见 `game-design-documents/systems/common-properties.md` 与 `game-design-documents/systems/architecture.md`。
 - 定义明确的自动存档点（例如每场遭遇战/地图节点之后），使被杀掉的应用能在一个合理的边界处恢复。
 - 读取时校验存档（参见 `null-check-rules.md`）：未知的内容 id、版本不匹配或缺失字段必须以清晰的错误/迁移来处理，而非静默的 null。

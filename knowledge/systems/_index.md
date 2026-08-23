@@ -10,6 +10,7 @@
 |--------|------|--------|----------------|
 | 架构总览 | `architecture.md` | 参考 | 结构与边界的权威：API 契约总则、物化模型、EventBus 负载契约、共享核心类型。 |
 | 系统层共有属性 | `common-properties.md` | 参考 | 所有系统共享的字段 / 约定。 |
+| ViewModel 层 | `viewmodel.md` | 参考 | 呈现期对象的横切纪律（依赖方向 / 生命周期 / 组装源 / 重组装触发面 / 缓存归属 / 永不渲染清单）。非服务、非 autoload。 |
 | 平衡 | `balance.md` | TODO | 花费、伤害、掉落权重、ante 缩放。 |
 | 游戏进程 | `game-progression.md` | TODO | eventOptions 循环推进、location（地域）、travel 路由、blind/ante 缩放。**编排顶点**。 |
 | 修行事件（顶层） | `adventure-event/_index.md` | TODO | 顶层 + 顶层共有属性；下含**五个**子类型（ADR-0002）。 |
@@ -18,7 +19,7 @@
 | ├ 闭关 | `adventure-event/research/` | TODO | 钻研 / 潜修；开局的强制构筑事件归本类。 |
 | ├ 探索秘境 | `adventure-event/explore/` | TODO | **唯一的元类型**：遮罩一个固定事件，进入即揭示真身。 |
 | └ 前往某处地点 | `adventure-event/travel/` | TODO | **地图路由**：刷新角色所在 location。`eventCountLimit` 用尽即收窄为仅剩 Travel（结构性闸门），目的地取自 `locationMap` 邻接集合。 |
-| 敌人 | `enemies/` | TODO | **与 adventure-event 平级**：`EnemyData` ↔ `EnemyInstance`、样本卡组、`EncounterScopes` / `PoolScope`、`±2` 赋级带。三个 `combatTier` 档共享同一批条目。 |
+| 敌人 | `enemies/` | TODO | **与 adventure-event 平级**：`EnemyData` ↔ `EnemyInstance`、样本卡组、取池三层（`EncounterScopes` / `PoolScope` / `ChapterScope`）、`±2` 赋级带。三个 `combatTier` 档共享同一批条目。 |
 | 角色档案 | `character-profile/_index.md` | TODO | 轮回级：`status`、`chapter`、life / mana + 隐藏属性（道心 / 煞气 / 寿元）、修行历程、key points、RNG 状态。**模板 `CharacterData` ≠ 轮回态 `CharacterProfile`**（前者是内容条目，自带一个神通与两门绑定功法）。 |
 | ├ Deck | `character-profile/deck/` | TODO | draw/hand/discard 牌堆、seeded 洗牌、卡牌定义与结算。**构筑单位 = 功法 `CultivationTechnique`**（整组入组 / 整组替换），带层数 `TechniqueTier`。 |
 | ├ 道具 | `character-profile/item/` | TODO | 角色持有的道具。 |
