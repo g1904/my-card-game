@@ -2,6 +2,8 @@
 name: update-readme
 description: 对账仓库中所有 README.md 与它们所描述的实际内容（目录结构、技能清单、规则文件、设计库布局、根约定），把失真之处直接重写为最新事实。只写 README，不改被描述的对象。
 argument-hint: [all | .claude | main | game-design | backend | <path/to/README.md>]
+model: sonnet
+effort: medium
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 

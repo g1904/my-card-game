@@ -2,6 +2,8 @@
 name: summarize-open-questions
 description: 扫描一个设计库（客户端或后端）的全部 ## Open questions 与 handoff，把散落的未决项汇总、去重、按主题归拢，并重写 open-questions.md（索引）与 open-questions/ 下的分片这份跨 session 待答清单。同时把已答定的问题移出、核对其已归档，并记入 answer-logs/log-<draftSuffix>.md。只写待答清单与 answer-logs/，不裁决问题本身。
 argument-hint: [--lib=game|backend] [主题过滤：systems | contracts | ux | vision | operations | all（默认 all）]
+model: sonnet
+effort: medium
 allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ---
 

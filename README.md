@@ -76,6 +76,9 @@ D:\MyCardGame\
 │                          + model + effortLevel + outputStyle + hooks + attribution
 ├── session-tags.json    — session 收藏/标签存储 (session-manager 写入; gitignored)
 ├── blueprints/          — 实现蓝图 + _index.md 台账 (gitignored, 本机)
+├── batch-runs/          — batch-* 技能的过程档案 <date>-<slug>/ (plan / questions / answers / report)
+│                          (gitignored, 本机) 不是任何事实来源，跑完即可整目录删除；
+│                          契约见 rules/batch-orchestration.md
 ├── README.md            — this file
 ├── .gitignore
 ├── .gitattributes
@@ -123,7 +126,7 @@ D:\MyCardGame\
     ├── review-local-changes/  — review uncommitted changes
     ├── review-feature/   — review a feature's full chain
     ├── investigate/      — trace a bug to ranked root causes
-    ├── sync-knowledge/   — reconcile knowledge/* against code + design docs
+    ├── sync-knowledge/   — reconcile knowledge/* + rules/* against code + design docs
     ├── update-readme/    — realign every README.md with what it describes
     ├── session-manager/  — session favorites/tags
     └── batch-*/          — 批量编排版（provide-solution-draft / analyze-new-ideas / author-content /
@@ -153,7 +156,7 @@ D:\MyCardGame\
 
 **内容创作是并行的第二条路（不经 FR）：** `/scaffold-content-type <类型>` 为一个内容类型开张（带**就绪度闸门**：类定义不足以写出可实现的条目时就把话说清楚）→ `/author-content <类型> <草稿>` 把你的条目草稿校验 / interview 后写成 `game-design-documents/content/<类型>/<id>.md` → 你签核 `draft → ready` → **直接 `/blueprint`** → `/implement` → `.tres`。条目一多用 `/audit-content` 做全量对账。**字段清单的权威在设计库的类型档案里，不在技能里**——这正是「一个通用技能 + 十几份类型档案」而非「每类一个技能」的理由（ADR-0005：`.claude` 不承载设计内容）。约定见 `game-design-documents/content/_index.md`。
 
-`knowledge/` 是**指向设计库的薄引用层**（导航表 + 代码现状 + 一句话承重纪律；设计内容不在此复述，见 `decisions/ADR-0005`）—— `/implement` 会在构建时就地更新相关的 `systems/`、`scenes/`、`data/`、`autoloads/` 笔记；怀疑知识与代码/设计脱节时运行 `/sync-knowledge` 做整体对账（它同时把偷偷长回来的副本压回薄引用）。术语的权威在 `game-design-documents/terminology.md`；`knowledge/dictionary.md` 只保留通用的 roguelike 卡组构建体裁词汇，不复制本作专有术语。
+`knowledge/` 是**指向设计库的薄引用层**（导航表 + 代码现状 + 一句话承重纪律；设计内容不在此复述，见 `decisions/ADR-0005`）—— `/implement` 会在构建时就地更新相关的 `systems/`、`scenes/`、`data/`、`autoloads/` 笔记；怀疑知识与代码/设计脱节时运行 `/sync-knowledge` 做整体对账——它的对账面是**整个 `.claude` 的设计投影面**（`knowledge/*` + `rules/*`）对两个事实来源（`game-feature-branch/` 的代码现状、`game-design-documents/` 的设计意图），并把偷偷长回来的副本压回薄引用。术语的权威在 `game-design-documents/terminology.md`；`knowledge/dictionary.md` 只保留通用的 roguelike 卡组构建体裁词汇，不复制本作专有术语。
 
 **决策立档（与上面的流水线并行、随时可跑）：** `/write-adr [--lib=…]` 把各库的**已定方向**（`open-questions.md`「下一阶段」的 ADR 候选、后端库 `decisions/_index.md` 的「ADR 候选」表、以及散落在 handoff 里的定案）逐条落成 `<LIB>/decisions/ADR-####-<slug>.md` 并更新 `decisions/_index.md`。它是 `decisions/` 的**唯一写入者**（唯一例外：用户裁决推翻某条决策时，`/analyze-new-ideas` 直接改写那份 ADR），且严守「**台账绝不领先于事实**」：一条定案没写进权威主题文档就不建档，只在报告里点名。**不接受跨库运行**——两库 ADR 编号各自独立、永不合并。
 

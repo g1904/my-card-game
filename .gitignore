@@ -13,6 +13,7 @@ Thumbs.db
 # Claude Code scratch (local planning artifacts)
 plans/
 blueprints/
+batch-runs/
 
 # Machine-local state (session favorites/tags are per-machine)
 session-tags.json

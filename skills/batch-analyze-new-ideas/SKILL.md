@@ -29,7 +29,7 @@ argument-hint: [--lib=game|backend|两库] <草稿路径清单（分号分隔）
 - 该草稿中「用户已在评审中定下」的项（solution-draft 的已裁决条目）——这些**不再进 interview**，照定案处理。
 
 ### 4. 合并 interview ⏸️
-orchestrator 按 `batch-orchestration.md` 合并判据去重全部 🔴 / 🟠，并追加**跨草稿核对**：两份草稿的拟写入要点对同一对象矛盾、或一份草稿的前提被另一份推翻 → 新增 🔴。`AskUserQuestion` 分轮问齐，答案落 `answers.md`。答复引入新冲突 → 让受影响的 worker 重跑校验、补一轮。**未问完不落笔。**
+orchestrator 先按单会话技能 3c 的**必问过滤**复核各 worker 的分级——被误判成 🟠 的标准默认项降为 🔵（直接采纳，汇总进总报告的「标准默认」区，不出题）；随后按 `batch-orchestration.md` 合并判据去重剩余 🔴 / 🟠，并追加**跨草稿核对**：两份草稿的拟写入要点对同一对象矛盾、或一份草稿的前提被另一份推翻 → 新增 🔴。`AskUserQuestion` 分轮问齐，答案落 `answers.md`。答复引入新冲突 → 让受影响的 worker 重跑校验、补一轮。**未问完不落笔。**
 
 ### 5. Phase B：按分区落笔（worker）
 worker 拿 `answers.md` 执行单会话技能第 5–8 步：写 handoff、提炼进主题文档（守溯源三条）、写自己的 `answer-logs/log-<suffix>.md`。**不写**：`handoffs/_index.md`、`open-questions.md` 与分片、`update-log.md`、`answer-logs/_index.md`、`inbox/_index.md`、草稿归档（第 9 步）——这些以「台账行 / 移出与新增条目清单」形式写进报告，orchestrator 代笔。第 10 步（不评估 derive 就绪度）照守。
@@ -57,7 +57,7 @@ worker 拿 `answers.md` 执行单会话技能第 5–8 步：写 handoff、提�
 - <草稿> → handoff <id>（distilled）· 提炼进 <文档清单> · answer-log <文件>（<n> 条）· 归档 / 留顶层：<原因>
 
 ### Open questions（仍开放）
-- <远期未知与 [采纳推荐 — 待复核] 项>
+- <远期未知>
 
 ### 台账
 - 已统一更新：handoffs/_index · open-questions 分片 ×<n> · update-log · answer-logs/_index · inbox/_index（逐库）
