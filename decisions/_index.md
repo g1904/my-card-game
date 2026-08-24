@@ -4,6 +4,8 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| `ADR-0009` | flags 规则集不可变版本化：`flagsVersion` 严格单调 + 同版本结果恒定 | Accepted | 2026-08-23 | `contracts/content-manifest.md`, `operations/_index.md` |
+| `ADR-0008` | 后端写入路径在上行侧只接受回声，不等即整批拒绝 | Accepted | 2026-08-22 | `contracts/profile-sync.md`, `contracts/envelope.md` |
 | `ADR-0007` | 购买写入只由 verify 端点承担，渠道回调降为对账通道 | Accepted | 2026-08-16 | `contracts/purchase.md`, `contracts/profile-sync.md` |
 | `ADR-0006` | 账号级掷骰的随机源 = 契约定义的纯函数 SplitMix64 | Accepted | 2026-08-14 | `contracts/profile-sync.md`, `contracts/vectors/splitmix64.json`, `contracts/envelope.md`, `contracts/purchase.md` |
 | `ADR-0005` | 防作弊边界：可复算 `roll`、不复算阈值；不一致仅记账不拒绝 | Accepted | 2026-08-14 | `contracts/profile-sync.md`, `contracts/purchase.md` |
@@ -55,7 +57,7 @@
 
 ## 已对后端构成约束的客户端决定
 
-后端尚未产出自己的 ADR，但下列客户端侧决定已经限定了后端的设计空间：
+除上表本库自己的 ADR 外，下列客户端侧决定也限定了后端的设计空间：
 
 | 客户端 ADR | 对后端的约束 |
 |---|---|

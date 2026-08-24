@@ -22,10 +22,24 @@
 ## 已有具体对象的运维面：内容分发
 
 > 语义权威在 `contracts/content-manifest.md`；此处只记它对运维形态的**要求**。栈落定后展开为 `content-delivery-ops.md`。
-> Source: `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md`。
+> Source: `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md` · `handoffs/2026-08-23b-flags-version-monotonic.md`（flags 发布 / 回滚流程与留痕四项）。
 
 - **CDN 缓存：两类对象两种 TTL。** `/blobs/<hash>` 内容寻址 → `public, max-age=31536000, immutable`（可永久缓存）；manifest / flags 端点 → `no-cache` 或秒级 TTL——**秒关与回滚的实际生效速度由后者决定**。
-- **发布流程（顺序即正确性）：** ① 计算全部 overlay 文件 SHA-256，推送缺失 blob（幂等：已存在的 hash 跳过）；② 生成 manifest（`contentVersion` = 上一版 +1），用当前 `keyId` 的私钥对**原始字节**做 ES256 签名；③ **确认全部 blob 可读后**再发布 `.sig` 与 manifest（`.sig` 先于或与 manifest 同一次原子切换，避免读到无签名的 manifest）；④ **回滚 = 重跑 ①–③，manifest 指回旧 blob，`contentVersion` 继续 +1**（不允许版本号回退）；⑤ **秒关 / 灰度不走本流程**——改 flags 数据源即可，不触碰 blob 与 manifest。
+- **发布流程（顺序即正确性）：** ① 计算全部 overlay 文件 SHA-256，推送缺失 blob（幂等：已存在的 hash 跳过）；② 生成 manifest（`contentVersion` = 上一版 +1），用当前 `keyId` 的私钥对**原始字节**做 ES256 签名；③ **确认全部 blob 可读后**再发布 `.sig` 与 manifest（`.sig` 先于或与 manifest 同一次原子切换，避免读到无签名的 manifest）；④ **回滚 = 重跑 ①–③，manifest 指回旧 blob，`contentVersion` 继续 +1**（不允许版本号回退）；⑤ **秒关 / 灰度不触碰 blob 与 manifest，不走 ①–④**，但它**有自己的一条发布流程**（见下），同样产出一个更大的 `flagsVersion` 并留痕。
+- **flags 的发布 / 回滚流程（与上一条并列，不是它的例外）。** 语义权威在 `contracts/content-manifest.md`「服务端保证」B 组；此处只记运维形态须满足的性质：
+
+  | # | 要求 |
+  |---|---|
+  | O1 | **规则集不可变、版本化**：每次发布产出一个新版本，既有版本只读，**不存在原地编辑路径**。「随手改一下数据源」正是「同版本内容漂移」这个静默失效模式的来源 |
+  | O2 | 版本号由**单一全局分配点**分配，**只在发布动作时分配**（草稿态编辑不占号），并持久化一条单调高水位 |
+  | O3 | 备份恢复后取 `max(恢复值, 高水位)` 并**强制跳号**（留一段安全余量）；「版本号未倒退」列为恢复演练的必检项 |
+  | O4 | **回滚 = 一次以历史版本内容发起的发布**：`rollback(to: v_k)` ≡ 创建 `v_new = 当前最大版本 + 1`，其规则内容逐字等于 `v_k`。若实现上存在「当前生效版本」指针，它**只能单向前移** |
+  | O5 | 每版留痕四项，缺一不可：**操作者** · **时间**（RFC 3339 UTC）· **来源版本 `derivedFrom`**（回滚时即被回指的版本，正常发布时为上一版）· **变更摘要与生效范围**（全量 / 分桶） |
+  | O6 | **历史规则集永久保留**，期内任一版本可直接作为回滚的输入。规则集体积极小（一批 `Id` 集合 + 分桶规则），永久保留成本近似为零，与收据幂等窗口的同形取舍一致（`contracts/purchase.md` §7） |
+  | O7 | 可选加固：规则集内容指纹与版本号绑定，服务端自检到「同版本不同指纹」即告警。**指纹不下发给客户端** |
+
+  **为什么留痕是最低要求而非「有更好」：** flags 是**唯一一条能绕过发版直接改变玩家可见内容**的通道；而 `derivedFrom` 是「回滚 = 以历史规则内容发布更大版本」这条能被**机读核对**的唯一凭据，脱离它，「这一版是不是一次回滚、回指的是哪一版」就只能靠备注措辞去猜。
+  **只留变更日志、不留历史规则集快照是明确否决的**——回滚时须由人工按日志重建规则，而手工编辑正是 O1 要堵的那条路径。
 - **签名私钥保管进入运维范围：** 私钥存放（KMS / 密钥托管）与 CI 中的签名步骤，**反向约束 `open-questions/06-platform-stack.md` 的托管选型**。`keyId` 轮换是「先发内置新旧两把公钥的客户端版本 → 覆盖率足够后切私钥」，因此轮换窗口跨越一个客户端发版周期。
 - **对 CDN 的能力要求**（不算苛刻，主流 CDN 均满足）：按路径设置差异化 `Cache-Control`、支持 immutable 长缓存、支持 `contentRoot` 域名切换（`contentRoot` 不在被签名的 manifest 内，故切换无需重签历史 manifest）。
 

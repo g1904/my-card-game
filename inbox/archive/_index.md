@@ -6,6 +6,9 @@
 
 | 草稿 | 对应 handoff | 日期 |
 |------|--------------|------|
+| `solution-draft-refresh-lifetime-cap.md` | `handoffs/2026-08-23-refresh-lifetime-cap.md` | 2026-08-23 |
+| `solution-draft-flags-version-monotonic.md` | `handoffs/2026-08-23b-flags-version-monotonic.md` | 2026-08-23 |
+| `solution-draft-echo-validation-scope.md` | `handoffs/2026-08-23c-echo-validation-scope.md` | 2026-08-23 |
 | `solution-draft-bundle-grant-ordinal-authority.md` | `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md` | 2026-08-22 |
 | `solution-draft-profile-field-schema.md` | `handoffs/2026-08-17-profile-field-naming.md` | 2026-08-17 |
 | `solution-draft-compliance-codes-and-reason-keys.md` | `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` | 2026-08-16 |

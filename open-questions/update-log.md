@@ -2,6 +2,33 @@
 
 > 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身——条目在各分片。
 
+## 2026-08-23d（`/write-adr backend` · 批量运行的后端分片 · 两条候选固化 · 移出 0 条 · 新增 0 条）
+
+- **`ADR-0008` 后端写入路径在上行侧只接受回声，不等即整批拒绝**（日期 08-22 本体 / 08-23 通则化，→ `contracts/profile-sync.md` §5c，来源 `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md` · `handoffs/2026-08-23c-echo-validation-scope.md`）。
+- **`ADR-0009` flags 规则集不可变版本化：`flagsVersion` 严格单调 + 同版本结果恒定**（08-23，→ `contracts/content-manifest.md`「服务端保证」B 组 + `operations/_index.md`，来源 `handoffs/2026-08-23b-flags-version-monotonic.md`）。两条候选均逐条回主题文档核对，判为「已落地」。
+- **台账**：`decisions/_index.md` 决策表新增两行（最新置顶）；顺带修平一处失真——「已对后端构成约束的客户端决定」表的抬头原写「后端尚未产出自己的 ADR」，与九份已 Accepted 的事实相反，改为不含计数的中性表述。该表**一格未动**（跨库引用表，非候选）。
+- **`open-questions.md` 一字未改**：其「下一阶段」不含 ADR 候选条目，`## derive 就绪度` 属 `/assess-derive-readiness` 独占（其中「`decisions/_index.md` 两处失真」的记述现已过时，待下一次全量评估刷新）。
+- **未收口的候选登记处**：`contracts/profile-sync.md` §5c 与 `contracts/content-manifest.md` 的「决策(-> ADR)」仍写着「登记于 `decisions/_index.md`」，而候选表已于 08-19 整节删除 —— 主题文档归本技能红线之外，**未改**，留待 `/analyze-new-ideas` 或用户处置。
+
+## 2026-08-23c（`/analyze-new-ideas` 跨库 · 三份草稿同批提炼 · 移出 4 条 · 新增 0 条）
+
+- **本库欠对侧的三条跨边界条目一次性全部落笔，三处成对采纳均完成。** 这是本库自 08-16 以来跨边界台账首次归零（反向方向仍欠 `compliance.md` 六端点报文字段表）。
+- **答结 1 · 回声校验的适用面与比较口径**（`01-contracts.md`）→ `contracts/profile-sync.md` §5c 新增三节：**适用面写成一条恒等式**（受约束 path ≡ 后端写入字段表行集合 ⇒ 面结构性封闭、扩表自动连带、无需第二份清单）· **类型感知的语义相等**比较口径表（整数按数值 · hex 逐字 · **RFC 3339 按时刻** · **对象数组有序逐元素**）· 栈中立验收断言五条；并补一条连带刚性「受约束顶层键内追加字段 = 两侧同批」，`envelope.md` §8 留指路。**两项此前是「采纳推荐 — 待复核」的比较口径，本次提炼前已由用户逐条确认**（均维持推荐）。上游草稿登记的「§4 拒绝清单两类变三类」计数有误，实际为四类、契约现文已正确。→ `answer-logs/log-echo-validation-scope.md`
+- **答结 2 · flags「回滚即前滚」的对位条款**（`content-manifest.md` Open questions）→ 把「服务端保证（三条，仅此三条）」**重构为 A 组 overlay 分发 / B 组 flags 通道**两组，`contentVersion` 严格单调那条同批**上提**进 A 组（位置迁移，内容不变），B 组新增三条：单一全局单调序列 · 严格单调 + 回滚即以历史规则内容发布更大版本 · **同一 `(flagsVersion, 账号)` 结果恒定**。附三个失效来源的堵法与「缓存层若引入则缓存键含版本」。**新增 ADR 候选④**（不并进候选①：前滚零成本的理由不同源）。→ `answer-logs/log-flags-version-monotonic.md`
+- **答结 3 · flags 改动的审计留痕**（`04` 分片的一小问）→ 在本题定案：四项最低要求（操作者 · RFC 3339 UTC · **`derivedFrom` 来源版本** · 变更摘要与生效范围）+ O1–O7 落 `operations/_index.md`，并同批改写发布流程 ⑤（原写「秒关 / 灰度改数据源即可」，正是「同版本内容漂移」的来源）。`04` 该条目其余部分（规则存在哪 / 由谁改 / 是否引入缓存层）仍开放。
+- **答结 4 · `auth.md` §5 静默续期的闸门收口** → `contracts/auth.md` **新增 §5b**：refresh 链绝对寿命上限（`signin` 锚定 · rotation 永不顺延 · 有效性 = `min(滑动, 绝对)` · 初值 60 天）· 到期复用 `auth.session_revoked` + 新 `reasonKey` `SessionExpired`（**不新增错误码**，refresh 错误面仍两条）· `refreshExpiresAtUtc` 收紧为 `min(...)` · 软信号 `reauthRecommended`（服务端算好的可选 body 布尔，**不得是时间戳**，提前量 3 天）。连带：滑动续期的承诺收窄为「不因**闲置**而被动重登」。→ `answer-logs/log-refresh-lifetime-cap.md`
+- **横切收口（不是问题条目）**：契约正文里写死的封闭计数一律改为不带数目的回链——`envelope.md` §6 台账的 `reasonKey` 条数 · `auth.md` §8 §9 的「三值见 §10」 · `content-manifest.md` 的「三条，仅此三条」。计数是会漂移的副本。客户端同形写法同批处理。
+- **对侧库改动（跨库运行）**：`game-design-documents` 侧落了 refresh 收口的客户端对位（二级文案键 + 软信号反应形态）与 flags 单调闸的补齐（应答体版本也过闸）。逐条见该库 `open-questions/update-log.md` 与 `answer-logs/log-refresh-cap-and-flags-gate.md`。
+- **零改动面**：`## derive 就绪度` 小节（归 `/assess-derive-readiness`）· `decisions/`（ADR 候选④只登记在契约的「决策(-> ADR)」，立档归 `/write-adr`）· `contracts/compliance.md` · `contracts/purchase.md`（§5 判据前一批已在位）。
+
+## 2026-08-23（台账失真修正 · 用户当场授权 · 移出 0 条 · 新增 0 条）
+
+- **失真**：`inbox/solution-draft-echo-validation-scope.md` 的 frontmatter 为 `status: awaiting-review`，而其正文明写「仍需用户决定 → 已全部裁决（2026-08-22 · 批量评审）」，本库五处台账（本文件的索引 `open-questions.md` L28 / L94 / L118 · `cross-boundary.md` · `01-contracts.md`）与 `inbox/_index.md` 说明列均已按 `decided` 陈述 —— **失真在 frontmatter，不在台账**。同库另两份「批量评审全部裁决」的草稿（`refresh-lifetime-cap` · `flags-version-monotonic`）均标 `decided`，本稿是漏改。
+- **修正方向（用户裁定）**：草稿 `status` 改 `decided` 并补 `reviewed` 字段；`inbox/_index.md` status 列同改。
+- **同批补注的一处此前无痕迹的实情**：三项裁决中**前两项比较口径（`createdAtUtc` 按时刻 · `identities` 有序逐元素）系 `[采纳推荐 — 待复核]`** —— 按 `.claude/rules/batch-orchestration.md` 铁律①，采纳推荐不等于用户拍板。原五处台账一律写作「一次提炼即关闭」，会让下一次 `/analyze-new-ideas backend` 径直落笔这两项口径。五处**逐处补上「提炼前须先由用户确认」**。第三项（受约束键内追加字段 = 两侧同批）与 `counterpart` 同项同裁，无待复核。
+- **零改动面**：全部主题文档 · `contracts/**` · 四个分片的问题条目本体 · `answer-logs/` · `## derive 就绪度` 小节。客户端库**一字未动**——经核对，`game-design-documents/open-questions.md` 与 `open-questions/cross-boundary.md` 均未称该草稿 `decided`，两处只写「成对采纳尚未完成」，与事实一致。
+- **仍未变的事实**：成对采纳尚未完成（客户端半已落 `handoffs/2026-08-22-echo-validation-scope-client-half.md`，本库半未落），`contracts/profile-sync.md` 仍为 partial。
+
 ## 2026-08-22b（`/analyze-new-ideas backend` · 回声校验与收据幂等承接 · 移出 0 条 · 新增 1 条）
 
 - **来源**：`inbox/solution-draft-bundle-grant-ordinal-authority.md`（`status: decided`，三项取向 2026-08-19 全部取 A）→ `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`。它是客户端 08-19 定案（`BundleGrantOrdinal` 施加权收归后端唯一 `+1`）的后端那一半；对侧已单独落笔，**成对采纳的硬要求由此满足**。

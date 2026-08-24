@@ -8,7 +8,7 @@
 > 此清单**只跟踪仍待答的问题**（不留已解决区），是导航 / 拾取清单，**权威归属在各主题文档**；
 > 一旦答定就从分片中移除、归档进对应主题文档，并在 `answer-logs/log-<draftSuffix>.md` 记一笔。
 >
-> **最近更新：2026-08-22** —— 回声校验与收据幂等承接落笔（移出 0 条 · 新增 1 条）。
+> **最近更新：2026-08-23c** —— 三条跨边界欠账同批落笔（移出 4 条 · 新增 0 条 · 详见 `open-questions/update-log.md`）。
 > （逐次更新摘要见 `open-questions/update-log.md`；答结归档见 `answer-logs/`。）
 
 ## 分片导航
@@ -25,7 +25,7 @@
 分片展开（承接上表）：
 
 - **`01`** —— 六份契约全部成文（→ `contracts/envelope.md`、`content-manifest.md`、`auth.md`、`profile-sync.md`、`purchase.md`、`compliance.md`）；
-  余下四条——**回声校验的适用面与比较口径**（承重，已有 `decided` 草稿在办）、`refresh` 的限流形态（待 `06`）、合规域端点自身的错误码（随报文本体落笔）、三条机检断言的承载位置（待 `06`）。
+  余下三条——`refresh` 的限流形态（待 `06`）、合规域端点自身的错误码（随报文本体落笔）、三条机检断言的承载位置（待 `06`）。
 - **`02`** —— 敏感词词表与审核口径、未过审昵称的存量扫描、风控系统与异常账号处置、合规能力的上线分级。
   身份模型、合规落地与多设备裁决均已答结（→ `contracts/auth.md`、`contracts/compliance.md`）；余下各条共用 `account.status` 作挂接点。
 - **`04`** —— 协议四条已答结（→ `contracts/content-manifest.md`）；
@@ -85,13 +85,13 @@
 
 - **🔴 `06` 技术栈 · 托管** —— 仍是唯一的结构性前置（挡住 `systems/` 与 `operations/` 的全部展开、三渠道接入面、`refresh` 限流形态、三条机检断言的承载位置、CAS / 幂等 / 限流 / 会话 / 合规状态机的存储语义，外加 08-22 新增的**读己所写对读路径的约束**——不满足它的部署形态直接出局）。
 - **🟠 `02` 运营口径** —— 敏感词判定输入 ⇒ `nickname` 的验收断言写不实；风控形态 ⇒ `profile-sync.md` §7a / §5c 的风控事件落地面。
-- **🟠 三处「待落笔」（非设计未决，但都改报文面）** —— `compliance.md` 六端点字段表与其错误码 · `content-manifest.md` 的 flags 回滚对位条款 · `purchase.md` verify 失败面的具体 `code`。
+- **🟠 两处「待落笔」（非设计未决，但都改报文面）** —— `compliance.md` 六端点字段表与其错误码 · `purchase.md` verify 失败面的具体 `code`。
 
-**跨边界闭合（强制检查项）：本库的跨边界台账当前处于低报状态。** `open-questions/cross-boundary.md` 的「待承接」仍写着「空」，而客户端库 `open-questions/cross-boundary.md` 明写 **2026-08-22 同批产生了三条球在本库**：① 回声校验通则的后端半（**两份草稿均明写须成对采纳，客户端半已落、本库半未落 ⇒ 成对采纳尚未完成**）· ② flags「回滚即前滚」的对位条款（客户端已把 flags 拉取收紧为「**增大**即拉」并**开始依赖** `flagsVersion` 单调递增，本库尚未把它写进服务端保证）· ③ 静默续期绕过协议维度强更闸门的收口手段（客户端已明确**不自收口**，归本库裁决）。三条目前分别只登记在 `01-contracts.md`、`contracts/content-manifest.md` 的 Open questions、`contracts/auth.md` §5 的「待办」段里，**本库的跨边界分片一条都没接住**。反向方向：本库向对侧的传导项仍是 `compliance.md` 六端点报文字段表未落笔（对侧 `account-service` 的合规呈现面因此写不出验收标准）。
+**跨边界闭合（强制检查项）：本库欠对侧的三条已全部落笔**（回声校验通则的后端半 → `profile-sync.md` §5c · flags「回滚即前滚」的对位条款 → `content-manifest.md`「服务端保证」B 组 · 静默续期的闸门收口 → `auth.md` §5b），三处成对采纳均已完成，登记见 `open-questions/cross-boundary.md` 的对账基线。**反向方向仍有一条**：本库向对侧的传导项 `compliance.md` 六端点报文字段表未落笔（对侧 `account-service` 的合规呈现面因此写不出验收标准）。
 
 | 文档 | 判定 | 卡点 / 就绪切片 |
 |---|---|---|
-| `contracts/profile-sync.md` | **partial** | **本次由 ready 降级。** 就绪切片 = pull / push 的协议面：§2 pull 报文与初始骨架、§3 §3a 顶层键浅合并、§4 三分支 + 幂等命中 + **四类拒绝面与判定顺序**、§5 逐 path 白名单与后端写入封闭四行表（含新增的 `/entitlement/bundleRedeemedOrdinal` 只读行与不变式）、§5b 命名通则、§6 §6a SplitMix64（`vectors/splitmix64.json` 是唯一可执行的验收检查点）、§7 §7a 复算边界与「仅记账不拒绝」、§8 §9 §10 CAS / 幂等 / 限流语义、以及 §5c 回声校验中**已定的执行面** `/entitlement/bundleGrantOrdinal`（整数相等，无口径歧义）。**其余卡于**：§5c 的第二处同形 `/accountInfo`——受约束路径清单如何表述、非整数路径的比较口径（时刻 vs 字面 · 按序 vs 按集合 · 是否按字节）**尚未落笔**，且 §5c 已写死「落笔之前不得按字节相等实现」⇒ **push 的所有权类拒绝面对 `/accountInfo` 写不出可验证断言，且落笔时必然回改契约正文**（这与本文件其余 Open questions「不回头改契约」的性质不同）。derive 时须把 `/accountInfo` 顶层键的回声面整体排除。承接草稿 `inbox/solution-draft-echo-validation-scope.md` 已 `decided`，一次提炼即关闭 |
+| `contracts/profile-sync.md` | **partial** | **本次由 ready 降级。** 就绪切片 = pull / push 的协议面：§2 pull 报文与初始骨架、§3 §3a 顶层键浅合并、§4 三分支 + 幂等命中 + **四类拒绝面与判定顺序**、§5 逐 path 白名单与后端写入封闭四行表（含新增的 `/entitlement/bundleRedeemedOrdinal` 只读行与不变式）、§5b 命名通则、§6 §6a SplitMix64（`vectors/splitmix64.json` 是唯一可执行的验收检查点）、§7 §7a 复算边界与「仅记账不拒绝」、§8 §9 §10 CAS / 幂等 / 限流语义、以及 §5c 回声校验中**已定的执行面** `/entitlement/bundleGrantOrdinal`（整数相等，无口径歧义）。**其余卡于**：§5c 的第二处同形 `/accountInfo`——受约束路径清单如何表述、非整数路径的比较口径（时刻 vs 字面 · 按序 vs 按集合 · 是否按字节）**尚未落笔**，且 §5c 已写死「落笔之前不得按字节相等实现」⇒ **push 的所有权类拒绝面对 `/accountInfo` 写不出可验证断言，且落笔时必然回改契约正文**（这与本文件其余 Open questions「不回头改契约」的性质不同）。derive 时须把 `/accountInfo` 顶层键的回声面整体排除。承接草稿 `inbox/solution-draft-echo-validation-scope.md` 已 `decided`，一次提炼即关闭（**但其两项非整数比较口径系「采纳推荐 — 待复核」，提炼前须先由用户确认**） |
 | `contracts/auth.md` | **partial** | ADR 前置已满足（`ADR-0004` Accepted）。就绪切片 = 会话与身份的语义面：§1a 身份模型（绝不隐式合并）· §2 双 token · §3a 换 openid 的三条义务与两类错误映射 · §4 rotation + 60 秒宽限窗口 · §4a 会话裁决（`sid` · `(accountId, deviceId)` 唯一约束 · 活跃会话上限 1 · `signin` 60 秒幂等回放）· §7 七端点全幂等 · §9 五个错误码 · §5a 合规拦截只在 `signin`——全部可写成栈中立的请求 → 应答断言。**其余卡于（本次新增第一条，切片较上次更窄）**：**§5 的连带缺口——静默续期使旧客户端可长期不经协议维度强更闸门，收口手段（滑动续期上限 / 强制 re-signin 周期）未定且归本库**，它会改动 §2 的 refresh 生命周期与 §5 §8 的 refresh 面 ⇒ derive 时须排除 refresh 的续期寿命面 · `refresh` 的限流形态（`06`，一旦认定必须限流即回改 §8 报文并给客户端第三条路径）· `nickname` 的敏感词判定输入与改名频次阈值（`02` / `06`）· 未过审昵称的存量扫描（`02`）· 服务商 / 密钥 / 会话存储（`06`）· 对位的 `systems/account.md` 未建立 |
 | `contracts/content-manifest.md` | **partial** | ADR 前置已满足（`ADR-0001` · `ADR-0002` Accepted）。就绪切片 = **CDN 域三端点的协议面**（`manifest` / `manifest.sig` / `blobs/<sha256>`）：三条服务端保证、`manifestSchema: 1` 字段表、ES256 detached 签名与 `keyId` 轮换、`contentVersion` 严格单调（回滚即前滚）、三版本号分工——验收可写成栈中立断言（blob 先于 manifest 可读；manifest 原始字节可被 `keyId` 对应公钥验签；同 hash URL 字节不可变）。**其余卡于**：**flags 回滚须以更高 `flagsVersion` 发布这条对位条款尚未写进服务端保证**（客户端 08-22 已收紧为「增大即拉」并开始依赖它，缺这条的症状是「秒关不生效 / 误关的内容永不恢复」，属跨边界承接）· `/v1/content/flags` 的分桶与数据源运营形态（`04` + `06`）· ES256 私钥保管与 CI 签名步骤（`04`）· 发布侧内容校验闸的运维形态（`04`）· 多区域 `contentVersion` 是否同步推进（`04` + `02`）· flags 是否落客户端本地缓存（**归对侧裁决**）· 剧本本地化后的体积与分包边界（**两侧同题待答**）· 对位的 `systems/content-delivery.md` 与 `operations/content-delivery-ops.md` 均未建立 |
 | `contracts/purchase.md` | blocked | **上次预告的「渠道一落定即转 partial」未兑现。** 渠道本身已定（Google Play Billing · App Store · 微信支付，三条纳入 MVP，§3 `platform` 取值域随之封闭），但**卡点所在的字段没变**：`receipt` 的内部形态**逐渠道不同、仍待逐家接入落笔**，而它是 `POST verify` 请求体的核心字段 ⇒ 写不出完整的 `Contract touchpoints`；**verify 失败面的具体 `code` 亦未落笔、未进 `envelope.md` §6 台账**（收据无效 / 已被其他账号核销 / 平台不可达三类只有语义），而 `## Failure & retry semantics` 对后端 FR 是强制且不可切的 ⇒ **无可独立成立的切片**。已完备的部分（§2 权威分配、§4 收据幂等读、§6 七条服务端保证含读己所写、§7 `receiptId` 全局唯一键 + 永久保留）全部描述 verify 的后置条件，须与 verify 报文面同批落地。ADR 前置已满足（`ADR-0007` Accepted）。另：幂等记录存储、对账补偿任务与「`grant > redeemed` 持续 N 天」信号归 `06` / `operations/` |
@@ -115,13 +115,10 @@
 
 ### 最短解锁路径
 
-1. **回声校验的适用面与非整数比较口径** —— 承接草稿 `inbox/solution-draft-echo-validation-scope.md` 已 `decided`，走一次 `/analyze-new-ideas backend` 提炼即关闭，**关闭即把 `profile-sync.md` 送回 ready**。**优先级最高**：它同时是「成对采纳尚未完成」的那一半（客户端半已于 08-22 落笔）。
-2. **`contracts/compliance.md` 六端点的报文字段表与其错误码** —— 纯落笔、不待 `06`，一次正式契约变更即可（含 `envelope.md` §6 台账登记）。它是本库唯一向对侧传导的欠账，关闭它同时解锁客户端 `account-service` 的合规呈现面。→ `/analyze-new-ideas backend`
-3. **flags「回滚即前滚」的对位条款** —— 纯落笔，写进 `content-manifest.md` 的服务端保证即可。客户端已开始依赖 `flagsVersion` 单调递增，缺它的症状是线上「秒关不生效 / 误关内容永不恢复」。→ `/analyze-new-ideas backend`
-4. **`auth.md` §5 静默续期的收口手段** —— 需一次裁决（滑动续期上限 / 强制 re-signin 周期 / 其他），归本库；客户端已明确不自收口。裁决后 `auth.md` 的 refresh 面才完整。→ `/provide-solution-draft backend` 或 `/analyze-new-ideas backend`
-5. **🔴 `06-platform-stack.md`** —— 解锁 `systems/` 与 `operations/` 的全部展开、**三渠道逐家接入面**（`purchase.md` 转 partial 的唯一前置）、`refresh` 的限流形态、三条机检断言的承载位置、CAS / 幂等 / 限流 / 会话 / 合规状态机的存储语义，以及 08-22 新增的**读己所写对拓扑与读路径的约束**。它仍是本库唯一的结构性前置，且背着三项必须做的选型（支付渠道三家的接入面 · C 层原子能力的服务商与灾备 · 微信开放平台资质，**首个玩家建号前必须完成**）。
-6. **🟠 `02-account-compliance.md`** —— 敏感词判定输入（解锁 `auth.md` 的 `nickname` 验收断言）与风控形态（解锁 `profile-sync.md` §7a / §5c 的风控事件落地面）。可与 `06` 并行。
-7. **`04` 的运营形态与私钥保管** —— 解锁 `content-manifest.md` 的 `flags` 端点那一半。与 `06` 耦合。
+1. **`contracts/compliance.md` 六端点的报文字段表与其错误码** —— 纯落笔、不待 `06`，一次正式契约变更即可（含 `envelope.md` §6 台账登记）。它是本库唯一向对侧传导的欠账，关闭它同时解锁客户端 `account-service` 的合规呈现面。**优先级最高。** → `/analyze-new-ideas backend`
+2. **🔴 `06-platform-stack.md`** —— 解锁 `systems/` 与 `operations/` 的全部展开、**三渠道逐家接入面**（`purchase.md` 转 partial 的唯一前置）、`refresh` 的限流形态、三条机检断言的承载位置、CAS / 幂等 / 限流 / 会话 / 合规状态机的存储语义，以及 08-22 新增的**读己所写对拓扑与读路径的约束**。它仍是本库唯一的结构性前置，且背着三项必须做的选型（支付渠道三家的接入面 · C 层原子能力的服务商与灾备 · 微信开放平台资质，**首个玩家建号前必须完成**）。
+3. **🟠 `02-account-compliance.md`** —— 敏感词判定输入（解锁 `auth.md` 的 `nickname` 验收断言）与风控形态（解锁 `profile-sync.md` §7a / §5c 的风控事件落地面）。可与 `06` 并行。
+4. **`04` 的运营形态与私钥保管** —— 规则数据源的承载、是否引入缓存层、传播窗口 T 的数值、私钥保管与 CI 签名步骤。**审计留痕与发布 / 回滚流程已定案**（`operations/_index.md`）。与 `06` 耦合。
 
 ## 下一阶段
 

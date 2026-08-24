@@ -33,7 +33,7 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
 
 **当前状态：后端尚未开工。** 推导就绪度以 `open-questions.md` 的「derive 就绪度」小节为唯一权威（由 `/assess-derive-readiness` 全量评估后写入），此处不另作断言。契约面**六份全部成文且再无取值留白**；下一步是**技术栈落定**（`open-questions/06-platform-stack.md`）——`systems/` 与 `operations/` 的展开、以及 `requirements/` 的推导都以它为前置。合规路线（`02-account-compliance.md`）余下的是运营口径与风控，可与之并行。见 `open-questions.md` 的「下一阶段」。
 
-> `.claude/` 下的设计流水线技能（`/analyze-new-ideas`、`/provide-solution-draft`、`/summarize-open-questions`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）**对本库与客户端库通用**：调用时加 `--lib=backend`，或直接给 `backend-design-documents/` 开头的路径；判不出时技能会询问，不会静默默认。解析顺序、跨库纪律与两库结构差异见 `.claude/rules/design-library-routing.md`。
+> `.claude/` 下的设计流水线技能（`/analyze-new-ideas`、`/provide-solution-draft`、`/summarize-open-questions`、`/write-adr`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）**对本库与客户端库通用**：调用时加 `--lib=backend`，或直接给 `backend-design-documents/` 开头的路径；判不出时技能会询问，不会静默默认。解析顺序、跨库纪律与两库结构差异见 `.claude/rules/design-library-routing.md`。其中 `/analyze-new-ideas` 与 `/provide-solution-draft` 另有批量版（`/batch-analyze-new-ideas`、`/batch-provide-solution-draft`），同样覆盖两库；`/write-adr` **不接受跨库运行**——两库 ADR 编号各自独立。
 > `/blueprint` 与 `/implement` 仍只面向客户端（`game-feature-branch/`）——后端技术栈未定，无从设计实现形态。
 
 ## 根级关键文件
@@ -56,7 +56,7 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
 | `handoffs/` | 原始的时间线输入——大多是你的文字，每个 handoff 一个文件。 | 持续更新（时间线日志，最新置顶；可自由编辑 / 修正，非仅追加）。 |
 | `decisions/` | ADR 风格的已定决策。**编号与客户端库各自独立**，引用另一侧一律写全路径。**唯一写入者是 `/write-adr`**；ADR 形状、台账约定与「ADR 候选」表见 `decisions/_index.md`。 | 可修改（后端开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
 | `requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往实现的桥梁。含 `_index.md` 与两份骨架模板；**当前尚无 FR**。 | 持续更新；随设计深化而重新生成 / 扩展。 |
-| `inbox/` | 未整理的草稿，待分流到 handoff / 主题中。**分两层：顶层只放在办草稿，已提炼的移入 `inbox/archive/`**（判据：有无对应 `status: distilled` 的 handoff）。 | 顶层自由发挥；`archive/` 只作溯源。 |
+| `inbox/` | 未整理的草稿，待分流到 handoff / 主题中。两类：手写的 `draft-<suffix>.md`（`<suffix>` = `MMDD` + 序列字母，从 `a` 起）；`/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿 `solution-draft-<slug>.md`（`status: awaiting-review`，经人工评审后再喂给 `/analyze-new-ideas`）。**分两层：顶层只放在办草稿，已提炼的移入 `inbox/archive/`**（判据：有无对应 `status: distilled` 的 handoff）。另有骨架 `_TEMPLATE.md` 与在办清单 `_index.md`。 | 顶层自由发挥；`archive/` 只作溯源。 |
 | `open-questions/` | 待答清单的**分片**：`01-contracts.md`（协议契约横切项）、`02-account-compliance.md`（账号与合规，现焦点之首）、`04-content-delivery.md`（内容分发）、`06-platform-stack.md`（技术栈 · 托管 · 运维）、`cross-boundary.md`（**客户端已定案、本库尚未承接**的条目；不带编号，与客户端库同名同形），外加 `update-log.md`（逐次更新摘要）。**编号即优先级；`03` 与 `05` 已作废空缺，不回填、不重排**（原分片随 `profile-sync.md` 成文与云端剧本服务撤销而整片删除）。**只跟踪仍待答的问题**（无「已解决」区）。 | 持续更新。分片过长可再拆、过短可并回，同步更新索引导航表。 |
 | `answer-logs/` | 已答定问题从待答清单移出的归档台账，一次移出一份 `log-<draftSuffix>.md`。 | 历史台账；与本库其余文档一样可编辑修正，非仅追加。 |
 

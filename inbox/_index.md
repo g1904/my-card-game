@@ -22,6 +22,6 @@
 
 | 文件 | status | 说明 |
 |------|--------|------|
-| `solution-draft-echo-validation-scope.md` | awaiting-review | 上行整键回声校验的适用面（后端半）：**恒等式「受约束 path ≡ §5 后端写入字段表的行集合」** ⇒ 适用面结构性封闭、扩表自动连带，无需第二份清单 · 判据是**所有权**不是透明性 · 比较口径 = **类型感知的语义相等**（`createdAtUtc` 按时刻 · `identities` 有序逐元素）· 判定顺序 `schemaVersion` → CAS → 回声且拒绝不消耗 revision · **§4 拒绝清单由三类扩为四类**（上游草稿登记的「两类变三类」计数有误）· 新刚性「受约束键内追加字段 = 两侧同批」，`envelope.md` §8 须留一句指路。**跨库**，与 `game-design-documents/inbox/` 同名草稿**成对采纳**。**3 项取向已于 08-22 批量评审全部裁决**。**前置已解除**（2026-08-22）：`solution-draft-bundle-grant-ordinal-authority.md` 已提炼落笔（→ `contracts/profile-sync.md` §5c 回声规则本体 + §5 白名单行 + §8 读己所写、`contracts/purchase.md` §6 §7），本稿可直接 `/analyze-new-ideas`——它是在那之上的**通则化**（恒等式 · 比较口径 · §4 计数订正 · `envelope.md` §8 指路） |
+| *（空）* | — | — |
 
 清空即为「无在办草稿」。已提炼草稿 → handoff 的对应关系见 `archive/_index.md`。

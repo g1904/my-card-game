@@ -23,6 +23,9 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-echo-validation-scope.md` | 2026-08-23 | `inbox/archive/solution-draft-echo-validation-scope.md` → `handoffs/2026-08-23c-echo-validation-scope.md` | 1（两小问一并答定） |
+| `log-flags-version-monotonic.md` | 2026-08-23 | `inbox/archive/solution-draft-flags-version-monotonic.md` → `handoffs/2026-08-23b-flags-version-monotonic.md` | 2（其一部分答结：运营形态其余部分留 `04`） |
+| `log-refresh-lifetime-cap.md` | 2026-08-23 | `inbox/archive/solution-draft-refresh-lifetime-cap.md` → `handoffs/2026-08-23-refresh-lifetime-cap.md` | 1 |
 | `log-profile-field-schema.md` | 2026-08-17 | `inbox/archive/solution-draft-profile-field-schema.md` → `handoffs/2026-08-17-profile-field-naming.md` | 2 |
 | `log-compliance-and-session-arbitration.md` | 2026-08-16 | `inbox/archive/solution-draft-compliance-codes-and-reason-keys.md` + `inbox/archive/solution-draft-multi-device-session-arbitration.md` → `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` | 2（部分残留：合规能力的上线分级留在 `02`） |
 | `log-account-identity-model.md` | 2026-08-16 | `inbox/solution-draft-account-identity-model.md` | 1 |

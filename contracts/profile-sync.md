@@ -2,7 +2,7 @@
 
 > 覆盖 `/v1/profile/…` 两个端点的报文本体。**边界层不在此重复**：序列化与命名约定、`/v1/` 主版本、传输信封、错误体形状、错误码台账、版本协商、Profile 三段可见性的分界——全部见 `envelope.md`，本文件只写 sync 域**相对它的差异与细化**。
 > 客户端侧门面见 `game-design-documents/systems/services/sync-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）。
+> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）、`handoffs/2026-08-23c-echo-validation-scope.md`（§5c 适用面恒等式 + 比较口径 + 追加字段刚性）。
 
 ## 1. 端点集：两个，封定
 
@@ -195,10 +195,57 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 - **后端永不采纳客户端对这些路径的写入，也不静默丢弃它。** 静默丢弃会让客户端 bug 永远看不见，而这类 bug 的症状恰好是玩家侧的错误发放。
 - **拒绝整批，不做字段级挑拣。** §3a 的合并语义是整键替换，挑拣要求后端在顶层键内部做字段级合并——一旦为它开一次例外，「后端不递归、不逐元素合并」这条分段就被打开了。**拒绝整批是唯一不动摇既有分段的处置。**
 - **`sync.payload_invalid` 的边界不变**：它仍只覆盖信封本身与 §3a 的顶层形状。回声比较的是白名单内某条路径的**取值**，不是结构合法性，故不走它；不透明段内部一字不动。
-- **当前的执行面**：`/entitlement/bundleGrantOrdinal`（`number int`，数值相等，无比较口径歧义）。它由**兑现**这条常规路径触发——客户端每次兑现都提交 `entitlement` 顶层键，因此这不是罕见窗口而是每次都走一遍的路。
-- **`/accountInfo` 是同形的第二处**（键内混有后端写入的 `accountSeed` / `createdAtUtc` / `identities` 与客户端写入的 `nickname`，由**改昵称**触发）。它的受约束路径清单与非整数路径的比较口径（时间串按时刻还是按字面 · 数组按序还是按集合）**尚未落笔**，见 `open-questions/01-contracts.md`——**在落笔之前不得按字节相等实现**：正常客户端的合法表示差异会被判成不等，而拒绝一次上行在客户端侧就是一次进度丢失。
-
 **判据是所有权，不是严格程度。** 受约束的是**客户端根本无权写**的路径：值无争议地不属于它，正常客户端在这些路径上永远只会提交回声，故零误报，拒绝是安全的。客户端**有权写**的路径（`nickname` · `playerPowerFragment/*` · `playerPower[*]/*` · `bundleRedeemedOrdinal`）一律不受本节约束，越界走 §7a 的「记账 + 风控、不拒绝」。**同一顶层键内的两条路径因此可能走两种处置**——实现者不得按键统一处置。
+
+#### 适用面：一条恒等式，不是第二份清单（承重）
+
+> **受回声校验约束的 JSON path 集合 ≡ 上方后端写入字段表的行集合。**
+
+这不是巧合，是「够格进表」两条判据的直接推论：一条路径够格进写入表 ⟺ ① 真值只可能在服务端产生 且 ② 客户端无任何其他通道取到它 ⟺ **客户端提交的任何值都只能是它 pull 到的那个值**。三条推论：
+
+- **写入表加一行，该路径自动进入回声约束。** 不需要第二次决定、不需要第二份清单、扩表的护栏无需加强——它已经覆盖了这件事。
+- **写入表封闭 ⇒ 回声约束面封闭。** 「适用面有没有列全」这个问题因此**结构性地不存在**，而不是靠某一次把清单列全。
+- **不属写入表的透明路径一律不受约束**，判据是**所有权**而不是透明性：`/accountInfo/nickname`（客户端是写入方）· `/playerPowerFragment/*` · `/playerPower[*]/*` · `/entitlement/bundleRedeemedOrdinal` 全部照旧走 §7a。
+
+**另立一张「受回声校验约束的 path」清单是明确否决的**：它与写入表必然漂移，而漂移的形态恰恰是「进了写入表却没进回声表」——正是这条恒等式要关掉的口子。
+
+**当前的具体面**（随写入表自动同步，本节不单独维护）：
+
+| 受约束 JSON path | 所在顶层键 | 触发该顶层键提交的客户端常规路径 |
+|---|---|---|
+| `/accountInfo/accountSeed` | `accountInfo` | **改昵称** |
+| `/accountInfo/createdAtUtc` | `accountInfo` | 同上 |
+| `/accountInfo/identities` | `accountInfo` | 同上 |
+| `/entitlement/bundleGrantOrdinal` | `entitlement` | **兑现** |
+
+**受约束的顶层键因此恰有两个。** 两者的共同形状是「同一顶层键内混有后端写入路径与客户端写入路径」——这正是整键替换把覆写窗口变成**常规路径**（而非罕见窗口）的充要条件：每次改昵称、每次兑现都会走一遍。
+
+#### 比较口径：类型感知的语义相等，不是原始字节相等（承重）
+
+误判的代价是**在正常账号上丢玩家进度**，故口径逐类型写死：
+
+| path 的类型 | 比较口径 |
+|---|---|
+| 整数（`bundleGrantOrdinal`） | 数值相等 |
+| 定长 hex 串（`accountSeed`） | **逐字相等**——形态已被 §2 钉死为 16 位小写 hex，两侧无归一化自由度 |
+| RFC 3339 时间串（`createdAtUtc`） | **按时刻相等**，不按字面相等 |
+| 对象数组（`identities`） | **有序逐元素**，元素内**逐字段**按上述口径递归 |
+
+- **`createdAtUtc` 必须按时刻比较。** 客户端持有的是强类型时间值，反序列化 → 再序列化会在 `Z` / `+00:00`、小数秒位数上产生合法但不同字面的表示。按字面比较等于要求两侧的时间序列化器逐字一致——**那是一条无人声明、无处校验、一次库升级就会静默破坏的隐含契约**，而它破坏时的症状是「所有玩家改昵称都丢一次进度」。
+- **不按原始字节比较**，同理并追加一条：JSON 对象的键序与空白不稳定，字节比较把序列化器实现细节抬成契约。
+- **`identities` 取有序而非集合相等**：顺序由后端产出、客户端原样回声，要求有序既更严格也更便宜；宽松只会掩盖客户端的重排 bug。若日后确有重排需求，那是后端自己的变更，不构成客户端义务。
+
+**⚠ 连带刚性：向受约束顶层键内的对象追加字段，是需要两侧同批落笔的变更。** 客户端对这些路径持有强类型 record，强类型往返会**静默丢掉**它不认识的字段 ⇒ 下一次回声当场失败 ⇒ 整批拒绝。这与「重命名跨边界枚举值」同档。**它是 `envelope.md` §8「客户端加字段不需要后端配合」的例外**——那句话讲的是不透明段，本条讲白名单内。
+
+**`openapi.yaml` / `schemas/*.json` 表达不了本节**：schema 说不出「等于当前云端值」，强行表达只能退化为把这些 path 标成必填，而 §3a 的浅合并 diff 里它们本就常常不出现。**spec 落笔时须在对应 schema 处留一条注释指向本节**，否则实现者会试图用 schema 承担它（与「缺失透明 path 走告警台账、不走 schema 校验」同一处坑）。
+
+#### 服务端保证（栈中立的验收断言）
+
+- 上行 `playerDiff` 含 `accountInfo`，其中三条后端写入 path 与云端语义相等 ⇒ **接受**；`nickname` 照常写入。
+- 上行 `playerDiff` 含 `accountInfo`，其中任一条后端写入 path 与云端不等 ⇒ `sync.conflict`，`detail.field` 给第一条不匹配的 path，且 `cloudRevision` 与 profile 均不变。
+- `createdAtUtc` 以不同合法 RFC 3339 表示（`Z` ↔ `+00:00`、不同小数秒位数）提交同一时刻 ⇒ **接受**。
+- `identities` 元素顺序与云端不同 ⇒ **拒绝**。
+- `bundleRedeemedOrdinal > bundleGrantOrdinal` 且 `bundleGrantOrdinal` 回声正确 ⇒ **接受** + 告警台账 + 风控事件（§7a，不拒绝）。
 
 ## 6. 账号级掷骰的随机源：契约定义的纯函数 SplitMix64（承重）
 
@@ -383,6 +430,12 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 - **为回声校验新增专用错误码**（§5c） — 客户端处置与 Conflict 完全一致，新码只逼它多写一条走向同一处的分支；可观测性由风控事件承担。
 - **把 `bundleRedeemedOrdinal` 提为另一个顶层键以避开整键替换**（§5c） — 能绕开这一处的表现，却把一对语义紧邻的字段拆到两个顶层键，且 `/accountInfo` 仍是同一形状——需要的是一条通则，不是搬家。
 - **按顶层键统一处置**（键内任何不一致都拒绝）（§5c） — 会把 `bundleRedeemedOrdinal` 的越界从「记账」升为「丢进度」，与 §7a 正面冲突；判据必须逐路径按所有权判。
+- **另立一张「受回声校验约束的 path」清单**（§5c） — 与后端写入字段表必然漂移，而漂移形态正是「进了写入表却没进回声表」；恒等式使这张表不必存在。
+- **回声值按原始字节相等比较**（§5c） — 把序列化器实现细节抬成契约；`createdAtUtc` 的合法表示差异会让正常账号稳定被拒，症状是「所有玩家改昵称都丢一次进度」。
+- **`createdAtUtc` 按字面逐字相等**（§5c） — 要求客户端对该 path 原样透传 pull 到的字符串、永不经强类型往返；它把一条本可由后端一次解析消化的风险，压成客户端一条必须永远记得的纪律。
+- **`identities` 按集合相等（忽略顺序）**（§5c） — 更宽松但无收益：顺序由后端产出、客户端原样回声，宽松只会掩盖客户端的重排 bug。
+- **用 JSON Schema 表达回声约束**（§5c） — schema 表达不了「等于当前云端值」；强行表达只能退化为把这些 path 标成必填，而浅合并 diff 里它们本就常常不出现。
+- **回声校验放在 CAS 之前**（§5c） — 无收益且更贵：CAS 失败时本就整批拒绝，先做字段比较是白做。
 - **RFC 7386 JSON Merge Patch 作为 diff 合并语义** — 以 `null` 表示删除，与 `envelope.md` §2 冲突；且要求后端递归遍历不透明结构。
 - **`playerDiff` 段级全量替换** — 每次 push 重传整个账号级段，与「整聚合上行不可持续」这条既定理由同向相悖。
 - **把 `characterDiffs` 也做成透明段** — 无后端规则用途，且每条透明路径都要背上路径稳定性约束。

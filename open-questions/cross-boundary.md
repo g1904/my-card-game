@@ -18,8 +18,14 @@
 
 ## 对账基线（不是待办）
 
+- **客户端 08-22 产生的三条球在本库，已于 2026-08-23 全部落笔，三处成对采纳均完成：**
+  ① **回声校验通则的后端半** → `contracts/profile-sync.md` §5c（适用面恒等式 · 类型感知比较口径 · 追加字段刚性）+ `contracts/envelope.md` §8 指路。客户端半 08-22 已落，本库半落笔即完成成对采纳。
+  ② **flags「回滚即前滚」的对位条款** → `contracts/content-manifest.md`「服务端保证」B 组三条 + `operations/_index.md` 的发布 / 回滚流程。客户端「增大即拉」所依赖的那一半到位，**客户端规则一字未改**。落笔时发现的对侧缺口（应答体 `flagsVersion` 是否也过单调闸）已由客户端自行裁决并同批落笔，本库不代为决定。
+  ③ **静默续期绕过协议维度强更闸门的收口** → `contracts/auth.md` §5b（refresh 链绝对寿命上限 · `SessionExpired` · `reauthRecommended`）。客户端半同批落笔（二级文案 + 软信号反应形态）。
+  移出记录见 `../answer-logs/log-echo-validation-scope.md` · `log-flags-version-monotonic.md` · `log-refresh-lifetime-cap.md`。**三条本库侧均无遗留欠账。**
+
 - **`bundleGrantOrdinal` 施加权收归后端唯一 `+1` 已承接**（客户端 2026-08-19 定案 → 本库 2026-08-22 落笔）：本库既有口径与该裁决同向，故无一句被改写，落的全是护栏与登记——`contracts/profile-sync.md` §5c 回声校验（后端写入封闭表的首个报文层执行点）· §5 补入 `/entitlement/bundleRedeemedOrdinal`（后端只读 + 不变式）· §4 拒绝面补所有权类与判定顺序 · §7a 判据边界 · §8 只读副本受读己所写约束；`contracts/purchase.md` §6 保证 3 升格为一致性要求 + 新增保证 5–7 · 新增 §7 收据幂等窗口（全局唯一键 · 永久保留）· §3 `platform` 取值域收敛为三条具名渠道。**两侧无遗留欠账**；客户端侧的兑现段形态权威在 `game-design-documents/systems/monetization.md` 与 `decisions/ADR-0023-premium-entitlement-and-redemption.md`，**本库不复述**。
-  **唯一仍开放的连带**：回声校验的适用面与非整数路径的比较口径，登记在 `01-contracts.md`（**不是承接项**——它等的是设计裁决，且已有 `decided` 草稿在办）。
+  **该连带（回声校验的适用面与非整数比较口径）已于 2026-08-23 答结**，见本节第一条。
 
 - **两层 Profile 字段命名两侧同批落笔**（2026-08-17）：客户端把集合字段名统一为单数并收口条目键名，本库同批改 `contracts/profile-sync.md` §5 白名单与排除清单四条路径 + 新增 §5b 命名通则与一次性切换的三个成立前提。**两侧无遗留欠账。**
 - **球在对侧、本库无欠账的第三处：** 残卷 `ordinal` 的口径**两侧已对齐**——本库 §7 复算读的就是本次（自增后）的 `finaleWinOrdinal`，客户端侧的账号级 RNG 通则权威在 `game-design-documents/systems/common-properties.md`（本库不复述）。本次只在 §7 做了一句零风险的措辞消歧，**算法与 §6a 的 8 组测试向量未改**。**本库不重复设计、也不催办。**

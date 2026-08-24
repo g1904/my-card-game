@@ -157,13 +157,13 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 |---|---|---|---|---|---|
 | `auth.token_expired` | `Reauth` | `Auth` | `RefreshTokenAsync()` 静默刷新；**刷新失败按判据分两条**（见台账下方）——网络失败走 sync 缓冲通道**不硬阻塞**，收到 `auth.session_revoked` 才硬阻塞 | — | token 签发时间与过期时间 |
 | `auth.token_invalid` | `Reauth` | `Auth` | 同上 | — | 拒绝原因（签名 / 格式 / 未知 kid） |
-| `auth.session_revoked` | `Reauth` | `Auth` | **硬阻塞**重登（被挤下线）；重登后先 pull 后 flush；**暂停退避重试**。`reasonKey` 驱动二级措辞（七值，`auth.md` §10） | `{ revokedAtUtc, reasonKey }` | 吊销时间与触发源 |
+| `auth.session_revoked` | `Reauth` | `Auth` | **硬阻塞**重登（被挤下线）；重登后先 pull 后 flush；**暂停退避重试**。`reasonKey` 驱动二级措辞（取值表见 `auth.md` §10） | `{ revokedAtUtc, reasonKey }` | 吊销时间与触发源 |
 | `auth.channel_rejected` | `Fatal` | `Auth` | 登录屏呈现失败原因 | `{ channel, channelCode }`（`channelCode` 可选、渠道原始码原样透传，**客户端不解析、只随日志上报**） | 渠道名与渠道侧错误码 |
 | `auth.credential_invalid` | `Fatal` | `Auth` | 登录屏呈现失败原因（自建渠道的凭据校验失败：验证码错、标识符格式非法） | — | 失败的校验项（**不含**凭据原值） |
 | `auth.challenge_expired` | `Fatal` | `Auth` | 提示重新获取验证码（与上一条分列：玩家处置不同） | — | 验证码签发时间与过期时间 |
 | `auth.identity_already_bound` | `Fatal` | `Auth` | 绑定屏呈现冲突：**必须说明那个渠道下有另一份进度、绑定不会合并两份存档**（`auth.md` §1a） | `{ channel }` | 冲突的渠道 |
 | `auth.identity_required` | `Fatal` | `Auth` | 拒绝解绑并说明理由 | `{ channel }` | 「这是最后一个登录方式」 |
-| `auth.nickname_rejected` | `Fatal` | `Auth` | 按 `code` 出文案；`reasonKey` 驱动二级措辞（三值，`auth.md` §10），**未知取值须有兜底** | `{ reasonKey }` | 拒绝理由标识（敏感词 / 频次 / 格式） |
+| `auth.nickname_rejected` | `Fatal` | `Auth` | 按 `code` 出文案；`reasonKey` 驱动二级措辞（取值表见 `auth.md` §10），**未知取值须有兜底** | `{ reasonKey }` | 拒绝理由标识（敏感词 / 频次 / 格式） |
 | `compliance.realname_required` | `Fatal` | `Compliance` | 阻塞屏 + 「去实名」动作，凭 ticket 走实名流程 | `{ reasonKey, complianceTicket, ticketExpiresAtUtc }` | 触发的合规规则标识（**不含**姓名 / 证件号任何片段） |
 | `compliance.playtime_blocked` | `Fatal` | `Compliance` | 阻塞屏 + 展示 `resumeAtUtc`，**无重试动作** | `{ reasonKey, resumeAtUtc }` | 触发的时段规则与解除时间 |
 | `compliance.account_restricted` | `Fatal` | `Compliance` | 阻塞屏 + 申诉入口（申诉走站外，不占端点） | `{ reasonKey }` | `status` 值与置入时间 |
@@ -240,6 +240,7 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 | Profile / diff 的其余部分 | **不透明**：按不透明 JSON 存储并**原样回传** | pillar #1「后端不重跑玩法」 |
 
 - **不透明段的纪律：** 后端**不得**对不透明段做结构校验、不得改写、不得因其内部字段变化而拒绝上行。**推论：客户端加一个纯统计字段或纯展示字段，不需要后端配合、不需要提升 `schemaVersion`**——这是「统计层新增字段成本近乎为零」在契约侧的兑现。
+  - **这条推论只覆盖不透明段。** 受回声校验约束的顶层键内，向对象**追加**字段需要两侧同批落笔（客户端的强类型往返会静默丢掉未知字段 ⇒ 回声当场失败），判据与形态见 `profile-sync.md` §5c。
 - 后端**只在 `schemaVersion` 越出兼容集合时拒绝**（`sync.payload_schema_unsupported`）。兼容集合进 §7e 的兼容矩阵。
 - **统计计数层：后端不复算、不校验，且不得用统计数据驱动任何发放**（活动奖励 / 解锁）。一旦这么用，该字段就必须整体升为规则字段。运维侧的对应约束见 `operations/_index.md`。
 

@@ -5,7 +5,9 @@ question: 上行整键回声校验的适用面未穷举 —— 后端在哪些 J
 source: game-design-documents/open-questions/05-service-contracts.md → 「上行整键回声校验的适用面未穷举（08-19 新增 · 承重）」（客户端库待答项，跨边界承接）
 targets: contracts/profile-sync.md（§4 拒绝清单 · §5 白名单与后端写入封闭表 · 新增回声校验通则一节）
 counterpart: game-design-documents/inbox/solution-draft-echo-validation-scope.md
-status: awaiting-review
+status: distilled
+distilled-to: handoffs/2026-08-23c-echo-validation-scope.md
+reviewed: 2026-08-22 — 三项取向经批量评审全部裁决（`createdAtUtc` 按时刻相等 · `identities` 有序逐元素相等 · 接受「受约束键内追加字段 = 两侧同批」刚性）。**前两项系 `[采纳推荐 — 待复核]`**：按 `.claude/rules/batch-orchestration.md` 铁律①，采纳推荐不等于用户拍板，**提炼落笔前须先由用户确认这两项比较口径**。第三项与 `counterpart` 同项同裁，无待复核。**⚠ 与 `counterpart` 成对采纳，客户端半已于 08-22 落笔（`game-design-documents/handoffs/2026-08-22-echo-validation-scope-client-half.md`），本侧未落 ⇒ 成对采纳尚未完成**
 ---
 
 # 方案草稿 — 上行整键回声校验的适用面（后端侧）
