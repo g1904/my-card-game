@@ -93,7 +93,7 @@
 - **一级文案仍按 `code` 取**，`reasonKey` 只驱动二级措辞。这保证任何一个 `code` 在 `reasonKey` 缺失或不认识时仍有话可说。
 - **未知 `reasonKey` 必须回落到该 `code` 的一级文案**，不得留空、不得把键本身显示出来。这与「未知 `code` → 按 `class` 降级」同构，理由也同源：后端新增一个 `reasonKey` **不应要求客户端同批发版**。
 - **`reasonKey` 的取值集合由后端契约给出，客户端不维护第二份清单。** 客户端只维护「已知取值 → 二级措辞」的翻译条目，未列出的一律走上一条。
-  取值表与形态的权威在 `backend-design-documents/contracts/auth.md` §10（`auth.session_revoked` 七值 · `auth.nickname_rejected` 三值 · 形态 PascalCase 锁死）与 `backend-design-documents/contracts/compliance.md` §5（`compliance.*` 四条码各自的取值）。**本库不复述取值**——复述即制造第二权威，而这份表按契约设计**会持续扩张**。
+  取值表与形态的权威在 `backend-design-documents/contracts/auth.md` §10（`auth.session_revoked` 与 `auth.nickname_rejected` 各一张取值表 · 形态 PascalCase 锁死）**——连条数也不在本库记**，写死一个数目就是又一份会漂移的副本与 `backend-design-documents/contracts/compliance.md` §5（`compliance.*` 四条码各自的取值）。**本库不复述取值**——复述即制造第二权威，而这份表按契约设计**会持续扩张**。
 
 **二级文案键同样是机械变换，不是第二张手写表。** 一级键（`code` 的像）+ `_` + `reasonKey` 按大写字母切分转 UPPER_SNAKE：
 
@@ -101,6 +101,9 @@
 |---|---|
 | `auth.session_revoked` + `SignedInElsewhere` | `ERR_AUTH_SESSION_REVOKED_SIGNED_IN_ELSEWHERE` |
 | `compliance.playtime_blocked` + `MinorDailyLimit` | `ERR_COMPLIANCE_PLAYTIME_BLOCKED_MINOR_DAILY_LIMIT` |
+| `auth.session_revoked` + `SessionExpired` | `ERR_AUTH_SESSION_REVOKED_SESSION_EXPIRED` |
+
+**`SessionExpired` 的措辞取最平淡的例行口吻，且不附原因句。** 它与同一个 `code` 下的其余取值（被挤下线、被运营吊销）在情绪上必须明确区分：登录链到期是一次**完全正常的例行事件**——玩家没有做错任何事，也没有第二台设备在动他的账号。故只说要做什么（「登录状态已过期，请重新登录」），**不解释为什么**：一句「为保障账号安全，登录状态会定期过期」读起来更安抚，却把一个后端可调旋钮（链的寿命上限）写进了翻译条目，改值时两处不同步即**静默失准**，而没有任何机制会报错。触发条件与旋钮见 `backend-design-documents/contracts/auth.md` §5b，**本库不复述**。
 
 与上方 `code → ERR_*` 是同一条纪律的第二次兑现，理由也同源：手写对照表引入「后端加了个 `reasonKey`、文案表忘了加」这一失效面，机械规则下它不存在——只可能是翻译条目缺失，而那走未知回落。**`ErrorText.For` 因此吃三个参数**（见下方代码块）。
 
@@ -345,12 +348,12 @@ public readonly record struct BlockingNoticeSpec(
 - **非模态提示与 toast 级提示不放**——那是高频呈现，加编号是噪音。
 - **纪律：它是诊断展示，不是玩法数据。** ViewModel 只读一次，不进任何玩法路径、不参与判断（与「同步版本 #N」同条纪律）。
 
-Source: `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md`
+Source: `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
 
-## 待解问题
+## 待决问题
 
 - **Godot 4.7 上 `Control` 自动翻译（`auto_translate_mode`）的默认行为。** 若默认即生效，`.tscn` 里把 `text` 直接写成键就够了、UI 代码里连 `tr()` 都不必出现；否则显式 `tr()`。**两种情况下键的形态、分区表、三条审计完全相同**，故它不阻塞本节以外的任何内容；宜与 `#if DEBUG` 判据的实测合并到同一次 `.csproj` 生成后的实测。
 - **四条兜底文案与各 `ERR_*` 的实际措辞。** 结构与键已定，**逐条中文措辞待文案定稿**（属内容充实，不阻塞结构落地）。

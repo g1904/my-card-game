@@ -11,6 +11,7 @@ targets:
 status: distilled
 distilled-to: handoffs/2026-08-22-hidden-stat-grant-direction.md
 reviewed: 2026-08-22 —— 采纳候选一：`HiddenStatGrant` 加第三格 `HiddenStatDirection { Raise, Lower }`；不加 `Unset` 哨兵；采纳校验 9（`Stat == LifeSpan` 拒绝）；`Stat` 类型不收窄，照 `OutcomeRule.PoolKind` 先例以校验收窄。
+confirmed: 2026-08-23 —— 全部 [采纳推荐 — 待复核] 项经复核会逐项确认，无推翻（answer-logs/log-0823.md）
 ---
 
 # 方案草稿 — `HiddenStatGrant` 的推拉方向如何表达

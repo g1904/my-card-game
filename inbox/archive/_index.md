@@ -6,6 +6,21 @@
 
 | 草稿 | 类型 | 日期 | 去向 handoff | answer log |
 |------|------|------|--------------|------------|
+| `solution-draft-refresh-lifetime-cap.md` | solution-draft | 2026-08-23 | `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` | `answer-logs/log-refresh-cap-and-flags-gate.md` |
+| `solution-draft-singleton-balance-resource-registry.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-singleton-balance-resource-registry.md` | `answer-logs/log-singleton-balance-resource-registry.md` + `answer-logs/log-0823.md`（四项复核转正） |
+| `solution-draft-card-counters-api-and-key-space.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-card-counters-api-and-key-space.md` | `answer-logs/log-card-counters-api-and-key-space.md` + `answer-logs/log-0823.md`（四项复核转正） |
+| `solution-draft-enemy-deck-size-and-fatigue-knob.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md` | `answer-logs/log-enemy-deck-size-and-fatigue-knob.md` + `answer-logs/log-0823.md`（三项复核转正） |
+| `solution-draft-hidden-stat-grant-direction.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-hidden-stat-grant-direction.md` | `answer-logs/log-hidden-stat-grant-direction.md` + `answer-logs/log-0823.md`（三项复核转正） |
+| `solution-draft-locationcodex-edge-granularity.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-locationcodex-edge-granularity.md` | `answer-logs/log-locationcodex-edge-granularity.md` + `answer-logs/log-0823.md`（两项复核转正） |
+| `solution-draft-eventcountlimit-plot-modulation.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` | `answer-logs/log-eventcountlimit-plot-modulation.md` + `answer-logs/log-0823.md`（一项复核转正） |
+| `solution-draft-plot-tree-chapter-packaging.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-plot-tree-chapter-packaging.md` | `answer-logs/log-plot-tree-chapter-packaging.md` + `answer-logs/log-0823.md`（三项复核转正） |
+| `solution-draft-event-outcome-spec-fields.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-event-outcome-spec-fields.md` | `answer-logs/log-event-outcome-spec-fields.md` + `answer-logs/log-0823.md`（两项复核转正） |
+| `solution-draft-priority-elevation-conditions.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-priority-elevation-criterion.md` | `answer-logs/log-priority-elevation-conditions.md` + `answer-logs/log-0823.md`（一项复核转正） |
+| `solution-draft-remaining-event-decision-points.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-non-combat-decision-points.md` | `answer-logs/log-remaining-event-decision-points.md` + `answer-logs/log-0823.md`（两项复核转正） |
+| `solution-draft-enemy-pool-chapter-scoping.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` | `answer-logs/log-enemy-pool-chapter-scoping.md` + `answer-logs/log-0823.md`（一项复核转正） |
+| `solution-draft-band-boundary-config-placement.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-band-boundary-config-placement.md` | `answer-logs/log-band-boundary-config-placement.md` + `answer-logs/log-0823.md`（三项复核转正） |
+| `solution-draft-refresh-token-client-storage.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-refresh-token-client-storage.md` | `answer-logs/log-refresh-token-client-storage.md` + `answer-logs/log-0823.md`（两项复核转正） |
+| `solution-draft-flags-fetch-throttle.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-flags-fetch-throttle.md` | `answer-logs/log-flags-fetch-throttle.md` + `answer-logs/log-0823.md`（两项复核转正） |
 | `solution-draft-future-event-generation-weighting.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-event-generation-weighting-pipeline.md` | `answer-logs/log-future-event-generation-weighting.md` |
 | `solution-draft-combat-runtime-counter-persistence.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-combat-runtime-counter-persistence.md` | `answer-logs/log-combat-runtime-counter-persistence.md` |
 | `solution-draft-echo-validation-scope.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-echo-validation-scope-client-half.md`（**只落了客户端半 —— 成对采纳未完成**，后端契约半待另跑一批；对侧 counterpart 见 `backend-design-documents/inbox/` 同名文件） | `answer-logs/log-echo-validation-scope.md` |

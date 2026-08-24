@@ -7,6 +7,7 @@ targets: systems/enemies/common-properties.md · systems/balance.md · systems/p
 status: distilled
 distilled-to: handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md
 reviewed: 2026-08-22 —— ① 改 `enemies/common-properties.md` 为「不设硬限」、「15」不保留为编排参考值；空样本卡组 `PushError`；不给内容侧编排锚点；② 疲劳**不加** `EncounterSpec` 覆写，保留 `CombatRulesData` 全局常量，「疲劳」进 `terminology.md`（标识符 `FatiguePerDraw`）。
+confirmed: 2026-08-23 —— 全部 [采纳推荐 — 待复核] 项经复核会逐项确认，无推翻（answer-logs/log-0823.md）
 ---
 
 # 方案草稿 — 样本卡组规模的两处矛盾 · 疲劳量是否可调

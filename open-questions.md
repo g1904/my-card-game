@@ -8,7 +8,7 @@
 >
 > 本清单**只跟踪仍待答的问题**（不留已解决区），是导航 / 拾取清单，**权威归属在各主题文档**。
 >
-> 最近更新：2026-08-22 — 十一份 solution draft 补跑 Phase B（移出 15 条 · 新增 10 条 · 修 8 处活文档漂移 · 11 份 answer log）
+> 最近更新：2026-08-23c — 跨库运行的客户端半：移出 1 条 · 新增 0 条（详见 `open-questions/update-log.md`）
 > （逐次变更摘要见 `open-questions/update-log.md`；已答定问题的逐条移出记录见 `answer-logs/`）
 
 ## 分片导航
@@ -137,10 +137,9 @@
 
 ## 下一阶段
 
-- **ADR 状态：** `decisions/` 现有 **27 份 Accepted**（`ADR-0002` ~ `ADR-0028`，`ADR-0001` 为 Proposed 示例占位）。
-  台账与逐条影响文档见 `decisions/_index.md`。**当前待固化的 ADR 候选 2 条**（均因主项仍标 `[采纳推荐 — 待复核]` 而暂缓建档，待用户正式复核后再固化）：
-  - **剧本树不按篇章分包**（`handoffs/2026-08-22-plot-tree-chapter-packaging.md`）—— 三项取向全为待复核，含「本条关闭为定案」这一项本身。
-  - **单例平衡资源经 ContentRegistry + `ISingletonContent` / `Single<T>()`**（`handoffs/2026-08-22-singleton-balance-resource-registry.md`）—— 「不设兜底大表」已正式拍板，但承载机制（两段式 `Id` · 标记接口 · 早于 `LoadAll()` 的旋钮写死为常量）四项待复核。
+- **ADR 状态：** `decisions/` 现有 **29 份 Accepted**（`ADR-0002` ~ `ADR-0030`，`ADR-0001` 为 Proposed 示例占位）。
+  台账与逐条影响文档见 `decisions/_index.md`。**当前待固化的 ADR 候选 1 条**：
+  - **不设 `GlobalBalanceData` 兜底大表，平衡资源按三问判据（消费者 / 覆写纪律 / 跨字段不变式）逐份切**（`handoffs/2026-08-22-singleton-balance-resource-registry.md`）—— 已于 2026-08-22 正式拍板，但**主题文档侧尚未落笔**：`systems/services/content-service.md` 把该判据转手给 `systems/balance.md`，而后者「单例」零命中（同一处遗漏已记在 `answer-logs/log-0823.md` 末节）。**先补 `balance.md` 那一小节，再 `/write-adr` 固化**——台账绝不领先于事实。
   （注：ADR 现可自由编辑，改决定直接改 ADR，不再新开取代 ADR。）
 - **流水线闭环（07-30）：** design → code 链路补上 `/breakdown-requirements`（一份 FR → 一个文件夹的可执行子需求），完整形态见 `README.md` 与 `requirements/_index.md`。
 - **架构闭环缺口：** 8 处**全部闭合**（移出记录见 `answer-logs/log-0725c.md` 与 `log-0726b.md`）；状态表见 `systems/architecture.md` 的「闭环缺口」小节。残留细节已下沉为各焦点分片的普通待决问题。

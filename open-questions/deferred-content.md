@@ -21,7 +21,7 @@
 
 - **元进程持久化字段结构：** `PlayerPower` / `PlayerItem` / `Achievement` 语义已澄清、服务归属已定（profile-service）、文档落位已定；但**各自字段 schema 与解锁 / 获取 / 失去触发**待定（`AccountInfo` 已于 08-16 收口，见 `systems/player-profile/account-info.md`，仅余合规字段待后端；`GameSetting` 与六本 Codex 的字段 schema 已各自收口，见 `systems/player-profile/game-setting.md` 与 `systems/player-profile/codex/common-properties.md`）；`status`（启用 / 禁用）与「拥有 / 失去」两态的存档表达未定。→ `systems/services/profile-service.md`、`systems/player-profile/`。
 - **PlayerPower 获取 / 失去触发与公平性：** 方向已定为**轻度提升、PvE-only 可容忍**，且**道统残卷已给出一条获取渠道**（Finale 胜利时掷定并即时发放的概率掉落，规则已定案，见 `systems/player-profile/player-power/_index.md`）；具体在哪些 AdventureEvent 获取 / 失去、是否影响 cycle seed / 计分公平仍待定。→ `systems/player-profile/player-power/`。
-- **capability flag 的叠加 / 冲突规则：** 两个 power 授予同一 flag 如何处理；多个 modifier 作用于同一 key 的**运算顺序**（加法先于乘法？声明序？优先级字段？）。→ `systems/player-profile/player-power/common-properties.md`。
+- **capability flag 的叠加 / 冲突规则：** 两个 power 授予同一 flag 如何处理；多个 modifier 作用于同一 key 的**运算顺序**（加法先于乘法？声明序？优先级字段？）。**连带一格（本次归集）：flag 聚合面的宿主服务**——账号级至今无专属服务，聚合落在哪个 manager 上未定。→ `systems/player-profile/player-power/common-properties.md`、`systems/architecture.md`。
 - **`RelicData` 的字段清单与触发器体系未设计（本次归集 · 此前未进清单）：** 触发条件枚举、效果关键字体系（法则侧的那一套）、开关 `status` 的持久化与 UI、字段清单均无实质设计，需一次 handoff。→ `systems/player-profile/player-power/common-properties.md`。
 - **`PlayerItem` 的种类目录、次数补充机制与可购价格 / 库存（本次归集 · 此前未进清单）：** 战斗内形态（`CardType.Item`）与 `Charges > 0` 硬约束、次数即时写 PlayerProfile 均已定；**目录、次数如何补充、价格 / 库存权重、战斗外的效果形态**均未设计。→ `systems/player-profile/player-item/`。
 - **AchievementManager 的触发采集面：** 成就进度靠订阅 EventBus 被动采集（解耦但易漏）还是各服务主动上报（可靠但反向依赖）？→ `systems/services/profile-service.md`。
@@ -39,6 +39,8 @@
 
 > 结构已立（**两个一级分区** `art/visuals`（含子分区 `animations/`）· `soundtracks`），流水线已定（vision + 参考 → AI 写 guide → 投喂生成工具）。以下为随之而来的待答项；美术推进归开发路线的靠后阶段，故与内容充实一同搁置。Source: `../handoffs/2026-08-04-art-audio-library-scaffold.md`。
 
+- **BGM 时长与码率的包体预算（本次归集 · 此前只在「移动端约束」里作为一句「预算未定」存在）：** 六个音频类目各需多少条、单条多长、以什么码率打包，须与初装包体预算一同定；**预算本身尚未给出**。→ `art/soundtracks/_index.md`、`vision/scope.md`。
+- **三条音量轨默认值的实测校准（本次归集 · 此前未进清单 · 轻）：** `100 / 80 / 100` 的**相对关系有依据**，绝对值待真机与响度目标定稿后校准。形态已定，只欠取值。→ `systems/player-profile/game-setting.md`、`art/soundtracks/_index.md`。
 - **音频生成工具的最终定案：** 方向**倾向 Suno**（08-04 给出）但**未拍板**。定案前 audio guide 可暂按 Suno 形态组织，但**工具专属语法不写死进模板**，prompt 正文保持工具无关。→ `art/soundtracks/_index.md`。
 - **guide 的粒度：** 一个内容条目一份 guide，还是一个类目一份 guide + 逐条目只填变量？后者风格更稳、表达力更弱。→ `art/visuals/_index.md`。
 - **生成资产落地 `game-feature-branch/` 的命名与导入规则：** 文件名如何与内容条目的 `Id` 对齐、目录如何划分、是否需要 asset 清单做「内容条目 ↔ 资产」完备性校验。→ `art/*/guides/_TEMPLATE.md` 的「交付」栏。

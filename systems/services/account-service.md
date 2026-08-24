@@ -119,10 +119,21 @@ refresh token **不进 `Session`**，由本服务落 `user://cache/`（契约对
 
   **三分支在报文层面是穷举的**：`refresh` 端点的错误码只有 `auth.session_revoked` 与 `server.unavailable` 两条（`auth.md` §8），不存在第四条路径。
   **启动期的 refresh 失败不走会话期内的那两条分流。** 那两条（网络失败视同断线走缓冲通道 / `session_revoked` 硬阻塞重登）都以会话期内为前提——有进行中的轮回、有待发队列、有不能回退的存档点；**启动期这三样一样都没有**。故两种失败一律落回登录屏，那是「未登录」的既定正常态（`TryGetSession` 已定为可选缺失）。**本节不新增阻塞点**（阻塞点的穷举清单见 `sync-service.md`「三条不变式」①；登录屏不是阻塞屏）。
-  **协议维度的强更闸门只在 `signin` 判定，`refresh` 永不判定**（`auth.md` §5），故靠静默续期长期在线的旧客户端在协议维度上不经过闸门，直到它下一次真的走 `signin`。**本库不代为收口**——收口手段（滑动续期上限、强制 re-signin 周期）全在后端侧，客户端自加一条「距上次 `signin` 超过 N 天则强制回登录屏」会撞「设备时钟不可信」这条既定纪律。承接项见 `backend-design-documents/contracts/auth.md` §5。
+  **协议维度的强更闸门只在 `signin` 判定，`refresh` 永不判定**（`auth.md` §5），故靠静默续期长期在线的客户端在协议维度上不经过闸门，直到它下一次真的走 `signin`。**收口全在后端侧**（refresh token 链有一个在 `signin` 时锚定、rotation 永不顺延的绝对寿命上限，到期即 `auth.session_revoked`），机制、旋钮与报文的权威在 `backend-design-documents/contracts/auth.md` §5b，**本库不复述**。
+  **客户端不自收口，这条是承重的**：自加一条「距上次 `signin` 超过 N 天则强制回登录屏」会撞「设备时钟不可信」——一台时钟偏了的设备会凭空强制重登或永不重登。到期重登走的是**既有**的「收到 `auth.session_revoked` → 硬阻塞重登」那一条路（同一个 `code`、同一条处置），**本节不新增阻塞点**；玩家侧的差别只是一句二级文案（`ux/error-and-blocking-ux.md`）。
+
+  **软着陆信号 `reauthRecommended` 的客户端形态（三条，缺一条都会把它变成一个本地时钟判断）：**
+
+  - **只在内存里持有，绝不落盘。** 它是本次进程内的一次性提示；落盘就变成一个「过期了还在生效」的本地状态，且会破坏本文件「只放鉴权材料」这条字段集判据。
+  - **不做任何时间判断。** 收到即为真、未收到即为假；**不推算、不折算、不与任何本地时钟比较**。判定发生在服务端正是因为只有那一侧的时钟可信——这也是后端把它做成布尔而不是时间戳的原因。
+  - **反应 = 在下一个自然时机主动走一次 `signin`，而不是任何阻塞。** 自然时机取**启动期**：静默续期成功且收到该信号 → 直接呈现登录屏（会话此刻仍然有效，故它是**可跳过的**）。启动期是唯一一个必然经过、必然空闲、且已有现成屏幕的时刻，**零新增屏幕、零新增触发接线**。**失败即忽略**：玩家取消或登录失败时当前会话照常有效，游戏继续——它是一次邀请，不是一道门，真正的强制力在后端的绝对上限。
+
+  **三件明确不做的事**（写下来是为了防日后被「补全」）：不新增阻塞点；**不持有、不推算、不展示任何「还有几天到期」**（没有一处 UI 需要它，而持有它就等着被拿去做本地判断）；软信号**不使任何 token 失效**——它不是下方六条失效路径的第七条，只是提前去换一条新链。
+
+  **API 面零改动**：软信号的读写全在 `AuthManager` 内，不新增方法、不改 `Session`、不改任何签名——与 `deviceId` / refresh token 同款，一个公开取值口就把「挂个本地判断」变成一行代码的距离。
 - **API 面零改动**：不新增方法、不改 `Session`、不改任何签名；`RefreshTokenAsync()` / `SignInAsync()` / `SignOutAsync()` 的现有形态原样承载全部六条失效路径。**存档 schema 零影响、零迁移；后端零改动、零新增义务。**
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-22-refresh-token-client-storage.md` · `decisions/ADR-0003-online-cloud-authority.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-22-refresh-token-client-storage.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `decisions/ADR-0003-online-cloud-authority.md`
 
 ## 管理器
 

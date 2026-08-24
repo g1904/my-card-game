@@ -183,7 +183,7 @@
 | 6 | `eventType == Travel` 的条目两侧规则不得出现 `ResourceKey == LifeSpan` 且 `Direction == Gain`（既有结构性禁令的模板侧落点） |
 | 7 | `HiddenStatGrants` 内同一 `HiddenStat` 出现两条 → 拒绝（两条同属性的档位值互相覆盖，作者自己也不知道该落哪份） |
 | 8 | `HiddenStatGrants` 内 `Grade == None` → 拒绝（一条什么都不做的 grant 是编排错误，不是缺省） |
-| 9 | `HiddenStatGrants` 内 `Stat == HiddenStat.LifeSpan` → 拒绝（`[采纳推荐 — 待复核]`） |
+| 9 | `HiddenStatGrants` 内 `Stat == HiddenStat.LifeSpan` → 拒绝（堵住绕过 `lifeSpanCost` 定价表 / 回寿量表与 Travel 回寿禁令的书写出口；现行校验 6 只覆盖 `OutcomeRule` 两侧，看不见 `HiddenStatGrants`） |
 
 **`HiddenStatGrant` 的三格 `(Stat, Grade, Direction)`：类型定义与方向位的落点论证见 `systems/architecture.md`「共享核心类型」。** 模板侧只写「哪个属性 · 多大 · 哪个方向」，**符号在物化组装时由 `Direction` 取负**，与 `SelectCost` 的 `lifeSpanCost`、`OutcomeRule.Direction` 同处；作者在模板上从不落负数。
 

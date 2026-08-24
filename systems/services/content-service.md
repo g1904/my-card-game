@@ -85,7 +85,7 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
   - **判据的完整形态：结构身份优先于抽取身份。** 「能被抽取的才配有开关」这句话在 `LocationData` 上不够用——它**双重身份**：既是 Travel 的目的地候选（看似产出侧），又是图的顶点。**取结构一侧**。
   - **承重理由（location 一侧）：flags 是按账号解析、轮回中途可热应用、且不参与合并后强校验的通道。** 若 location 参与 flags 过滤，线上关掉若干地域可使某玩家当前 location 的邻接集合为空 ⇒ 配额闸门时产不出任何 Travel ⇒ **轮回死锁**，而 Travel 是既定的死局兜底。**这条风险加载期校验够不着**，故只能在准入上封死。
   - **代价如实记下：地域没有「线上秒关」这条运营手段**，出问题只能改 overlay、下次冷启动生效。这是为「图恒连通、Travel 恒可产出」付的价。
-    - **恒启用只关掉 flags 这一层，不冻结字段值：** `LocationData` 的各格（含 `EventCountLimit`）照常落在「只改不增」内，overlay 改值下次冷启动生效。地域的运营手段因此不是零，只是慢一拍。`[采纳推荐 — 待复核]`
+    - **恒启用只关掉 flags 这一层，不冻结字段值：** `LocationData` 的各格（含 `EventCountLimit`）照常落在「只改不增」内，overlay 改值下次冷启动生效。地域的运营手段因此不是零，只是慢一拍。
   - **与之配对的文案条目照常参与放量**（每档 2–3 条候选，关一条只是少一个候选、结构无空洞），秒关一条措辞的运营手段因此保留。
 - 为免各产出侧漏写过滤（漏写即线上事故），ContentRegistry 直接提供 **`AllEnabled()`**，让「正确」成为最短路径。**纪律条款：任何从内容集合抽取的代码必须走 `AllEnabled()`**——与「不散落 `ResourceLoader.Load`」同级，见 `.claude/rules/data-resource-rules.md`。**这条纪律不止于条款：仓储上没有中性名 `All()`**，全量走 `AllIncludingDisabled()`，见下方「`AllEnabled()` 纪律的可执行化」。
 - **加载期的「负向能力条目清单」告警。** 合并校验完成后，**逐条列举携带 `AbilityChangeElement`（`Remove` / `Disable`）的事件条目，并报出它们在全部事件条目中的占比**，`PushWarning` 输出——与既有的「战斗内法则 ≤ 1/5 配额」检查同形（**列举 + 比例，供人工审阅**，不是硬校验）。
@@ -133,7 +133,9 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
   - **成功路径不设最小拉取间隔。** 单调闸门已把拉取次数的上界压到运营的发布批次数（稳态每天个位数）；而最小间隔会把秒关延迟从「分钟级」抬到「间隔级」，且恰好在运营连发多批（= 正在处理线上事故）时最伤。
 - **单飞 + 尾随一次（显式封顶）。** 同一时刻至多一次在途的 flags 拉取；在途期间观测到更高版本 → **不发第二次请求**，只更新「最高已观测版本」。本次拉取结束后，**仅当本次拉回的版本 > 拉取前的内存 `FlagsVersion`**（确有实质推进）且仍低于最高已观测版本 → 尾随一次；否则**停并告警**。不排队、不累积——flags 是全量快照，中间被跳过的批次天然被最新一批覆盖，补拉是纯浪费。
   - **「有实质推进才允许尾随」这条封顶不可省。** 若头部观测值与应答 body 的版本来自不同来源（多实例 / 中间层缓存了旧 body），无条件尾随会让每次尾随结束后条件依旧成立 ⇒ 无休止连发。封顶把这类事故变成一条可见告警，而不是一个无限环。
-- **观测到更小版本 → 不拉 + `PushWarning`（带观测值与内存值）+ 上报一次。** 上报沿用验签失败那条既定通道；去重口径 = **上报侧本会话一次** `[采纳推荐 — 待复核]`。**必须上报**：这类事故（灰度分桶串号 / 中间层缓存旧应答）只可能在线上发生，而落在玩家进程里的 `PushWarning` 等于落在没人看的地方。旧规则「不同即拉」在此会把一个已经正确的本地 flags 换成过时的一批，即**已被秒关的内容当场复活**。
+- **观测到更小版本 → 不拉 + `PushWarning`（带观测值与内存值）+ 上报一次。** 上报沿用验签失败那条既定通道；去重口径 = **上报侧本会话一次**。**必须上报**：这类事故（灰度分桶串号 / 中间层缓存旧应答）只可能在线上发生，而落在玩家进程里的 `PushWarning` 等于落在没人看的地方。旧规则「不同即拉」在此会把一个已经正确的本地 flags 换成过时的一批，即**已被秒关的内容当场复活**。
+- **应用闸与观测闸是同一条判据的两次兑现：拉回的那一批，`flagsVersion` ≤ 内存值即整批丢弃。** 单调闸不能只挂在 `X-Flags-Version` 头上——头与应答体可能来自不同来源（多实例、区域传播窗口、中间层缓存了旧 body），一次「头说 42、体里是 41」的拉取若把 41 那批**应用**上去，被秒关的内容当场复活，而这正是整条单调纪律要防的事。故：**拉回版本 > 内存值 → 应用；否则丢弃 + `PushWarning`（带拉回值与内存值）+ 上报一次**，通道与去重口径（上报侧本会话一次）与上一条「观测到更小版本」完全相同，不新增第二套。
+  - **等值也丢弃，且这不是保守：** 后端保证同一 `(flagsVersion, 账号)` 解析结果恒定（`backend-design-documents/contracts/content-manifest.md`「服务端保证」B 组），故等值那一批与本地已生效的那一批**逐字相同**，应用它是纯粹的空操作。丢弃使「应用」这一步只有一条判据（严格增大），不必在实现里区分「无害的等值」与「有害的更小」。
 - **热应用：拉到即生效于下一次抽取。** 不需重启、不需重新合并 overlay、不触碰 ContentRegistry 的校验 ⇒ **轮回进行中安全**。数值型 overlay 无此性质，这正是把它独立出来的收益。
 - **本地缓存 `user://cache/flags.json`**（`accountId` / `flagsVersion` / `disabledIds`；原子写、跨启动保留，与 `sync-envelope.json` 同处同纪律）。**原子写走共享静态工具 `AtomicJsonFile`**（见 `systems/architecture.md`），不自带实现。
   - **缓存的收益不在离线开局——那条路径根本不存在**：启动 pull 是**硬阻塞**，强制在线下无权威档即不可玩，故不存在「断网启动并进入轮回」。
@@ -141,7 +143,7 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
   - **切账号即失效**：`accountId` 不匹配 → 丢弃（`PushError` + 定位上下文）。分桶是**按账号解析后的结果**，跨账号复用等于灰度串号。与 `sync-envelope.json` 的切账号纪律同构。
   - **内存 `FlagsVersion` 冷启动一律归零。** 缓存只提供 `disabledIds` 的降级值，**不回填版本**。故启动后的首次观测必然增大 ⇒ 必拉；切账号丢弃缓存后同理。这条是「增大即拉」的爆炸半径闸——它把下方那条契约依赖被违反时的停摆限制在**单次会话内**，而不是跨启动永久化。
 - **拉取失败 → `PushWarning` + 用缓存（无缓存则用 overlay 的 `ContentEnabled` 值）+ 绝不阻塞**（硬阻塞仍只有两处）。下一次搭车观察到版本差异时自然重试——不为它另开重试机制。连续失败时叠一道**闸门式退避**：退避窗口只是「窗口内的版本观测只更新最高已观测版本、不发请求」，**窗口到期不主动发起，仍等下一次搭车观测才拉**——它是一条抑制规则，不是一条独立的重试通道。
-  - 底数 / 因子 / cap 见 `systems/balance.md`（cap 值 `[采纳推荐 — 待复核]`），**无放弃阈值**：放弃意味着这台设备此后再不同步开关。**实际间隔 = max(本地退避计算值, 服务端给的等待时间)**——省略后者会把一次限流变成第二次限流，这条与通道无关。**不加抖动**：flags 拉取由搭车观测触发、天然错峰，抖动的错峰收益在此不存在。
+  - 底数 / 因子 / cap 见 `systems/balance.md`，**无放弃阈值**：放弃意味着这台设备此后再不同步开关。**实际间隔 = max(本地退避计算值, 服务端给的等待时间)**——省略后者会把一次限流变成第二次限流，这条与通道无关。**不加抖动**：flags 拉取由搭车观测触发、天然错峰，抖动的错峰收益在此不存在。
   - 退避只影响**重试节奏**，不影响生效值——降级（用上一批已知 flags）在首次失败时就已生效，仍落在既有的降级形状内，未发明新的一种。
 - **验签走同一密钥体系**（ES256 detached + `keyId`）。**验签失败 / `keyId` 未知 → 拒绝这批 flags + `PushError` + 上报一次 + 保留上一批**，与 overlay 验签失败 → 拒绝 + 回退基线同构。
   - **验签失败不走退避，改为按版本记忆**：记下**那一个** `flagsVersion`，本会话内不再重试它（重发同一批必然再次验签失败，判据同 `Upgrade` 类错误「重试必然失败 ⇒ 暂停退避」）。**更高版本照常重试**——`keyId` 未被密钥轮换覆盖时，此后每一个更高版本各触发一次拉取 + `PushError` + 上报一次，上界 = 运营的发布批次数。**这是有意的，不是漏抑制。**
@@ -221,7 +223,7 @@ T Single<T>() where T : Resource, ISingletonContent;   // 见下方「单例内�
 
 ### 单例内容的注册与校验
 
-> 形态待复核（`Id` 两段式 · 标记接口两项列在 `open-questions/` 待用户复核），机制面则由既有决策直接推出。
+> 形态（`Id` 两段式 · 标记接口 `ISingletonContent` + `Single<T>()`）与机制面均已定案，由既有决策直接推出。
 
 有一类内容类型**全库恰好一条**：`CombatRulesData`（起手 / 每回合抽牌 / 手牌上限，可被 `EncounterSpec` 可空覆写）、`EnemyLevelingData`（三章赋级带，不接受任何覆盖参数）、`LocationMapData`（地域图本身）。**它们与其他内容走同一条路**——进 ContentRegistry、走同一个泛型仓储、有稳定 `Id`。
 
@@ -342,7 +344,7 @@ public interface ISingletonContent { }
 | **ContentRegistry** | 合并 overlay + 基线，按 `Id` 建立索引，暴露泛型仓储接口；合并后统一校验 |
 | **ContentUpdateManager** | 读本地 manifest、比对云端 `contentVersion`、**manifest 验签**、逐文件下载进 `overlay.staging/` 并校验 hash、事务性搬入 `overlay/`、断网降级 |
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-22-singleton-balance-resource-registry.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-22-singleton-balance-resource-registry.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-23-flags-version-client-gate.md`
 
 ## API 面（契约）
 

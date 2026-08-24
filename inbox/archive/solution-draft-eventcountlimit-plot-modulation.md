@@ -7,6 +7,7 @@ targets: systems/game-progression.md · systems/services/plot-manager.md · syst
 status: distilled
 reviewed: 2026-08-22 —— 主问按主推荐 A0 定案（`eventCountLimit` 不可调制，`PlotModulation` 不加第七字段）；「不可调制」只约束剧本层，overlay 照常可改（`[采纳推荐 — 待复核]`）。
 distilled-to: handoffs/2026-08-22-eventcountlimit-plot-modulation.md
+confirmed: 2026-08-23 —— 全部 [采纳推荐 — 待复核] 项经复核会逐项确认，无推翻（answer-logs/log-0823.md）
 ---
 
 # 方案草稿 — `eventCountLimit` 能否被剧本调制

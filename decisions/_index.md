@@ -4,6 +4,8 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| [ADR-0030](ADR-0030-singleton-content-registration.md) | 单例内容走既有泛型仓储进 ContentRegistry：`ISingletonContent` + `Single<T>()` | Accepted | 2026-08-22 | systems/services/content-service.md, systems/game-progression.md, systems/balance.md, content/_index.md |
+| [ADR-0029](ADR-0029-plot-tree-single-baseline-package.md) | 剧本树不按篇章分包：整体随 `res://` 基线发布，更新走 overlay 文件级增量 | Accepted | 2026-08-22 | systems/services/plot-manager.md, systems/services/content-service.md |
 | [ADR-0028](ADR-0028-upstream-echo-validation-scope.md) | 上行整键回声校验升为通则；受约束顶层键由写入表机械导出 | Accepted | 2026-08-22 | systems/services/sync-service.md, systems/player-profile/_index.md, systems/player-profile/account-info.md |
 | [ADR-0027](ADR-0027-location-codex-vertex-unlock.md) | `LocationCodex` 显影粒度 = 顶点级解锁，连边是呈现层派生 | Accepted | 2026-08-22 | systems/player-profile/codex/_index.md, codex/common-properties.md, systems/adventure-event/travel/_index.md |
 | [ADR-0026](ADR-0026-event-generation-weighting-pipeline.md) | eventOptions 生成 / 加权 = 十步管线；类型修正为乘性系数 | Accepted | 2026-08-22 | systems/services/future-event-service.md, systems/services/plot-manager.md, systems/game-progression.md, systems/adventure-event/common-properties.md |

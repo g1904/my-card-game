@@ -494,8 +494,8 @@ public readonly record struct HiddenStatGrant(
 **`HiddenStatGrant` 自带方向格，方向不落档位表（承重）。** `HiddenStatGrade` 的平衡表映射值恒为**正量**，而隐藏属性需要双向推拉——道心是双臂属性（一个条目推高、一个条目压低），煞气虽以上行为主但可被净化类事件下拉。方向是**单次变更的属性**：同一个 `Faith` key，这个条目推高、那个条目压低 ⇒ 按上方三级判据落不进配表（配表只装「同一个 key 的**每一次**变更都取同一个值」的性质），只能落在内容作者可逐条书写的那一格。符号在物化组装时由 `Direction` 取负，与 `SelectCost` 的 `lifeSpanCost` 取负、`OutcomeRule.Direction` 取负同处 ⇒ element 层、`AppliedChange` 层、存档层一格未动，**存档 schema 零增量、不 bump、无迁移**。
 
 - **`HiddenStatDirection` 与 `OutcomeDirection` 分立，不复用。** `Gain` / `Loss` 是价值判断词，其既有唯一用法绑在 `LifeSpan` / `LifeTotal` / `ManaLimit` / `Jade` 四个 key 上——那里「得到 = 数值升」两轴重合。移到隐藏属性上两轴当场分离：`(Bloodlust, Major, Gain)` 有「煞气 +10」与「玩家获益 ⇒ 煞气 −10」两个自洽读法，`.tres` 里读不出作者想的是哪一种。`Raise` / `Lower` 沿**数值轴**命名，对三个属性一律无歧义。过载的第二笔代价是「见到 `OutcomeDirection` ⇒ 它作用在一个 `FixedResource` 资源量上」这条恒真句失效。
-- **枚举二值且封闭，不设 `Unset` 哨兵**（`[采纳推荐 — 待复核]`）。依据：`OutcomeRule.Direction` 同为二值方向枚举，全库无哨兵。**代价明写：** 内容作者忘填 `Direction` 时会静默落成枚举 0 值 `Raise`，而 `Raise` 对煞气（累积物、以上行为主）恰是常见方向，比一般字段更难在测试中显形。
-- **`Stat` 保持宽类型 `HiddenStat`，取值域由加载期校验收窄为 `{ Faith, Bloodlust }`**（`[采纳推荐 — 待复核]`），照 `OutcomeRule.PoolKind` 用宽的 `ExchangeGoodsKind` + 校验收窄的既有先例。一条 `PushError` 比一个近同义枚举便宜——`HiddenStat` 正被 `HiddenStatBandData.Stat`、`PlotCondition.Kind == HiddenStatBand`、EventBus 的 `PlotThresholdReached` 三处使用，多一个近同义枚举会让「该用哪个」成为每次新增字段都要回答一遍的问题。
+- **枚举二值且封闭，不设 `Unset` 哨兵。** 依据：`OutcomeRule.Direction` 同为二值方向枚举，全库无哨兵。**代价明写：** 内容作者忘填 `Direction` 时会静默落成枚举 0 值 `Raise`，而 `Raise` 对煞气（累积物、以上行为主）恰是常见方向，比一般字段更难在测试中显形。
+- **`Stat` 保持宽类型 `HiddenStat`，取值域由加载期校验收窄为 `{ Faith, Bloodlust }`**，照 `OutcomeRule.PoolKind` 用宽的 `ExchangeGoodsKind` + 校验收窄的既有先例。一条 `PushError` 比一个近同义枚举便宜——`HiddenStat` 正被 `HiddenStatBandData.Stat`、`PlotCondition.Kind == HiddenStatBand`、EventBus 的 `PlotThresholdReached` 三处使用，多一个近同义枚举会让「该用哪个」成为每次新增字段都要回答一遍的问题。
 
 模板侧的产出格与加载期校验见 `systems/adventure-event/common-properties.md`；物化展开与组装后断言见 `systems/services/future-event-service.md`；档位映射值见 `systems/balance.md`。
 

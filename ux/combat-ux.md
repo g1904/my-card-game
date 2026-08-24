@@ -76,7 +76,7 @@ Source: `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirem
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
 
-## 待解问题
+## 待决问题
 > _尚未解决,需要一次 handoff/决策。_
 
 - **回合进度与道念差的组合呈现。** 「还剩几回合」与「差多少道念」共同决定紧张感;二者是同屏两个独立元素,还是合成一个「还追得回来吗」的复合指示?未定。

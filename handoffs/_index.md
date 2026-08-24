@@ -8,6 +8,8 @@
 
 | id | date | topic | status | distilled-to |
 |----|------|-------|--------|--------------|
+| [refresh-lifetime-cap-client-half](2026-08-23-refresh-lifetime-cap-client-half.md) | 2026-08-23 | refresh 链绝对寿命上限的客户端对位：二级文案键 `ERR_AUTH_SESSION_REVOKED_SESSION_EXPIRED`（最平淡的例行口吻、不附原因句）· 软信号 `reauthRecommended` 的三条形态（内存态 · 不做任何本地时钟比较 · 启动期续期成功即呈现可跳过的登录屏、失败即忽略）· 消除 `reasonKey` 取值表的计数副本。**API 面 / `Session` / 存档 schema / 四处阻塞点清单零改动** | distilled | `ux/error-and-blocking-ux.md`、`systems/services/account-service.md` |
+| [flags-version-client-gate](2026-08-23-flags-version-client-gate.md) | 2026-08-23 | flags 单调闸补齐：**拉回批次 body 的 `flagsVersion` 也过同一道闸**——> 内存值才应用，否则整批丢弃 + 告警 + 上报一次（等值亦丢弃，因后端保证同版本结果恒定）。此前单调闸只挂在 `X-Flags-Version` 头的观测处 | distilled | `systems/services/content-service.md` |
 | [combat-defeat-consequences](2026-08-22-combat-defeat-consequences.md) | 2026-08-22 | `Practice` / `Standard` 失败不另加规则层后果（六条既有代价已足）· `Practice` 默认不挂负向 `OnFailureRules`（软口径，不设校验）· 维持 1:1 三档统一，「点到为止」交叙事层 · `Standard` 负向条目占比 ≤ 10%（待实测初值） | distilled | `systems/adventure-event/combat/_index.md` |
 | [mana-baseline-realm-jump](2026-08-22-mana-baseline-realm-jump.md) | 2026-08-22 | `manaLimit` 每次大境界 `+1`（增量语义，走既有 `CostKey.ManaLimit`，无置值语义、无境界基线表）——**显式推翻 `answer-logs/log-0730b.md` 第 4 条** · 一章净增仍 +1~+2 ⇒ 三章末 6~7 / 8~10 / 10~13 | distilled | `systems/character-profile/mana.md` |
 | [encounter-tighten-fields](2026-08-22-encounter-tighten-fields.md) | 2026-08-22 | `EncounterTighten` = 五格带方向约束的增量（四格取 `min` / `WinMarginDelta` 取 `max`，默认皆 0、整体默认 `null`）· `Finale` 整档豁免 · 十个界常量住 `CombatRulesData` · `EncounterSpec` 补三格牌流覆写 + `EnemyManaLimit` | distilled | `systems/services/plot-manager.md` |

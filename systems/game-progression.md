@@ -150,7 +150,7 @@
     | `EventTypeModifierData.Multiplier < 0`（Travel 行；带 location `Id`） | 负权重无定义；Travel 的 `0` 才是合法下界 |
     | 同一 location 的 `EventTypeModifiers` 中某类型出现多行（带 location `Id` + 类型） | 两行谁生效无定义，静默取其一即漂移 |
 
-    **`LocationMapData` 的份数不在本表内**：它标记为 `ISingletonContent`，条数由 ContentRegistry 的**通用单例校验**统一兜住（见 `systems/services/content-service.md`「单例内容的注册与校验」）。本表因此不自带一条手写的份数检查——逐份手写的形态里，漏写一份就是一个静默的洞。`[采纳推荐 — 待复核]`
+    **`LocationMapData` 的份数不在本表内**：它标记为 `ISingletonContent`，条数由 ContentRegistry 的**通用单例校验**统一兜住（见 `systems/services/content-service.md`「单例内容的注册与校验」）。本表因此不自带一条手写的份数检查——逐份手写的形态里，漏写一份就是一个静默的洞。
 
     **出度 ≤ 5 把「批次规模区间」从一句约定变成一条可机械校验的内容侧纪律**，副作用是正面的——它也让 `LocationCodex` 的连边词条在竖屏上一屏可读。
   - **`locationMap` 在轮回内对玩家不可见。** 「进程是逐批择一的线性推进，不是可俯瞰的分支地图」这条不变——**图存在但不呈现**。玩家可见的那一面是账号级的 **`LocationCodex`（图鉴族第六本）**，「去过即记」**且记连边**，见 `systems/player-profile/codex/_index.md`。**推论：不可见是「初见不可见」而非「永远不可见」**——跨轮回的知识可以逼近整张图，这是设计目标；两者不冲突，因为地图长在玩家脑子里（在图鉴里），不在 HUD 上。**连带：图的稳定性从设计选择升格为对玩家的隐性承诺**，改连边等于清空一份账号级资产。
@@ -164,7 +164,7 @@
     - **剧本仍能影响地域节奏，但只能加速离开、不能延长停留。** 抬高 `TypeWeights[Travel]` 让 Travel 更常出现在常规批，玩家自行提前走即令 `LocationEventCount` 归 `0`。**不对称是有意的**：硬上限是对篇章时长预算的承诺，而「更快赶路」最终仍由玩家点下去。
     - **恒为定值的连带收益：一章的事件总数可枚举** ⇒ 它与 `lifeSpanCost` 的时长反推是一个算术问题，而不是一个只能按期望值算并接受方差的分布问题；「按标准路线走能在预算内升满」那条验收项也因此可算。
     - **代价如实记下：** 剧本表达不了「这片林子把你困住了，得多走几步才出得去」这类**硬性延长**的叙事，只能软化为「这一段更凶 + 更容易出现某类事件」。
-    - **这条只约束剧本层。** `EventCountLimit` 仍是一格普通的内容字段，**overlay 照常可改**（location 恒启用、不受 flags 管辖，改值下次冷启动生效，见 `systems/services/content-service.md`）——「线上让人快点离开某个问题地域」这条运营通道不被本条封死。`[采纳推荐 — 待复核]`
+    - **这条只约束剧本层。** `EventCountLimit` 仍是一格普通的内容字段，**overlay 照常可改**（location 恒启用、不受 flags 管辖，改值下次冷启动生效，见 `systems/services/content-service.md`）——「线上让人快点离开某个问题地域」这条运营通道不被本条封死。
   - **计数口径：只计「选择进入并结算」的事件，Travel 不计入。** **推论：配额是「在这个地域做了几件事」的纯计数**——离开的动作本身不算做事。**一批 = 一次操作 = 一次配额消耗**，地域节奏是一条干净的计数。
   - **计数的承载字段 = `CharacterProfile.Status.LocationEventCount`（int）。** **非 Travel 事件结算 → `+1`；Travel 事件结算 → 归 `0`**，连同 `CurrentLocationId` 一并更新，落在 `eventEnd` 那**一次** `TryApply` 内（不新增结算阶段、不新增存档点）。
     - **归 0 恒成立，包括由 Explore 揭示而来的 Travel**——该 Explore 的 `+1` 随即被归 0 覆盖，因为计数的语义是「在这个地域做了几件事」，换了地域即作废。

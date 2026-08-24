@@ -23,6 +23,8 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-refresh-cap-and-flags-gate.md` | 2026-08-23 | `inbox/archive/solution-draft-refresh-lifetime-cap.md` → `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` + `handoffs/2026-08-23-flags-version-client-gate.md` | 1（另两项本库取向同批定案） |
+| `log-0823.md` | 2026-08-23 | 无草稿 —— `[采纳推荐 — 待复核]` 20 项复核会（零新增设计） | 20 |
 | `log-combat-defeat-consequences.md` | 2026-08-22 | `inbox/archive/solution-draft-combat-defeat-consequences.md` → `handoffs/2026-08-22-combat-defeat-consequences.md` | 1 |
 | `log-mana-baseline-realm-jump.md` | 2026-08-22 | `inbox/archive/solution-draft-mana-baseline-realm-jump.md` → `handoffs/2026-08-22-mana-baseline-realm-jump.md` | 1 |
 | `log-encounter-tighten-fields.md` | 2026-08-22 | `inbox/archive/solution-draft-encounter-tighten-fields.md` → `handoffs/2026-08-22-encounter-tighten-fields.md` | 2 |

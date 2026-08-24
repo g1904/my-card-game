@@ -201,7 +201,7 @@
   - **`sync-service.md` 的降级表里没有「剧本请求」一行**；降级通道只有 push / pull 两条，与剧本无关。
   - **唯一残留的缺失情形是悬空 key point**，走上方的 `PushWarning` + 叙事降级，**不是失败路径**。
 
-- **剧本树不按篇章分包：三篇章的完整剧本树整体随 `res://` 基线发布，更新走 overlay 的文件级增量热更**（`[采纳推荐 — 待复核]`）。不按 `PlotArcData.ChapterScope` 分包、不按 `PlotTier` 分包、不把正文外置只分包正文。**采纳结果是零机制增量**：manifest 不加字段、`manifestSchema` 不提升、`ContentUpdateManager` 不加运行时下载路径、不新增第三处硬阻塞、`PlotArcData` / `PlotNodeData` / `PlotKeyPoint` schema 全不动、不新增任何失败语义或降级分支；后端零参与（服务端不感知内容类别，报文无变化）。
+- **剧本树不按篇章分包：三篇章的完整剧本树整体随 `res://` 基线发布，更新走 overlay 的文件级增量热更**。不按 `PlotArcData.ChapterScope` 分包、不按 `PlotTier` 分包、不把正文外置只分包正文。**采纳结果是零机制增量**：manifest 不加字段、`manifestSchema` 不提升、`ContentUpdateManager` 不加运行时下载路径、不新增第三处硬阻塞、`PlotArcData` / `PlotNodeData` / `PlotKeyPoint` schema 全不动、不新增任何失败语义或降级分支；后端零参与（服务端不感知内容类别，报文无变化）。
 
   **承重理由三条：**
 

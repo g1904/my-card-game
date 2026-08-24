@@ -82,15 +82,15 @@
   - **未选项的 outcome 白掷是既有代价，不是新代价。** 一批 3–5 个选项的产出全部预掷 ⇒ 未选项的产出永不施加。这与 `SelectCost` / `ResearchSlots` / `ExchangeStock` 在未选项上白算完全同构；RNG 消耗照常由 `DrawCount` 持久化，确定性不受影响。
   - **outcome 的抽取链是复用，本服务不新增抽取代码。** 能力族产出调 `profile-service.TryPickGrantableMany(kind, scope, rng, n)`，内容族走对应仓储的 `AllEnabled()` / `DrawPool<T>` 加权无放回抽取——与 Research 候选、Exchange 库存逐字同款。**随机源 = `RngStream.Reward` 子流，不新开子流。**
   - **批内抽取顺序必须固定，且是一条确定性要求（承重）。** 一次 `ComputeEventOptions` 会为同批 3–5 个选项**连续**在 `Reward` 子流上抽取（Research 候选 + outcome 产出），「三个用途从不并发」这条既有论证是**结算期**的论证，在批物化期不再自明。**顺序定为：按 option 在批内的索引升序；单个 option 内按「Research 槽 → `OnResolvedRules` 数组序 → `OnFailureRules` 数组序」。** 不定死顺序则两种实现能从同一种子产出不同批次，属能上线、线上不可见的一类缺陷。落一条 `#if DEBUG` 顺序断言（记录抽取调用序列并与上述顺序比对，不符即 `PushWarning` + 序列）。
-  - **outcome 型取池短缺按分界判据降级，不新增闸 ①。** 事件产出没付过钱 ⇒ **降级到更少 + `PushWarning`（want / got）**，不拒绝、不拦事件。闸 ① 存在的理由是「不能留空面板」，而事件产出不是面板——少发一件不产生死屏、不卡玩家。`[采纳推荐 — 待复核]`
-  - **`OutcomeRule` 不支持「多选一 / 加权掷一条」：一条规则一条产出。** 「随机三选一」由 `GrantFromPool` + `RarityFilter` 表达；具名的互斥产出拆成多个内容条目。本库对这类口子的收口方式是不给——真需要时补一个字段是纯加法，而先做再退回要改存档结构。`[采纳推荐 — 待复核]`
+  - **outcome 型取池短缺按分界判据降级，不新增闸 ①。** 事件产出没付过钱 ⇒ **降级到更少 + `PushWarning`（want / got）**，不拒绝、不拦事件。闸 ① 存在的理由是「不能留空面板」，而事件产出不是面板——少发一件不产生死屏、不卡玩家。
+  - **`OutcomeRule` 不支持「多选一 / 加权掷一条」：一条规则一条产出。** 「随机三选一」由 `GrantFromPool` + `RarityFilter` 表达；具名的互斥产出拆成多个内容条目。本库对这类口子的收口方式是不给——真需要时补一个字段是纯加法，而先做再退回要改存档结构。
   - **outcome 物化日志：** `[FutureEvent-Outcome] instance=<InstanceId> event=<EventId> side=<Resolved|Failure> rule=<Kind> want=<n> got=<m>`。
   - **物化后断言三条**（`PushError` + `EventId`）：`Priority ∈ { 0, 1 }`；`1 <= EventOptionBatch.Options.Count <= 5`（带 `BatchId`；下界由收缩保底显式兑现，上界由 `BatchSizeWeights` 的支撑集与 `locationMap` 出度 ≤ 5 两侧共同保证）；`OutcomeSpec != null`——**无产出的事件用空 spec 表达，不用 `null`**，避免下游到处判空。`Priority` 不设加载期检查：它从不是 `AdventureEventData` 上的字段，一个不存在的 `[Export]` 面没有「检出它出现了」的机制，纪律靠文字与置位方唯一保证。
   - **物化日志：** `[FutureEvent-Materialize] instance=<InstanceId> event=<EventId> type=<EventType> prio=<n> prioReason=<QuotaGate|InitialBuild|Finale|None> cost=<lifeSpan> outcomeRolls=<n>`。抬升原因**并进这一行、不另开日志点**——它与 `prio` 同源同粒度（逐实例的物化产出），且根约定的日志标签形态是 `[System-Method]`，而 `Priority` 不是方法名。
 - **选择约束只有一条轴，且由本服务独占置位。** `eventPriority` 是**唯一**约束玩家选择权的字段——**不设第二个约束字段**；它是上述物化模型的一个特例——**不由内容作者在 `.tres` 写死**，而由本服务在物化这一批时**动态置位**：
   - **取值域两档：`0`**（常态，玩家可从本批任选）与 **`1`**（本批一旦出现，有效可选集收窄为该档）。语义详见 `systems/adventure-event/common-properties.md`。
   - **置位方唯一 = 本服务；PlotManager 不得改变它。** **推论（边界澄清 · 承重）：PlotManager 只调内容不调约束**——它影响哪些事件进池、以什么权重出现，但**不能通过抬优先级强制玩家做某件事**；剧本的强制性只能靠**把候选池收窄**表达。
-- **抬升判据：写一条判据，不列一张清单（承重 · 与物化判据 / 快照判据并列的第三条）。** `[采纳推荐 — 待复核]`
+- **抬升判据：写一条判据，不列一张清单（承重 · 与物化判据 / 快照判据并列的第三条）。**
 
   > **抬升当且仅当：不抬升会使一条结构性规则失效。**
 
@@ -535,7 +535,6 @@ public sealed record AbilityChangeSlot(       // 定稿 · immutable；物化时
 > _尚未解决，需要一次 handoff/决策。_
 
 - **五类之间的配比未定（`BaseTypeWeights` 的取值）。** 它以**乘性**方式参与类型分布、归一化在类型分布层发生**已定**（见「意图」的十步管线）；仍待定的是表里每格填多少，以及 Combat 内 `combatTier` 三档的配比。→ `systems/balance.md`、`systems/adventure-event/common-properties.md`。
-- **三条抬升子判据作为准入闸的密度成本**（`[采纳推荐 — 待复核]`）。判据本体与三条子判据已按推荐落笔（见「意图」），仍待用户复核的是：给本服务再加一条必须被后来者遵守的纪律是否值得，还是只保留当前三条清单。→ 本文件「抬升判据」小节。
 
 Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md`
 

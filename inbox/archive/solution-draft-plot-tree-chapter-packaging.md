@@ -7,6 +7,7 @@ targets: systems/services/plot-manager.md（待决问题）· systems/services/c
 status: distilled
 reviewed: 2026-08-22 —— 主结论「不分包」获确认；三项取向均按推荐（关闭为定案 + 留复核闸 · 体积护栏只记台账不加校验 · 平台原生按需资源写一句方向性记录），三项均标 `[采纳推荐 — 待复核]`。
 distilled-to: handoffs/2026-08-22-plot-tree-chapter-packaging.md
+confirmed: 2026-08-23 —— 全部 [采纳推荐 — 待复核] 项经复核会逐项确认，无推翻（answer-logs/log-0823.md）
 ---
 
 # 方案草稿 — 剧本树按篇章分包与否

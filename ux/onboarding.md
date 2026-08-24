@@ -17,7 +17,7 @@ Source: `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `han
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
 
-## 待解问题
+## 待决问题
 
 > _当前无未决项:篇章解锁触发(见「意图」)。_
 

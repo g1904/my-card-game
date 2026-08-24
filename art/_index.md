@@ -59,3 +59,11 @@ Source: `handoffs/2026-08-04-art-audio-library-scaffold.md`
 ## 当前状态
 
 **脚手架阶段。** 结构已立、内容待填——各文档的 `> _..._` 占位段落即待写处。美术与音频的实际推进归开发路线的靠后阶段（框架 → 内容 → 平衡与体验 → 社交及其他），当前不作为焦点；待答条目见 `../open-questions/deferred-content.md` 的「美术与音频」小节。
+
+## 待决问题
+
+> 本分区的其余待答项分散在各子分区的同名小节（`visuals/_index.md`、`visuals/animations/_index.md`、`soundtracks/_index.md`）。此处只放**跨两个一级分区**的项。
+
+- **AI 生成资产的商用授权与参考素材来源的合规口径。** 生成工具的商用条款（Midjourney / 音频工具各自不同）、以及参考素材的版权边界——`vision/references.md` 的「借什么 / 不借什么」约定解决的是**风格一致性**，不解决**法律边界**。游戏是要发行的产品，两侧迟早都需要一个明确立场；**它同时是选工具的一个前置**（条款不可接受的工具从一开始就不该投入 guide 编写）。→ `vision/scope.md`、`art/visuals/_index.md`、`art/soundtracks/_index.md`。
+- **参考素材的二进制是否入库。** 本库是纯文档孤儿分支；图片 / 音频文件放进 `**/references/` 会让分支变重且 git 历史不可压缩。**暂定「只登记来源与描述」**，尚未正式拍板。→ `art/visuals/references/_index.md`、`art/soundtracks/references/_index.md`。
+- **各方向文档的实质内容整体待写。** `visuals/art-direction.md` 的色彩 / 光照 / 构图 / 尺寸格式、`soundtracks/audio-direction.md` 的配器 / 调式 / 混音 / 预算、两侧的禁用清单——目前均为 `> _..._` 占位。它不是取向问题，是**待写**。

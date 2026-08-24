@@ -7,6 +7,7 @@ targets: systems/services/combat-service.md · systems/character-profile/deck/co
 status: distilled
 distilled-to: handoffs/2026-08-22-card-counters-api-and-key-space.md
 reviewed: 2026-08-22 —— 五项取向全部裁定：`KeywordRef.Amount` 取 A（战场条目增一格 `amount:int`，**正式拍板**），其余四项（`:` 语法护栏 · `BumpCardCounter` 按结算成功计 · 子名正则允许下划线 · 两条权威落点）按推荐采纳；三条张力均按草稿主张处理。
+confirmed: 2026-08-23 —— 全部 [采纳推荐 — 待复核] 项经复核会逐项确认，无推翻（answer-logs/log-0823.md）
 ---
 
 # 方案草稿 — 战斗内运行态计数器：键空间、卡牌实例侧 API 与子名登记

@@ -7,6 +7,7 @@ targets: systems/services/content-service.md（仓储面 + 「结构性查表类
 status: distilled
 reviewed: 2026-08-22 —— 四项取向与两条张力全部按推荐裁定（两段式 `combat_rules.default` · 标记接口 `ISingletonContent` · 早于 `LoadAll()` 的旋钮写死为常量 + 如实标注 · 两处补澄清），其中「不设兜底大表、按三问判据逐份切」经第 1 轮阻断题正式拍板。
 distilled-to: `handoffs/2026-08-22-singleton-balance-resource-registry.md`
+confirmed: 2026-08-23 —— 全部 [采纳推荐 — 待复核] 项经复核会逐项确认，无推翻（answer-logs/log-0823.md）
 ---
 
 # 方案草稿 — 单例平衡资源如何进 ContentRegistry

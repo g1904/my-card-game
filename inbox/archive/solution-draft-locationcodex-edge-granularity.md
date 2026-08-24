@@ -7,6 +7,7 @@ targets: systems/player-profile/codex/_index.md · systems/player-profile/codex/
 status: distilled
 distilled-to: handoffs/2026-08-22-locationcodex-edge-granularity.md
 reviewed: 2026-08-22 —— 采纳 A · 去过 A 即显影 A 的全部邻接（`locationCodex` 仍是顶点 id 集合，连边呈现层现算、存档零增量）；边缘顶点取 A1（真实地名 + 灰态 + 词条锁着）；显影半径固定 1 跳、不设旋钮。
+confirmed: 2026-08-23 —— 全部 [采纳推荐 — 待复核] 项经复核会逐项确认，无推翻（answer-logs/log-0823.md）
 ---
 
 # 方案草稿 — `LocationCodex` 连边显影粒度
