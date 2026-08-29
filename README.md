@@ -54,7 +54,7 @@ D:\MyCardGame\
 
 - **两条彼此独立的提升线：** `game-feature → game-testing → game-production`（Godot 客户端）与 `backend-feature → backend-testing → backend-production`（云端后端）。从不互相合并——唯一真实的进程边界就在这两侧之间，两者的部署节奏与技术栈都不同。提升用根级 `promote.cmd -Line game -To testing`（在目标分支自己的目录里 `--no-ff` 合并 + push；目标工作区不干净就拒绝执行，绝不 force-push）。
 - **只在两个 feature 文件夹中编辑。** 四个 testing/production 文件夹是并行快照，用于把一个稳定构建与进行中的工作交叉对比（在不切换分支的情况下映射 dev/test/prod 分支模型）。
-- `settings.json` 的 permission **deny 规则**会拦截对这四个快照目录的 Edit/Write（无需钩子、不依赖 python）。Bash 写入不在拦截范围内——那部分仍是 `Context.md` 约束的约定。
+- `settings.json` 的 permission **deny 规则**会拦截对这四个快照目录的 Edit/Write（无需钩子、不依赖 python）。Bash 写入由 PreToolUse 钩子 `hooks/check-bash-readonly-dir.sh` 拦截（依赖 python）。
 - 后端目前**尚未开工**：`backend-feature-branch/` 只有一份 README，技术栈待定。客户端的边界服务先以离线 stub 实现。
 - **`.claude/` 自身也是一个 worktree**（分支 `claude-config`，分支根 = 本文件夹根）。它与其余九个目录一样受 `push-all.cmd` 覆盖。`.gitignore` 排除 `.idea/`、`blueprints/`、`plans/`、`session-tags.json`。
 
@@ -73,7 +73,10 @@ D:\MyCardGame\
 .claude/
 ├── CLAUDE.md            — entry; imports rules/Context.md
 ├── settings.json        — permissions (allow + deny 保护四个只读快照目录 + defaultMode)
-│                          + model + effortLevel + outputStyle + hooks + attribution
+│                          + statusLine + model + effortLevel + outputStyle + hooks + attribution
+├── statusline.sh        — statusLine 脚本（bash；由 settings.json 的 statusLine 调用）
+├── hooks/
+│   └── check-bash-readonly-dir.sh — PreToolUse(Bash) 守卫：拦截 Bash 写入四个只读快照目录
 ├── session-tags.json    — session 收藏/标签存储 (session-manager 写入; gitignored)
 ├── blueprints/          — 实现蓝图 + _index.md 台账 (gitignored, 本机)
 ├── batch-runs/          — batch-* 技能的过程档案 <date>-<slug>/ (plan / questions / answers / report)
