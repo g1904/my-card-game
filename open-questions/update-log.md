@@ -2,6 +2,39 @@
 
 > 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身——条目在各分片。
 
+## 2026-08-28（`/write-adr backend` · 全量范围 · 一条候选固化 · 移出 0 条 · 新增 0 条）
+
+- **增量运行**：上次（08-26）已把 handoff 里的散落定案扫到 08-23，本次只需覆盖其后新增的两份 handoff。`open-questions.md`「下一阶段」仍不含 ADR 候选条目，`decisions/_index.md` 的「ADR 候选」表已于 08-19 整节删除，故候选仍全部来自 `status: distilled` 的 handoff。
+- **固化一条**：**`ADR-0017` 零判定权字段的取值清单不是校验闸：未知取值宽容接收，清单增量不 bump 契约版本**（08-28，→ `contracts/profile-sync.md` §2 L65–66 + §5a，来源 `handoffs/2026-08-28-save-point-reason-inventory-changed.md` · `handoffs/2026-08-12-grant-source-code-contract.md`）。逐条回主题文档核对，判为**已落地**。它把此前只在 `sourceCode` 一个字段上作过的处置**上升为按「是否驱动判定」分类的通则**，并连带定死两侧的发版顺序自由度与「不 bump 契约版本」。
+- **同批的另一半判为不适合立档**：`reason` 取值清单五值扩六值（追加 `"InventoryChanged"`）本身是**纯表格增量**——字段类型 / 必填性 / 判定路径 / 契约版本均不变，成员语义权威在客户端库，不含方向性取向，只作为 `ADR-0017` 的触发场景写进其背景。
+- **08-25 的 Codex 顶层键去计数化维持不立**（08-26 已判：报文形态一字未变、纯编辑性，且其后缀判据以 `ADR-0014` 的命名通则为前提）。
+- **台账**：`decisions/_index.md` 决策表新增一行（最新置顶，日期降序）。16 份既有 ADR 与文件已对账，**无孤儿文件、无悬空行，本次无失真可修**。「已对后端构成约束的客户端决定」表**一格未动**（跨库引用表，非候选）。
+- **`open-questions.md` 一字未改**：「下一阶段」无候选条目；`## derive 就绪度` 属 `/assess-derive-readiness` 独占（其中「`decisions/ADR-0001` ~ `ADR-0016`（16 份）」的计数自本次起过时，待下一次全量评估刷新）。
+- **未收口的候选登记处依旧**：`contracts/profile-sync.md` §407「决策(-> ADR)」三条仍写着「登记于 `decisions/_index.md`」而候选表已删——主题文档归本技能红线之外，**未改**。
+
+## 2026-08-26（`/write-adr backend` · 全量范围 · 七条候选固化 · 移出 0 条 · 新增 0 条）
+
+- **候选全部来自 handoff 的散落定案**——`open-questions.md`「下一阶段」不含 ADR 候选条目，`decisions/_index.md` 的「ADR 候选」表已于 08-19 整节删除，故本次逐份扫 `status: distilled` 的 handoff 取候选，再逐条回主题文档核对，七条均判为**已落地**：
+  - **`ADR-0010` 身份主体自建、`account ↔ identity` 一对多，绝不做隐式账号合并**（08-16，→ `contracts/auth.md` §1 §1a §3a §9，来源 `handoffs/2026-08-16b-account-identity-model.md`）。
+  - **`ADR-0011` 单账号一条活跃会话：后登录挤下线 + `sid` 精确吊销 + `signin` 回放窗口**（08-16，→ `contracts/auth.md` §4a §5a §7 §10 + `contracts/compliance.md`，来源 `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`）。
+  - **`ADR-0012` 授予来源 `Source` 的跨边界表示：契约走字符串枚举名，名与 code 双双冻结**（08-14 收口定案，→ `contracts/profile-sync.md` §5 §5a，来源 `handoffs/2026-08-12-grant-source-code-contract.md` · `handoffs/2026-08-14-profile-sync-contract.md`）。
+  - **`ADR-0013` `receiptId` 全局唯一 · 永久保留 + 读己所写**（08-22，→ `contracts/purchase.md` §4 §6 §7 + `contracts/profile-sync.md` §8 §9，来源 `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`）。
+  - **`ADR-0014` 透明路径的集合字段名恒为单数，改名一次性切换不设兼容期**（08-17，→ `contracts/profile-sync.md` §5 §5b，来源 `handoffs/2026-08-17-profile-field-naming.md`）。
+  - **`ADR-0015` `reasonKey` 形态锁死为 PascalCase + 二级文案键机械变换**（08-16，→ `contracts/auth.md` §10，来源同 `ADR-0011`）。
+  - **`ADR-0016` 免鉴权是判据不是名单**（08-16，→ `contracts/envelope.md` §4a，来源同 `ADR-0011` + `handoffs/2026-08-13-auth-endpoint-contract.md`）。
+- **一条候选经用户裁决不立**：**refresh 链绝对寿命上限**（08-23，已完整落进 `contracts/auth.md` §5b）——其来源 handoff 的 Notes 段自行裁定「不立 ADR，它是 §5 既有承重条款的一个连带收口，写在契约正文即可」，用户裁定**尊重该自裁**。
+- **另三条判为不适合立档**：云端剧本服务撤销（`handoffs/2026-08-11-plot-service-retired.md` 明写「本库不另立 ADR」，已登记在跨库引用表）· 后端需求拆解粒度与签核（落点 `requirements/_index.md` 不在主题文档区，属工艺纪律）· Codex 顶层键去计数化（报文形态一字未变，纯编辑性，且其后缀判据以 `ADR-0014` 的命名通则为前提）。
+- **台账**：`decisions/_index.md` 决策表新增七行（按日期降序 / 同日编号降序插入）；修平一处台账 ↔ 文件不一致——`ADR-0008` 的日期格由 `2026-08-22` 改为 `2026-08-22 · 08-23`，与该 ADR 文件头两个定案批次一致。九份既有 ADR 与文件已逐份对账，无孤儿文件、无悬空行。「已对后端构成约束的客户端决定」表**一格未动**（跨库引用表，非候选）。
+- **`open-questions.md` 一字未改**：其「下一阶段」不含 ADR 候选条目；`## derive 就绪度` 属 `/assess-derive-readiness` 独占（其中「`ADR-0001` ~ `ADR-0007`（7 份）」的计数与「`purchase.md` §7 被标为 ADR 候选」两处记述现已过时，待下一次全量评估刷新）。
+- **未收口的候选登记处依旧**：`contracts/profile-sync.md` §5c 与 `contracts/content-manifest.md` 的「决策(-> ADR)」仍写着「登记于 `decisions/_index.md`」，而候选表已删——主题文档归本技能红线之外，**未改**。
+
+## 2026-08-25（`/batch-analyze-new-ideas draft-0823c` 的后端分片 · 移出 0 条 · 新增 0 条）
+
+- **客户端图鉴族由六本扩为七本**（新增功法图鉴），本库唯一失真处是 `contracts/profile-sync.md` §5 排除清单里那句带计数的「六个 Codex」。**处置是换判据而不是换数字**：改为按 `*Codex` 顶层键后缀恒定覆盖全族，从根上消除下次扩员再漂移，并回链客户端族清单权威（本库不复述客户端的图鉴设计）。
+- **字段面零配合，逐条推演已落 handoff**：新顶层键落不透明段 ⇒ 不进白名单 ⇒ 按 §5c 适用面恒等式（受回声约束的 path 集合 ≡ 封闭写入表四行）**结构性地**不受回声校验约束，且 §5c 无需加行 ⇒ 不触发追加字段刚性 ⇒ 打不到 §4 四类拒绝面。§3a 整键替换对顶层键集合本就开放，存储形态无依赖。**报文形态一字未变，不 bump URL 主版本 / `info.version`。**
+- **一条非零义务如实记录**：客户端 bump `schemaVersion` 后，新值须进 `envelope.md` §7e 兼容矩阵，否则该版本的全量 push 被 `sync.payload_schema_unsupported` 拒。这是**每次 bump 都存在的既有机械义务**、由 §7e 通则唯一承接、且矩阵落 `operations/` 而栈未定当前空置 ⇒ 记进 handoff 不进契约正文（复述即制造第二权威）。
+- **`contracts/_index.md` 不动**（契约面仍六份）；`cross-boundary.md`「对账基线」加一条、「待承接」保持空——同批落笔完毕，先加后删是净零。**本次不建 answer log。**
+
 ## 2026-08-23d（`/write-adr backend` · 批量运行的后端分片 · 两条候选固化 · 移出 0 条 · 新增 0 条）
 
 - **`ADR-0008` 后端写入路径在上行侧只接受回声，不等即整批拒绝**（日期 08-22 本体 / 08-23 通则化，→ `contracts/profile-sync.md` §5c，来源 `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md` · `handoffs/2026-08-23c-echo-validation-scope.md`）。

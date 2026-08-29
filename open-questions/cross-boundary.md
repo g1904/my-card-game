@@ -18,6 +18,8 @@
 
 ## 对账基线（不是待办）
 
+- **Codex 顶层键的计数措辞已去计数化**（客户端 2026-08-25 图鉴族扩员 → 本库同批落笔）：`contracts/profile-sync.md` §5 排除清单由计数指代改为按 `*Codex` 顶层键后缀恒定覆盖全族，并回链客户端族清单权威（`game-design-documents/systems/player-profile/codex/_index.md`，**本库不复述**）。**契约报文形态一字未变，字段面零配合** —— 新顶层键落不透明段 ⇒ 不进白名单 ⇒ 按 §5c 适用面恒等式结构性地不受回声校验约束，且 §5c 无需加行。`schemaVersion` bump 的新值须进 `envelope.md` §7e 兼容矩阵，属**每次 bump 均有的既有机械义务**（矩阵落 `operations/`，栈未定故当前无可落之处），已记入 `handoffs/2026-08-25-codex-key-count-neutralization.md`，不进契约正文。**两侧无遗留欠账。**
+
 - **客户端 08-22 产生的三条球在本库，已于 2026-08-23 全部落笔，三处成对采纳均完成：**
   ① **回声校验通则的后端半** → `contracts/profile-sync.md` §5c（适用面恒等式 · 类型感知比较口径 · 追加字段刚性）+ `contracts/envelope.md` §8 指路。客户端半 08-22 已落，本库半落笔即完成成对采纳。
   ② **flags「回滚即前滚」的对位条款** → `contracts/content-manifest.md`「服务端保证」B 组三条 + `operations/_index.md` 的发布 / 回滚流程。客户端「增大即拉」所依赖的那一半到位，**客户端规则一字未改**。落笔时发现的对侧缺口（应答体 `flagsVersion` 是否也过单调闸）已由客户端自行裁决并同批落笔，本库不代为决定。

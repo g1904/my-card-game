@@ -4,9 +4,17 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| `ADR-0017` | 零判定权字段的取值清单不是校验闸：未知取值宽容接收，清单增量不 bump 契约版本 | Accepted | 2026-08-28 | `contracts/profile-sync.md` |
 | `ADR-0009` | flags 规则集不可变版本化：`flagsVersion` 严格单调 + 同版本结果恒定 | Accepted | 2026-08-23 | `contracts/content-manifest.md`, `operations/_index.md` |
-| `ADR-0008` | 后端写入路径在上行侧只接受回声，不等即整批拒绝 | Accepted | 2026-08-22 | `contracts/profile-sync.md`, `contracts/envelope.md` |
+| `ADR-0008` | 后端写入路径在上行侧只接受回声，不等即整批拒绝 | Accepted | 2026-08-22 · 08-23 | `contracts/profile-sync.md`, `contracts/envelope.md` |
+| `ADR-0013` | `receiptId` 全局唯一 · 永久保留，且写入后的读路径必须读己所写 | Accepted | 2026-08-22 | `contracts/purchase.md`, `contracts/profile-sync.md` |
+| `ADR-0014` | 透明路径的集合字段名恒为单数，改名做一次性切换不设兼容期 | Accepted | 2026-08-17 | `contracts/profile-sync.md`, `contracts/envelope.md` |
+| `ADR-0016` | 免鉴权是一条判据，不是一份名单：调用者此刻不可能持有 access token | Accepted | 2026-08-16 | `contracts/envelope.md`, `contracts/auth.md`, `contracts/compliance.md` |
+| `ADR-0015` | `reasonKey` 形态锁死为 PascalCase，二级文案键由 `code` + `reasonKey` 机械变换 | Accepted | 2026-08-16 | `contracts/auth.md`, `contracts/compliance.md`, `contracts/envelope.md` |
+| `ADR-0011` | 单账号一条活跃会话：后登录挤下线 + `sid` 精确吊销 + `signin` 回放窗口 | Accepted | 2026-08-16 | `contracts/auth.md`, `contracts/compliance.md`, `contracts/envelope.md` |
+| `ADR-0010` | 身份主体自建、`account ↔ identity` 一对多，绝不做隐式账号合并 | Accepted | 2026-08-16 | `contracts/auth.md`, `contracts/envelope.md`, `contracts/profile-sync.md` |
 | `ADR-0007` | 购买写入只由 verify 端点承担，渠道回调降为对账通道 | Accepted | 2026-08-16 | `contracts/purchase.md`, `contracts/profile-sync.md` |
+| `ADR-0012` | 授予来源 `Source` 的跨边界表示：契约走字符串枚举名，名与 code 双双冻结 | Accepted | 2026-08-14 | `contracts/profile-sync.md`, `contracts/envelope.md` |
 | `ADR-0006` | 账号级掷骰的随机源 = 契约定义的纯函数 SplitMix64 | Accepted | 2026-08-14 | `contracts/profile-sync.md`, `contracts/vectors/splitmix64.json`, `contracts/envelope.md`, `contracts/purchase.md` |
 | `ADR-0005` | 防作弊边界：可复算 `roll`、不复算阈值；不一致仅记账不拒绝 | Accepted | 2026-08-14 | `contracts/profile-sync.md`, `contracts/purchase.md` |
 | `ADR-0004` | auth 域的幂等与 sync 域的幂等是同一条纪律 | Accepted | 2026-08-13 | `contracts/auth.md`, `contracts/envelope.md` |

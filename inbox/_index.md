@@ -22,6 +22,6 @@
 
 | 文件 | status | 说明 |
 |------|--------|------|
-| *（空）* | — | — |
+| `solution-draft-client-flag-cache-and-binary-overlay.md` | decided | flags 缓存的报文侧对位（`no-cache` 的层次澄清 · 后端对客户端缓存零义务 · B 组第 7 条依赖登记 · 纠正「以支撑离线开局」的错误前提）+ **blob 通道不承载二进制**（对侧已裁「不开放」）、契约零改动。与 `game-design-documents/inbox/solution-draft-client-flag-cache-and-binary-overlay.md` 成对，**须同批提炼** |
 
 清空即为「无在办草稿」。已提炼草稿 → handoff 的对应关系见 `archive/_index.md`。

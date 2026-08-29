@@ -2,7 +2,7 @@
 
 > 覆盖 `/v1/profile/…` 两个端点的报文本体。**边界层不在此重复**：序列化与命名约定、`/v1/` 主版本、传输信封、错误体形状、错误码台账、版本协商、Profile 三段可见性的分界——全部见 `envelope.md`，本文件只写 sync 域**相对它的差异与细化**。
 > 客户端侧门面见 `game-design-documents/systems/services/sync-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）、`handoffs/2026-08-23c-echo-validation-scope.md`（§5c 适用面恒等式 + 比较口径 + 追加字段刚性）。
+> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）、`handoffs/2026-08-23c-echo-validation-scope.md`（§5c 适用面恒等式 + 比较口径 + 追加字段刚性）、`handoffs/2026-08-25-codex-key-count-neutralization.md`（§5 排除清单去计数化）。
 
 ## 1. 端点集：两个，封定
 
@@ -58,11 +58,13 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 | `pushId` | string (GUID) | ✅ | 幂等键。**批次组装时生成一次，跨启动重试保持不变** | `ProfilePayload.PushId` |
 | `baseRevision` | number (long) | ✅ | CAS 前置条件。`0` = 本设备尚无云端确认 | `.BaseRevision` |
 | `schemaVersion` | number (int) | ✅ | **存档负载**自身的版本（≠ URL 的 `/v1/`） | `.SchemaVersion` |
-| `reason` | string | ✅ | `SavePointReason` 枚举名逐字：`"CycleStarted"` / `"EventResolved"` / `"ChapterBoundary"` / `"CycleEnded"` / `"MetaChanged"` | `.Reason` |
+| `reason` | string | ✅ | `SavePointReason` 枚举名逐字：`"CycleStarted"` / `"EventResolved"` / `"ChapterBoundary"` / `"CycleEnded"` / `"MetaChanged"` / `"InventoryChanged"` | `.Reason` |
 | `playerDiff` | object | ✅ | 账号级 diff，**顶层键粒度**（§3a）。含透明子集（§5） | `.PlayerDiff` |
 | `characterDiffs` | array | ✅ | 每项 `{ characterId, diff }`。**整体不透明** | `.CharacterDiffs` |
 
 - **`reason` 对后端是日志与聚合维度，不驱动任何判定**——判定只看 `baseRevision` 与 `pushId`。明写这一条，否则它迟早会被拿去做分支。
+  - **未知取值：记录原值、不改写、不拒收。** 收到清单外的取值时照常处理该次 push，把未识别值原样记入日志与聚合维度。因一个零判定权的字段取值不认识就拒收一次合法的进度上行，等于让它获得阻断玩家进度的能力，与上一句直接矛盾。它同时给出两侧发版顺序的自由度：客户端先上线带新 reason 的版本、后端稍后补清单，期间不产生故障。**代价明写：清单不是一道校验闸**，拼错的成员名只会在聚合维度里多出一个孤儿取值，靠看板发现。**取值清单增量不 bump 契约版本**——增量与本条宽容语义合起来即向后兼容。
+  - 各取值的客户端语义（由哪一类操作发出、push policy、存档语义）见 `game-design-documents/systems/services/sync-service.md`，本库不复述。
 - **空 diff 不是错误**：`playerDiff: {}` + `characterDiffs: []` 照常接受并 `+1`（客户端的防抖窗口可能合成出空批次）。拒绝它等于给客户端加一条它无法预防的失败路径。
 - `characterDiffs` 走**数组**而非以 `characterId` 为键的对象：键名是玩家数据，做 JSON 对象键会让 schema 无法表达，也不便于后端流式处理。
 
@@ -158,7 +160,7 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 **明确落在不透明段的（各有理由）：**
 
 - `/playerPower[*]/status`、`disabledAbility` —— **生效维度不是持有维度**，不影响 `x`。
-- `/playerItem`、六个 Codex、`achievement` —— 无后端规则用途。
+- `/playerItem`、**全部 `*Codex` 顶层键**、`achievement` —— 无后端规则用途。图鉴族的成员清单是客户端设计，随其增减顶层键，故本条按后缀恒定覆盖全族、不列举也不计数（族清单权威：`game-design-documents/systems/player-profile/codex/_index.md`，本库不复述）。
 - `/statistics`（`PlayerStatistics`）—— **明确不透明**，兑现 `envelope.md` §8 的「后端不复算、不校验、不得用统计数据驱动任何发放」。把它列进透明档等于给「拿统计驱动活动奖励」开一道门，而那会当场推翻宽松同步口径的全部前提。
 - `characterDiffs` **整体**（含轮回级两类持有条目的 `sourceCode`）—— 它对后端无规则用途（纯透传），而每多一条透明路径就多一条上面第三条纪律的约束。**它是 diff 报文的结构键，不是 Profile 字段**，故不受下面那条集合命名通则约束。
 

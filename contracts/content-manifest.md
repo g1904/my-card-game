@@ -212,4 +212,5 @@ res://基线  <  user://overlay/  <  flags（仅覆盖 ContentEnabled，不改�
 
 - **多区域一致性**：若内容分发需按区域托管，`contentRoot` 按区域下发已留出自由度，但多区域间 `contentVersion` 是否必须同步推进未定（`02-account-compliance.md`）。
 - **flags 数据源与分桶规则的运营形态**（落 `operations/`）：规则存在哪（配置表 / 数据库 / 控制台）、由谁改、按账号计算是否需要缓存层。**审计留痕不在此列**——它的四项最低要求见 `operations/_index.md`；**缓存层若引入，缓存键必须含 `flagsVersion`**（「服务端保证」B 组）。
+- **blob 通道是否向二进制资产开放（承接项）：** A 组的内容寻址与 `files[]` 全量清单在报文层对文件类别无任何区分，但**当前实际被消费的只有 `.tres` 内容文件**——贴图 / 音频等二进制资产是否也经本通道下发（进而决定它们能否不发版更新），两库均未表述过，**本契约不代为裁决**。客户端侧的待答项（连同其字段侧的最小口径）见 `game-design-documents/open-questions/deferred-content.md` 与 `game-design-documents/art/visuals/_index.md`。若答为「开放」，须核对的是本文件的 `files[].path` 校验面与「manifest 与其列出文件发布原子」两条对非 `.tres` 文件是否仍逐字成立；若答为「不开放」，则是一条客户端侧的合并纪律，服务端义务清单不变。
 - **flags 是否落地客户端本地缓存以支撑离线开局** —— **归客户端侧裁决**，本库不代为决定。若不缓存，断网启动时抽取池会回到 overlay 的 `ContentEnabled` 值（被秒关的条目在离线时复活）。
