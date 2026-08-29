@@ -14,11 +14,11 @@ Research（闭关）是轮回内构筑的唯一落点，但它此前只有语义
 
 **② 操作清单六类，闭合：** `LearnTechnique` · `UpgradeTechnique` · `ForgetTechnique` · `RemoveLooseCard`（以上载体 `DeckChangeElement`）· `GrantItem`（`AbilityChangeElement`）· `Recuperate`（`ChangeElement(LifeTotal, +n)`）。**`manaLimit ±1` 不单列为一种操作**——它是上述操作的附带产出。
 
-**③ 产出面收窄为卡组 + `manaLimit` + `lifeTotal` + 共有的隐藏属性推拉，此外不给**（尤其**不给灵玉 `Jade` 产出**）。
+**③ 产出面收窄为卡组 + `manaLimit` + `lifeTotal` + 共有的隐藏属性推拉，此外不给**（尤其**不给灵石 `SpiritStone` 产出**）。
 
 **④ `manaLimit` 的下降承载点 = Research 的玩家自选风险档**：玩家可选一个高风险的钻研候选，成功 `manaLimit +1`、失败 `−1`；**掷定发生在物化阶段并随 `EventOption` 落存档**。
 
-**⑤ 不另收资源代价**——Research 的卡组操作不收灵玉或其他资源，代价全部由 `lifeSpanCost` 的 Research 行承载。
+**⑤ 不另收资源代价**——Research 的卡组操作不收灵石或其他资源，代价全部由 `lifeSpanCost` 的 Research 行承载。
 
 槽的字段面、候选取池链与开局构筑事件的编排见 `systems/adventure-event/research/_index.md` 与 `research/common-properties.md`。
 
@@ -29,8 +29,8 @@ Research（闭关）是轮回内构筑的唯一落点，但它此前只有语义
 - **候选必须在物化时掷定**，否则退出重进可以重掷；**这同时是风险档能够成立的前提**——结果已定、只是尚未展示。
 - **风险档补上 Research 唯一缺失的张力**：没有它，一个「最贵且必然赚」的事件会成为批次里的无脑首选，压掉「从一批里择一」的决策价值。**「玩家自选」而非「随机惩罚」是关键的一半**——被系统随机扣上限只会让玩家回避 Research，而 Research 是构筑的唯一落点。
 - **`Recuperate` 与 `UpgradeTechnique` 在同一决策槽内并列**，正是 StS 篝火（rest / smith）那个玩家真会犹豫的二选一。
-- **不另收资源代价**兑现核心权衡「花寿元换永久出牌力」；再叠一层灵玉，权衡就从一条变成两条。它还保住「付不起在事件选择面整体消失」这条承重定案——若槽内操作另收灵玉，会出现「进来了但买不起任何一个操作」的死屏。
-- **不给灵玉产出**：灵玉的长期价值出口已分派给 Exchange，Research 产灵玉会与之抢同一条价值线。
+- **不另收资源代价**兑现核心权衡「花寿元换永久出牌力」；再叠一层灵石，权衡就从一条变成两条。它还保住「付不起在事件选择面整体消失」这条承重定案——若槽内操作另收灵石，会出现「进来了但买不起任何一个操作」的死屏。
+- **不给灵石产出**：灵石的长期价值出口已分派给 Exchange，Research 产灵石会与之抢同一条价值线。
 
 ## 备选方案
 
@@ -45,5 +45,5 @@ Research（闭关）是轮回内构筑的唯一落点，但它此前只有语义
 
 - 开局构筑事件成为「`Priority = 1` 依什么条件抬升」那条待答项的**第二个确定答案**（第一个是配额闸门的 Travel）。
 - 它可以**缺席**而开局流程仍然成立：两槽 `AllowDecline = false` ⇒ 取池期前置逐槽收紧为「必须能产出 ≥ 1 条候选」，不满足则该条目不进批次、首批退化为常规批。缺席是一次**大声失败的运营事故**（`PushError` + 上报），**不新增任何降级路径或补发机制**。
-- 数值格（`Recuperate` 回复量、走火入魔候选权重、功法层数上限）**归 ch1 数值标杆专场**；风险档的竖屏呈现仍未设计。
+- 数值格（`Recuperate` 回复量、走火入魔候选权重、功法层数上限）**留待内容扩充后的统计校准**；风险档的竖屏呈现仍未设计。
 - 影响文档：`systems/adventure-event/research/_index.md`（权威）· `research/common-properties.md` · `systems/character-profile/deck/_index.md` · `systems/architecture.md`（`DeckChangeElement` / `DeckChangeOp` / `ResearchSlots`）· `systems/services/future-event-service.md`（候选取池与短缺处置）· `systems/balance.md`。

@@ -1,6 +1,6 @@
 # player-power
 
-> **法则 / PlayerPower** —— 账号级 always-available 能力，带开关（默认开启）；通过事件触发器的被动修正 / relic-joker，含 RelicData 定义。
+> **法则 / PlayerPower** —— 账号级 always-available 能力，带开关（默认开启）；通过事件触发器的被动修正（relic / joker 语义）。**数据定义 = `PowerData`**（两层共用一个类型，由 `AbilityScope` 声明层级；字段面权威在 `../../character-profile/power/_index.md`）。
 > **中文定名 = 法则**；轮回级的对应物是 **神通 / CharacterPower**（`../../character-profile/power/`）。**中文名不表达层级** —— 账号级 ↔ 轮回级的对称只在英文标识符上成立。
 
 ## 意图
@@ -9,7 +9,7 @@
 - **PlayerPower = 账号级 always-available 能力，带开关。** always-available，带**开关（默认开启）**；**通常全局、不与角色绑定**；可为 **QoL** 或**影响公平性的一定加强**（需衡量平衡）。由 PlayerProfile 持有（`List<PlayerPower>`），跨轮回持久。**获取越多后续越易，但 AdventureEvent 过程中也可能失去**已获取的 PlayerPower。
 - **定位 = 轻度提升（light improvement）。** 承认它影响平衡，但因**本作无 PvP、纯 PvE**，让 power 带来一定强度是**可容忍的**，并**打开更大的设计空间**去做有趣的 power。
 - **被动修正 = 挂接到事件触发器。** PlayerPower 通过响应游戏事件（触发器）施加被动修正（relic / joker 语义）。
-- **RelicData 定义。** relic / joker 的**设计意图、触发条件与效果**及其数据定义（RelicData）归入本处。
+- **数据定义 = `PowerData`。** relic / joker 的**设计意图、触发条件与效果**在本处陈述；**类型本身不在本文件**——法则与神通共用一个 `PowerData`（`AbilityScope` 声明层级），字段清单的权威在 `../../character-profile/power/_index.md`，异能语法（`AbilityData` 两格 XOR · `EffectData` 子类树 · `TriggerConditionData` / `TimingIds`）的权威在 `../../character-profile/deck/common-properties.md`（`ADR-0115`）。
 
 - **开关落为 `status` 字段（启用 / 禁用）。** 「带开关」不只是 UX 描述，而是 PlayerPower 类上的持久字段；它与「拥有 / 失去」是**两个正交维度**（失去 = 移出 `List<PlayerPower>`，而非置禁用）。
 - **道统残卷 / `PlayerPowerFragment` = 焊在 Finale 上的 PlayerPower 掉落概率（元进程的失败侧产出 · 承重）。** 失败不是零推进：
@@ -19,7 +19,7 @@
   - **累积与角色终结同刻发生 ⇒ 写入顺序是承重的。** `Accumulated` 是账号级写入，必须在角色终结提交之前完成，否则这条机制在每一次失败上都丢——顺序纪律见 `systems/services/life-cycle-service.md`。
   - **「通过」是二值判据（道念差 `>= 0`），不分厚薄。** 勉强通过照常掷骰、照常发放、照常算首胜；奖励的厚薄由战斗奖励那条线承担，不在残卷这条线上分化。
   - **结构性简化（四条）：** ① **不需要跨轮回的待发放字段**（掷骰与发放同刻同事务，`PendingPowerId` 一类中间态不存在）；② **整条机制落在既有 Finale 结算链路上**——`CombatEventResolver` → `CombatResult.Spoils` → `eventEnd` 的那一次 `TryApply`，**授予法则成为 Spoils 的一个 element**，不新增结算阶段、不新增存档点；③ **累积天然有界**——「一篇章一个 Finale + 败后不可重战」⇒ 每个角色每篇章至多累积一次**或**掷骰一次且二者互斥，**残卷不需要任何额外防刷规则**；④ **叙事自洽**——在天劫下身死积攒，在渡劫成功那一刻兑现。
-  - **上限 / 基础概率 / 适格篇章按 `x` 分档；`x` = 已拥有且 `SourceCode == Source.FinaleWin` 的法则数。** 即**只数「靠渡劫拿到的」那些**——礼包、成就奖励等其他渠道得来的法则**不计入**。`status` 开关与「本轮回禁用」同样**不影响计数**（那是生效维度不是持有维度）。**分档自变量的含义因此是「靠渡劫拿得越多，后续越难再从渡劫拿到」**——理由见「与 premium bundle 的关系」。**全局前置「尚未拥有的法则数 > 0」仍按全部持有计**（池是否取尽与来源无关），故存在合法状态 `x = 0` 但池已被礼包 / 成就取尽 ⇒ 整条线静默停摆。`SourceCode` / `Source` 的共有约定见 `systems/common-properties.md`。**⚠ `Source` 是按 `(Kind, Scope)` 分域的开放清单，但这不影响 `x`**——法则一侧的合法取值恰是 `FinaleWin` / `PremiumBundle` / `AchievementReward`（`EventOutcome` / `CombatReward` / `ExchangePurchase` / `InitialGrant` 没有一个能出现在法则上），故 `x` 的口径、**单调不减 ⇒ 档位只降不回跳**、首胜规则 / 全局前置 / 账号级 RNG / 幂等键全部照常成立。**`Source` 清单再扩也动不了残卷。****篇章闸门逐档累加地移除**（`x ≥ 5` 移除 ch1、`x ≥ 12` 再移除 ch2），**不是**「限定到某一章」。**承重的合一：适格 Finale ⟺ 该档增量 > 0 的篇章**——两张表是同一条闸门的两面，实现侧只需一张按 `(x, chapter)` 索引的表，`gain == 0` 即该篇章在该档整体退出残卷系统。这条一致性使「在某章输了却只能在别章兑现」的错位不可能出现。分档表见 `systems/balance.md`。
+  - **上限 / 基础概率 / 适格篇章按 `x` 分档；`x` = 已拥有且 `SourceCode == Source.FinaleWin` 的法则数。** 即**只数「靠渡劫拿到的」那些**——礼包、成就奖励等其他渠道得来的法则**不计入**。`status` 开关与「本轮回禁用」同样**不影响计数**（那是生效维度不是持有维度）。**分档自变量的含义因此是「靠渡劫拿得越多，后续越难再从渡劫拿到」**——理由见「与 premium bundle 的关系」。**全局前置「尚未拥有的法则数 > 0」仍按全部持有计**（池是否取尽与来源无关），故存在合法状态 `x = 0` 但池已被礼包 / 成就取尽 ⇒ 整条线静默停摆。`SourceCode` / `Source` 的共有约定见 `systems/common-properties.md`。**⚠ `Source` 是按 `(CarrierKind, Scope)` 分域的开放清单，但这不影响 `x`**——法则一侧的合法取值恰是 `FinaleWin` / `PremiumBundle` / `AchievementReward`（`EventOutcome` / `CombatReward` / `ExchangePurchase` / `InitialGrant` 没有一个能出现在法则上），故 `x` 的口径、**单调不减 ⇒ 档位只降不回跳**、首胜规则 / 全局前置 / 账号级 RNG / 幂等键全部照常成立。**`Source` 清单再扩也动不了残卷。****篇章闸门逐档累加地移除**（`x ≥ 5` 移除 ch1、`x ≥ 12` 再移除 ch2），**不是**「限定到某一章」。**承重的合一：适格 Finale ⟺ 该档增量 > 0 的篇章**——两张表是同一条闸门的两面，实现侧只需一张按 `(x, chapter)` 索引的表，`gain == 0` 即该篇章在该档整体退出残卷系统。这条一致性使「在某章输了却只能在别章兑现」的错位不可能出现。分档表见 `systems/balance.md`。
   - **首胜规则优先于闸门：** 某篇章的**首次 Finale 通过**一律硬置 **100%**，即使该篇章在当前档已不适格。三次首胜是账号生命周期里三份确定的里程碑，被闸门吃掉会造成「第一次渡劫成功却空手」。（`x = 0` 因此不需要单独档位。）**已知代价（接受）：** 一次刚好打平的通过同样兑掉该篇章一生一次的里程碑；给它开例外等于按新判据重新制造那个体验事故，且会连带打破「首胜不是后端校验的例外」这条跨库约定。
   - **全局前置：** 仅当「尚未拥有的法则数 > 0」时才累积、才掷骰、才发放；池已取尽 → 整条线**静默停摆**，概率停在原值。
   - **生效概率 = `clamp(Accumulated, Base(x), Cap(x))`；发放后重置为 `Base(x + 1)`**（新档地板），**不归 0**——归 0 会让分档表的地板形同虚设。**`x` 跨档时不清空 `Accumulated`，只在读取时被新档钳制**，跨档不吞掉玩家已积累的失败。**`x` 单调不减 ⇒ 档位只会下降、不会回跳**：法则不被强制剥夺；礼包 / 成就奖励不推动 `x`；**置换所得条目继承被换出条目的 `SourceCode`**，故置换对 `x` 完全中性——这正是为了**关死「用置换刷回高掉率」的通道**，见 `systems/common-properties.md`。
@@ -39,7 +39,7 @@
 - **战斗内法则的稀缺性纪律（承重）。** 三条可执行形态：
   - **配额纪律：** `UsableScene` 含 `InCombat` 的法则应是明确的少数——**≤ 1/5 的法则条目**；内容加载时统计比例、超标 `PushWarning` + 报出当前比例，让越界在启动时被看见。**这是稀缺性纪律的机械化检查，不是硬校验。**
   - **强度上沿有了可校验的量纲（结构是硬的，百分比是初值）。** 既定定位「偏体验改善与容错、不抬高道念产出上限、允许影响胜负但不应成为胜负的主要来源」缺的正是「主要来源」的量纲。刻度取**道念净贡献占本方 `baseMomentum` 的比例**（`baseMomentum` 已是既定的战斗强度主刻度）：**单条 ≤ 10%** · **老账号全开口径合计 ≤ 25%**（第二道参考闸——法则不可被针对且跨轮回单调累积，没有总闸必然在老账号处失控；它把这条风险量化到一个可讨论的数上，**但见下方降格说明**）· **不得随对局延长而累积**（「每回合 +X 道念」「按手牌数缩放的倍率」一律禁止：在 10 回合定长下它们是线性放大器）。
-    - 允许 ✅：**信息 / 便利类**（每场一次重排手牌 / 查看牌堆顶；道念净贡献为 0）· **容错类**（有次数上限的兜底）。（信息类与便利类不分家；日后若开一条「花代价买信息」的通道，它落在这一类。）——前两类道念净贡献为 0（间接）。禁止 ❌：**稳定产出类** · **倍率类**。
+    - 允许 ✅：**信息 / 便利类**（每场一次重排手牌 / 查看牌堆顶；道念净贡献为 0）· **容错类**（有次数上限的兜底）。（信息类与便利类不分家。**此处的「信息」限于玩家自己的牌序 / 手牌**；关于敌人 / 未来 / 世界的外部情报不存在任何以资源换取的通道，这一类里永远不会出现「花代价买敌人情报」形态的条目。）——前两类道念净贡献为 0（间接）。禁止 ❌：**稳定产出类** · **倍率类**。
     - **明写：战斗内法则在 ch1 前段只能是纯信息 / 便利类、道念贡献为 0**（`baseMomentum` 1–5 时 10% 不足 1 点）。新手期不该被账号级内容干扰——**这条必须写出来，否则内容侧会以为可以给一点点数值。**
     - **⚠ 两个百分比不是承重结论，是评审参考。** 它们不可机械校验（法则的道念贡献往往是间接的，「查看牌堆顶」值多少道念没法算），按「纪律的可执行化」阶梯落在**第 4 级（零保证）** ⇒ **不得被引用为任何设计的承重依据**，用途只有一个：内容评审时判断一条战斗内法则是否明显过线。**承重的是上方那条定性定位**，它不需要数字即成立。**不为它补代理指标。** 系数表与完整论据见 `systems/balance.md`（权威）。
   - **强度定位：** 战斗内的法则偏向**体验改善与容错**（信息、便利、少量兜底），而非直接抬高道念产出上限。**允许影响胜负，但不应成为胜负的主要来源。** 样板：**每场一次重排手牌**、**查看抽牌堆顶**一类零道念贡献的便利能力。
@@ -66,12 +66,12 @@
   - **对玩家可见**：元进程界面照常列出、灰态 + 徽标 + 三档文案、长按查看来源事件；施加时事件结算面板必须告知；战斗屏不呈现。
   - **禁用不影响持有**：`Charges` 不动，残卷的 `x` 不受影响（生效维度 ≠ 持有维度）。**古宝同样开放到 `ThisCycle` 档**——与法则对称；不销毁、不扣次数、轮回结束即恢复，故不违反「付费内容不会被游戏销毁」。强度由**内容侧稀缺纪律**承担：**禁用古宝的事件应比禁用法宝显著更稀有，且一并计入既定的 1% 分子**（评审清单级，不加代码硬规则）。
 - **置换的候选池与对价规则：排除已有 · 同稀有度 · 先看后决 · 拒绝无代价 · 四类通用但只同类型置换。**
-  - **同池判据 = `(Kind, Scope)` 全同** ⇒ 四个独立池（`PlayerPower ↔ PlayerPower` / `CharacterPower ↔ CharacterPower` / `CharacterItem ↔ CharacterItem` / `PlayerItem ↔ PlayerItem`）。跨 `Scope` 置换会把账号级资产换成轮回级（隐性剥夺）或反之（白嫖账号级内容）——`Scope` 本就是「决定持久层」的字段，跨层交换等于绕过它。
-  - **抽取 = `AllEnabled()` 全池 → 过滤同 `(Kind, Scope)` → 过滤同 `Rarity` → 排除已持有 → seeded 抽一条**，走 **`reward` 子流**（置换候选是一次奖励性质的内容抽取；不新增子流）。**必须走 `AllEnabled()`**，不得自写 `AllIncludingDisabled().Where(...)`。
-  - **空池 → 整个置换成为空操作**（不移除、不给予）+ `PushWarning` 带 `(Kind, Scope, Rarity, characterId)`。它是「拒绝置换无代价」的自然分支；相比「降级到相邻稀有度」不引入任何新规则，且把内容缺口暴露在告警里而非悄悄改变掉落品质。
+  - **同池判据 = `(CarrierKind, Scope)` 全同** ⇒ 四个独立池（`PlayerPower ↔ PlayerPower` / `CharacterPower ↔ CharacterPower` / `CharacterItem ↔ CharacterItem` / `PlayerItem ↔ PlayerItem`）。跨 `Scope` 置换会把账号级资产换成轮回级（隐性剥夺）或反之（白嫖账号级内容）——`Scope` 本就是「决定持久层」的字段，跨层交换等于绕过它。
+  - **抽取 = `AllEnabled()` 全池 → 过滤同 `(CarrierKind, Scope)` → 过滤同 `Rarity` → 排除已持有 → seeded 抽一条**，走 **`reward` 子流**（置换候选是一次奖励性质的内容抽取；不新增子流）。**必须走 `AllEnabled()`**，不得自写 `AllIncludingDisabled().Where(...)`。
+  - **空池 → 整个置换成为空操作**（不移除、不给予）+ `PushWarning` 带 `(CarrierKind, Scope, Rarity, characterId)`。它是「拒绝置换无代价」的自然分支；相比「降级到相邻稀有度」不引入任何新规则，且把内容缺口暴露在告警里而非悄悄改变掉落品质。
   - **置换能移除神通**（`Scope == Character` 一侧此前只是没表态；神通是轮回级、语义上无争议）。
   - **置换所得条目继承被换出条目的 `SourceCode`** ⇒ 置换对残卷的 `x` 完全中性。
-  - **稀有度字段 `Rarity: RarityTier { Tier1..Tier5 }`（五档，档号越高越稀有）**，挂 `PowerData` / `ItemData` / `CardData`；缺失 → `PushError`。**类型名不得写成裸 `Tier`**——战后奖励的优势档已占用 `Tier { Narrow, Solid, Crushing }`，二者**不得复用同一枚举、也不得互相换算**。见 `systems/balance.md`。
+  - **稀有度字段 `Rarity: RarityTier { Tier1..Tier5 }`（五档，档号越高越稀有）**，挂 `PowerData` / `ItemData` / `CardData` / `CultivationTechniqueData`；缺失 → `PushError`。**功法不参与置换**——置换的四个池只覆盖 `(CarrierKind, Scope)` 四类能力条目，`DeckChangeOp` 没有置换算子；功法的 `Rarity` 只被抽取权重与过滤消费，消费点清单见 `systems/common-properties.md`。**类型名不得写成裸 `Tier`**——战后奖励的优势档已占用 `Tier { Narrow, Solid, Crushing }`，二者**不得复用同一枚举、也不得互相换算**。见 `systems/balance.md`。
 - **授予候选池 = 三条渠道共用的一段抽取（承重）。** 残卷 · 礼包 · 置换是同一形状的授予，共用同一条取池链、同一段代码：
 
   ```
@@ -104,9 +104,9 @@
   - **⚠ 连带：上一层的 1% 合计口径因此吃紧（须在内容编排时校准）。** 5% × 约 30–36 场战斗 ≈ **1~2 次 / 轮回**，单 `IgnoresProtection` 这一支就已接近「三类合计 ≈ 全部事件的 1%」（约 86–102 个事件 ⇒ 约 1 次）的全部预算。**两个口径都是内容编排侧的目标值、都不可机械校验**，故此处只如实记下张力，不预先拍板：**要么上层合计口径随之上调，要么置换型 / 禁用型两支相应收窄**——归 ch1 内容编排一并定。
   - **推论 ④：量级坐实。** 一个篇章数十个事件，置换型 / 禁用型两支各自落在**一个篇章遇上一次或更少**的量级。「我的法则会不会被拆」因此是跨篇章尺度的稀有事件，与既定的「内容级稀缺保证而非类型级绝对保证」量级吻合。
 
-> 具体的触发器体系、`status` 开关模型、capability flag 提案、RelicData 字段等共有属性见 `common-properties.md`。
+> `status` 开关模型与 capability flag / modifier 的**声明面**见 `common-properties.md`（`ADR-0116`）；`PowerData` 字段清单见 `../../character-profile/power/_index.md`；触发器体系与效果原语语法见 `../../character-profile/deck/common-properties.md`（`ADR-0115`）。
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-22-finale-failure-is-death.md`
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -117,8 +117,8 @@ Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` 
 - **PlayerPower 平衡边界待定。** 是否影响 cycle seed / 计分公平、防 pay/grind-to-win 的边界均待定。→ 见 `systems/services/life-cycle-service.md`。
 - **获取触发未设计（残卷 / 礼包之外）。**（失去的语义见上方三形态表；剩余的是形态问题，已单列。）开关 UI 亦未细化。是否还有第三条获取渠道（事件 outcome 直接给予？）未陈述。→ `systems/adventure-event/common-properties.md`。
 - **`Rarity` 的分布与权重表。** 五档 `RarityTier` 已定名并挂上 `PowerData` / `ItemData` / `CardData`；**授予池（残卷 / 礼包）的权重表已给出结构与初值**（40/27/18/10/5，见 `systems/balance.md`）。仍待定：**战后奖励池**的各档权重（按优势档 `Tier` 三档各一张表），以及内容侧「每档应有多少条目」的编排口径。（**置换候选池不需要权重表**——它按锚定稀有度过滤后同档等概率。）→ `systems/balance.md`。
-- **relic / joker 内容为占位。** 触发条件、效果关键字、RelicData 字段清单均尚未设计，需一次 handoff。
+- **relic / joker 的内容条目仍为空（属内容阶段，不是设计缺口）。** 类型面已闭合：`PowerData` 字段清单（`../../character-profile/power/_index.md`）· 触发条件与效果原语语法（`ADR-0115`）· capability flag / modifier 声明面（`ADR-0116`）均已定案；缺的只是条目目录本身，开张动作归 `/scaffold-content-type player-power`。
 - **「失去法则」三支的频次预算需重新配平（内容编排口径）。** `IgnoresProtection` 的目标频次由 1% 上调至 **≈5%**（战斗类遭遇为分母）后，**单这一支就已接近「三类合计 ≈ 全部事件的 1%」的全部预算**（≈1~2 次 / 轮回 vs 上层预算约 1 次）。两个口径都是内容编排侧目标值、都**不可机械校验**，故未预先拍板：**上层合计口径随之上调，还是置换型 / 禁用型两支相应收窄**——归 ch1 内容编排一并定。→ `systems/services/future-event-service.md`、`systems/balance.md`。
 
 ## 对应
-提炼至：`.claude/knowledge/systems/player-profile/player-power/_index.md`（待建）；RelicData 见 `.claude/knowledge/data/_index.md`。
+提炼至：`.claude/knowledge/systems/player-profile/player-power/_index.md`（待建）；`PowerData` 见 `.claude/knowledge/data/_index.md`。

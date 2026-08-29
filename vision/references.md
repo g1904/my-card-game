@@ -3,10 +3,10 @@
 参照标杆，以及哪些该借鉴、哪些该规避。要具体——“我们想要 X 的 Y 机制，但不要它的 Z。”
 
 ## Slay the Spire
-- **借鉴：** 节点地图式的轮回结构；以卡牌构筑为核心 build；回合制、意图预告（intent-telegraphed）的战斗；**战后奖励面板的形态**——部分奖励强制自动计入，另一部分由玩家从若干候选中择一。
+- **借鉴：** 节点地图式的轮回结构；以卡牌构筑为核心 build；回合制、意图预告（intent-telegraphed）的战斗；**战后奖励面板的形态**——部分奖励强制自动计入，另一部分逐项列出、由玩家逐项领取或跳过。
 - **规避：** 每个节点都战斗的节奏。在本作中，**并非每个 AdventureEvent 都是一场战斗**——许多是事件/抉择。
 
-Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04-art-audio-library-scaffold.md`
+Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04-art-audio-library-scaffold.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
 
 ## Balatro
 - **借鉴：** roguelite 卡牌构筑的手感；组装一次轮回的引擎所带来的乐趣；明快的移动端游玩时段；**blind 的难度分档结构**——**Practice / Combat / Finale 对位 small / big / boss blind**，三档的回合数与胜负条件递进（Practice 更简单、Combat 为标准 10 回合、Finale 更难）。借的是**难度分档**，不是出现节律（Finale 只在篇章边界出现）。
@@ -33,9 +33,12 @@ Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · 
 - **规避：** 它具体的设定/IP；我们是仙侠，不是科幻。只借基调。
 
 ## 美术方向 — 三国杀 (Legends of the Three Kingdoms) & 弈仙牌
-- **借鉴：** 具有绘画感的中式卡牌游戏插画风格；竖版卡面构图。
+- **借鉴：** 具有绘画感的中式卡牌游戏插画风格与氛围；竖版比例。
+- **规避：** 它们的**卡面排版**——外框内嵌卡名条、规则文字区与角标分区。本作卡面是 **full art**：插画铺满整面、不预留文字区，卡面只由 UI 叠加层显示 `manaCost`（见 `../ux/combat-ux.md`）。借的是画风，不是排版。
 - **约束：** 必须在手机尺寸下清晰可读，并处于 **GL Compatibility** 渲染器的限制之内。
 - **展开去处：** 美术与音频的完整方向、参考登记与生成指导在 **`art/`**（`visuals/` · `soundtracks/` · `animations/`）。本处只留 vision 级的一句话锚点；**逐条参考的「借什么 / 不借什么」登记在 `art/*/references/_index.md`**——那里才是能转成 prompt 的粒度。
+
+Source: `handoffs/2026-08-25-combat-presentation-and-action-result.md`
 
 ## 其他参照
 > _遇到相关的游戏/应用/美术时随时补充。_

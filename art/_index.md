@@ -50,11 +50,14 @@ Source: `handoffs/2026-08-04-art-audio-library-scaffold.md`
 
 | 约束 | 内容 | 来源 |
 |------|------|------|
-| 画风 | 三国杀 (Legends of the Three Kingdoms) 与 弈仙牌 式的、具绘画感的中式卡牌游戏插画；竖版卡面构图。 | `vision/references.md` |
+| 画风 | 三国杀 (Legends of the Three Kingdoms) 与 弈仙牌 式的、具绘画感的中式卡牌游戏插画；竖版比例。**借画风与氛围，不借其卡面排版**——本作卡面为 full art，不预留文字区。 | `vision/references.md`、`ux/combat-ux.md` |
+| 文字 | 插画内**不烧入承载可翻译语义的文字**（装饰性符文 / 印章 / 书法笔触 / 碑文豁免）。全部资产类目适用。 | `.claude/rules/ui-input-rules.md`、`visuals/art-direction.md` |
 | 基调 | **grimdark 仙侠**——阴郁、高风险、不浪漫（Warhammer 40k 的精神，非其设定）。**明确不温馨**（对 Balatro 的规避）。 | `vision/pillars.md` |
 | 可读性 | 必须在**手机尺寸**下清晰可读。 | `vision/references.md`、`.claude/rules/ui-input-rules.md` |
 | 渲染器 | 处在 **GL Compatibility** 限制之内（着色器 / 特效受限；网页导出同此渲染器）。 | `vision/references.md` |
 | 朝向 | **竖屏优先**，桌面 / 网页为次要适配。 | `.claude/rules/ui-input-rules.md` |
+
+Source: `handoffs/2026-08-25-combat-presentation-and-action-result.md`
 
 ## 当前状态
 

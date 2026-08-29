@@ -33,21 +33,22 @@ content/
 
 | 类型（文件夹） | 中文 | 代码类型 | 类定义权威 | 就绪度 | 开张 |
 |---|---|---|---|:--:|:--:|
-| `card/` | 卡牌 | `CardData` | `systems/character-profile/deck/` | 🟠 阻于效果原语 | ✗ |
+| `card/` | 卡牌 | `CardData` | `systems/character-profile/deck/` | 🟠 字段清单与效果语法已定，阻于 starter deck 内容 | ✗ |
 | `cultivation-technique/` | 功法 | `CultivationTechniqueData` | `systems/character-profile/deck/` | 🟠 header 形态已定，阻于卡牌条目 | ✗ |
 | `character/` | 角色（可玩模板） | `CharacterData` | `systems/character-profile/deck/` | 🟠 依赖功法与神通 | ✗ |
-| `character-power/` | 神通 | `PowerData`（Character 域） | `systems/character-profile/power/` | 🟠 阻于效果原语 | ✗ |
-| `character-item/` | 法宝 | `ItemData`（Character 域） | `systems/character-profile/item/` | 🟠 阻于效果原语 | ✗ |
-| `player-power/` | 法则 | `PowerData`（Player 域） | `systems/player-profile/player-power/` | 🟠 阻于效果原语 | ✗ |
-| `player-item/` | 古宝 | `ItemData`（Player 域） | `systems/player-profile/player-item/` | 🟠 阻于效果原语 | ✗ |
-| `enemy/` | 敌人 | `EnemyData` | `systems/enemies/` | 🟠 依赖卡牌（样本卡组） | ✗ |
+| `character-power/` | 神通 | `PowerData`（Character 域） | `systems/character-profile/power/` | 🟢 字段清单与效果语法均已定 | ✗ |
+| `character-item/` | 法宝 | `ItemData`（Character 域） | `systems/character-profile/item/` | 🟢 字段清单齐备（含两格使用效果面与配额格）+ 加载期校验 | ✗ |
+| `player-power/` | 法则 | `PowerData`（Player 域） | `systems/player-profile/player-power/` | 🟢 两层共用 `PowerData`，字段清单齐备 + 三条加载期校验 | ✗ |
+| `player-item/` | 古宝 | `ItemData`（Player 域） | `systems/player-profile/player-item/` | 🟢 与法宝共用 `ItemData`，另受 `Charges > 0` 硬约束 | ✗ |
+| `enemy/` | 敌人 | `EnemyData` | `systems/enemies/` | 🟠 依赖功法（套牌 = 功法 Id + 层数） | ✗ |
+| `enemy-ai/` | 敌人 AI 策略 | `EnemyAiProfileData` | `systems/enemies/` | 🟢 类定义与六条加载期校验已定；本层持 profile 的**逐条权重取值** | ✗ |
 | `adventure-event/` | 修行事件（五子类） | `AdventureEventData` | `systems/adventure-event/<子类>/` | ⛔ **本阶段不开展** | ✗ |
 | `location/` | 地域 + 地域图 | `LocationData` / `LocationMapData` | `systems/game-progression.md` | 🟢 载体 + 图校验 | ✗ |
 | `plot-arc/` | 剧本线（四级层级之一） | `PlotArcData` | `systems/services/plot-manager.md` | ⛔ 随事件类顺延 | ✗ |
 | `plot-node/` | 剧本节点（叙事 + 调制 + 出边） | `PlotNodeData` | `systems/services/plot-manager.md` | ⛔ 随事件类顺延 | ✗ |
 | `hidden-stat-band/` | 隐藏属性档位 | `HiddenStatBandData` | `systems/services/plot-manager.md` | 🟢 档位表 | ✗ |
-| `achievement/` | 成就 | Achievement 条目 | `systems/player-profile/achievement/` | 🟠 奖励目录依赖法则 / 古宝条目 | ✗ |
-| `ability/` | 异能 / 效果 / 触发条件 | `AbilityData` / `EffectData` / `TriggerConditionData` | 散落 `deck/` 与 `power/` | 🔴 语法未定案 | ✗ |
+| `achievement/` | 成就 | Achievement 条目 | `systems/player-profile/achievement/` | 🟠 条目 schema 与进度模型未设计；奖励目录另依赖法则 / 古宝**条目**（类定义已齐备，欠的是条目本身） | ✗ |
+| `ability/` | 异能 / 效果 / 触发条件 | `AbilityData` / `EffectData` / `TriggerConditionData` | `systems/character-profile/deck/common-properties.md`「效果原语与定义体」 | 🟢 语法已定案 | ✗ **不独立开张** |
 | `card-subtype/` | 卡牌次类型 | `CardSubtypeData` | `systems/character-profile/deck/` | ⛔ **清单已归零**（机制保留） | ✗ |
 | `keyword/` | 效果关键字 | `KeywordData` | `systems/character-profile/deck/` | ⛔ **清单为空**（机制保留） | ✗ |
 
@@ -75,7 +76,8 @@ ability（效果原语）
    └─▶ character-power ───────────────┘
    └─▶ character-item / player-power / player-item
               └─▶ achievement（奖励目录指定条目）
-   card ─▶ enemy（样本卡组）
+   cultivation-technique ─▶ enemy（套牌 = 功法 Id + 层数，展开为样本卡组；另含游离散牌）
+enemy-ai（独立，权重向量；被 `EnemyData.AiProfile` 可空引用，可与 enemy 同批或后开）
 location（独立，可开张）
 hidden-stat-band（独立，档位表）
 
@@ -83,9 +85,11 @@ hidden-stat-band（独立，档位表）
 ⛔ card-subtype · keyword                                 清单为空，机制保留
 ```
 
-**`ability/` 是五个类型的共同底座。** 它的语法未定案前，卡牌 / 神通 / 法宝 / 法则 / 古宝的条目只能写出风味文案与意图，**写不出可 blueprint 的效果定义**——写下的会是一份看起来完整、实则实现侧无法消费的文档。`/scaffold-content-type` 的就绪度闸门执行这条。
+**`ability/` 是五个类型的共同底座，其语法已定案**——`EffectData` 子类树、首批八原语、触发器与条件的表达形态、效果流水线的阶段划分全部落在 `../systems/character-profile/deck/common-properties.md`，下游五个类型因此能写出可 blueprint 的效果定义。
 
-**功法 ↔ 卡牌的方向（承重）：功法条目持每层的卡牌 `Id` 列表，卡牌条目不带功法标记。** 因此**写作顺序是先卡牌、后功法**——反过来写，功法的列表在中间态必然悬空。一张卡可被多门功法引用。理由与被否决的替代（卡牌侧带 `(TechniqueId, Tier)` 标记）见 `../systems/character-profile/deck/_index.md`「承载形态」。
+**它不独立开张为内容类型文件夹。** 异能实例几乎恒为某张卡 / 某个神通的组成部分，**先内联在宿主条目文档里**；等某条异能出现 ≥3 处复用再抽成独立条目（判据照抄次类型与关键字那两条准入）。单开一个几乎每条都只被引用一次的文件夹，只会给每个宿主条目多一次跳转。
+
+**功法 ↔ 卡牌的方向（承重）：功法条目持每层的卡牌 `Id` 列表，卡牌条目不带功法标记。** 因此**写作顺序是先卡牌、后功法**——反过来写，功法的列表在中间态必然悬空。一张卡可被多门功法引用。理由与被否决的替代（卡牌侧带 `(TechniqueId, Tier)` 标记）见 `../systems/character-profile/deck/_index.md`「承载形态」。**敌人条目引用功法条目**，故完整的写作顺序是**卡牌 → 功法 → 敌人**。
 
 ## 条目 `Id` 约定
 

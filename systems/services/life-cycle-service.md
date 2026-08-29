@@ -30,14 +30,14 @@
   - **ch1 的角色级计数恒为 0。** ch1 重试 = 随机生成新角色，角色级 ch1 计数因此对每个新角色恒为 0；「你在炼气段重开了多少次」**目前没有字段回答**——`PlayerStatistics` 首批只有 `TotalCyclesCompleted` / `TotalCyclesDefeated`，后者不区分篇章，需要时纯加法补一项。**两层口径不同**：**只有角色级参与规则**（与上限相减得「还剩几次」，是 `RetryChapter` 的闸门输入），账号级是纯读数、跨角色累加、不参与任何判定。
   - **不设事件级或篇章级的重试次数上限**（「同一事件重试 < N 次 / 篇章重试总数 < N 次 / 超限强制 defeat」一类）：它要防的退出重进作弊已由决策点存档从根上关闭，再加一层计数上限只是在惩罚正常的中断游玩。
 - **篇章重试 = 重开一局。** 重试时**换一套随机流**——角色状态仍按 ADR-0004 从该篇章起始存档带回（**「篇章继承 = 全部继承」不变**），变的只是这一遍的随机。**「重开一局」说的是随机流，不是角色。** **推论：战斗随机不需要 `attemptIndex` 派生层**（见下条）。
-- **事件过程按决策点落存档。** 一个 AdventureEvent 的推进过程**不是存档盲区**：**战斗与其他事件一律在决策点落存档**，使「退出重进」恢复到同一个局面与同一份 RNG 状态。这从根上关闭了「退出重掷」的作弊窗口，因此无需再用重试计数去堵。**`selectCost` 不回滚**——选中事件时施加的成本（含 `lifeSpanCost`）一经施加即成事实，中途退出不退还。这同时答结了 `AdvanceEventAsync` / `RunCombatAsync` 取消语义中「已施加的 `SelectCost` 如何处置」的问题：**视同已结算，不回滚**。逐类的决策点清单：战斗内见 `combat-service.md` 的 D0–D6，其余四类见下方「非战斗四类的事件内决策点」。
+- **事件过程按决策点落存档。** 一个 AdventureEvent 的推进过程**不是存档盲区**：**战斗与其他事件一律在决策点落存档**，使「退出重进」恢复到同一个局面与同一份 RNG 状态。这从根上关闭了「退出重掷」的作弊窗口，因此无需再用重试计数去堵。**`selectCost` 不回滚**——选中事件时施加的成本（含 `lifeSpanCost`）一经施加即成事实，中途退出不退还。这同时答结了 `AdvanceEventAsync` / `RunCombatAsync` 取消语义中「已施加的 `SelectCost` 如何处置」的问题：**视同已结算，不回滚**。逐类的决策点清单：战斗内见 `combat-service.md` 的 D0–D7，其余四类见下方「非战斗四类的事件内决策点」。
 - **账号级能力 / 道具语义（已澄清）。**（细节结构权威见 `systems/player-profile/`。）
   - **PlayerPower：** always-available 能力，带**开关（默认开启）**；可为 **QoL** 或**影响公平性的一定加强**（需衡量平衡），**通常全局、不与角色绑定**；获取越多后续越易，但 **AdventureEvent 过程中也可能失去**已获取的 PlayerPower。**定位 = 轻度提升（light improvement）：** 承认它影响平衡，但因**本作无 PvP、纯 PvE**，让 power 带来一定强度是**可容忍的**，并**打开更大的设计空间**。
   - **PlayerItem：** 有**使用次数限制**的道具。
   - **Achievement：** 玩家**只能查看进度 / 领取奖励**；奖励按**组内加权进度**发放（见 `ux/screen-flow.md`）。
 - **属性模型 = 隐藏。** 借鉴 **Reigns** 的属性模型，但**与 Reigns 相反：属性隐藏、不作可见仪表**，在背后影响 AdventureEvent。隐藏属性（**道心 / faith**、**煞气 / Bloodlust**、**寿元 / lifeSpan**）落在 `CharacterProfile.Status` 内，随轮回推进被 AdventureEvent 推拉；达阈值驱动 **AdventurePlot（隐藏剧本层）**——见 `systems/services/plot-manager.md`。
 
-Source: `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
+Source: `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
 
 ## 管理器
 
@@ -95,7 +95,7 @@ public readonly record struct AdvanceResult(
        Explore：TryApply( EventStateChanges[ActiveEvent = option with { IsRevealed = true }] )
   → resolver.ResolveAsync(activeEvent.Option, ct)   ← 传派生后的那一份；Combat/Finale 转 combat-service
        Exchange 刷新（玩家主动按下）：
-         TryApply( Elements[Jade, -刷新价] + EventStateChanges[ActiveEvent = 刷新后的那一份] )
+         TryApply( Elements[SpiritStone, -刷新价] + EventStateChanges[ActiveEvent = 刷新后的那一份] )
   → 【eventEnd 阶段】五步组装（见下）→ **一次** TryApply
   → CycleStateManager 终态判定 ②（结算后）→ EventBus 广播 → sync 自动存档点
 ```
@@ -110,6 +110,7 @@ public readonly record struct AdvanceResult(
      · EventStateChanges[ActiveEvent = null, ActiveCombat = null]
      · TraceElements[本次 PastEventEntry]      ← 快照取自 activeEvent.Option；
                                                   LifeSpanAfter 由「前值 + 本次账」纯函数算出并钳制
+     · CodexElements[本次事件的收录]           ← 条目由 CodexManager 采集并展开后交来
 ② projected = Project(spec)                    ← 其 pastEvent 已含本条、Status 已是结算后值
 ③ 新一批 = RefreshAfterEvent(projected)        ← 消耗 map 子流
 ④ 以 with 派生补齐两列（且只补这两列）：
@@ -120,6 +121,7 @@ public readonly record struct AdvanceResult(
 
 - **`PastEventEntry` 必须在投影之前进入 spec。** 「整批重算的依据 = 角色的整体历程，重度依赖 `pastEvent`」要求新一批看得见刚走完的这个事件；痕迹若留在事务之外，新一批依据的是一份**少一条**的历程。
 - **闭合性条件（承重）：`Project` 之后只允许追加「不构成重算依据」的列。** 恰有两列符合——新一批不依赖自己，重算读的是随机源而不是 `State` 字段。**任何新增列默认落在 ① 之前**；要放进 ④ 必须显式论证它不是重算依据。落为 `#if DEBUG` 断言：投影视图记下投影时的列指纹，`TryApply` 时若 ① 类列发生变化 → `PushError`。**这一条取纪律阶梯第 3 级即可**——「投影之后改了 ① 类列」是组装代码的静态形状，开发期必现；投影视图本身的「不跨 `await` 持有」则做到第 1 级（`ref struct`），见 `systems/services/profile-service.md`。
+- **`CodexElements` 落 ① 类列，采集与展开归 `CodexManager`、并入 spec 归本服务。** 落 ① 而非 ④ 是缺省——④ 只容得下「不构成重算依据」的列，而放宽这个缺省要为每一列各做一次论证；图鉴收录并入 ① 不需要任何论证，且**零成本**（新一批不读图鉴，位置对结果无影响）。这与 band / location 两组 `StatusAssignment` 的分工同款：**采集与判定归专责 manager，组装进收口 spec 归本服务**，保住「收口是一次事务、一个存档点」。触发口径与逐本组装方见 `systems/player-profile/codex/common-properties.md`。
 
 ```csharp
 internal interface IEventResolver          // 按 eventType 注册，共 2 个实现
@@ -149,7 +151,7 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
   - **旁路只在判定②生效。** `finaleFailed` 由本次事件的 `CombatResult`（`Tier == Finale` 且 `Outcome == Defeat`）得出，而判定①在 `TryApply(SelectCost)` 之后、事件尚未结算，恒无战斗结果 ⇒ 判定①的入参恒为 `false`。
 - **`eventEnd` 阶段把 `CombatResult.Spoils`（一份 `ProfileChangeSpec`）连同 `lifeSpanCost`、**战斗失败时按道念差扣减的 lifeTotal**、等级产出与隐藏属性推拉合并为一次 `TryApply`**，从而「一个事件的收口是一次事务、一个存档点」。**分工：计算归 combat-service、施加归本服务**——奖励厚度、失败侧 lifeTotal 扣减（道念差 **1:1**）与可选奖励的玩家选择**全部在战斗流程内完成**，本服务收到的 `Spoils` 已是最终 spec，不重算。
 - **事件内部的主动消费即时提交，本服务只在收口时把它们记进账。** 古宝使用次数、战斗过程中的血 / mana、Exchange 的逐笔交易由各自的消费点**即时经 `ProfileManager.TryApply` 写档**（纪律与两条判据见 `systems/adventure-event/common-properties.md`）。本服务在组装 `PastEventEntry` 时**把这些已提交的 spec 累加进 `AppliedChange`**——**记账，不再施加**；`AppliedChange` 因此是「本次事件的最终账」，而不是收口那一次 `TryApply` 的入参。**代价明写：两者不再逐字段相等，一致性不能再机械断言。**
-- **`eventEnd` 合并时校验授予来源的组装归属（单向）。** 合并出的 spec 内凡 `Op == Grant` 的 element：**本次事件未走过 combat-service**（等价于未产生 `CombatResult`）却带 `Source == CombatReward` → **必需缺失**，`GD.PushError` + **整批拒绝**；反向（走过 combat-service 的事件里出现 `EventOutcome`）**不判非法**——战斗事件除 `Spoils` 外仍可携带事件级 outcome。**判据取「是否走过 combat-service」，不取 `EventOption.EventType`**：Explore 选项的 `EventType` 恒为 `Explore`，照它判会把一个揭示出战斗真身的事件的合法 `CombatReward` 误判为非法并整批拒绝。单向而非双向，与 `(Kind, Scope, Source)` 入口校验同属「入口严、读档宽」一档；读档侧照旧宽（保留原值、不改写）。见 `systems/common-properties.md`。
+- **`eventEnd` 合并时校验授予来源的组装归属（单向）。** 合并出的 spec 内凡 `Op == Grant` 的 element：**本次事件未走过 combat-service**（等价于未产生 `CombatResult`）却带 `Source == CombatReward` → **必需缺失**，`GD.PushError` + **整批拒绝**；反向（走过 combat-service 的事件里出现 `EventOutcome`）**不判非法**——战斗事件除 `Spoils` 外仍可携带事件级 outcome。**判据取「是否走过 combat-service」，不取 `EventOption.EventType`**：Explore 选项的 `EventType` 恒为 `Explore`，照它判会把一个揭示出战斗真身的事件的合法 `CombatReward` 误判为非法并整批拒绝。单向而非双向，与 `(CarrierKind, Scope, Source)` 入口校验同属「入口严、读档宽」一档；读档侧照旧宽（保留原值、不改写）。见 `systems/common-properties.md`。
 - **Finale 结算额外并入道统残卷的一组 element。** 该事件 `eventEnd` 的那一次 `TryApply` 在 Finale 上多承载一组账号级写入，**不新增结算阶段、不新增存档点**：
   - **失败**（`d < 0`；该角色在同刻终结，见上方终态判定）：`PlayerPowerFragment.Accumulated` 按 `(x, chapter)` 分档表累加（钳制到 10000）；**不掷骰、不发放**。
   - **⚠ 写入顺序纪律（承重）：`Accumulated` 的累加必须在角色终结提交之前完成。** 它是**账号级**写入（落 `PlayerProfile`），而 `DefeatCharacter` 会走**角色终态数据清理**（见 `decisions/ADR-0004-realm-checkpoint-retry-model.md`）。落地顺序固定为：**`eventEnd` 的那一次 `TryApply`（含账号级残卷累加）提交成功 → 终态判定② → `DefeatCharacter`**。**顺序颠倒 = 「Finale 失败累积残卷」这条机制在每一次失败上都丢**——而失败恒等于终结，即该机制 100% 失效、且失效是静默的。
@@ -224,8 +226,9 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
 
   **不新增存档点**——两个时点本就是既定的存档边界。字段定义见 `systems/character-profile/_index.md`。
 - **置换 / 禁用的施加落在 outcome 侧，是一个事件内决策点。** 能力 element **恒不出现在 `selectCost`**；置换候选在**物化时**走 `Reward` 子流掷定并随 `EventOption.AbilityChangeSlots` 落存档（否则退出重进可重掷），**该决策点因此不触发第二次写入**；玩家接受则 `Remove` + `Grant` 两条 element 并入 `eventEnd` 那一次 `TryApply`，拒绝则零 element、零代价。**形状与战后奖励面板完全同构，不新增结算阶段、不新增存档点。** 见 `systems/adventure-event/common-properties.md`。
+  - **同构落在「逐项处置」这条轴上。** 置换面板是**逐槽接受 / 拒绝**，奖励面板是**逐项领取 / 跳过**——「拒绝 = 零 element、零代价」与「跳过」逐字同义，两者形状一致。差别只在存档：置换候选在**物化时**掷定并已随 `EventOption.AbilityChangeSlots` 落存档 ⇒ 该决策点不触发第二次写入；而奖励的领取进度是战斗内新产生的状态，需落 `activeCombat.reward`。
 - **轮回结束时顺带写账号级统计计数。** `SavePointReason.CycleEnded` / 角色 `defeated` 那一次 `TryApply` 带上 `StatDelta(+1)`（`TotalCyclesCompleted` 或 `TotalCyclesDefeated`），**与规则字段同批、同事务**，不新增写入通道。字段见 `systems/player-profile/_index.md`。
-- **终态判定 ① 判负短路的那一路也留一条痕迹，且与轮回结束的收尾落在同一次 `TryApply`。** 失败流程组装**一次**提交，同时承载 `TraceElements[Outcome = Aborted 的那一条]` + `EventStateChanges[ActiveEvent = null, ActiveCombat = null]` + `StatDelta(+1)` + 本次已消耗子流的 `RngElements`。**不新增存档点**——这一步「成本已施加、事件未结算」的事实必须留痕且必须与正常结算可区分，而把它拆成两笔就重新制造了「同一个逻辑事件两次提交」，正是痕迹进事务要消掉的东西。
+- **终态判定 ① 判负短路的那一路也留一条痕迹，且与轮回结束的收尾落在同一次 `TryApply`。** 失败流程组装**一次**提交，同时承载 `TraceElements[Outcome = Aborted 的那一条]` + `EventStateChanges[ActiveEvent = null, ActiveCombat = null]` + `StatDelta(+1)` + 本次已消耗子流的 `RngElements` + `CodexElements[本次事件的收录]`。**不新增存档点**——这一步「成本已施加、事件未结算」的事实必须留痕且必须与正常结算可区分，而把它拆成两笔就重新制造了「同一个逻辑事件两次提交」，正是痕迹进事务要消掉的东西。**图鉴收录同样搭在这一笔上**：图鉴的判据是遭遇而非胜利，败于其手也要入账，而这条路径没有 `eventEnd` ——不带上它，战败者永远拿不到本场遭遇的词条。
 - **战斗内随机直接用 `combat` 子流，不在其上再派生一层。** 「每场按重试次数再派生一次以防 re-roll」这条加法不要做：退出重进已由决策点存档 + RNG `State` 持久化封住，篇章重试则整个换一套新的随机流。见 `systems/common-properties.md`。
 - **状态机（CharacterProfile.status）：** `ongoing → completed`（篇章通关）或 `ongoing → defeated`（主动弃置 / 寿元归 0 / lifeTotal 归 0）。`completed` 解锁下一篇章可挑战角色；`defeated` 清理数据并消耗重试次数。
 
@@ -240,15 +243,16 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
 | **R1** | Research 每个决策槽的择一 | 面板呈现该槽、等待玩家点选那一刻（逐槽，共 `ResearchSlots.Length` 个） | **无新增写**——候选已在 `activeEvent.Option.ResearchSlots` 里（物化时掷定并随批落存档） | — |
 | **R2** | Research 收口 | 全部槽选完 + `lifeSpanCost` 合并 | 并入 `eventEnd` 的单一事务存档点 | 随 `eventEnd` |
 | **X1** | Exchange 一笔购买 / 售出结算完毕 | 该笔 `TryApply` 提交之后、面板回到可操作态 | **与既有即时提交重合**（本地立即原子写） | `Debounced` |
-| **X2** | Exchange 一次刷新结算完毕 | `TryApply(-jade + 新库存 + RerolledCount+1)` 提交之后 | 同上；**同批带 `Shop` 子流的 `RngElements`** | `Debounced` |
+| **X2** | Exchange 一次刷新结算完毕 | `TryApply(-spiritStone + 新库存 + RerolledCount+1)` 提交之后 | 同上；**同批带 `Shop` 子流的 `RngElements`** | `Debounced` |
 | **X3** | Exchange 收口 | 玩家点「离开」 | 并入 `eventEnd` 的单一事务存档点 | 随 `eventEnd` |
 | — | **Explore：无自有决策点** | 揭示不是决策点 | 揭示的 `EventStateChanges[ActiveEvent = revealed]` 照常本地写 | `Debounced` |
-| — | Explore 揭示后**接入真身那一类的清单** | Combat 真身 → D0–D6 · Exchange 真身 → X1–X3 · Travel 真身 → 无 | — | — |
+| — | Explore 揭示后**接入真身那一类的清单** | Combat 真身 → D0–D7 · Exchange 真身 → X1–X3 · Travel 真身 → 无 | — | — |
 | — | **Travel：无事件内决策点** | 「去哪」发生在**批次层**（就是「择一进入」本身），不在事件内部 | — | — |
 | — | Travel 收口 | `eventEnd` | 单一事务存档点 | 随 `eventEnd` |
 
-**明确不是决策点：** Exchange 面板打开 · Explore 揭示 · Research 面板打开 · Travel 的任何一步 · 战后奖励选择。四者的共同判据是**这一刻有没有新状态产生**，不是「形状对不对称」——Exchange 面板打开时库存与已扣的 `SelectCost` 已由 `TryApply(SelectCost + EventStateChanges[ActiveEvent])` 那一次覆盖，恢复即读 `activeEvent.Option.ExchangeStock`。
+**明确不是决策点：** Exchange 面板打开 · Explore 揭示 · Research 面板打开 · Travel 的任何一步 · **战后奖励面板打开**（打开时 `picks` 已算定并写入；**面板内的每一次领取 / 跳过则是决策点 `D6`**，见 `combat-service.md`）。五者的共同判据是**这一刻有没有新状态产生**，不是「形状对不对称」——Exchange 面板打开时库存与已扣的 `SelectCost` 已由 `TryApply(SelectCost + EventStateChanges[ActiveEvent])` 那一次覆盖，恢复即读 `activeEvent.Option.ExchangeStock`。
 
+- **批次层的储物袋操作不是事件内决策点，它是独立的即时提交。** 战斗外道具使用与随售都发生在 EventOption 选择界面这一层——`AdvanceEventAsync` 未在运行、没有状态机在推进、没有可取消的长流程 ⇒ 它们不进本表，也不进战斗侧的 D0–D7。但即时提交的两条判据同时成立（玩家主动按下 · 不即时写就开出退出重进即回滚的窗口）⇒ **一次 `TryApply`，随之一次本地原子写**。连带三条纪律：**不触发 `RefreshAfterEvent`**（重算会消耗 `map` 子流，并开出「用一颗丹刷新这一批事件」的通道）· **照跑终态判定**（复用本服务的私有方法，`finaleFailed = false`；一件扣资源的道具能把某条资源打到 `Min`，不判定即出现「资源触底但角色仍 `ongoing`」）· **不计软阻塞闸门**（闸门只数事件级存档点）。规则权威见 `systems/character-profile/item/_index.md`，push 侧见 `systems/services/sync-service.md`。
 - **X1 / X2 与既有的「事件内主动消费即时提交」逐字重合，这不是巧合。** 即时提交的两条判据（玩家主动按下 · 不即时写就开出回滚窗口）与决策点判据在 Exchange 上指向**同一批时刻**。**故 Exchange 的决策点清单不新增任何写入动作**，只是给既有实例贴上「这里也是取消点」的标签。纪律本体见 `systems/adventure-event/common-properties.md`。
 - **R1 的「无新增写」等价于：Research 的槽内选择不落存档。** 决策点存档的**全部理由**是关掉「退出重进即重掷」的窗口，而 Research 候选在物化时就已掷定并落存档 ⇒ 该窗口本就不存在。代价是中途退出会丢失已做的槽内选择（恢复回面板初始态、候选一字不变），见 `systems/adventure-event/research/_index.md`。
 - **密度与体积不构成新压力。** 非战斗四类合计决策点远低于战斗侧的 ≈31 个 / 单点 2–4 KB diff，既有的体积护栏与 push 频率讨论完全由战斗侧主导。
@@ -277,23 +281,22 @@ internal interface IEventResolver          // 按 eventType 注册，共 2 个�
 - **零决策点的事件类型上，取消请求不改变本次事件的结局。** `ct` 无处被观察 ⇒ 流程直接走到收口，此时返回 `Cancelled` 会让编排顶点按「这一步还没结束」去处理一个**已经结束**的事件（`pastEvent` 已记），故返成功。它与「取消不是即时的 / 取消不产生任何回滚 / `SelectCost` 不回滚」逐条自洽，零类型改动。**推论：Travel 一经选中即不可取消**——其结算是纯内存计算，毫秒级，无实际手感影响。
 - 取消不产生任何回滚，与「`SelectCost` 不回滚，视同已结算」一致。
 
-Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
+Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
 - **境界存档 · 篇章重试模型（四境三篇章、全部继承、状态机、重试无限/3/1、篇章解锁）** → `decisions/ADR-0004-realm-checkpoint-retry-model.md`（Accepted）。
 - **强制在线 · 云端权威（含重账号）** → `decisions/ADR-0003-online-cloud-authority.md`（Accepted）。
-- **非战斗四类的事件内决策点清单（R1 / R2 / X1 / X2 / X3 + Explore / Travel 两条「无」）+ 决策点不触发第二次写入的口径** → **ADR 候选**（与战斗侧的「D0–D6 决策点清单」对称；后者见 `combat-service.md`）。
+- **非战斗四类的事件内决策点清单（R1 / R2 / X1 / X2 / X3 + Explore / Travel 两条「无」）+ 决策点不触发第二次写入的口径** → `decisions/ADR-0036-decision-point-saves.md`（Accepted；该口径是它的承重落地句）。战斗侧对称的「D0–D7 决策点清单」见 `combat-service.md`。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **元进程持久化范围：** **`AccountInfo`（08-16 收口，仅余合规字段待后端分级）· `GameSetting` 与六本 Codex 的 `CodexEntry`（08-19 双双收口）字段面均已定案**，见 `systems/player-profile/account-info.md`、`game-setting.md`、`codex/common-properties.md`。仍待定：**`Achievement` 的条目 schema 与进度模型**、`PlayerPower` / `PlayerItem` **各自的解锁 / 获取 / 失去触发**，以及 **`PlayerPower` 的平衡边界**（防 pay/grind-to-win、是否影响 cycle seed / 计分公平）。→ `systems/player-profile/`、`systems/services/profile-service.md`。
+- **元进程持久化范围：** **`AccountInfo`（仅余合规字段待后端分级）· `GameSetting` · Codex 族的 `CodexEntry` 三者的字段面均已收口**，见 `systems/player-profile/account-info.md`、`game-setting.md`、`codex/common-properties.md`。仍待定：**`Achievement` 的条目 schema 与进度模型**、`PlayerPower` / `PlayerItem` **各自的解锁 / 获取 / 失去触发**，以及 **`PlayerPower` 的平衡边界**（防 pay/grind-to-win、是否影响 cycle seed / 计分公平）。→ `systems/player-profile/`、`systems/services/profile-service.md`。
 - **后端 / 账号合规落地：** 已定**强制在线 · 云端权威 + 重账号**（`decisions/ADR-0003`）；仅剩实现级待决：后端 / 账号系统具体选型、合规落地（PIPL / 实名 / 防沉迷 / 渠道审核 / 注销 / 数据导出）——这些归**后端库**，见 `backend-design-documents/open-questions.md`。
 - **隐藏属性细节：** 属性隐藏、`faith` = 道心、寿元按 `lifeSpanCost` 扣减 / 归 0 → defeated 均已定案；**取值域、档位表、阈值与回滞、跨档叙事形态已定案**（归 `systems/services/plot-manager.md`）。仍待定：**隐藏属性完整清单**（道心 / 煞气 / 寿元之外是否还有第四项）、**增减触发**（哪些 AdventureEvent 推拉、各推哪一档）、AdventurePlot 树的数据编码。**寿元的回复通道已定案**（存在，只走 outcome 侧；载体、展示门控与平衡护栏见 `systems/adventure-event/common-properties.md`）。
 - **`experiencePoint` 的阈值曲线与产出分布。** 载体（新字段、每级一个阈值、事件发经验、失败也给）；仍待定：**各级阈值曲线**、单次事件的经验给予量、在事件池中如何分布、失败给的比胜利少多少。**它与寿元预算的花法互相约束**——事件总数少则单次给予必须更厚。→ `systems/game-progression.md`、`systems/balance.md`。
-- **重试上限可变后的存档表达。** 上限由付费礼包改写为「无限 / 9 / 3」（见 `systems/monetization.md`），故 `RetryChapter` 的判定要读 PlayerProfile 上的持有状态。它落成什么——一个 `CapabilityFlag`、modifier pipeline 的一条具名修正，还是一个独立的 `Entitlement` 字段？→ `profile-service.md`、`systems/player-profile/`。
 
 Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
 

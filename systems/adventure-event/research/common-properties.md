@@ -55,8 +55,8 @@ public sealed record ResearchCandidate(
 
 | 槽内候选 | 取池链 |
 |---|---|
-| **法宝三选一** | **直接复用 `GrantPoolPicker`**：`TryPickGrantableMany(AbilityKind.Item, AbilityScope.Character, rng, 3)` —— 取池 → `(Kind, Scope)` → 去成就限定 → 排除已持有 → 按 `RarityTier` 加权 → **无放回**抽 3 条 |
-| **功法三选一（学新）** | `CultivationTechniqueData` 仓储 → `AllEnabled()` / `DrawPool<T>` → **排除卡组中已持有的功法 `Id`** → 按 `RarityTier` 加权 → `PickMany(rng, 3)`（无放回） |
+| **法宝三选一** | **直接复用 `GrantPoolPicker`**：`TryPickGrantableMany(AbilityCarrierKind.Item, AbilityScope.Character, rng, 3)` —— 取池 → `(CarrierKind, Scope)` → 去成就限定 → 排除已持有 → 按 `RarityTier` 加权 → **无放回**抽 3 条 |
+| **功法三选一（学新）** | `CultivationTechniqueData` 仓储 → `AllEnabled()` / `DrawPool<T>` → **排除 `Pool == Enemy`**（敌方专用功法，见 `systems/character-profile/deck/_index.md`「卡池划分」）→ **排除卡组中已持有的功法 `Id`** → 按 `RarityTier` 加权 → `PickMany(rng, 3)`（无放回） |
 | **升阶候选** | 卡组内已持有且**未达层数上限**的功法（不足 3 门时给几门算几门；一门都没有则该操作不进候选） |
 | **弃置 / 移除散牌候选** | 卡组内已持有的功法 / 游离散牌 |
 
@@ -93,7 +93,7 @@ public sealed record ResearchCandidate(
   [FutureEvent-ResearchSlot] instance=<InstanceId> event=<EventId> slot=<SlotIndex> op=<Kind> want=<n> got=<m>
   ```
 
-Source: `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
+Source: `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -103,7 +103,7 @@ Source: `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `han
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **构筑面板的竖屏呈现形态。** 与战后奖励面板同构（候选纵向排列、点按选中、确认提交）已定方向；**风险档的视觉标注与说明通道**（不得为 hover-only）未设计。→ `ux/screen-flow.md`。
+- **构筑面板的竖屏呈现形态。** 与战后奖励面板**在呈现层**同构（候选纵向排列、点按选中）已定方向——**交互层不同构**：本面板是「选完全部槽再一次确认提交」，奖励面板是逐项即时领取 / 跳过（见 `systems/services/combat-service.md`）；**风险档的视觉标注与说明通道**（不得为 hover-only）未设计。→ `ux/screen-flow.md`。
 - 数值格见 `_index.md` 的待决问题。
 
 ## 对应

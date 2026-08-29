@@ -6,6 +6,22 @@
 
 | 草稿 | 类型 | 日期 | 去向 handoff | answer log |
 |------|------|------|--------------|------------|
+| `solution-draft-ability-effect-primitives.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` | `answer-logs/log-ability-effect-primitives.md`（移出 2 条 · 部分答定 1 条 · 新增 1 条） |
+| `solution-draft-out-of-combat-item-use.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-28-out-of-combat-item-use-savepoint-and-trace.md` | `answer-logs/log-out-of-combat-item-use.md`（移出 1 整条 + 1 连带 · 新增 0 条） |
+| `solution-draft-enemy-ai-field-shape.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` | `answer-logs/log-enemy-ai-field-shape.md`（移出 3 条 · 新增 1 条） |
+| `solution-draft-ability-primitive-grammar.md` | solution-draft | 2026-08-27 | `handoffs/2026-08-27-ability-primitive-grammar.md` | `answer-logs/log-ability-primitive-grammar.md`（移出 1 条 · 部分答定 1 条） |
+| `solution-draft-card-pool-and-reshuffle.md` | solution-draft | 2026-08-27 | `handoffs/2026-08-27-card-pool-and-reshuffle.md` | `answer-logs/log-card-pool-and-reshuffle.md`（移出 2 条 · 新增 1 条） |
+| `solution-draft-capability-flag-and-entitlement.md` | solution-draft | 2026-08-27 | `handoffs/2026-08-27-capability-flag-and-entitlement.md` | `answer-logs/log-capability-flag-and-entitlement.md`（移出 2 条 · 新增 0 条） |
+| `solution-draft-activate-ability-contract.md` | solution-draft | 2026-08-26 | `handoffs/2026-08-26d-activate-ability-contract.md` | `answer-logs/log-activate-ability-contract.md`（移出 1 条 · 追加 1 处待答） |
+| `solution-draft-enemy-ai-strategy-shape.md` | solution-draft | 2026-08-26 | `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` | `answer-logs/log-enemy-ai-strategy-shape.md`（移出 1 条 · 新增 0 条） |
+| `solution-draft-combat-substream-arbitration.md` | solution-draft | 2026-08-26 | `handoffs/2026-08-26b-combat-substream-arbitration.md` | `answer-logs/log-combat-substream-arbitration.md`（移出 1 条 · 新增 1 条） |
+| `draft-0823g.md` | draft | 2026-08-23 | `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` | `answer-logs/log-0823g.md`（移出 1 条 + 收窄 1 条 + 新增 1 条） |
+| `draft-0823e.md` | draft | 2026-08-23 | `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` | `answer-logs/log-0823e.md`（移出 1 条半条形态项；5 项 interview 裁决 + 9 项标准默认未占清单条目；另 2 条待答项**作废**非答定） |
+| `draft-0823f.md` | draft | 2026-08-23 | `handoffs/2026-08-25-combat-presentation-and-action-result.md` | `answer-logs/log-0823f.md`（移出 0 条 —— 17 项裁决未占清单条目；3 条既有待答项被收窄未答结） |
+| `draft-0823d.md` | draft | 2026-08-23 | `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` | 无（本次移出 0 条——答定的四项均是草稿内部待决，从未占清单条目；interview 裁决记在 handoff 的 Clarifications） |
+| `draft-0823c.md` | draft | 2026-08-23 | `handoffs/2026-08-25-info-economy-and-codex-expansion.md` | `answer-logs/log-0823c.md`（移出 2 条 + 部分答定 1 条） |
+| `draft-0823b.md` | draft | 2026-08-23 | `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` | `answer-logs/log-0823b.md`（移出 2 条） |
+| `draft-0823a.md` | draft | 2026-08-23 | `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` | 无（本次移出 0 条——数值仍未定，只是归宿由「专场」改为「内容扩充后的统计校准」） |
 | `solution-draft-refresh-lifetime-cap.md` | solution-draft | 2026-08-23 | `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` | `answer-logs/log-refresh-cap-and-flags-gate.md` |
 | `solution-draft-singleton-balance-resource-registry.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-singleton-balance-resource-registry.md` | `answer-logs/log-singleton-balance-resource-registry.md` + `answer-logs/log-0823.md`（四项复核转正） |
 | `solution-draft-card-counters-api-and-key-space.md` | solution-draft | 2026-08-22 | `handoffs/2026-08-22-card-counters-api-and-key-space.md` | `answer-logs/log-card-counters-api-and-key-space.md` + `answer-logs/log-0823.md`（四项复核转正） |

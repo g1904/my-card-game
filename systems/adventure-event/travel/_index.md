@@ -88,7 +88,7 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **Travel 一行的具体定价。** 结构性约束已定（> 0，且为常规事件基准的 1/3 ~ 1/2）；**绝对数字**归 ch1 数值标杆专场。→ `systems/balance.md`。
+- **Travel 一行的具体定价。** 结构性约束已定（> 0，且为常规事件基准的 1/3 ~ 1/2）；**绝对数字**留待内容扩充后的统计校准。→ `systems/balance.md`。
 - **失去 flags 关地域后的运营替代。** location 恒启用 ⇒ 无法线上秒关一个问题地域。若日后确有此需求，需另设一条**不改图**的通道（例：把该地域的 `EventCountLimit` 压到 1 让人快速离开）；本次不预设形态。→ `systems/services/content-service.md`。
 
 Source: `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md`

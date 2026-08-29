@@ -153,7 +153,7 @@
     **`LocationMapData` 的份数不在本表内**：它标记为 `ISingletonContent`，条数由 ContentRegistry 的**通用单例校验**统一兜住（见 `systems/services/content-service.md`「单例内容的注册与校验」）。本表因此不自带一条手写的份数检查——逐份手写的形态里，漏写一份就是一个静默的洞。
 
     **出度 ≤ 5 把「批次规模区间」从一句约定变成一条可机械校验的内容侧纪律**，副作用是正面的——它也让 `LocationCodex` 的连边词条在竖屏上一屏可读。
-  - **`locationMap` 在轮回内对玩家不可见。** 「进程是逐批择一的线性推进，不是可俯瞰的分支地图」这条不变——**图存在但不呈现**。玩家可见的那一面是账号级的 **`LocationCodex`（图鉴族第六本）**，「去过即记」**且记连边**，见 `systems/player-profile/codex/_index.md`。**推论：不可见是「初见不可见」而非「永远不可见」**——跨轮回的知识可以逼近整张图，这是设计目标；两者不冲突，因为地图长在玩家脑子里（在图鉴里），不在 HUD 上。**连带：图的稳定性从设计选择升格为对玩家的隐性承诺**，改连边等于清空一份账号级资产。
+  - **`locationMap` 在轮回内对玩家不可见。** 「进程是逐批择一的线性推进，不是可俯瞰的分支地图」这条不变——**图存在但不呈现**。玩家可见的那一面是账号级的 **`LocationCodex`（图鉴族的地域本）**，「去过即记」**且记连边**，见 `systems/player-profile/codex/_index.md`。**推论：不可见是「初见不可见」而非「永远不可见」**——跨轮回的知识可以逼近整张图，这是设计目标；两者不冲突，因为地图长在玩家脑子里（在图鉴里），不在 HUD 上。**连带：图的稳定性从设计选择升格为对玩家的隐性承诺**，改连边等于清空一份账号级资产。
 - **Travel / 前往某处地点 = 地图路由（AdventureEvent-Travel）。** Travel 是 adventure-event 的一个子类型，**功能上是一次地图路由选择**——选择 Travel 事件即**刷新角色所在的 location**，从而换掉下一批 eventOptions。即：Travel 是玩家在月圆之夜式菜单中「换图 / 换地点」的入口。子类型定义见 `systems/adventure-event/travel/`；本文档持有 location 抽象与路由语义。
 - **`eventCountLimit` 达成 → 本批只剩 Travel（承重）。** 玩家在当前 location 选够事件、达到 `eventCountLimit` 后，**最后剩下的 eventOption 是「前往另一个 location」**。
   - **承载它只需一个既有字段：** Travel 选项以**最高 `eventPriority`（= 1）**出场即可封锁同批其余选项。**没有跳过通道、也没有 `ifMandatory` 一类的强制标记**——本批的每一项本就都是必做项，闸门不需要第二个字段来封死回避通道。

@@ -35,7 +35,7 @@
 
 ---
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-22-finale-failure-is-death.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-08-28-out-of-combat-item-use-savepoint-and-trace.md`
 
 ## 二、服务 / 管理器职责矩阵
 
@@ -52,13 +52,13 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 | | | **CapabilityManager** | capability flag 聚合 + modifier pipeline |
 | | | AchievementManager | 成就进度累计与奖励发放 |
 | **life-cycle-service** | ① | CycleStateManager | `status` 状态机：`ongoing → completed \| defeated` |
-| | | ChapterManager | 篇章边界、境界存档点、重试上限（∞ / 3 / 1） |
+| | | ChapterManager | 篇章边界、境界存档点、重试上限（**两档表 `ChapterRetryLimitsData` 逐篇章一格，按 `profile-service.HasPremiumBundle` 选行**，不是常量） |
 | | | SeedManager | cycle seed 与具名 RNG 子流派生 |
 | **future-event-service** | ① | EventOptionManager | 依 CharacterProfile 产出 eventOptions；**唯一出口** |
 | | | **PlotManager** | 隐藏剧本：key points → 本地剧本节点（ContentRegistry）、隐藏属性阈值 → 调制。**纯本地** |
-| **combat-service** | ① | TurnManager | **定长 10 回合**循环（双方各 5；回合开始 mana 恢复至 `manaLimit`） |
+| **combat-service** | ① | TurnManager | **定长回合循环**（回合数是 `EncounterSpec.TurnLimit` 这一遭遇参数，**不是常量**——`Standard` 档取值为双方合计 10 回合；回合开始 mana 恢复至 `manaLimit`） |
 | | | CharacterManager | 玩家侧参战方：角色对战状态、其卡组、出牌通道；**监听玩家操作** |
-| | | EnemyManager | 敌人侧参战方：敌人实例与状态、其卡组、AI 行为选择与意图生成；**代理操作** |
+| | | EnemyManager | 敌人侧参战方：敌人实例与状态、其卡组、AI 行为选择（**1-ply 加权效用评分 + 确定性 argmax，零随机零记忆**；定制策略只是权重向量的重新加权）；**代理操作**。**不作任何事前预告**——意图机制已整条移除 |
 | | | BattlefieldManager | **战场（battlefield）**：场上生效中的卡牌 / 持续状态 / **触发器注册面**，及回合内 / 跨回合的生命周期标记与清理 |
 | | | StackManager | **栈（stack）**：压栈、**LIFO 结算**、连锁触发的解决顺序 |
 
@@ -111,10 +111,11 @@ LoginScreen ─▶ account-service.SignIn(渠道)
           └─ LocalCacheManager：原子写入 user://cache/（仅缓存，非权威）
    │
    └─▶ profile-service.Hydrate(profile)
-          └─ CapabilityManager 聚合：
-               遍历「拥有 且 status = 启用」的 PlayerPower
-                 → 生效 capability flag 集 + 具名 modifier 表
-                 → EventBus.Emit(CapabilitiesChanged)
+          └─ CapabilityManager 聚合（两层共用同一条 Recompute()）：
+               遍历「拥有 且 status = 启用」的 PlayerProfile.playerPower
+                 ＋ 当前角色 CharacterProfile.characterPower（无当前角色则只聚合账号级，不告警）
+                 → 生效 capability flag 集（集合并、幂等）+ 具名 modifier 表
+                 → EventBus.Emit(CapabilitiesChanged)   // 空负载广播
 ```
 
 ### 阶段 2 —— 主界面（元进程层）
@@ -124,12 +125,20 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
    │
    │  各 UI 组件自行订阅 CapabilitiesChanged，
    │  自查 Has(RevealHiddenStats) 等 flag 决定自身可见性——
-   │  业务层完全不知道这些 PlayerPower 存在。
+   │  业务层完全不知道这些能力条目存在。
    │
-   └─ 玩家操作（开关 PlayerPower / 领取成就奖励 / 使用 PlayerItem）
-        ─▶ profile-service.ProfileManager.TryApply(...)
-             ├─ CapabilityManager 重算并广播
-             └─▶ sync-service.Push()
+   ├─ 玩家操作（开关能力条目 / 领取成就奖励）
+   │    ─▶ profile-service.ProfileManager.TryApply(...)
+   │         ├─ CapabilityManager 重算并广播
+   │         └─▶ sync-service.Push(MetaChanged)
+   │
+   └─ 批次层的储物袋操作（战斗外使用道具 / 随售）——**不是事件内决策点，是即时提交**
+        ─▶ profile-service.UseItemOutOfCombat(...)
+             一次组装 OutOfCombatUseOutcome + ItemElements
+                     +（activeEvent == null 时）ItemUseElements
+             ─▶ 一次 TryApply → 一次本地原子写
+             ─▶ sync-service.Push(InventoryChanged, Debounced)
+             不触发 RefreshAfterEvent · 照跑终态判定 · 不消耗 RNG 子流
 ```
 
 ### 阶段 3 —— 开始一次轮回
@@ -177,12 +186,14 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      │   ┌── eventType == Combat（三档 combatTier）──┤            │
 │      │   │   combat-service.RunCombatAsync(encounter, ct)          │
 │      │   │     TurnManager       ↺ mana 恢复至上限 → 抽牌 → 出牌    │
-│      │   │                         → 结算 → 换手（共 10 回合）      │
+│      │   │                    → 结算 → 换手（回合数 = TurnLimit，   │
+│      │   │                       Standard 档为双方合计 10）         │
 │      │   │     CharacterManager  玩家侧参战方（卡组 / 监听玩家操作）│
-│      │   │     EnemyManager      敌人侧参战方（卡组 / AI，无预告）  │
+│      │   │     EnemyManager      敌人侧参战方（卡组 / AI argmax，   │
+│      │   │                       无预告、零随机零记忆）             │
 │      │   │     StackManager      压栈 → LIFO 结算 → 连锁触发         │
 │      │   │     BattlefieldManager 场上生效中的牌 / 持续状态 / 触发器 │
-│      │   │       敌人回合逐步呈现（飘字 + ticker）= 唯一动态情报    │
+│      │   │       敌人回合逐步呈现（飘字 + 战报）= 唯一动态情报      │
 │      │   │     战斗内所有写入 ─▶ ProfileManager                     │
 │      │   │     决策点 ─▶ 存档（退出重进恢复同一局面 + RNG 状态）    │
 │      │   │     胜负判据：道念（momentum）高者胜，lifeTotal 不参与过程│
@@ -196,6 +207,10 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      │            + 失败时按道念差扣 lifeTotal + 等级产出 + 隐藏属性推拉)│
 │      │            隐藏属性跨档 ─▶ 附一条定性叙事（不给数字）         │
 │      ├─ 记入 CharacterProfile.pastEvent 修行历程（PastEventEntry）  │
+│      ├─ 收口前的重算走只读投影 ProfileManager.Project(spec)：       │
+│      │    施加 spec 后得到一份未提交的只读视图 → 依它算出新一批     │
+│      │    eventOptions → 与本次产出一并进同一次 TryApply            │
+│      │    （不提交 / 不广播 / 不落存档点；一次事务、一个存档点）    │
 │      └─ CycleStateManager 判定：                                     │
 │           寿元 ≤ 0 或 lifeTotal ≤ 0 ─▶ DefeatCharacter()  ─▶ 阶段 5 │
 │           Finale 失败 ─▶ DefeatCharacter(FinaleFailed) ─▶ 阶段 5   │
@@ -213,7 +228,8 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 ```
 completed ─▶ ChapterManager：在所达境界落存档点
               解锁下一篇章的可挑战角色
-defeated  ─▶ 清理该角色数据；扣减该篇章重试次数（ch1 ∞ / ch2 3 / ch3 1）
+defeated  ─▶ 清理该角色数据；扣减该篇章重试次数
+              （上限读 ChapterRetryLimitsData 的两行之一，按 HasPremiumBundle 选行）
               无可挑战角色时该篇章重新锁定（隐藏）
    │
    ├─▶ life-cycle-service.TeardownCycle()
@@ -283,7 +299,7 @@ IContentRepository<T> where T : Resource
    user://cache/     仅缓存 / 断线临时态，非权威
 ```
 
-- **`PlayerProfile` 持有 `List<CharacterProfile>`** —— 因此由**单一 profile-service** 作为两层的唯一写入面。一次结算里「扣账号级 PlayerItem 次数 + 扣轮回级灵玉」天然落在同一事务内，存档提交点唯一。
+- **`PlayerProfile` 持有 `List<CharacterProfile>`** —— 因此由**单一 profile-service** 作为两层的唯一写入面。一次结算里「扣账号级 PlayerItem 次数 + 扣轮回级灵石」天然落在同一事务内，存档提交点唯一。
 - **冲突一律以云端为准**（ADR-0003）。
 - **原子写**：先序列化到临时文件，再 rename 覆盖 —— 写入中途崩溃不损坏缓存。
 - **schema 版本 + 迁移路径**：读取时校验版本、内容 `Id`、必需字段；不匹配则迁移或清晰拒绝，绝不静默 null。
@@ -295,7 +311,7 @@ IContentRepository<T> where T : Resource
 
 1. **确定性。** 一切玩法随机性经 SeedManager 从 cycle seed 派生的**具名子流**取得（map / combat / shop / reward 互不干扰）；同一 seed 必须复现同一轮回。不用未加种子的 `GD.Randi()`。
 2. **写入唯一入口。** 两个 Profile 的一切变更经 `ProfileManager.TryApply(spec)`：全量校验 → 全有或全无 → 单点提交。这同时是 modifier pipeline 的生效点。
-3. **呈现决策归呈现层。** capability flag 由 CapabilityManager 聚合，**由受影响的 UI 组件自己订阅并查询**。业务逻辑层不知道任何 PlayerPower 的存在 —— 散落条件分支的根因是把呈现决策写进了业务层。
+3. **呈现决策归呈现层。** capability flag 由 CapabilityManager **两层共用**地聚合（账号级 `playerPower` + 当前角色 `characterPower`），**由受影响的 UI 组件自己订阅并查询**。业务逻辑层不知道任何能力条目的存在 —— 散落条件分支的根因是把呈现决策写进了业务层。
 
 ---
 

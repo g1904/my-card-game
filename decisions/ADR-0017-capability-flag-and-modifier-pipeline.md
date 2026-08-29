@@ -42,5 +42,5 @@
 - 长出一条承重的类型学判据：**capability / modifier 都是由内容条目聚合出的派生态，付费凭证与幂等键是账号上的原始事实——派生态不能承载原始事实。**
 - `ResourceElements` 表因此多两列（`CostModifier` / `GainModifier`），且**按符号分向是必需的**——一条「寿元消耗 −20%」的法则若不分向，会把寿元回复也削 20%。
 - **`Op == Set` 恒不经 pipeline**，与该行两个修正列是否为空无关；配套启动期断言把「允许 `Set` 的行两个修正列必须为 `null`」固定下来。
-- 仍未定的落地细节（flag 枚举 / 命名空间、`status` 与「拥有 / 失去」两态的存档表达、**冲突 / 叠加规则**）留在 `systems/player-profile/player-power/common-properties.md` 与 `systems/services/profile-service.md` 的待决问题里——本 ADR 只固化模型。
+- 仍未定的落地细节只剩一项——**`status` 与「拥有 / 失去」两态的存档表达**——留在 `systems/player-profile/player-power/common-properties.md` 与 `systems/services/profile-service.md` 的待决问题里。本 ADR 只固化模型；flag 枚举 / 命名空间、叠加与冲突规则、聚合面宿主与 modifier 合并算法的形态见那两份文档。
 - 影响文档：`systems/player-profile/player-power/common-properties.md`（权威）· `systems/services/profile-service.md` · `systems/architecture.md`（`ModifierKey` / `CapabilityFlag` 枚举与 `ResourceElements` 表）· `systems/adventure-event/exchange/_index.md`（`ShopPrice` 的施加点）。

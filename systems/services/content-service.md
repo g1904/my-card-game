@@ -398,7 +398,7 @@ public interface IContentRepository<T> where T : Resource
 
 ## 决策(-> ADR)
 
-- **内容载体形态（随包基线 + user:// 覆盖层 + 云端版本校验）** → **ADR 候选**（待固化）。**固化时须一并纳入两条**：全部内容属本地内容层（不设云端剧本服务）· overlay 对剧本内容可新增 `Id`。
+- **内容载体形态（随包基线 + `user://overlay/` + flags 三层覆盖 + 云端版本校验）** → `decisions/ADR-0007-local-content-layer-and-overlay.md`（Accepted）。**已一并纳入两条**：全部内容属本地内容层（不设云端剧本服务）· overlay「只改不增」的唯一例外 = 剧本内容，由合并期 `newIds` 双闸机械保证。
 - **overlay 增量下载**仍依赖 **强制在线 · 云端权威** → `decisions/ADR-0003-online-cloud-authority.md`（Accepted）。其适用面**只剩启动期的 manifest 比对与下载**——运行时内容读取全程本地。
 
 ## 待决问题

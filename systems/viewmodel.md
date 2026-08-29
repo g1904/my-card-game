@@ -50,6 +50,13 @@ ViewModel 是这些纪律的**消费侧落点**，定义各在其权威文档，
 
 **`LocalizedText.Get()` 的解析结果只能缓存在 ViewModel 上，绝不写回 `XxxData` 或 `LocalizedText`。** `XxxData` 是 ContentRegistry 里的共享只读单例，写回即污染注册表（权威见 `systems/common-properties.md`）。ViewModel 是唯一一层「本来就会随屏丢弃」的对象，缓存放在它身上无需失效策略——换屏即失效，切语言即整份重组装。
 
+### 视觉资产的占位回落
+
+**内容条目的 `Artwork` 为 `null` 时的占位回落只写一处：由本层统一提供 `res://art/_placeholder.png`。** 各屏不各自准备一张占位图——那与「回落逻辑只写一处」（`LocalizedText.Get()` 是同一种偏好）相抵，且会让「哪些屏还没接占位」成为一个只能靠人肉巡检的问题。
+
+- 该 `.png` 文件本身归 `game-feature-branch/`，本库只登记这条约定。
+- `Artwork` 可空是常态（美术挂点先占位、末段替换），缺失的机械发现归加载期的收口汇总，**不由本层告警**；字段定义与告警形态见 `systems/common-properties.md`。
+
 ### 永不渲染清单
 
 - **`OpResult.Detail` 永不赋给任何 `Label.Text`。** 它是诊断串（`code` + `requestId` + 后端 `message`），玩家可见文案一律经 `ErrorText.For(code, reasonKey, error)`。**可机械检查**：UI 层不出现该赋值写法（`systems/architecture.md` 总则 7 · `ux/error-and-blocking-ux.md`）。
@@ -62,12 +69,12 @@ ViewModel 是这些纪律的**消费侧落点**，定义各在其权威文档，
 - **它的权威在结构一侧，不在措辞一侧。** 上述各条回答的是依赖方向、生命周期、只读性、缓存归属、重组装时机，**没有一条在回答「怎么说」**——故归 `systems/`，不归 `ux/`（`ux/` 已自我限定为「怎么说、说在哪、说几次」）。
 - **先例同向：** 非服务的横切件里，`game-progression` 因有自己的机制面而单列顶层文件，EventBus 因全部内容就是一条 API 契约总则而留在总则表内。判据是「它的内容是不是一条 API 契约总则」；本层的纪律绝大多数是跨屏的落地纪律，形态上属前者。
 
-Source: `handoffs/2026-08-19-architecture-structural-residuals.md`
+Source: `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
 
-- **展示层三层切分（Data / 运行时·存档 / ViewModel）** → **ADR 候选**（待固化）。**本文件是它固化时的主落点**；`systems/architecture.md`「展示层契约」保留三层的定义段。
+- **展示层三层切分（Data / 运行时·存档 / ViewModel）** → `decisions/ADR-0010-presentation-three-layer-split.md`（Accepted）。**本文件是它的主落点**；`systems/architecture.md`「展示层契约」保留三层的定义段。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_

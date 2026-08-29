@@ -90,7 +90,9 @@ game-feature-branch/
 │   │   └── Combat/
 │   │       ├── CombatService.cs
 │   │       ├── TurnManager.cs  CharacterManager.cs  EnemyManager.cs
-│   │       └── CombatantDeck.cs      ← 参战方内部组件，每 character / enemy 一份
+│   │       ├── BattlefieldManager.cs ← 战场：生效中的条目 / 持续状态 / 触发器注册面
+│   │       ├── StackManager.cs       ← 栈：压栈 → LIFO 结算 → 连锁触发
+│   │       └── DeckModule.cs         ← 参战方内部组件（第三级），每 character / enemy 一份
 │   ├── Progression/
 │   │   └── GameProgression.cs        ← 编排顶点
 │   └── UI/
@@ -114,7 +116,7 @@ game-feature-branch/
 │   ├── menu.csv                      ← MENU_：主菜单、篇章切换、更新横幅
 │   ├── sync.csv                      ← SYNC_：常驻同步指示、软阻塞模态、更新引导半屏
 │   ├── event.csv                     ← EVENT_：事件选项的框架文案（不含事件正文——那是内容层）
-│   ├── combat.csv                    ← COMBAT_：CombatScreen、出牌 / intent / 结算面板框架
+│   ├── combat.csv                    ← COMBAT_：CombatScreen、出牌 / 战报 / 结算面板框架（**无 intent** —— 意图机制已整条移除）
 │   ├── profile.csv                   ← PROFILE_：Player / CharacterProfile 面板、图鉴族、成就
 │   ├── settings.csv                  ← SETTINGS_：设置屏（含同步版本 #N 的标签）
 │   └── store.csv                     ← STORE_：礼包屏、购买处理态与兑现结果态
@@ -162,7 +164,8 @@ Godot 4 允许 autoload 直接指向 `.cs` 脚本（类继承 `Node` 即可）�
  ├── ProfileService          ← 内部持有 ProfileManager / CapabilityManager / AchievementManager
  ├── LifeCycleService
  ├── FutureEventService      ← 内部持有 EventOptionManager / PlotManager
- ├── CombatService
+ ├── CombatService           ← 内部持有 TurnManager / CharacterManager / EnemyManager /
+ │                             BattlefieldManager / StackManager
  └── CurrentScreen           ← 当前屏幕场景，随流程切换
 ```
 

@@ -23,21 +23,23 @@
   | 6 | `realm` | `Realm` | — | `systems/game-progression.md` |
   | 7 | `level` | `int`（境界内层号） | — | `systems/game-progression.md` |
   | 8 | `Status` | `CharacterStatus`（具名子类） | 见下方子表 | 见下方子表 |
-  | 9 | `jade` | `int` | `Elements`（`CostKey.Jade`） | `currency.md` |
-  | 10 | `technique` | `IReadOnlyList<TechniqueEntry>` | `DeckElements` | `deck/_index.md` |
-  | 11 | `looseCard` | `IReadOnlyList<string>` | `DeckElements` | `deck/_index.md` |
-  | 12 | `magicPack` | `IReadOnlyList<CharacterItem>` | `AbilityElements` | `item/common-properties.md` |
-  | 13 | `characterPower` | `IReadOnlyList<CharacterPower>` | `AbilityElements` | `power/common-properties.md` |
-  | 14 | `disabledAbility` | `IReadOnlyList<DisabledAbilityEntry>` | `AbilityElements`（`Disable`） | 本文档 |
-  | 15 | `pastEvent` | `IReadOnlyList<PastEventEntry>` | `TraceElements` | `systems/adventure-event/common-properties.md` |
-  | 16 | `plotKeyPoint` | `IReadOnlyList<PlotKeyPoint>` | `PlotElements` | `systems/services/plot-manager.md` |
-  | 17 | `activeCombat` | `ActiveCombat?` | `EventStateChanges` | `systems/services/combat-service.md` |
-  | 18 | `eventOption` | `EventOptionSave?` | `EventStateChanges` | 本文档「两个事件态字段」 |
-  | 19 | `activeEvent` | `ActiveEventState?` | `EventStateChanges` | 本文档「两个事件态字段」 |
-  | 20 | `chapterRetry` | `ChapterRetry`（具名子类 · 三字段） | —（`RetryChapter`） | 本文档 |
-  | 21 | `rng` | `RngState`（具名子类） | `RngElements`（`CycleSeed` 与子流初始化为 `—`） | `systems/common-properties.md` |
-  | 22 | `startContentVersion` | `int` | — | `systems/services/content-service.md` |
-  | 23 | `lastContentVersion` | `int` | — | `systems/services/content-service.md` |
+  | 9 | `spiritStone` | `int` | `Elements`（`CostKey.SpiritStone`） | `currency.md` |
+  | 10 | `immortalJade` | `int` | `Elements`（`CostKey.ImmortalJade`） | `currency.md` |
+  | 11 | `technique` | `IReadOnlyList<TechniqueEntry>` | `DeckElements` | `deck/_index.md` |
+  | 12 | `looseCard` | `IReadOnlyList<string>` | `DeckElements` | `deck/_index.md` |
+  | 13 | `magicPack` | `IReadOnlyList<CharacterItem>` | `AbilityElements`（持有）+ `ItemElements`（次数） | `item/common-properties.md` |
+  | 14 | `characterPower` | `IReadOnlyList<CharacterPower>` | `AbilityElements` | `power/common-properties.md` |
+  | 15 | `disabledAbility` | `IReadOnlyList<DisabledAbilityEntry>` | `AbilityElements`（`Disable`） | 本文档 |
+  | 16 | `pastEvent` | `IReadOnlyList<PastEventEntry>` | `TraceElements` | `systems/adventure-event/common-properties.md` |
+  | 17 | `pastItemUse` | `IReadOnlyList<ItemUseEntry>` | `ItemUseElements` | 本文档「战斗外道具使用的痕迹序列」 |
+  | 18 | `plotKeyPoint` | `IReadOnlyList<PlotKeyPoint>` | `PlotElements` | `systems/services/plot-manager.md` |
+  | 19 | `activeCombat` | `ActiveCombat?` | `EventStateChanges` | `systems/services/combat-service.md` |
+  | 20 | `eventOption` | `EventOptionSave?` | `EventStateChanges` | 本文档「两个事件态字段」 |
+  | 21 | `activeEvent` | `ActiveEventState?` | `EventStateChanges` | 本文档「两个事件态字段」 |
+  | 22 | `chapterRetry` | `ChapterRetry`（具名子类 · 三字段） | —（`RetryChapter`） | 本文档 |
+  | 23 | `rng` | `RngState`（具名子类） | `RngElements`（`CycleSeed` 与子流初始化为 `—`） | `systems/common-properties.md` |
+  | 24 | `startContentVersion` | `int` | — | `systems/services/content-service.md` |
+  | 25 | `lastContentVersion` | `int` | — | `systems/services/content-service.md` |
 
   **`CharacterProfile.Status`（具名子类 · 数值型运行状态）**
 
@@ -58,6 +60,7 @@
 
   - **`Status` 装数值型运行状态**；集合型 build 状态（deck / 神通 / 储物袋 / 禁用表 / 剧本锚点）与 `Status` **平级**，不落其内。
   - **`currentMana` 不在 `Status` 内。** 它每回合恢复到 `manaLimit`、回合内不结转，寿命短于一次事件 ⇒ 按「重算得出来的不存」它是战斗内运行态，落 `activeCombat`（见 `systems/services/combat-service.md`）。`Status` 只留 `manaLimit`。
+  - **两种轮回货币 `spiritStone` / `immortalJade` 都落顶层、相邻、不落 `Status` 内。** `Status` 装的是**数值型运行状态**，而货币与它平级（同 deck、神通持有列表一档）。两者形态完全同构（`int`，写入通道 `Elements`），差别只在语义，见 `currency.md`。JSON 侧字段名 `spiritStone` / `immortalJade`（camelCase，见 `systems/services/sync-service.md`）。随 `immortalJade` 落定 **bump schema 版本**（老档缺字段 → `0`；当前无线上存档 → 空迁移）。
   - 两张表的行随字段增长，维护成本明写；它们是索引 + 回链形态，与 `_index.md` 的既有职责一致。`ResourceElements` / `StatusFields` 两张封闭表的逐行取值见 `systems/services/profile-service.md`，枚举声明见 `systems/architecture.md`「共享核心类型」。
 - **五格新字段的形态。**
 
@@ -80,7 +83,7 @@
   - **`looseCard` 是裸 `string` 多重集而非 record 列表**：散牌没有任何随实例变化的状态（`CardInstance` 的运行态只存在于战斗内、随 `activeCombat` 走），一个 `Id` 就是全部信息。
   - 读档校验：`TechniqueId` / `looseCard` 元素解析不到 → **必需缺失** → `PushError`（与 `DeckChangeElement.Id` 的施加侧同口径——悬空 `Id` 写进 Profile 即污染存档）；`Tier < 1` → `PushError`。
 - **`realm` + `level` 是角色的修行位置。** 二者合成**全局等级序**上的位置，是敌人赋级 `±2` 带与 `baseMomentum` 起跑线的判据；篇章突破后 `level` 归位为新境界的初期。**`manaLimit` 的常规成长由事件 cost / reward 推拉，另在每次大境界提升时 `+1`**（增量，走 `CostKey.ManaLimit`；见 `mana.md`）。
-- **决策点存档。** 事件推进过程中（含战斗内）在**决策点**落存档，使退出重进恢复到同一局面与同一份 RNG 状态；`selectCost` **不回滚**。存档点清单见 `systems/services/life-cycle-service.md`；**战斗内的 D0–D6 决策点清单见 `systems/services/combat-service.md`**。
+- **决策点存档。** 事件推进过程中（含战斗内）在**决策点**落存档，使退出重进恢复到同一局面与同一份 RNG 状态；`selectCost` **不回滚**。存档点清单见 `systems/services/life-cycle-service.md`；**战斗内的 D0–D7 决策点清单见 `systems/services/combat-service.md`**。
 - **`activeCombat`：进行中战斗的中间态（CharacterProfile 上的可空块）。** 战斗开始时创建、`eventEnd` 收口时**置空**；**不进 `pastEvent`**（历史事件只留定稿快照），也**不自带随机流状态**（战斗内随机的 `State` / `DrawCount` 落 `rng.stream[Combat]`）——它是**事件内的中间态，寿命短于一次事件**。
   - **写入通道 = `EventStateChanges`（`Key == ActiveCombat`），与 `activeEvent` 同一列**：combat-service 在每个决策点整块置值，收口时置空。两个中间态字段仍不合并，共用的只是通道。
   - **为什么挂 CharacterProfile 而非独立的战斗存档实体**：与「每篇章至多一个 ongoing」自洽，且 diff 天然落在 `CharacterProfile` 粒度（sync-service 的既定 diff 单位），**无需新增同步单元**。
@@ -127,6 +130,28 @@
   - **只追加、不修改既有条目**（不变式）；体积护栏与 diff 友好性见 `systems/services/sync-service.md`。
   - **写入经 life-cycle-service 组装 → `profile-service.ProfileManager` 的 `TraceElements` 列**，与「档案写入的唯一入口」一致，且与收口的其余各列落在同一次事务里。**`Seq` 首条为 `0`**，追加时的连续性由入口校验。
   - 随本次结构落定 **bump schema 版本**（当前无线上存档 → 空迁移）。
+- **`pastItemUse`：战斗外道具使用的痕迹序列 = `IReadOnlyList<ItemUseEntry>`**（与 `pastEvent` 平级的第二条只追加序列）。它承接的是**发生在事件之外的那些使用**：那一刻没有 `PastEventEntry` 可挂，而这一笔重算不出来、又有消费方（元进程的角色履历寿元曲线，以及「这段回升是哪来的」这类诊断）⇒ 按「重算不出来且有消费方的存」它必须落存档。
+
+  ```csharp
+  IReadOnlyList<ItemUseEntry> pastItemUse;   // 单数命名，沿用 pastEvent 的既有风格
+
+  public sealed record ItemUseEntry(
+      int               Seq,             // 角色内单调递增，首条为 0；与 pastEvent 的 Seq 是两条独立序列
+      int               AfterEventSeq,   // 使用时刻已完成的最后一条 PastEventEntry.Seq；首个事件之前 = -1
+      string            ItemId,          // 溯源模板（disabled 条目照常解析）
+      AbilityScope      Scope,           // Character（法宝）/ Player（古宝）—— 同一入口两层持有物，须区分
+      ProfileChangeSpec AppliedChange);  // 这一次使用的账：就是那一次 TryApply 的入参
+  ```
+
+  - **五个字段，不带任何派生量。** 判据是「重算不出来且有消费方的存」，而使用后的剩余寿元与剩余次数**两者都重算得出来**（前者见下方读取算法，后者由 `AppliedChange` 里的次数增量与内容条目的 `Charges` 得出）。`PastEventEntry.LifeSpanAfter` 是该判据的**明示例外**，其成立前提是「4 字节换掉一次全序列重放」——本序列不需要全序列重放（见下），成本论证在此不成立；剩余次数的消费方则是诊断日志，由 `ProfileManager` 的可追溯性日志行承担，日志态的问题不上存档。
+  - **寿元曲线的读取算法（消费侧，无额外遍历）。** 曲线 = `pastEvent[]` 与 `pastItemUse[]` 按 `(AfterEventSeq, Seq)` 归并的一趟遍历；`pastItemUse` 各条的寿元值 = **最近一条在它之前的 `pastEvent.LifeSpanAfter`（锚点）+ 该锚点之后各条 `pastItemUse.AppliedChange` 里 `LifeSpan` element 的累加**。归并本就要走这一趟，累加是同一次 `O(n)` 内的加法；锚点与当前条之间的跨度以个位数条计。序列尾部（最后一次使用之后尚无事件）取 `Status.lifeSpan` 当前值收尾。**回升段自此可解释。**
+  - **与 `pastEvent` 分列两条序列，不合并为单一时序序列。** 合并要把 `pastEvent` 的元素类型改成二成员 sum type，`TraceElements` 的载荷同变，而它的两条入口校验（一次事件恰一条 · `AppliedChange` 恒不含本列）与「载荷直接是 `PastEventEntry`」都绑在载荷类型上，合并后全部退化为按载荷类型分支；`pastEvent`「修行历程」这一已成文的字段语义也会被扩宽。**代价明写：** 读取侧多一次归并，即上面那趟 `O(n)`。
+  - **账号级古宝的使用痕迹同样落在角色档**（由 `Scope = Player` 标识）。这条痕迹的消费方是**这个角色这段轮回的曲线**，落账号级反而要为它另造一个消费面。**代价明写：** 轮回清理时它随之消失，古宝的跨轮回使用史不留存；需要时的落点是 `PlayerStatistics` 的聚合项，**首批不加**（与「首批一格计数字段都不加」同款）。
+  - **战斗内使用不写本序列。** 那一次在事件之内，账已由该事件的 `AppliedChange` 承载；组装判据是 `activeEvent == null`，见 `systems/services/profile-service.md`。
+  - **只追加、不修改既有条目**（不变式），`Seq` 首条为 `0`，追加时的连续性由入口校验（见 `systems/services/profile-service.md`）。
+  - **不设条数硬上限。** 条数由 `Charges` 与内容编排（出现频率 / 库存深度 / 定价）天然封顶，与「回寿总量护栏落在内容编排面、规则层不设持有上限」同一条纪律；体积由 `CharacterProfile` 级的既有护栏（`pastEvent` > 500 条 / 序列化 > 512 KB）覆盖，本字段挂同一聚合、同一 diff 粒度，**不新增同步单元**。无界的唯一来源已被 `ItemData` 的一条加载期校验关掉（`Charges == -1` 且 `UsableScene` 含 `OutOfCombat` → `PushError`，见 `item/_index.md`）。
+  - **读档校验：** `ItemId` 经 `ContentRegistry` 解析不到 → **可选缺失** → `PushWarning` + 该条降级为「仅标识可读」、**不阻断读档**（与 `PastEventEntry.EventId` 同款——历程是历史记录）；`Seq` 不连续 / 重复 → **必需缺失** → `PushError` 带 `characterId` + `seq`；`AfterEventSeq` 大于 `pastEvent` 末条 `Seq` 或 `< -1` → **必需缺失** → `PushError` 带 `characterId` + `seq`（越界坐标锚不到任何一条痕迹，曲线画不出来）。
+  - **存档 schema 增量：** `pastItemUse : ItemUseEntry[]`（JSON 侧 camelCase）。随 `ProfileChangeSpec` 的两个新列**合并为一次** bump（老档缺字段 → 空列表；当前无线上存档 → 空迁移）。
 - **`chapterRetry`：篇章重试计数器。** 一个**类**，计数第一 / 第二 / 第三篇章各自的重试次数——**因为 ch2 与 ch3 有重试上限**（无限 / 3 / 1，持 premium bundle 为 无限 / 9 / 3，见 ADR-0004）。**它是计数器容器，不是上限持有者**：上限仍按 ADR-0004 的既定纪律读取（可被账号级持有状态改写、凡读取处不得硬编码常量），`chapterRetry` 只答「用掉了几次」。**推论：篇章解锁 / 重新锁定与「剩余重试次数展示」有了确定的数据源。**
   - **形态 = 三个具名字段 `Ch1RetryUsed` / `Ch2RetryUsed` / `Ch3RetryUsed`**，第一 / 第二 / 第三篇章各一，**不是字典也不是按索引的数组**。**`Used` 后缀**避开两个已被占用的词缀——`Ordinal` 表达「第几次」这个位置且要当幂等键用，`Count` 属统计计数层，而 `chapterRetry` 是规则字段层的一个数量（命名硬约定见 `systems/player-profile/_index.md`）。**与「四境三篇章」这条硬事实对齐**（篇章数是游戏结构，不是可扩展列表）：具名字段让存档 schema 显式、读取处不必处理「键不存在」的分支，也免去按索引访问的越界校验。**代价是新增篇章需改 schema——但篇章数不是设计变量。**
   - **通关后保留计数，不清零** ⇒ **它是历史，不只是配额**。一个通关角色身上留着「我在筑基段挣扎了 3 次」的记录，可供元进程界面的角色履历展示；**同时它简化实现**——没有清零时机就没有「何时清零」的边界情形。
@@ -139,7 +164,7 @@
     IReadOnlyList<DisabledAbilityEntry> disabledAbility;   // 单数命名，沿用 pastEvent 的既有风格
 
     public sealed record DisabledAbilityEntry(
-        AbilityKind     Kind,             // Power | Item —— 两个 Id 空间不同，必须显式区分
+        AbilityCarrierKind Kind,             // Power | Item —— 两个 Id 空间不同，必须显式区分
         AbilityScope    Scope,            // Character | Player —— 决定它抑制哪一层的持有列表
         string          AbilityId,        // PowerData / ItemData 的稳定 Id
         DisableDuration Duration,         // NextEvent | ThisChapter | ThisCycle
@@ -150,7 +175,7 @@
     ```
   - **存「施加时坐标 + 时长」，不存「到期坐标」。** 施加坐标是**重算不出来的原始事实**，到期判定是它的纯函数；篇章边界的 `Seq` 在施加当时还不知道，存到期坐标要么存不出来、要么要事后回写（回写破坏只追加的便利）。判据同「重算不出来的存」。
   - **三档时长与到期剔除**（`life-cycle-service` 在两个时点各跑一次纯函数式剔除，见该文件）：`NextEvent`（施加之后进入的**下一个** AdventureEvent 全程，`currentSeq >= AppliedAtSeq + 1` 时于 `eventEnd` 收口后剔除）· `ThisChapter`（`currentChapter > AppliedAtChapter` 时于篇章边界剔除）· `ThisCycle`（无需剔除，随 `CharacterProfile` 整体拆解）。
-  - **去重键 = `(Kind, Scope, AbilityId)`；重复禁用不叠加，取时长较长的一条**（长短序 `NextEvent < ThisChapter < ThisCycle`）。叠加会造出「禁用三次到底禁到什么时候」这种无谓语义。
+  - **去重键 = `(CarrierKind, Scope, AbilityId)`；重复禁用不叠加，取时长较长的一条**（长短序 `NextEvent < ThisChapter < ThisCycle`）。叠加会造出「禁用三次到底禁到什么时候」这种无谓语义。
   - **禁用不影响持有，也不影响 `Charges`**；同 `Id` 多份的道具按 `Id` 整体禁用（储物袋本就按 `Id` 堆叠）。**禁用表条目不因失去持有而自动移除**——生效面按「持有 ∩ 未禁用」求交，空指向条目是无害的幂等残留。
   - **读档校验：** `AbilityId` 经 `ContentRegistry` 解析不到 → **可选缺失** → `PushWarning` + 保留条目、不阻断读档（与 `pastEvent` 同类处置）；`Duration` 越界 / 缺失 → **必需缺失** → `PushError` 带 `characterId` + `abilityId`；`AppliedAtChapter` 大于当前 `chapter` → 不可能态 → `PushWarning` + 按已到期剔除；同键重复 → `PushWarning` + 合并为时长较长的一条。
   - **生效判据、可见性与施加通道归各自文档**：生效面（不入场 / 不进列表 / 不进聚合）见 `power/_index.md` 与 `item/_index.md`，施加的 element 形态见 `systems/services/profile-service.md`。
@@ -241,7 +266,7 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 |--------|------|------|
 | 卡组 deck | `deck/_index.md`、`deck/common-properties.md` | 抽牌堆 / hand / 弃牌堆、seeded 洗牌、deck 变更；**功法（构筑单位，带层数、整组替换式升阶）**；卡牌 / CardData 定义（费用、目标、效果流水线、触发器）；起始卡组等内容设计。 |
 | 法宝 item | `item/_index.md`、`item/common-properties.md` | **CharacterItem**：轮回级角色道具（含道具设计内容；细节待定）。 |
-| 轮回货币 currency | `currency.md` | 轮回货币 jade 的获取 / 消耗。 |
+| 轮回货币 currency | `currency.md` | 轮回货币 **灵石 `spiritStone`（基础）/ 仙玉 `immortalJade`（高阶）** 的获取 / 消耗；两者不可兑换。 |
 | 神通 power | `power/_index.md`、`power/common-properties.md` | **CharacterPower**：轮回级角色能力，**对标账号级 PlayerPower（法则）**（同一概念的两层，分界是生命周期）；随轮回清理，**可承载战斗内触发式效果**。 |
 | 生命总量 lifeTotal | `life-total.md` | **战斗外的耐久 / 失败惩罚承受量**（战斗内不参与，失败结算时按道念差扣减）；**归 0 → defeated**；经 AdventureEvent 恢复；炼气基线 10；无曲线。 |
 | 法力 mana | `mana.md` | 每回合出牌资源；**每回合恢复至 `manaLimit`**，上限由事件推拉、另在每次大境界提升时 `+1`；炼气基线 5/5。 |

@@ -47,7 +47,7 @@
 
 - **允许回复 `lifeTotal`。** 「休养 / Rest 并入闭关」已定，休养并进来了它的产出却没地方去等于并了一半；`life-total.md` 的「恢复途径 = 通过 event 恢复」未限定事件类型。**`Recuperate` 与 `UpgradeTechnique` 在同一决策槽内并列**，正是 StS 篝火（rest / smith）那个玩家真会犹豫的二选一——它给当前纯收益的 Research 一条内部张力。载体是既有的 `ChangeElement`，零新增。
 - **隐藏属性推拉照常**：它是五类事件**共有**的通道（`eventEnd` 合并施加 + 跨档定性叙事），不是 Research 的专有产出，Research 侧无需表态。
-- **不给灵玉 `Jade` 产出。** 灵玉的长期价值出口已分派给 Exchange，Research 产灵玉会与之抢同一条价值线。
+- **不给货币（`SpiritStone` / `ImmortalJade`）产出。** 两种货币的长期价值出口都已分派给 Exchange，Research 产货币会与之抢同一条价值线。
 
 ### `manaLimit` 的下降承载点 = Research 的玩家自选风险档
 
@@ -60,10 +60,10 @@
 
 ### 代价：不另收资源代价
 
-**Research 的卡组操作不另收灵玉或其他资源，代价全部由 `lifeSpanCost` 的 Research 行承载**（已定为高于常规事件）。
+**Research 的卡组操作不另收灵石或其他资源，代价全部由 `lifeSpanCost` 的 Research 行承载**（已定为高于常规事件）。
 
-- 它兑现既定的核心权衡「**花寿元换永久出牌力**」。再叠一层灵玉，权衡就从一条变成两条，而寿元那条才是本作的时间压力主轴。
-- 它保住「付不起在事件选择面整体消失」这条承重定案：`selectCost` 无条件施加是全局规则；若槽内操作另收灵玉，就会出现「进来了但买不起任何一个操作」的死屏，而规则层刚把这类不可选态整体删掉。
+- 它兑现既定的核心权衡「**花寿元换永久出牌力**」。再叠一层灵石，权衡就从一条变成两条，而寿元那条才是本作的时间压力主轴。
+- 它保住「付不起在事件选择面整体消失」这条承重定案：`selectCost` 无条件施加是全局规则；若槽内操作另收灵石，就会出现「进来了但买不起任何一个操作」的死屏，而规则层刚把这类不可选态整体删掉。
 - 想表达代价差异时用既有旋钮：条目级的 `lifeSpanCost` 覆盖值（「深度闭关」耗更多寿元）。
 
 ### 开局构筑事件 = 上述形态的一个内容条目，无任何专属规则
@@ -79,19 +79,19 @@
   - **缺席是一次大声失败的运营事故**（`PushError` + 上报），运行期唯一可能的成因是 flags 把功法 / 法宝池关到见底。**不新增任何降级路径或补发机制**——空池是运营事故，不是玩法分支。
   - 反面的做法是运行期静默把 `AllowDecline` 改成 `true` 让它照常出场：那用「静默改写一条内容侧的强约束」换「不缺席」，而开局底盘残缺的后果贯穿整个轮回，且玩家与运营都看不见发生过什么。
 
-Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
+Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
 - **Research 为五类分类法之一，语义 = 调整 / 升阶卡组；休养并入闭关（或战斗）；开局强制构筑事件归 Research** → `decisions/ADR-0002-adventure-event-taxonomy.md`。
-- **结算形态 = 复数决策槽的构筑面板；操作清单六类闭合；产出面收窄为卡组 + `manaLimit` + `lifeTotal`；`manaLimit` 下降挂玩家自选风险档；不另收资源代价** → **ADR 候选**（待固化）。
+- **结算形态 = 复数决策槽的构筑面板；操作清单六类闭合；产出面收窄为卡组 + `manaLimit` + `lifeTotal`；`manaLimit` 下降挂玩家自选风险档；不另收资源代价** → `decisions/ADR-0022-research-build-panel.md`（Accepted）。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **`Recuperate` 的回复量与走火入魔候选的出现权重（归 ch1 数值标杆专场）。** 形态已定、取值未定。→ `systems/balance.md`。
-- **功法的层数上限（归 ch1 数值标杆专场）。** `UpgradeTechnique` 的「未达层数上限」这条候选过滤有形态无取值，`ResearchCandidate.Amount` 的取值域待它答定。→ `systems/character-profile/deck/_index.md`、`systems/balance.md`。
+- **`Recuperate` 的回复量与走火入魔候选的出现权重（留待内容扩充后的统计校准）。** 形态已定、取值未定。→ `systems/balance.md`。
+- **功法的层数上限（留待内容扩充后的统计校准）。** `UpgradeTechnique` 的「未达层数上限」这条候选过滤有形态无取值，`ResearchCandidate.Amount` 的取值域待它答定。→ `systems/character-profile/deck/_index.md`、`systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/research.md`（待建）

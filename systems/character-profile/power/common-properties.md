@@ -1,6 +1,6 @@
 # character-power — 共有属性
 
-> CharacterPower 条目的共有字段。**当前为骨架**：唯一已定的是「对标 PlayerPower」这条形状约束；字段清单本身待一次专门 session。
+> CharacterPower 条目的共有字段。**内容定义侧的字段清单在 `_index.md`**（两层共用一个 `PowerData`）；本文件只承载**持有条目侧**的共有字段与形状约束。
 
 ## 已定的约束
 
@@ -15,9 +15,11 @@
 
 Source: `handoffs/2026-08-12b-grant-source-per-kind-scope.md`
 
-## 待定的字段清单
+## 字段清单
 
-⟨待定：能力定义的字段（触发器、效果关键字、flag / modifier 声明）、持有条目的其余运行态字段（`status`、获得于哪个事件、层数？——**`SourceCode` 见上**）、以及是否与 `PlayerPowerData` 共用同一个数据类型——见 `_index.md` 的待决问题。⟩
+- **内容定义侧 = `PowerData`，两层共用一个类型**，由条目上的 `Scope: AbilityScope` 声明自己属于哪一层。字段清单（含 `Abilities` 的三档取值域、`GrantedFlags` / `Modifiers` 两条战斗外通道、三格至少一格非空与战斗外触发式两条加载期校验）的权威在 `_index.md`，本文件**不复述**——复述即制造第二权威，两份各自漂移而本库无机制发现。
+- **触发条件与效果的表达形态**同样不在本层：触发器是 `TriggerConditionData` + 封闭时点常量表、效果原语与关键字体系是 `EffectData` 子类树与 `KeywordData`，两者的权威均在 `../deck/common-properties.md`，`PowerData` 与 `CardData` 共用同一套。
+- **持有条目侧仍待定的一格**：`status`（启用 / 禁用）与「拥有 / 失去」两个正交维度如何编码进 schema，见 `_index.md` 的同名待决项。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/power/common-properties.md`（待建）。

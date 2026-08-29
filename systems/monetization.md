@@ -49,7 +49,7 @@
   | ③ | **兑现结算**（`spec` 组装时） | `TryPickGrantable*` 是否成功 | 理论不可达（② 已拦）。真发生 → `PushError` + 上报 + 该项计未兑现，**不补发、不折价、不降级替代**；③ ④ 两项重试上限不依赖内容池，照常兑现 |
 
   - **闸 ① 只断言「礼包所需 + 余量」，不断言任何「单账号可获取上限」。** 残卷在 `systems/balance.md` 的三表中**没有账号级上限**（`x ≥ 15` 档仍有 `Gain = +1%` / `Cap = 5%`），且「池已取尽 → 静默停摆」本就是它的**既定正常终局**——因此「单账号可获取上限」不是一个有定义的量，闸 ① 不能建立在它之上。收窄后闸 ① 保住了唯一真实的目的（保护付费兑现）且可机械校验。**残卷把池抽干仍按静默停摆处理，不是事故。**
-  - **否决**：为残卷设账号级硬上限（新机制，且与「池取尽 → 静默停摆」重复承担同一职责）；只在兑现处报错而不做前置拦截（让玩家在**付款之后**才撞上失败，是最糟的失败时机）；以灵玉 / 其他资源折价补偿（本作没有账号级可支配货币，为兜底引入一条等于新开一套经济，与残卷「不发放账号级货币」同一条理由）。
+  - **否决**：为残卷设账号级硬上限（新机制，且与「池取尽 → 静默停摆」重复承担同一职责）；只在兑现处报错而不做前置拦截（让玩家在**付款之后**才撞上失败，是最糟的失败时机）；以灵石 / 其他资源折价补偿（本作没有账号级可支配货币，为兜底引入一条等于新开一套经济，与残卷「不发放账号级货币」同一条理由）。
   - **推论：购买入口多一条可用性前置条件**——它并入下方的**四条前置条件表**（不新增拦截点）；入口的 UI 态为**置灰 + 说明、不隐藏**，见 `ux/error-and-blocking-ux.md` 的灰态判据。
   - **玩法内容侧另有一组三道闸，失败处置方向相反（降级到更少而非拒绝进入）；分界判据 = 玩家有没有为这一次产出付过钱，本体见 `systems/services/future-event-service.md`。** 不复述那一侧的规则——两处看似相反，边界只在那一处写一遍。
   - **内容侧硬纪律**：两个通用池的条目总数必须显著大于礼包所需；闸 ① 是它的机械化检查，与 `UsableScene ≤ 1/5` 的比例检查同一处落地。**空池是运营事故，不是玩法分支**——不为它设计兜底玩法。线上 flags 秒关导致的运行时池收缩由闸 ② 兜住，不需要额外规则。
@@ -132,9 +132,9 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
-- **premium bundle = 唯一已陈述的付费点；重试上限是基线值而非常量**（付费放宽为有意的口径变化，见 ADR-0004）。
-- **付费凭证 = `PlayerEntitlement` 的两字段（后端写的授予序号 `BundleGrantOrdinal` + 客户端写的兑现水位 `BundleRedeemedOrdinal`）；序号只由后端推进、兑现由客户端逐一按序演算、只在主菜单发起；可重复购买且 ③ ④ 不叠加；付费面五项明确排除** —— **ADR 候选**（待固化）。
-- **平台内购三渠道（Google Play Billing / App Store / 微信支付）纳入 MVP** —— **ADR 候选**（待固化）。
+- **premium bundle = 唯一已陈述的付费点；重试上限是基线值而非常量**（付费放宽为有意的口径变化，见 `decisions/ADR-0004-realm-checkpoint-retry-model.md`）。**上限的载体形状与选行链路** → `decisions/ADR-0117-chapter-retry-limit-carrier.md`（Accepted：两档表住 `ChapterRetryLimitsData`、按 `HasPremiumBundle` 选行、**不新增任何存档结构**）；**计数落 `CharacterProfile.chapterRetry`** → `decisions/ADR-0101-chapter-retry-counter-carrier.md`（Accepted）。
+- **付费凭证 = `PlayerEntitlement` 的两字段（后端写的授予序号 `BundleGrantOrdinal` + 客户端写的兑现水位 `BundleRedeemedOrdinal`）；序号只由后端推进、兑现由客户端逐一按序演算、只在主菜单发起；可重复购买且 ③ ④ 不叠加；付费面五项明确排除** → `decisions/ADR-0023-premium-entitlement-and-redemption.md`（Accepted）。
+- **平台内购三渠道（Google Play Billing / App Store / 微信支付）纳入 MVP** → `decisions/ADR-0024-in-app-purchase-channels-in-mvp.md`（Accepted）。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_

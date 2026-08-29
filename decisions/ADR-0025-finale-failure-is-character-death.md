@@ -14,7 +14,7 @@
 
 - 判定统一为一条不按档分发的式子：`d >= WinMargin → Victory`；`d == WinMargin − 1` 且 `WinMargin >= 1` → `Draw`；否则 `Defeat`。代入三档 `WinMargin`（`Practice 0` / `Standard 1` / `Finale 0`）即得各档语义；`Draw` 收为仅 `Standard` 可达。
 - `DefeatReason` 新增 `FinaleFailed`（四值）。**终态判定因此不再是纯查表**：Finale 失败不是资源触底、无对应 `CostKey`、进不了 `ResourceElements` 表，须在资源表循环之前补一条显式旁路，且该旁路只在事件结算后的判定②生效。这是表驱动被开的唯一一个口子。
-- `WinMargin` 在 Finale 侧删除（初值 3 / 5 / 8 一并退场），该档**不再有专属难度旋钮**；替代校准手段（天劫赋级带位置 / 定制卡组强度 / `TurnLimit`）归 ch1 数值标杆专场。
+- `WinMargin` 在 Finale 侧删除（初值 3 / 5 / 8 一并退场），该档**不再有专属难度旋钮**；替代校准手段（天劫赋级带位置 / 定制卡组强度 / `TurnLimit`）的取值**留待内容扩充后的统计校准**。
 - 「通过但打平」的区间取最低档奖励，由既有的 `1:1` 强制奖励与 `advantage` 三档换算自动兑现，**零新增字段 / 分支 / 表**。
 - 写入顺序写死：`eventEnd` 的 `TryApply` 提交成功 → 终态判定② → `DefeatCharacter`。
 - `Practice` / `Standard` 两档的失败语义原样不变（只扣 `lifeTotal`，走 `LifeTotalExhausted`）。
@@ -35,7 +35,7 @@
 - **`Draw` 区间判为失败** — 会把「刚好打平」也变成角色终结，而难度口径此时已足够苛（开局落后 5 / 13 / 25）。
 - **借道 `DefeatReason.LifeTotalExhausted` 表达渡劫失败** — 见上，需为 `LifeTotal` 开置值通道，且失去可观测性。
 - **为「最低档奖励」新造一条奖励线** — 既有两条换算规则已自动给出该档（验算：各章该区间 `advantage` 上界 0.133 / 0.125 / 0.093，整体落在 `Tier.Narrow`）；为已被满足的需求造结构会新增一个 `Tighten` 够不到的旋钮。
-- **为 Finale 补一个新的难度旋钮** — 数值校准归 ch1 标杆专场，此刻凭直觉选旋钮与该分工相悖。
+- **为 Finale 补一个新的难度旋钮** — 难度校准依赖内容扩充后的统计样本，此刻凭直觉选旋钮与「先定形状、后定数值」的分工相悖。
 
 ## 后果
 

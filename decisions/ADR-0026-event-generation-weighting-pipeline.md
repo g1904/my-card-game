@@ -52,5 +52,5 @@
 - **`eventType == Travel` 的条目 `ChapterScope` 必须为空，加载期 `PushError`。** Travel 是结构性通道而非内容；不豁免则某章无命中的 Travel 条目时闸门批产不出选项，「Travel 兜底恒可产出 ⇒ 无轮回死锁」这条承重结论当场失效。
 - **`PlotModulation.EventWeights` 的措辞由「权重加成」松动为乘性系数**（字段类型 / 数量 / 位置全不变）。
 - **`content/adventure-event/` 类型档案开张时**（`/scaffold-content-type adventure-event`）须把 `SelectionWeight` 与 `ChapterScope` 纳入字段核对清单——当前该档案尚未开张，两格在内容层无回填面。
-- **仍然开放**：`BaseTypeWeights` 与 `combatTier` 三档的配比取值、`BatchSizeWeights` 与 `SelectionWeightGrades` 的初值校准，全部归 ch1 数值标杆专场。本 ADR 只定算子与结构，不定任何数字。
+- **仍然开放**：`BaseTypeWeights` 与 `combatTier` 三档的配比取值、`BatchSizeWeights` 与 `SelectionWeightGrades` 的初值校准，全部**留待内容扩充后的统计校准**。本 ADR 只定算子与结构，不定任何数字。
 - `systems/common-properties.md` 不受影响：`Rarity` 对 `AdventureEventData` 的排除原样成立（本条落的是 `SelectionWeight`，不同名不同表）。

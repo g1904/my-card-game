@@ -24,6 +24,7 @@
   - **绑定列表**:每个渠道一行,已绑显示绑定时间 + 「解绑」,未绑显示「绑定」。竖屏 `VBoxContainer`,行高满足触控目标尺寸。**只列出本版本已实现的渠道**(首版两行),依据同 `onboarding.md` 的登录屏渠道呈现。
   - **昵称在同屏可编辑**(首版无头像):点按进入输入 → 提交 → 等待后端判定 → 失败按 `code` 出 `ErrorText`。**不做本地即时预览式改名**——后端可能拒绝,先改后回滚在观感上像 bug。
   - **两处必须的二次确认:** ① **解绑**(不可逆地移除一条登录方式);② **绑定失败为「该渠道已绑到另一个账号」时**——必须明确告诉玩家那个渠道下有另一份进度、**绑定不会合并两份存档**,否则玩家会以为是 bug。这一条直接对应后端契约「绝不做隐式账号合并」。
+  - **同屏另有一区「持有的古宝」**:只读列出当前持有的账号级古宝与各自的剩余 `Charges`,**不可售出、不可使用**——古宝的使用面在轮回内(储物袋 / 战斗内的「随身」),它的退出通道只有置换。**理由**:古宝是付费礼包的主要交付物,而储物袋只在轮回内存在 ⇒ 没有这一区,玩家在轮回外就看不到自己买到的东西,而「付了钱看不到货」正是退款争议的常见诱因。**不为它新增主菜单入口**(商业化入口的克制布局见下)。文案走 `PROFILE_` 分区。持有量与剩余次数的字段面见 `systems/player-profile/player-item/_index.md`——它与只记静态文案的图鉴是两回事。
   - 字段与写入方见 `systems/player-profile/account-info.md`;方法面与失败映射见 `systems/services/account-service.md`。
 
 - **Settings(设置)屏 = 三段 + 一行只读诊断,竖屏单列。**
@@ -82,7 +83,7 @@
   ```
   ┌─────────────────────────────────────┐
   │ [安全区]                             │
-  │ 炼气七层 · ❤10 · ✦5/5 · 灵玉 120     │  ← 角色状态条（含寿元告警的静态标注）
+  │ 炼气七层 · ❤10 · ✦5/5 · 灵石 120     │  ← 角色状态条（含寿元告警的静态标注）
   │ ▓▓▓▓▓▓▓░░░ 经验 5/7   [袋]6 [卡组]  │  ← 经验条 + 储物袋 + 卡组入口
   ├─────────────────────────────────────┤
   │  ← ← ←   eventOptions 横向滑动选择区  │
@@ -91,12 +92,22 @@
 
   - **经验条常驻(承重)**:显示 `当前 / 本级阈值`。它在 ch1 是锦上添花,**在 ch2 · ch3 是唯一的连续进度感来源**——那两章每 9–11 个事件才升一级,中段会出现连续十几分钟毫无等级反馈;玩家读到「还差 12 点到筑基中期」,就有了跨越十来个事件的中期目标。**这同时是「中长期规划感的来源」那条长期待答的一个答复**(时间那一半;地理那一半由 `LocationCodex` 承担)。**与寿元隐藏纪律不冲突——经验从未被定为隐藏属性**,它是明面的成长量。
   - **配套纪律:eventOption 卡片上不标注该事件的经验产出档位**(与「给方向不给数字、不可电子表格化优化」一致)。**玩家看得到自己的进度,看不到单个事件的标价。** 已知风险:新手可能困惑「怎样才能升级」——**若实测确有困惑,「标档位不给数字」是预留的退让位**(属实测调整,不是重新裁决)。
-- **储物袋不进主菜单,它是轮回内的角色面板。** 主菜单入口全是 **PlayerProfile 级**,而储物袋 `CharacterProfile.magicPack`(`List<CharacterItem>`)是 **CharacterProfile 级、随轮回清理**——入口因此挂在**角色状态条**上(点按「袋」图标)。
-  - **形态 = 全屏面板**(不是抽屉:元进程界面空间充裕,详情与筛选都要展开空间)· **纵向滚动网格,不分页**(窄屏 4 列、平板 6 列,由 `GridContainer` 的 `columns` 随宽度调整;分页在触控上多一次操作、需要页码控件,且「第几页」对无位置语义的道具毫无意义;99 项 = 约 25 行,滚动完全可接受)。
+- **储物袋 = 跨两个持久层的呈现视图,不进主菜单。** 它**同时呈现两级持有物**:轮回级法宝(`CharacterProfile.magicPack`,`List<CharacterItem>`)与账号级古宝(`PlayerProfile` 持有的 `PlayerItem`),条目上带 `AbilityScope` 标识来源——与战斗内的「随身」同形,元界面沿用同一形状。两级的字段面与规则权威见 `systems/character-profile/item/_index.md` 与 `systems/player-profile/player-item/_index.md`。**入口挂在角色状态条上**(点按「袋」图标):主菜单入口全是 **PlayerProfile 级**,而储物袋含轮回级持有物 ⇒ 它只在轮回内存在。
+  - **形态 = 全屏面板**(不是抽屉:元进程界面空间充裕,详情与筛选都要展开空间)· **纵向滚动网格,不分页**(窄屏 4 列、平板 6 列,由 `GridContainer` 的 `columns` 随宽度调整;分页在触控上多一次操作、需要页码控件,且「第几页」对无位置语义的道具毫无意义)。**容量不设硬上限**,由纵向滚动承载——滚动网格对任何现实量级都成立,不需要为它设分页或量级护栏。
+  - **面板内同时呈现灵石与仙玉的当前持有量。** 角色状态条上只常驻灵石一项,而**仙玉的非战斗查看落点唯一落在储物袋**——不给它显示位,这条落点就落空,玩家在轮回内无处得知自己持有多少仙玉。两币并列呈现即可,不再另设第二个查看入口。币的层级与字段面见 `systems/character-profile/currency.md`。
   - **筛选 = 顶部一排 chip(单选)**:`全部` / `战斗可用` / `战斗外` / `已耗尽` —— 全部基于既有字段(前三项读 `UsableScene`,末项读 `Charges == 0`),**不新增字段**。**排序 = 右上图标按钮 → 弹出单选**,默认**「获得时间倒序」**(刚拿到的想看看,是最高频意图),备选类型 / 剩余次数升序 / `ManaCost`。
-  - **同 `Id` 堆叠显示 `×N`**(同一 `Id` 的道具**可以持有多份**,见 `systems/character-profile/item/`):既让 9 格上限只约束**种类数**、不约束重复持有,也消除「同名道具满屏」的视觉噪音。
+  - **同 `Id` 堆叠显示 `×N`**(同一 `Id` 的道具**可以持有多份**,见 `systems/character-profile/item/`):消除「同名道具满屏」的视觉噪音。
   - **不做拖拽整理 / 手动排序**(手动排列是纯负担,且道具无位置语义,不像装备栏)。**长按查看详情**(半屏卡片:全名 / 描述 / `ManaCost` / `Charges` / `UsableScene`)——禁 hover-only 可供性,长按是触控等价物。
   - **战斗外可用的道具在此面板内可直接使用**(详情卡片上一个「使用」键);战斗内可用的**在此只能查看**,标注「须在战斗中使用」。
+    - **就地生效、就地反馈,不开新屏、不加弹层。** 按下即结算:条目 `Charges` 立即 `-1`、堆叠 `×N` 与「已耗尽」chip 立即重算——与「售出后条目直接移出列表」同一处交互层级。**不做二段确认**:使用不像售出那样不可逆地损失资源,它就是玩家点进来要做的那件事,加一层确认只是在最高频操作上多一次点击。
+    - **本轮回被禁用的条目「使用」键灰显**(仍在列表内、`Charges` 分毫不动),与「本场可用道具」的过滤同一条判据。
+    - **回寿数值照既有寿元 Band 门控**:Band 0 / Band 1 只给定性文案(「服之可补益寿元」),**Band 2 才由 UI 追加一行精确 `+n`**。这是寿元档位表已登记的消费方之一,不新增字段、不新增开关;门控口径的权威见 `systems/adventure-event/common-properties.md`。
+    - 使用相关文案同样走 **`PROFILE_` 分区 / `profile.csv` 的普通键**,不写文案字面量、**不占 `ERR_` 前缀**(本地业务提示,没有后端 `code`)。
+  - **详情卡片上另有一个「售出」键,只对法宝出现。** 准入判据复用那条代码级常量(可售出 ⟺ `ExchangeGoodsKind == CharacterItem`)⇒ 古宝上**「售出」键不出现、不留灰占位**——恒真的不可用项不出现(下方 Exchange 屏「买不起则灰显」针对的是**可变**状态,两者不矛盾)。
+    - **回收价预览在按下第一段之前即可见**,且**币种随该条目自身的定价币种**(同币回收,未必是灵石)——同一个储物袋里可同时出现以灵石回收与以仙玉回收的法宝,只给数字则玩家读不出到手的是哪一种。回收率、折算基准与算式**在此一律不复述**,权威见 `systems/character-profile/item/_index.md` 与 `systems/balance.md`。
+    - **就地二段确认**(「售出」→「确认售出 · 价格 + 币种」),**不新开屏、不新增弹层**:售出不可逆且有资源损失,值一次确认;而「不在高频操作上加模态弹层」的克制取向同样成立,故确认就地发生在详情卡片内。
+    - **售出后条目直接移出列表,不留「已售」占位。** 储物袋是**持有物**列表,留一件已不持有的东西是显示假象——与 Exchange 屏「售罄的 offer 保留占位」判据不同:那里保的是「我这次买了什么」的现场记忆。
+    - 售出相关文案全部走 **`PROFILE_` 分区 / `profile.csv` 的普通键**,不写文案字面量、**不占 `ERR_` 前缀**(它是本地业务提示,没有后端 `code`)。
   - 战斗内那一份筛选视图称**「随身」**(角标 + 底部抽屉),见 `ux/combat-ux.md`。
 - **两段告警的呈现细节 = 静态标注于 EventOption 选择界面。** 形态是**静态标注**(static annotation):数值 / 文案随事件结算而变,**平时静止**,不做持续跳动 / 计时器感的动画。位置**只在 EventOption 选择界面**——即玩家做抉择、也正是寿元被消耗的那个界面;**不做全局 HUD、不进战斗内**(见 `ux/combat-ux.md`)。
 - **「渡劫成功次数」与「总通关数」是两个数,并列展示且允许不相等。** 数据源分属两层:**渡劫成功次数**读 `PlayerProfile.PlayerPowerFragment.FinaleWinOrdinal`(规则字段层,统计侧刻意不另设 Finale 胜利数字段);**总通关数**读统计计数层的 `TotalCyclesCompleted`(完成整个轮回 = 三篇章全通 · 抵达元婴)。一次通关贡献 3 次 Finale 参与、至多 3 次成功,而 Finale 成功可完全不伴随通关,故**二者在任何账号上都不相等**。**呈现纪律:措辞不得暗示二者应当一致**;渡劫成功次数恒等于已完成的篇章数,而通关要求三篇章连成一次完整轮回——**中途身死的那些篇章成功照样计数**。落点为玩家档案与元婴界面(通关证书)的统计区。
@@ -114,7 +125,7 @@
 
     ```
     横滑选择区 ──点选──▶ [支付 · 终态判定 ①] ──▶ ┌── 揭示转场层（全屏，安全区内） ──┐ ──▶ 真身事件屏
-                                                  │  遮罩卡放大居中 → 散雾 / 翻面      │      Combat → 战斗前展示
+                                                  │  遮罩卡放大居中 → 散雾 / 翻面      │      Combat → 战斗前确认页
                                                   │  → 露出真身标题卡                  │      Travel  → 单一目的地的 Travel 结算
                                                   │  ≈ 1.2s，全屏任意触点即跳过        │      Exchange→ 交易界面
                                                   └────────────────────────────────────┘
@@ -132,12 +143,31 @@
     | 文案 | `res://text/` 翻译键；此路径不产生 `ERR_*` 键 |
     | 音效 / 震动 | 一次短音效，**无震动**（时长与音效均为待实测初值） |
 
-  - **不设「确定进入」按钮**：成本已支付、规则层不可回退，一个只能点「确定」的按钮是纯粹的额外操作，而这是全游戏最高频的操作路径（与「不在最高频操作上加模态」同一条纪律）。
+  - **揭示转场层自身不承载确认**：它是一层演出、不是决策面，跳过即落到真身屏。成本已支付、规则层不可回退，此处没有任何可供裁决的东西，加一个只能点「确定」的按钮就是在全游戏最高频的操作路径上多一次纯操作（与「不在最高频操作上加模态弹层」同一条纪律）。**真身为 Combat 时的那一次确认由战斗前确认页承担**（见下）——Explore → Combat 全程仍只确认一次。
   - **跳过是全屏任意触点，不是角落里的小按钮**——触控目标尺寸问题在此一次性消失，且反复游玩的玩家会自然形成「点一下过场」的肌肉记忆。
   - **不做二次揭示分层**（先揭示类型 → 再点一次揭示内容）：把一个瞬间拆成两次点击，每次秘境多一次操作，收益只有一点仪式感。
   - **真身是 Travel 时**揭示卡直接显示目的地名（只有一个，物化时已掷定），随后照常结算——**不给「去 / 不去」的选择**（秘境把人带到别处，且 `selectCost` 已付、规则层无拒绝通道）。
+- **战斗前确认页。** Combat 事件在开打之前的一屏——常规路径与 Explore 揭示出 Combat 真身的路径**共用同一页**。它是图鉴解锁的回报时刻：事前知识在此兑现，开打之后不再有任何图鉴入口（见 `ux/combat-ux.md`）。
+
+  | 项 | 取值 |
+  |---|---|
+  | 载体 | 事件流程内的**一屏全屏**（安全区内）——不进屏幕栈、**无返回路径** |
+  | 确认 | 底部一个「进入战斗」主按钮；**不做二次确认** |
+  | 常驻标注 | 一行并列双方等级（`我 · 筑基中期 ⟶ 敌 · 筑基后期`），**恒显示** |
+  | 图鉴摘要区 | 该敌人已在 `EnemyCodex` 解锁 → 呈现其词条全文五项 + 功法词条入口；**未解锁则整块不出现** |
+  | hover | 零 hover 通道，信息常驻可见或长按展开 |
+  | 文案 | `res://text/` 翻译键：页面框架文案走 `COMBAT_` 分区，摘要区内图鉴族的项目标签复用 `PROFILE_` 既有键；此路径不产生 `ERR_*` 键。**词条正文不走翻译键**——它是内容层 `LocalizedText`（`ux/_index.md` 的四问判据） |
+
+  - **本页不提供返回地图的通道。** 成本已支付、规则层不可回退，故这次确认表达的是「我看完了，开打」，不是「要不要打」——它只新增一次确认操作，不新增可退出通道。玩家退出到主界面照既定的静默退出形态处理，本页不为它另加提示。
+  - **一次确认是这条路径上唯一新增的操作，「不在最高频操作上加模态弹层」照旧成立**：本页是流程内的一屏，不是浮在别的屏之上的弹层，也不打断任何进行中的呈现。
+  - **敌人等级只标注一次。** 这一行既是本页的实例信息标注，也是图鉴词条在此处的实例页眉——**词条正文绝不写等级**（词条挂模板、跨轮回持久，而同一模板会以不同等级出场），实例信息由本页这一行承担，**摘要区内不再另设页眉**，同一屏上不出现两处等级。措辞沿用既定口径：境界名 + 层级、**不做方向标记**、全局序 1–22 不出现在任何 UI 上；并列双方是为把比对成本降到零（与 `EventOption` 战斗类卡片同一口径）。**该行与图鉴解锁状态无关**——等级是这场遭遇的实例信息，不是图鉴词条内容，未解锁时照常精确标注。
+  - **摘要 = 词条全文，不另切一层。** 词条本就写成一屏读完的长度，再切一版摘要是多一套写作规格、多一处会漂移的文案。词条②的功法名由引用字段在呈现层渲染、**可点入功法词条**；功法词条以**半屏 bottom sheet** 呈现（与「随身」抽屉、图鉴族同一套控件语言），可下滑关闭、**不离开本页**。词条的写作规格与渲染规则见 `systems/player-profile/codex/enemy-codex.md`。
+  - **未解锁 → 摘要区不出现，不留灰占位、不做「尚未收录」空槽。** 摘要区的有无本身就是「见没见过它」的呈现；首遇的信息差是这场遭遇的风险定价，而一个常驻的空槽只会把它变成一句每场重复的提醒。
+  - **触控与安全区：**「进入战斗」按钮落**底部拇指可达区**、满足触控目标尺寸下限、在安全区内（避开 Home 指示条）；摘要区纵向滚动时按钮不随之移出视野。
+  - 本页的存档与同步语义不在此处陈述，见 `systems/services/combat-service.md`。
+
 - **Exchange（交易）屏。**
-  - **offer 以纵向可滚动网格呈现**,每格 = 图标 + 名称 + 价格。竖屏一屏内可见多格,不做横滑——横滑区已是事件选择面的语汇,商店复用会让两个层级的操作读成同一件事。
+  - **offer 以纵向可滚动网格呈现**,每格 = 图标 + 名称 + 价格。**价格必须标明币种**(数字 + 币种标识)——支付币种由「族 × 稀有度」定价表的那一格决定(见 `systems/balance.md`),因此同一家店内可同时出现以灵石计价与以仙玉计价的商品;只给数字则玩家读不出这件商品要花哪一种,买不起时的差额提示也失去对照。竖屏一屏内可见多格,不做横滑——横滑区已是事件选择面的语汇,商店复用会让两个层级的操作读成同一件事。
   - **买不起 → 灰显但价格保持可见**,点按给一条说明「差哪一样」的提示(由 `ApplyResult.MissingElement` 驱动)。**这与事件选择面「不设置灰态」并不矛盾**,两处出自同一条判据「明知做不到仍然去做有没有意义」:事件面有意义(明知是死路仍然走),商店里点一件买不起的商品没有任何意义。规则权威见 `systems/adventure-event/exchange/_index.md`。
   - **售罄的 offer 保留占位并标「已售」,不从网格移除。** 移除会让布局跳动,且玩家失去「我这次买了什么」的现场记忆。
   - **刷新按钮(若该条目开放刷新)常驻底部**,标注当前刷新价与剩余次数;首批内容一律关闭刷新,故它通常不出现。
@@ -153,7 +183,7 @@
 - **三种终局态共用一个阻塞屏。** 需更新(强更)、被挤下线、存档读取失败三者形态同构,收敛为一个 `BlockingNoticeScreen` + 变体表(全屏 · 无返回 · 主按钮永不是「继续游玩」 · 底部诊断编号可长按复制)。**三个变体不等于三处硬阻塞**——阻塞点仍是既定两处。见 `ux/error-and-blocking-ux.md`。
 - **美术挂点占位。** 循环视频、图标、卡面等 TBA;组合场景时为其保留可轻松替换的挂点,先用占位 / 免费资源。
 
-Source: `handoffs/2026-07-16-...` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-...` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-...` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md`
+Source: `handoffs/2026-07-16-...` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-...` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-...` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

@@ -118,6 +118,7 @@
 - **启动契约：** `_Ready` 只装配，I/O 归 `IBootstrappable.InitializeAsync(ct)`，由 Bootstrap 屏幕按固定顺序驱动。
 - **EventBus 用 C# 泛型 `event` + `readonly record struct` 负载**（不用 Godot `[Signal]`——负载须继承 `GodotObject`，每次广播分配 + `Variant` 装箱，撞上本文件「不做隐式装箱 / 转换」与热路径不分配）。**负载只带 `Id` + 值类型，绝不带 `CharacterProfile` / `Resource` / 定稿实例引用**；订阅方 `_Ready` 订阅、`_ExitTree` 退订。
 - **`CostSpec` / `RewardSpec` 合并为单一 `ProfileChangeSpec`**（`ChangeElement.BaseValue` 带符号：负 = 消耗，正 = 产出）——「全有或全无、单点提交」本就要求成本与产出在同一事务内。
+  - **分列判据补一句：载荷类型不同、且该列的入口校验绑定在载荷类型上时，同样判分列**——即便两列的施加语义同形。合并这样的两列要把载荷改成 sum type、把入口校验改成按载荷类型分支，而那正是分列要消掉的东西。判据本体（三级落点与可机械核对的六个面）在 `systems/architecture.md`「共享核心类型」，本处只补这一条边界。
 - **capability flag 的载体是 C# `enum CapabilityFlag`**，不是字符串 key：flag 的消费点必然是一段 UI 代码，字符串只是把「拼错了」从编译期推迟到运行时。可加的是 `.tres` 里**谁授予哪个已定义的 flag**。
 - **API 书写规范：** 各服务文档的「API 面（契约）」小节统一为四列表 **方法 | 形态(A/B/C) | 完整签名 | 失败语义**；形状依赖未答问题的写 `⟨待定：链接到待决项⟩`，不留空白也不臆造。
 
@@ -153,13 +154,14 @@ Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hie
 >
 > **为什么必须明写「本层无规则消费点」而不是省略：** 省略与「还没想」不可区分。
 
-**当前顶层五个共有字段的归属核对（判据的一次全量自检 · 无一需要迁移）：**
+**当前顶层六个共有字段的归属核对（判据的一次全量自检 · 无一需要迁移）：**
 
 | 字段 | 挂载面 | 最小公共祖先 | 结论 |
 |---|---|---|---|
 | `ContentEnabled` | 一切 `XxxData` | 顶层 | 留顶层 |
 | `LocalizedText` | `CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PowerData` / 档位条目 / 剧本 | 顶层 | 留顶层 |
-| `Rarity: RarityTier` | `PowerData` / `ItemData` / `CardData` | 顶层 | 留顶层 |
+| `Rarity: RarityTier` | `PowerData` / `ItemData` / `CardData` / `CultivationTechniqueData` | 顶层 | 留顶层 |
+| `Artwork: Texture2D` | `CardData` / `EnemyData` / `PowerData` / `ItemData` / `CharacterData` / `LocationData` / `AdventureEventData` | 顶层（跨多棵子树） | 留顶层 |
 | `SourceCode` + `Source` | PlayerPower / PlayerItem / CharacterPower / CharacterItem 四类**持有条目** | 顶层 | 留顶层 |
 | `ExclusiveSource: Source?` | `PowerData` / `ItemData` | 顶层（跨两棵子树） | 留顶层 |
 
@@ -191,7 +193,7 @@ public partial class LocalizedText : Resource
 }
 ```
 
-- **挂载面 = 一切面向玩家的内容文本字段：** `CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PowerData` 的**显示名 · 描述 · 风味文案**；`PowerData` / `ItemData` 顶层的图鉴风味文案 `CodexFlavor`（可选，见下）；`HiddenStatBandData` 的档位叙事条目；Finale 的渡劫身死文案；AdventurePlot 的剧本正文与分支文本。
+- **挂载面 = 一切面向玩家的内容文本字段：** `CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PowerData` 的**显示名 · 描述 · 风味文案**；`PowerData` / `ItemData` 顶层的图鉴风味文案 `CodexFlavor`（可选，见下）；**`EnemyData` 的台词（`EnemyLine.Text`，形态见 `systems/enemies/_index.md`）**；`HiddenStatBandData` 的档位叙事条目；Finale 的渡劫身死文案；AdventurePlot 的剧本正文与分支文本。
 - **不挂载：** `Id`、任何数值、任何枚举、`ContentEnabled` / `Rarity` / `ExclusiveSource` 等结构字段。
 - **可选的 `LocalizedText` 字段：「缺失」= 字段本身为 `null`（承重）。** 有的展示文本字段本就可以整段不存在（`CodexFlavor` 是第一个：图鉴详情页缺它就不渲染风味段）。**这类字段留空的形态是 `.tres` 里不挂这个子资源**，语言强校验只对**已挂上的 `LocalizedText`** 执行；挂了却默认语言为空串仍是坏数据。
   - **不引入「必填 / 可选字段分类清单」**：那会长出一份要逐字段维护的表，且每加一个展示文本字段都要先回答「它属哪一类」——把一条可机械判定的校验降级为要读上下文。
@@ -212,12 +214,38 @@ public partial class LocalizedText : Resource
 
 ### 内容共有字段 `Rarity: RarityTier`
 
-- **凡「会被抽取或置换」的内容定义都带 `Rarity`**：`PowerData` · `ItemData` · `CardData`。`AdventureEventData` **不需要**（事件不进抽取池的稀有度维度，它的出现由权重与优先级控制）。
+- **凡「会被抽取或置换」的内容定义都带 `Rarity`**：`PowerData` · `ItemData` · `CardData` · `CultivationTechniqueData`（功法整体标一个稀有度，组内各卡不各自表达，见 `systems/character-profile/deck/_index.md`）。`AdventureEventData` **不需要**（事件不进抽取池的稀有度维度，它的出现由权重与优先级控制）。
 - **`RarityTier { Tier1, Tier2, Tier3, Tier4, Tier5 }`，五档，档号越高越稀有。**
 - **落在内容定义上，不落在持有条目上**——与 `SourceCode` 恰好相反：稀有度是**内容本身的属性**（同一条法则无论从哪来都是同一档），来源是**这一次获取的属性**。
 - **类型名是 `RarityTier`，不是裸 `Tier`（硬约定）。** `Tier { Narrow, Solid, Crushing }` 已被战后奖励的**优势档**占用（道念差归一化后的碾压程度）。**两者不得复用同一枚举，也不得互相换算**；准确口径是「稀有度权重表按 `RarityTier` 五档索引，由优势档 `Tier` 三档选表」。见 `systems/balance.md`。
-- **三个消费点：** ① 战后奖励池的稀有度权重；② **置换候选池的过滤键**（同 `(Kind, Scope)` 且同 `Rarity` 才同池，见 `systems/player-profile/player-power/_index.md`）；③ **账号级授予池的加权键**（残卷 / 礼包共用一张「授予池稀有度权重表」，见 `systems/balance.md`）。
-- **加载时校验：** 缺失 → `GD.PushError`（默认值会让漏填条目悄悄落进 `Tier1` 池并污染置换候选）。
+- **四个消费点：** ① 战后奖励池的稀有度权重；② **置换候选池的过滤键**（同 `(CarrierKind, Scope)` 且同 `Rarity` 才同池，见 `systems/player-profile/player-power/_index.md`）；③ **账号级授予池的加权键**（残卷 / 礼包共用一张「授予池稀有度权重表」，见 `systems/balance.md`）；④ **功法档的抽取权重与过滤**：战后奖励池的稀有度权重（见 `systems/services/combat-service.md`）· 商店 `CultivationTechnique` 族库存的 `RarityFilter` 与权重表（见 `systems/adventure-event/exchange/common-properties.md`）· 闭关（Research）功法三选一的加权取池（见 `systems/adventure-event/research/common-properties.md`）。
+- **被功法引用的成员卡：`CardData.Rarity` 保持必填，但本层无规则消费点。** 该组卡牌的抽取一律看功法档；成员卡从散牌产出侧排除的通则与加载期告警见 `systems/adventure-event/exchange/common-properties.md` 与 `systems/character-profile/deck/_index.md`。**不新增「是否为功法成员」字段**——唯一权威是功法侧的每层卡牌 `Id` 列表，再加一格即第二权威。游离散牌照常携带卡牌级稀有度参与奖励池。
+- **加载时校验：** 缺失 → `GD.PushError`。默认值会让漏填条目悄悄落进 `Tier1` 池并污染置换候选；对成员卡同样必填，是因为商店定价表按「商品族 × 稀有度」索引，改成可空会给漏填开一个口子。
+
+### 内容共有字段 `Artwork: Texture2D`
+
+**一条内容一张主视觉资产，字段形态在全库只有这一份定义；各落点写投影段解释「本层是什么图」。**
+
+```csharp
+[Export] public Texture2D Artwork { get; set; }   // 可空；null = 尚未产出，呈现层回落占位资产
+```
+
+- **挂载面 = 七类内容定义：** `CardData`（卡面插画）· `EnemyData`（敌人立绘）· `PowerData` / `ItemData`（法则 / 神通 / 古宝 / 法宝 图标）· `CharacterData`（角色形象）· `LocationData`（事件背景板）· `AdventureEventData`（事件插图）。资产规格与关键约束逐类目见 `art/visuals/_index.md`。
+- **不挂载：** 任何运行时 / 存档态类型（`CardInstance` / `EnemyInstance` / `EventOption` / `CodexEntry`）——那一层只带 `Id` + 可变状态，见「展示字段的归属」。
+- **功法（`CultivationTechniqueData`）不挂：它没有独立的视觉资产。** 资产类目表里没有功法一行，`TechniqueCodex` 的词条构成也不含立绘；图鉴族的功法词条以名称 / 描述 / `Rarity` + 可选风味文案构成。日后确需一张功法图是纯加法。
+- **字段名取 `Artwork`（单数、类型中立），不取 `Portrait` / `Icon` / `Illustration`。** 同一格在敌人身上是立绘、在卡牌上是卡面、在法则上是图标；按判据卡上移到顶层的字段必须用**跨落点同义**的名字，落点差异由各层投影段的「本层语义」一行承载（同 `Rarity`）。**不拆成三个按用途分立的字段**：同一敌人在图鉴与战斗屏复用同一张资产，分立会让每个内容类都要回答「我该填哪几格」，且三格中至少两格恒空。
+- **取直接资源引用，不取路径字符串、也不取按 `Id` 的约定路径推导。** 三条理由各自自足：
+  - 路径形态（`[Export(PropertyHint.File)] string ArtworkPath` + 运行时加载）同时撞本文件两条纪律——「绝不用场景路径作为内容的键」与「不散落 `ResourceLoader.Load`」；按 `Id` 推导路径撞得更狠，它把资产寻址完全建立在文件路径上。
+  - 直接引用在 `.tres` 里落为 `ExtResource`，编辑器可拖拽、类型受检，**悬空引用由引擎在资源加载期报出**，本库不另写悬空校验、也不需要一张「前缀 → 去哪查」的约定表（同 `PoolScope` 取具名 `Id` 字段而非 tag 的判据）。
+  - **插画内不得烧入承载可翻译语义的文字**（适用全部资产类目，见 `decisions/ADR-0084-no-baked-in-translatable-text.md`）⇒ 视觉资产与 locale 无关 ⇒ 它是裸 `Texture2D`，不需要 `LocalizedText` 那样的多语言结构。
+- **可空是常态，缺失不是坏数据。** 美术挂点先占位、末段替换是路线级安排（见 `decisions/ADR-0006-development-phase-order.md` 与 `vision/scope.md`）；若 `Artwork` 必填，第一批 `.tres` 会在美术产出之前全部过不了 `LoadAll()`。判据与 `AiProfile == null` 合法、`PoolScope == null` 合法同款——**漏填的后果是显示一张占位图，不是死内容、不产生静默污染**（对比 `EncounterScopes` 空数组 → 条目永不进池 → `PushError`）。
+- **告警形态 = `LoadAll()` 收口的一行汇总，逐条目不告警：** `[Content-LoadAll] Artwork 缺失 N 条（按类型分布：…）`。**逐条目 `PushWarning` 不可取**——在近乎全部条目都为 `null` 的阶段，一条对**全部**条目触发的告警训练出的行为是忽略整个告警通道；纪律选级第 3 级的形态本就是启动期审计，不是逐条目刷屏（见 `decisions/ADR-0013-discipline-enforceability-ladder.md`）。缺失明细的机械核对归 asset 清单完备性校验（尚未答定）。
+- **占位资产只有一处**：由 ViewModel 层统一提供 `res://art/_placeholder.png`（该文件归 `game-feature-branch/`，本库只登记这条约定），与 `LocalizedText.Get()` 的回落唯一入口同一种偏好。落点见 `systems/viewmodel.md`。
+- **overlay：** overlay 覆盖一条 `.tres` 时 `Artwork` 随之被覆盖；**指向必须落在随包基线内已存在的资产**。二进制资产本身能否经 overlay / blob 通道下发**尚未答定**（见 `open-questions/deferred-content.md`），故本条只陈述可机械成立的那一半。
+- **不落存档、不进上行负载**，不 bump schema、无迁移、后端零配合——它是内容定义的属性，同 `LocalizedText` / `ExclusiveSource`。
+- **消费点 = ViewModel 组装**（见 `systems/viewmodel.md`）。各层的具体消费屏在该层的投影段点名。
+- **⚠ 基数的前置依赖：本格按「一条内容一张」给出。** 若「境界晋升是否改变角色 / 敌人外观」答为「随境界改变」，`Artwork` 须升为按境界索引的结构，本节的形态要重做。该项见 `open-questions/deferred-content.md`。
+- **已知代价（明写接受 + 退让阶梯）：** `ExtResource` 直引使 `LoadAll()` 把全部条目的贴图一并驻留内存。条目量级 × 移动端压缩贴图，量级上可接受；**若真机实测超包体 / 内存预算，退让阶梯是**：① 先降资产分辨率与压缩格式（纯资产侧，零结构改动）→ ② 才考虑改为路径字符串 + 在 ViewModel 层开**唯一一处**受控的资产加载入口（仍不散落 `ResourceLoader.Load`）。给出阶梯是为了让「内存不够」有一条不必重开本节形态裁决的出路。
 
 ### 授予来源共有字段 `SourceCode` + `Source` 枚举
 
@@ -230,8 +258,8 @@ public partial class LocalizedText : Resource
   - **映射只在 `sync-service` 组装上行负载时做一次，不在 `profile-service` 内部做**——存档态与内存态始终是 code，避免同一个值在内存里有两种形态。
   - **连带纪律（承重）：成员名与 code 双双冻结。** 存档侧靠 code、契约侧靠名，**两者各自都是稳定键**：重命名一个成员在**两侧都是**破坏性变更，已删成员的名与 code **同样永不复用**。
   - **未知取值：记录原值、不改写、不拒收。** 归一为 `Unknown` 会压低 `x`、让残卷档位回跳，推翻「`x` 单调不减 ⇒ 档位只降不回跳」这条承重不变式。
-  - **`(Kind, Scope) → 允许的 Source 集合` 那张静态表只约束客户端组装，后端不复制**——后端只做取值识别与 `x` 复算。
-- **成员清单 = 八值 + 兜底：**
+  - **`(CarrierKind, Scope) → 允许的 Source 集合` 那张静态表只约束客户端组装，后端不复制**——后端只做取值识别与 `x` 复算。
+- **成员清单 = 九值 + 兜底：**
 
   | 成员 | code | 语义 | 计入残卷的 `x` |
   |---|---|---|---|
@@ -243,17 +271,18 @@ public partial class LocalizedText : Resource
   | `CombatReward` | 5 | 由 **combat-service** 在 `RunCombatAsync` 收口段算定、经 `CombatResult.Spoils` 交出的授予（含强制与可选两类；`Finale` 档的残卷那一路仍走 `FinaleWin`） | 否 |
   | `ExchangePurchase` | 6 | Exchange（交易）事件中购买所得 | 否 |
   | `InitialGrant` | 7 | 开局初始持有（角色创建时随 `CharacterProfile` 初始化的起手配置） | 否 |
-  | `ExchangeSell` | 8 | Exchange 中被玩家**卖给**商店（**唯一一个只出现在 `Op == Remove` 上的成员**） | 否 |
+  | `ExchangeSell` | 8 | Exchange 中被玩家**卖给**商店（只出现在 `Op == Remove` 上） | 否 |
+  | `PackSell` | 9 | 玩家在**储物袋内随手售出**法宝，发生在事件之外（只出现在 `Op == Remove` 上） | 否 |
 
   **清单是开放的，不封闭在账号级那几条途径上**：神通 / 古宝 / 法宝各有真实存在的来路，字段应如实记录它们，否则轮回级两类只能一律落 `Unknown`。**`FinaleWin = 1` / `PremiumBundle = 2` / `AchievementReward = 3` 的 code 已冻结**——后端复算 `x` 依赖它们。
 - **成员的分野判据 = 谁组装出这条 element**（承重 · 不看它属于哪类事件、也不看它最后被谁写进去）。出自 `CombatResult.Spoils` → `CombatReward`（`Finale` 胜利的残卷那一路例外，走 `FinaleWin`）；出自通用结算器的 outcome / effect 定义 → `EventOutcome`；出自购买流程 → `ExchangePurchase`。
   - **施加路径不构成判据。** 上述三者今天就已走同一条施加链路——都收敛为 `ProfileChangeSpec`、都在 `eventEnd` 由同一次 `TryApply` 写入；若「施加路径同一 ⇒ 应合并」成立，`InitialGrant` 也该一并合并，而清单不是按这条轴切的。**清单的粒度轴是渠道 / 组装路径**：Exchange 是非战斗类事件而其购买所得单列 `ExchangePurchase`，即是这条轴的直接体现。
   - **按事件类型表述会被两处打穿，故不采用。** ① `EventOption.EventType` 在 Explore 时恒为 `Explore` 本身、真身在 `RevealedEventId`——一个揭示出战斗真身的 Explore 选项按事件类型判会写成 `EventOutcome`，而它实际出自 combat-service 交出的 `Spoils`；② Exchange 的非购买 outcome（对话结果、赠礼）在事件类型轴上无归属，按组装者判则唯一：**只有走购买流程的那一条走 `ExchangePurchase`，其余走 `EventOutcome`**。
   - **`EventOutcome` 与 `CombatReward` 分立，不合并为一个成员。** 合并会让 `TryApply` 的可追溯性日志与客服 / 数据侧的账号溯源同时失去「战斗掉落 vs 事件产出」这条区分，而持有条目上**没有任何字段能事后补出它**（`SourceInstanceId` 是另一个字段，见下）——这个维度一旦不写就永久消失。对价只是一个零维护成本的枚举成员（不进 `.tres`、不走 overlay、后端不复制校验表）。在「名与 code 双双永不复用」的冻结纪律下，粒度选择本就不对称：**细了可以永远不用（成本恒为零），粗了要补回来得追加新成员且老数据无法回填**。
-  - **两者在 `(Kind, Scope)` 表中逐格相同（❌ ❌ ✅ ✅）不构成合并理由。** 同表中 `PremiumBundle` 与 `AchievementReward` 同样逐格相同（✅ ✅ ❌ ❌）。**行相同只说明挂载面相同**（能出现在哪类持有条目上），渠道说的是**由哪条路径给出**——两个正交维度。
+  - **两者在 `(CarrierKind, Scope)` 表中逐格相同（❌ ❌ ✅ ✅）不构成合并理由。** 同表中 `PremiumBundle` 与 `AchievementReward` 同样逐格相同（✅ ✅ ❌ ❌）。**行相同只说明挂载面相同**（能出现在哪类持有条目上），渠道说的是**由哪条路径给出**——两个正交维度。
   - **重开条件（可观察）：** 仅当 combat-service 的奖励计算被并入通用结算器时重新评估两者是否合并——具体即以下任一发生：① `RunCombatAsync` 不再自算 `Spoils`；② 战后可选奖励选择步骤被取消；③ 奖励厚度不再由道念差决定。三者任一都会在 `systems/services/combat-service.md` 的「意图」节留下痕迹，故无须定期主动复核。
 - **⚠ 不为「置换所得」设成员（禁令）。** 清单开放不意味着这一条也能加：新设一个 `Replacement` 成员会立刻打破 `x` 的单调不减，重开「用置换刷回高掉率」的通道。
-- **合法取值域按 `(Kind, Scope)` 分域。** `(Kind, Scope)` 是全库既有的分类键（置换同池判据即它全同），四类 = 该二元组的四个取值：
+- **合法取值域按 `(CarrierKind, Scope)` 分域。** `(CarrierKind, Scope)` 是全库既有的分类键（置换同池判据即它全同），四类 = 该二元组的四个取值：
 
   | 成员 | 法则 `(Power, Player)` | 古宝 `(Item, Player)` | 神通 `(Power, Character)` | 法宝 `(Item, Character)` |
   |---|:--:|:--:|:--:|:--:|
@@ -265,17 +294,21 @@ public partial class LocalizedText : Resource
   | `ExchangePurchase` | ❌ ※ | ✅ | ✅ | ✅ |
   | `InitialGrant` | ❌ | ❌ | ✅ | ✅ |
   | `ExchangeSell` | ❌ | ❌ | ❌ | ✅ |
+  | `PackSell` | ❌ | ❌ | ❌ | ✅ |
   | `Unknown` | ✅（仅读档兜底） | ✅（同左） | ✅（同左） | ✅（同左） |
 
   - **账号级不接 `CombatReward` / `InitialGrant`：** 账号级授予唯一的战斗入口就是残卷，而它已有专用成员 `FinaleWin`；「开局初始持有」是角色创建时的行为，账号级两类不随角色创建发放。
   - **轮回级不接 `PremiumBundle` / `AchievementReward`：** 二者按定义是账号级发放——发一件随轮回清理的东西作为付费 / 成就回报，与「付费内容不会被游戏销毁」正面冲突。
   - **`Unknown` 只作读档兜底，不是授予时的合法入参**（授予侧传 `Unknown` = 调用方漏填，与「不设默认值」同一条纪律）。
   - **※ 三格 ❌ 是「暂不开放」，不是「语义上不可能」。** 它们取决于尚未设计的「法则的第三条获取渠道」（见 `systems/player-profile/player-power/_index.md` 的待决项）；在那条答定前一律 ❌，**日后开放 = 在校验表里翻一格，无任何结构改动**。
-  - **`ExchangeSell` 是清单里唯一一个「怎么没的」而非「怎么来的」的成员，故它只出现在 `Op == Remove` 上。** 买与卖在履历、成就与诊断上是两件事：复用 `ExchangePurchase` 会让「购买次数」这类统计永远算不准，而 `Source` 的既定职责本就是「这件东西怎么来的 / 怎么没的」。**校验相应扩一格**：`Op == Grant` 且 `Source == ExchangeSell` → **必需缺失**，`PushError` + 整批拒绝（与「`(Kind, Scope, Source)` 不在合法子集表内」同档）。**它不落在任何持有条目的 `SourceCode` 上**（那件东西已经不在了），只出现在 `AppliedChange` 的那条 `Remove` element 里——账里因此读得出「这件法宝是卖掉的，不是被事件剥夺的」。**售出面仅 `CharacterItem` 一族开放**，规则权威见 `systems/adventure-event/exchange/_index.md`；表中其余三格 ❌ 是规则层的封死，不是「暂不开放」。
-  - **它本身不单独 bump schema**（字段形状不变，仍是一个整数 code，仅值域扩大——与下方那条通则一致）；但**它随同批的 `EventOption` 两个新物化字段一起落在一次 bump 内**，当前无线上存档 ⇒ **空迁移**。
-  - **合法子集表落为一张静态查表**（`(Kind, Scope) → 允许的 Source 集合`），与置换同池判据共用 `(Kind, Scope)` 键；它是**代码常量，不是内容资源**——它约束的是代码组装而非内容编写，**不进 `.tres`、不走 overlay**。
+  - **清单里有两个成员记的是「怎么没的」而非「怎么来的」，故它们只出现在 `Op == Remove` 上：`ExchangeSell`（在 Exchange 商店里卖给商店）与 `PackSell`（在储物袋内随手售出）。** 买与卖在履历、成就与诊断上是两件事：复用 `ExchangePurchase` 会让「购买次数」这类统计永远算不准，而 `Source` 的既定职责本就是「这件东西怎么来的 / 怎么没的」。**两条售出通道彼此也不复用同一个成员**：随售发生在事件之外，把它记成 `ExchangeSell` 会让「在商店里卖了几件」同样算不准，且让这条痕迹指向一个不存在的事件。**校验相应扩两格**：`Op == Grant` 且 `Source == ExchangeSell`、`Op == Grant` 且 `Source == PackSell` → 均为**必需缺失**，`PushError` + 整批拒绝（与「`(CarrierKind, Scope, Source)` 不在合法子集表内」同档）。**两者都不落在任何持有条目的 `SourceCode` 上**（那件东西已经不在了）。
+    - `ExchangeSell` 出现在 `AppliedChange` 的那条 `Remove` element 里——账里因此读得出「这件法宝是卖掉的，不是被事件剥夺的」。
+    - **`PackSell` 连这条也没有：随售没有 `PastEventEntry` 可挂**，它只是 `TryApply` 入参上的一个**来源标注**，进可追溯性日志与客服 / 数据侧溯源，**不进存档**。（随售那一次提交的 push reason 是 `SavePointReason.InventoryChanged`，见 `systems/services/sync-service.md`；那是 push 侧的归因维度，不改变本成员不进存档这一条。）**代价明写（被接受的取舍）：「这件法宝是在储物袋里随手卖掉的」事后不可重建**——它与「购买次数没有字段回答且事后无法追溯重建」是同一款取舍，缓解手段只有日志。
+    - **售出面仅 `CharacterItem` 一族开放**，两条通道的规则权威分处两侧：商店内那一条见 `systems/adventure-event/exchange/_index.md`，储物袋随售那一条见 `systems/character-profile/item/_index.md`。两行中其余三格 ❌ 是**规则层的封死**，不是「暂不开放」。
+  - **`ExchangeSell` 本身不单独 bump schema**（字段形状不变，仍是一个整数 code，仅值域扩大——与下方那条通则一致）；但**它随同批的 `EventOption` 两个新物化字段一起落在一次 bump 内**，当前无线上存档 ⇒ **空迁移**。`PackSell` 一个字节也不进存档，与 schema 无关。
+  - **合法子集表落为一张静态查表**（`(CarrierKind, Scope) → 允许的 Source 集合`），与置换同池判据共用 `(CarrierKind, Scope)` 键；它是**代码常量，不是内容资源**——它约束的是代码组装而非内容编写，**不进 `.tres`、不走 overlay**。
 - **授予通道必须带上来源：** 凡授予 power / item 的 element（`AbilityChangeElement`，`Op == Grant`）**必须携带 `Source`，不设默认值**——省略即产生来源未知的条目，而 `x` 直接读这个字段。`ProfileManager` 的授予签名相应带上来源（`GrantPower(string powerId, Source source)`，见 `systems/services/profile-service.md`）。
-- **校验：入口严、读档宽。** `Op == Grant` 且 `(Kind, Scope, Source)` 不在合法表内、或 `Source == Unknown` → **必需缺失**，`GD.PushError` + **整批拒绝**（与 `PairKey` 配对不成立同档）。读档遇不合法的**既有条目** → **可选缺失**，`GD.PushWarning` + **保留原值**，不阻塞、不改写。**这条非对称是唯一安全的方向**：读档回落 `Unknown` 会把一条 `FinaleWin` 法则改判为非 `FinaleWin`，压低 `x` 并让档位回跳，违背单调不减。缺失字段 / 无法识别取值仍归入 `Unknown`（老档迁移即补 `Unknown`，当前无线上账号，迁移成本为零）。
+- **校验：入口严、读档宽。** `Op == Grant` 且 `(CarrierKind, Scope, Source)` 不在合法表内、或 `Source == Unknown` → **必需缺失**，`GD.PushError` + **整批拒绝**（与 `PairKey` 配对不成立同档）。读档遇不合法的**既有条目** → **可选缺失**，`GD.PushWarning` + **保留原值**，不阻塞、不改写。**这条非对称是唯一安全的方向**：读档回落 `Unknown` 会把一条 `FinaleWin` 法则改判为非 `FinaleWin`，压低 `x` 并让档位回跳，违背单调不减。缺失字段 / 无法识别取值仍归入 `Unknown`（老档迁移即补 `Unknown`，当前无线上账号，迁移成本为零）。
   - **组装者判据另有一条单向校验**，落在 life-cycle-service 合并 `eventEnd` 事务处（未走过 combat-service 的事件出现 `CombatReward` → 整批拒绝；反向不判非法），见 `systems/services/life-cycle-service.md`。
 - **不 bump 存档 schema。** 字段形状不变（仍是一个整数 code），仅值域扩大；老档中的 `Unknown` 原样保留，无迁移动作。
 - **置换不改变来源：置换所得条目继承被换出条目的 `SourceCode`。** 目的是**关死「用置换刷回高掉率」的通道**——若置换产物记为一条新来源，换掉一条 `FinaleWin` 法则即使 `x` 下降、档位回跳。**推论：置换对 `x` 完全中性，「`x` 单调不减 ⇒ 档位只降不回跳」因此成立**；代价是来源字段记的是「这条能力最初从哪条途径进入账号」而非「上一次易手的方式」，这是有意的取舍。
@@ -301,7 +334,7 @@ public partial class LocalizedText : Resource
 - **选 `Source?` 而非新开一个布尔（如 `AchievementExclusive`）**：同一诉求日后必然重演（活动限定、剧情限定条目），复用既有枚举让「限定给谁」成为一次数据填写，而非每次新增一个布尔字段——与「新增内容 = 新增 `.tres`，不改 switch」同一条纪律。取值域随 `Source` 清单扩张而自然扩大。
 - **不落存档**（它是内容定义的属性，不是持有条目的属性），故不 bump schema。
 
-Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-14-common-properties-layering.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md`
+Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-14-common-properties-layering.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

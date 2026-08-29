@@ -24,14 +24,14 @@
 | &nbsp;&nbsp;├ [deck/](character-profile/deck/_index.md) | 卡组、抽牌/hand/弃牌、seeded 洗牌、卡牌定义、起始卡组。 |
 | &nbsp;&nbsp;├ [item/](character-profile/item/_index.md) | 角色持有的道具。 |
 | &nbsp;&nbsp;├ [power/](character-profile/power/_index.md) | **神通 CharacterPower**（轮回级，对标账号级 PlayerPower / 法则）。 |
-| &nbsp;&nbsp;├ [currency](character-profile/currency.md) | 轮回货币 jade。 |
+| &nbsp;&nbsp;├ [currency](character-profile/currency.md) | 轮回货币：灵石 spiritStone · 仙玉 immortalJade。 |
 | &nbsp;&nbsp;├ [lifeTotal](character-profile/life-total.md) | 生命总量 / **战斗外的耐久与失败惩罚承受量**（战斗内不参与；归 0 → defeated；经 event 恢复）。 |
 | &nbsp;&nbsp;└ [mana](character-profile/mana.md) | 法力 / 每回合出牌资源。 |
 | [player-profile/](player-profile/_index.md) | 玩家档案（跨轮回的元进程）。 |
 | &nbsp;&nbsp;├ [player-item/](player-profile/player-item/_index.md) | 可购道具定义。 |
 | &nbsp;&nbsp;├ [player-power/](player-profile/player-power/_index.md) | 被动修正 / relic-joker。 |
 | &nbsp;&nbsp;├ [achievement/](player-profile/achievement/_index.md) | 分组成就与两档（60% / 90%）一次性奖励。 |
-| &nbsp;&nbsp;├ [codex/](player-profile/codex/_index.md) | **图鉴族（六个）**：Enemy / CharacterPower / PlayerPower / CharacterItem / PlayerItem / Location —— 账号级静态文案知识，不含动态情报。 |
+| &nbsp;&nbsp;├ [codex/](player-profile/codex/_index.md) | **图鉴族**：Enemy / CharacterPower / PlayerPower / CharacterItem / PlayerItem / Location / Technique —— 账号级静态文案知识，不含动态情报，战斗中一律不可查。 |
 | &nbsp;&nbsp;├ [account-info](player-profile/account-info.md) | 账号身份与状态元数据。 |
 | &nbsp;&nbsp;└ [game-setting](player-profile/game-setting.md) | 账号级常规系统设置。 |
 | [services/](services/_index.md) | 服务层索引：**层级 service ⊃ manager ⊃ module ⊃ processor ⊃ handler**、拆分轴原则、七个服务清单。 |

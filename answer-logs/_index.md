@@ -23,6 +23,20 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-ability-effect-primitives.md` | 2026-08-28 | `inbox/archive/solution-draft-ability-effect-primitives.md` → `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` | 2 整条 + 1 部分答定 + 1 条主题文档内待决项（同批新增待答 1 条） |
+| `log-out-of-combat-item-use.md` | 2026-08-28 | `inbox/archive/solution-draft-out-of-combat-item-use.md` → `handoffs/2026-08-28-out-of-combat-item-use-savepoint-and-trace.md` | 1 整条（两问全部答定）+ 1 条连带 + 1 条主题文档内待决项（未新增待答项） |
+| `log-enemy-ai-field-shape.md` | 2026-08-28 | `inbox/archive/solution-draft-enemy-ai-field-shape.md` → `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` | 3（均出自主题文档待决项；台词一条为收窄，同批新增待答 1 条） |
+| `log-ability-primitive-grammar.md` | 2026-08-27 | `inbox/archive/solution-draft-ability-primitive-grammar.md` → `handoffs/2026-08-27-ability-primitive-grammar.md` | 1（另 `CardData` 完整字段清单**部分答定**，starter deck 那半仍待答） |
+| `log-card-pool-and-reshuffle.md` | 2026-08-27 | `inbox/archive/solution-draft-card-pool-and-reshuffle.md` → `handoffs/2026-08-27-card-pool-and-reshuffle.md` | 2（同批新增 1 条待答项：疲劳扣减是否进 `EncounterSpec` 覆写组） |
+| `log-capability-flag-and-entitlement.md` | 2026-08-27 | `inbox/archive/solution-draft-capability-flag-and-entitlement.md` → `handoffs/2026-08-27-capability-flag-and-entitlement.md` | 2（未新增待答项） |
+| `log-activate-ability-contract.md` | 2026-08-26 | `inbox/archive/solution-draft-activate-ability-contract.md` → `handoffs/2026-08-26d-activate-ability-contract.md` | 1（签名 / 代价形态 / 每场次数 / 拒绝语义四问一次答齐；阵法上启动式异能的 UI 宿主仍开放） |
+| `log-enemy-ai-strategy-shape.md` | 2026-08-26 | `inbox/archive/solution-draft-enemy-ai-strategy-shape.md` → `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` | 1（五项未定一次答齐；同批另定零随机与读取面双视角化） |
+| `log-combat-substream-arbitration.md` | 2026-08-26 | `inbox/archive/solution-draft-combat-substream-arbitration.md` → `handoffs/2026-08-26b-combat-substream-arbitration.md` | 1（另同批新增 1 条待答项） |
+| `log-0823e.md` | 2026-08-26 | `inbox/archive/draft-0823e.md` → `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` | 1（半条形态项 · 另 5 项 interview 裁决与 9 项标准默认未占清单条目 · 2 条待答项**作废**非答定，故不在此计） |
+| `log-0823g.md` | 2026-08-26 | `inbox/draft-0823g.md` | 1 |
+| `log-0823f.md` | 2026-08-25 | `inbox/archive/draft-0823f.md` → `handoffs/2026-08-25-combat-presentation-and-action-result.md` | 0（17 项 interview 裁决未占清单条目 · 3 条既有待答项被收窄未答结） |
+| `log-0823c.md` | 2026-08-25 | `inbox/archive/draft-0823c.md` → `handoffs/2026-08-25-info-economy-and-codex-expansion.md` | 2（另 1 条部分答定条目保留 · 2 项 interview 裁决未占清单条目） |
+| `log-0823b.md` | 2026-08-25 | `inbox/archive/draft-0823b.md` → `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` | 2（另 3 条收窄 · 6 项 interview 裁决 · 2 条新增） |
 | `log-refresh-cap-and-flags-gate.md` | 2026-08-23 | `inbox/archive/solution-draft-refresh-lifetime-cap.md` → `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` + `handoffs/2026-08-23-flags-version-client-gate.md` | 1（另两项本库取向同批定案） |
 | `log-0823.md` | 2026-08-23 | 无草稿 —— `[采纳推荐 — 待复核]` 20 项复核会（零新增设计） | 20 |
 | `log-combat-defeat-consequences.md` | 2026-08-22 | `inbox/archive/solution-draft-combat-defeat-consequences.md` → `handoffs/2026-08-22-combat-defeat-consequences.md` | 1 |

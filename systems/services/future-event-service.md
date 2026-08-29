@@ -11,7 +11,7 @@
 - **多层框定。** eventOptions 的生成受多层框定叠加：**location（地域）** 框定本地域的产出面（见下条与 `systems/game-progression.md`），**PlotManager** 依隐藏属性 / 剧本进度**调制** eventOptions（见 `plot-manager.md`）。future-event-service 是这些框定汇聚、产出最终 eventOptions 的服务。
 - **location 的框定面 = 两组字段（承重）。** 一个 location 携带 **① 事件类型出现概率修正**（软框定：改类型权重，不改可及性）与 **② `eventCountLimit`**（该地域的事件容量上限）。字段语义与推论归 `systems/game-progression.md`；对本服务的三条直接影响：
   - **物化的类型配比有了第一层确定的输入**：候选池按 location 的类型修正加权，而**不是**按地点切换到另一个封闭的事件池。
-  - **敌人取池的地域维度由敌人条目自己的 `PoolScope` 给出**（location 条目不持敌人清单）⇒ **敌人物化的两条轴仍然正交**：**当前 location 影响「派谁来」**（通用条目恒进池，该地域的专属条目在其上叠加），**相对角色等级的赋级带决定「有多强」**（三章统一 `±2`，见下）。带内各档的分布权重与卡组改写规则见下。
+  - **敌人取池的地域维度由敌人条目自己的 `PoolScope` 给出**（location 条目不持敌人清单）⇒ **敌人物化的两条轴仍然正交**：**当前 location 影响「派谁来」**（通用条目恒进池，该地域的专属条目在其上叠加），**相对角色等级的赋级带决定「有多强」**（三章统一 `±2`，见下）。带内各档的分布权重见下；**卡组不随赋级变化**，按模板的功法引用列表展开。
   - **`eventCountLimit` 是本服务的产出闸门**：配额用尽即改产 Travel（见下）。判定在**每一次整批重算**时做出，**没有第二个判定时点**（本服务不设单项补位，见下）。
 - **配额用尽 → 本批收窄为仅剩 Travel。** 玩家在当前 location 达到 `eventCountLimit` 后，本服务产出的**只剩「前往另一个 location」**。**承载它只需一个既有字段**——Travel 选项以**最高 `Priority`（= 1）**出场即可（`EffectivePriority` 随之抬到该档，封锁同批其余选项）。由此 Travel 从可选路由升格为**结构性闸门**：篇章 = 若干 location 的串联，location 之间由 Travel 缝合。
   - **Travel 候选按 80 / 20 掷定：** **80%** 列出 `locationMap` 上当前 location 的**全部邻接地域**（各为一个并列选项，「去哪」是一次真实的玩家决策）；**20%** 由 map 子流 seeded 随机取一个。**常规出场与闸门场景一律适用**；**Explore 揭示出的 Travel 必为随机那一档**。**掷定发生在本服务的物化阶段**——它是「候选数量与抽取规则」这一问的答案。见 `systems/adventure-event/travel/_index.md`。
@@ -38,7 +38,7 @@
 - **`locationMap` = 本服务高频读取的只读静态数据。** 地域之间的连边由一份独立的 **`locationMap`** 承载（不挂在 Travel 内容条目上、不在运行时算）；Travel 的目的地取自当前 location 的**邻接集合**。它是**一份不变的数据、三个篇章共用同一张图**，本服务**经常调用**它。
   - **工程形态由此定：** 进 `ContentRegistry`、**启动加载一次并常驻内存**、本服务**只读不写**（与「模板是共享只读单例、服务不得写回」同一条纪律）；**存档不存图，只存当前所在 location 的 `Id`**。受 overlay 热更管辖，但**一次轮回内视为不变**；**flags 对它与 `LocationData` 均不生效**（结构性查表类恒启用，见 `content-service.md`）。载体形态 `LocationMapData` / `LocationData`、`Id` 约定与八条加载期校验归 `systems/game-progression.md`。
   - **推论：location 不随篇章 / 境界变化。** 篇章间的难度差异由**敌人赋级带**（相对角色当前等级）承载，不由换图承载——同一张图在三个篇章重走，敌人强度自动跟着角色走。
-  - **`locationMap` 在轮回内对玩家不可见**；玩家可见的那一面是账号级的 `LocationCodex`（图鉴族第六本，「去过即记」**且记连边**，故整张图可在多次轮回中被重建——这是设计目标，见 `systems/player-profile/codex/_index.md`）。**推论：图的稳定性是对玩家的隐性承诺**——改连边等于清空一份账号级资产。
+  - **`locationMap` 在轮回内对玩家不可见**；玩家可见的那一面是账号级的 `LocationCodex`（图鉴族的地域本，「去过即记」**且记连边**，故整张图可在多次轮回中被重建——这是设计目标，见 `systems/player-profile/codex/_index.md`）。**推论：图的稳定性是对玩家的隐性承诺**——改连边等于清空一份账号级资产。
 
 - **PlotManager 是本服务内部的管理器。** 隐藏剧本层**不是与本服务并列的服务**，而是生活在本服务内部的 manager，共享其事务边界与生命周期。它**不直接写 eventOptions**，也不直接对 game-progression / UI 暴露 eventOptions——它是一个**被调用的调制源**；对外呈现 eventOptions 的**唯一出口是 future-event-service**。
 
@@ -202,7 +202,8 @@
   ① 框定 + 选模板  ← EncounterScopes.Contains(spec.Tier) + PoolScope（通用条目恒进池，地点 / arc 专属条目叠加）
                     + location + ChapterScope 命中 currentChapter（单值 int，取自 CharacterProfile.chapter）→ 加权抽取
   ② 赋级          ← 角色全局等级 ±2 带 + 权重表（BandFor(chapter)，见 systems/balance.md）
-  ③ 卡组结构对齐   ← 以 ② 的等级为输入（仅费用曲线对齐与风味替换，不加第二条强度曲线）
+  ③ 卡组展开      ← 模板的功法引用列表（TechniqueRef）逐门按其 Tier 取该层卡牌，并入游离散牌
+                    （层数是模板上的固定值，不以 ② 的等级为输入 ⇒ 展开产物在加载期即唯一确定）
   ④ item / power 持有列表  ← 直接取自模板（不由剧本调制改写）
   ⑤ 遭遇参数      ← combatTier 代入五格：TurnLimit / WinMargin（Standard 10 / 1；Practice 8 / 0；Finale 12 / 0）
                     + 三格牌流量 InitialDraw / DrawPerTurn / HandLimit（模板未覆写则取 CombatRulesData 默认值）
@@ -217,14 +218,13 @@
 
     | 旋钮 | 允许做的 | 不允许做的 |
     |------|---------|-----------|
-    | **卡组改写** | 结构对齐（费用曲线与该等级的 `manaLimit` 相称）、风味替换（同族异名）、埋伏张数增减 | 用「等级越高牌越强」再加一条强度曲线；**由剧情线临场改写** |
+    | **卡组** | **不是旋钮**——按模板的功法引用列表逐门展开、并入游离散牌，物化期不做任何二次改写 | 用「等级越高牌越强」再加一条强度曲线；随赋级改动功法层数；**由剧情线临场改写** |
     | **item / power 列表** | **直接取自模板**（boss 与天劫的「不可被移除的场上特性」写在其专属条目上） | **由剧本调制增删**；突破 `IgnoresProtection` 的配额 |
     | **遭遇参数** | 按 `combatTier` 代入五格（`TurnLimit` · `VictoryRule` · 三格牌流量），再由剧本的 `Tighten` **单向收紧** | 用它抵消等级带的约束；用剧本**放宽**任一格 |
 
-  - **卡组改写的表达形式**：常规敌人走**算子式**，boss / 天劫走**多套预制**（含天劫的定制卡组），二者并存。
-  - **一条可在物化时机械检查的改写上界：必须保留模板标注的 `KeyCardIds`。** 否则图鉴会与玩家实际遭遇的敌人对不上——而图鉴是事前知识的主通道。违反 → `PushWarning` + **该次改写回退**；**`OverridesDeck == true` 的定制卡组条目显式豁免**（图鉴条目自带说明）。
-  - **确定性与存档**：全部改写走 map 子流；产物 `EnemyInstance` **随 `EventOption` 落存档、不重算**（overlay 热更 + seeded RNG 使重算不保证同结果）。
-  - **⚠ 前置依赖（诚实标注）**：「结构对齐」与「风味替换」目前**没有量纲**（费用曲线、道念产出量纲未定），故旋钮 ③ 在 ch1 数值标杆专场之前**只是一个框架，不能落地为具体改写算子**。
+  - **卡组的定制性归内容层**：一个敌人「用什么牌」完全由它模板上的功法引用列表与散牌决定；天劫这类需要专属牌的条目走 `Pool == Enemy` 的敌方专用功法，物化路径上没有第二条通道。
+  - **`KeyCardIds` 的校验因此上移到加载期**：关键卡必须落在「功法展开产物 ∪ 散牌」这个并集内，违反 → `PushError`。图鉴写的就是玩家实际会遭遇的牌——而图鉴是事前知识的主通道。口径与逐条报错形态见 `systems/enemies/common-properties.md`。
+  - **确定性与存档**：展开不引入随机；产物 `EnemyInstance` **随 `EventOption` 落存档、不重算**（overlay 热更使重算不保证同结果）。
 - **剧情线不可调制敌人模板；剧情线与地点各自可拥有专属敌人模板池（承重）。** 差异化的表达位从「改写模板内容」整体移到「**换一个池子抽**」：
   - 每个 `EnemyData` 带 **`PoolScope`**（通用池 / 某地点专属 / 某 arc 专属）；抽取时按 `EncounterScopes`（遭遇档位作用域，`CombatTier[]`）+ `PoolScope`（地点 / arc，逐维度与门、空维度恒真，arc 一侧传**全部 `Active` arc 的集合**）+ `ChapterScope`（篇章框定，空 = 三章通用，入参是单值 `currentChapter`）叠加，全部在 `AllEnabled()` 之后。**通用条目恒进池，专属条目是叠加而非替代**——池归属的唯一权威在敌人条目一侧，location 条目不持敌人清单（见 `systems/enemies/_index.md`）。
   - 「大限将至」线上的绝境敌人 = **该线专属池里的一条完整 `EnemyData`**（自带更凶的样本卡组与 power），**不是**把通用条目临场改凶。
@@ -287,12 +287,12 @@
   - **随机源 = `RngStream.Reward` 子流，不新开子流**：`Reward` 已承载完全同构的用途（候选预先掷定 + 落存档 + 绝不重抽），而奖励候选与构筑候选从不并发。
   - **两条取池链均为复用，本服务不新增抽取代码**：法宝候选直接调 `profile-service` 的 `TryPickGrantableMany(Item, Character, rng, 3)`；功法候选走 `CultivationTechniqueData` 仓储的 `AllEnabled()` / `DrawPool<T>` 加权无放回抽取，**它是 `DrawPool<T>` 的第五个调用方**。
   - **候选必须在此刻算定，不能等到面板打开。** 依据是既有的防重掷纪律——候选若在结算那一刻才掷，玩家退出重进即可重掷；`ManaDelta` 同理，**风险档正是靠「结果已定、只是尚未展示」才能成立**。槽与候选的字段面见 `systems/adventure-event/research/common-properties.md`。
-- **Exchange 的库存在物化阶段掷定，随 `EventOption` 落存档。** 模板上的 `ExchangeSpec.StockRules` 在本服务物化时展开为 `ExchangeOffer[]`：逐条规则按 `Kind` 映射到对应仓储取池、按 `RarityFilter` 过滤、按 `RarityTier` 权重无放回抽 `SlotCount` 条，再逐条算出 `BasePrice` 与 `ListPrice`。
+- **Exchange 的库存在物化阶段掷定，随 `EventOption` 落存档。** 模板上的 `ExchangeSpec.StockRules` 在本服务物化时展开为 `ExchangeOffer[]`：逐条规则按 `Kind` 映射到对应仓储取池、按 `RarityFilter` 过滤、按 `RarityTier` 权重无放回抽 `SlotCount` 条，再逐条从「族 × 稀有度」定价表该格抄下 `Currency`、算出 `BasePrice` 与 `ListPrice`。
   - **随机源 = `RngStream.Shop` 子流**，它已在子流清单里，不新开。
   - **取池链沿用授予池那一条，不另写一段**：`AllEnabled()` → 按 `Kind` 映射仓储 → 排除 `ExclusiveSource != null` → 排除已持有（能力族）→ `RarityFilter` → 加权 `PickMany`（无放回 ⇒ 同批不出现重复商品，免费成立）。**不新建任何抽取池**——五个商品族一一映射到既有仓储。
     - **能力族商品经第二级 `TryPickGrantableMany` 取池，其余三族直用第一级 `DrawPool<T>`**（`[采纳推荐 — 待复核]`）。理由：「排除已持有」是需要读 `Profile` 的那道过滤，它必须只写在一个地方；走既有门面方法即可，**不给 `GrantPoolPicker` 新开入口**——它已是全库唯一的能力抽取处，入口越多越容易漏用。代价：本条取池链因此分裂为两种写法。
-  - **`ListPrice` 在此定稿，`ModifierKey.ShopPrice` 也在此施加。** 依据是「一个 `ModifierKey` 只能有一个施加点」：商店价格必须先算才能标价 ⇒ 施加点在物化 / 展示侧，`Jade` 那一行的两个修正列因此恒为 `null`（见 `systems/services/profile-service.md`）。**代价明写：** 轮回中途新获得的降价修正不影响已定稿的库存，下一个 Exchange 事件才生效。
-  - **`RerolledCount` 初值为 0。** 刷新是结算侧的动作（花 jade 重掷整批库存，走同一条取池链与同一个 `Shop` 子流），本服务只负责给出初始库存。规则见 `systems/adventure-event/exchange/_index.md`，字段面与校验见其 `common-properties.md`。
+  - **`ListPrice` 在此定稿，`ModifierKey.ShopPrice` 也在此施加。** 依据是「一个 `ModifierKey` 只能有一个施加点」：商店价格必须先算才能标价 ⇒ 施加点在物化 / 展示侧，**两个货币行**的两个修正列因此恒为 `null`（见 `systems/services/profile-service.md`）。**代价明写：** 轮回中途新获得的降价修正不影响已定稿的库存，下一个 Exchange 事件才生效。
+  - **`RerolledCount` 初值为 0。** 刷新是结算侧的动作（花灵石重掷整批库存，走同一条取池链与同一个 `Shop` 子流），本服务只负责给出初始库存。规则见 `systems/adventure-event/exchange/_index.md`，字段面与校验见其 `common-properties.md`。
 - **Explore 的取池附加一条过滤：真身被 `ContentEnabled == false` 关闭，或真身是 Exchange 且其闸 ② 不通过 ⇒ 该 Explore 壳本次不进候选池。** 判定与 `AllEnabled()` 同一档，在取池阶段做一次；两个分支同形同档——否则玩家付掉壳的 `lifeSpanCost`、揭示之后撞上一个空商店，而这正是「失败点必须前移到付费之前」所防的形态。
   - **不加这条即有一个能上线、线上不可见的洞**：线上用 flags 关掉一个坏掉的 Combat 条目后，指向它的 Explore 壳仍在池里（壳自己是 enabled 的），玩家照常选中、照常付费，揭示后落到那个被关闭的条目上——放量开关对这条路径静默失效。
   - **它是抽取侧过滤，不违反「读取侧不过滤」**：`pastEvent` 回溯与图鉴解析照常解析 disabled 条目。
@@ -326,7 +326,7 @@
 - **Explore 的揭示落在既有 `eventStart` 阶段内，不新增服务方法。** 揭示是 `revealed = option with { IsRevealed = true }` 一次派生（当前批里那份原实例不动，符合「产出即定稿」）；**resolver 按真身的 `eventType` 选取，不按 `EventOption.EventType`**——后者恒为 `Explore`，照它选会把一个战斗真身送进 `GenericEventResolver`。这与下条的组装判据是同一条纪律的两处应用。
 - **通用结算器从 outcome / effect 定义算出的授予一律记 `Source.EventOutcome`。** 授予来源的分野判据是**谁组装出这条 element**，不是事件类型：Research / Explore / Travel 的 outcome 授予、以及 Exchange 中**不走购买流程**的 outcome（对话结果、赠礼）同归此值；走购买流程的那一条走 `Source.ExchangePurchase`，由 combat-service 交出的 `Spoils` 走 `Source.CombatReward`。**推论：Explore 选项按其揭示后的真身归类**——`EventType` 恒为 `Explore` 而真身在 `RevealedEventId`，一个揭示出战斗真身的选项，其战利品出自 combat-service，故不记 `EventOutcome`。见 `systems/common-properties.md`。
 
-Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md`
+Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md`
 
 ## 管理器
 
@@ -386,7 +386,7 @@ public sealed record EventOutcomeSpec(
 
 | `ProfileChangeSpec` 列 | outcome 侧 | 依据 |
 |---|---|---|
-| `Elements`（资源） | ✅ | 经验 / 寿元回复 / `lifeTotal` / `manaLimit` / 隐藏属性 / 灵玉走它；key 取值域另收紧，见下 |
+| `Elements`（资源） | ✅ | 经验 / 寿元回复 / `lifeTotal` / `manaLimit` / 隐藏属性 / 货币走它；key 取值域另收紧，见下 |
 | `AbilityElements`（能力） | ✅ | **只承载物化时定稿的授予**（`Op == Grant`）；置换 / 禁用走 `EventOption.AbilityChangeSlots` 的决策点，见下 |
 | `DeckElements`（卡组） | ✅ | 功法的学 / 升 / 弃、散牌的增删；与能力侧同为「`SelectCost` 恒空、只能在 outcome 侧」 |
 | `Stats`（统计计数） | ❌ | 统计由各消费点代码采集，内容侧声明它等于让一个 `.tres` 伪造统计数字 |
@@ -405,12 +405,12 @@ public sealed record EventOutcomeSpec(
 | `CostKey` | 物化后可出现 | 说明 |
 |---|---|---|
 | `ExperiencePoint` · `Faith` · `Bloodlust` | ✅（**只由服务展开**） | 由物化组装从 `ExperienceGrade` / `HiddenStatGrade` 的平衡表映射展开；**`OutcomeRule` 写不出它们**，见下方两层分野 |
-| `LifeTotal` · `ManaLimit` · `Jade` | ✅ | 事件产出的常规面；`ManaLimit` 另受幅度约束，见下 |
+| `LifeTotal` · `ManaLimit` · `SpiritStone` · `ImmortalJade` | ✅ | 事件产出的常规面；`ManaLimit` 另受幅度约束，见下 |
 | `LifeSpan` | ✅（**仅正向**） | 回寿通道 A；成本侧恒 ≤ 0、产出侧恒 ≥ 0。**`eventType == Travel` 的条目该 key 恒不得出现**（既有结构性禁令） |
 | `PowerFragment*` 七 key | ❌ | 道统残卷由 life-cycle-service 在 Finale 收口时组装（含账号级掷骰与幂等键），内容条目声明它 = 一个 `.tres` 能伪造发放记录 |
 | `BundleRedeemedOrdinal` | ❌ | 付费兑现水位；`BundleGrantOrdinal` 更是后端独占、根本不是 `CostKey` 成员 |
 
-- **「物化后可出现的 key」与「模板可声明的 key」是两张表，不是一张（承重）。** 把它们写成同一张表会让内容作者能直接写 `FixedResource(ExperiencePoint, 7)` / `FixedResource(Faith, 12)`——**同一个产出当场有两个书写位**（枚举档 + 裸数字），而「内容侧不落裸数字、走枚举档 + 平衡表映射」正是经验与隐藏属性的既定范式，平衡表的反推口径会因此失效。故 `OutcomeRule.FixedResource` 的可写 key 收窄为 **`LifeSpan` / `LifeTotal` / `ManaLimit` / `Jade`** 四个，加载期拒绝其余；`ExperiencePoint` / `Faith` / `Bloodlust` **只能由物化组装从档位表展开**。
+- **「物化后可出现的 key」与「模板可声明的 key」是两张表，不是一张（承重）。** 把它们写成同一张表会让内容作者能直接写 `FixedResource(ExperiencePoint, 7)` / `FixedResource(Faith, 12)`——**同一个产出当场有两个书写位**（枚举档 + 裸数字），而「内容侧不落裸数字、走枚举档 + 平衡表映射」正是经验与隐藏属性的既定范式，平衡表的反推口径会因此失效。故 `OutcomeRule.FixedResource` 的可写 key 收窄为 **`LifeSpan` / `LifeTotal` / `ManaLimit` / `SpiritStone` / `ImmortalJade`** 五个，加载期拒绝其余；`ExperiencePoint` / `Faith` / `Bloodlust` **只能由物化组装从档位表展开**。
 - **`ManaLimit` 的单次变动幅度恒为 1，产出侧必须显式闭合。** `manaLimit` 的两个修正列被封死正是为了守住这条承重规则；若内容侧能写任意 `Magnitude`，一个 `.tres` 即可把 ±1 放大为 ±3，且**能上线、线上不可见**（要到玩家吃到 +3 才发现）。故加一条加载期校验 + 一条物化断言：`ResourceKey == ManaLimit ⇒ Magnitude == 1`。它是 `ResearchCandidate.ManaDelta ∈ { -1, 0, +1 }` 的对偶。
 
 **`AbilityElements` 只承载 `Op == Grant`，且作用域恒为 `Character`（正向白名单）。** 合法子集表对 `Source.EventOutcome` 一行只开 `(Power, Character)` / `(Item, Character)` 两格——法则 `(Power, Player)` 与**古宝 `(Item, Player)` 双双为 ❌**。故断言写成一条**正向**判定：`Op == Grant` ∧ `Scope == Character` ∧ `Source == EventOutcome`。
@@ -424,7 +424,7 @@ public sealed record EventOutcomeSpec(
 public sealed record AbilityChangeSlot(       // 定稿 · immutable；物化时掷定，退出重进不重掷
     int             SlotIndex,
     AbilityChangeOp Op,                       // Remove（置换的失去侧）/ Disable；恒不为 Grant
-    AbilityKind     Kind,
+    AbilityCarrierKind Kind,
     AbilityScope    Scope,                    // 恒为 Character
     string          LoseAbilityId,            // 被剥夺 / 被禁用的目标，已掷定
     string          GainAbilityId,            // 置换的得到侧，已掷定；纯禁用为空串
@@ -536,7 +536,7 @@ public sealed record AbilityChangeSlot(       // 定稿 · immutable；物化时
 
 - **五类之间的配比未定（`BaseTypeWeights` 的取值）。** 它以**乘性**方式参与类型分布、归一化在类型分布层发生**已定**（见「意图」的十步管线）；仍待定的是表里每格填多少，以及 Combat 内 `combatTier` 三档的配比。→ `systems/balance.md`、`systems/adventure-event/common-properties.md`。
 
-Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md`
+Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md`
 
 ## 对应
 提炼至：`.claude/knowledge/systems/future-event-service.md`（引用层，待建）。

@@ -34,7 +34,7 @@
 
   - **余量系数 1.1 使既定的炼气 10 成为公式的一个解**，不必为第一篇章开特例；它把「最惨的一次失败几乎但不完全打穿耐久」这条隐含口径显式化，使 `baseMomentum` 表调整时基线能自动跟随。
   - **配套硬要求：回复类事件的单次幅度必须随境界基线跳档**（10 → 25 → 40 的量纲），否则后两章的回复事件不痛不痒。
-  - **已知风险**：开局落差 ≠ 最终道念差（后者可能更大），1.1 的余量是否够取决于「一张牌产多少道念」——上表是**初值，不是安全证明**；三个基线之比（1 : 2.5 : 4）小于 `baseMomentum` 之比（约 1 : 2 : 5），故**跨境界容错率实际是收紧的**（越高越险，有意接受）。归 ch1 数值标杆专场回归校准。
+  - **已知风险**：开局落差 ≠ 最终道念差（后者可能更大），1.1 的余量是否够取决于「一张牌产多少道念」——上表是**初值，不是安全证明**；三个基线之比（1 : 2.5 : 4）小于 `baseMomentum` 之比（约 1 : 2 : 5），故**跨境界容错率实际是收紧的**（越高越险，有意接受）。归内容扩充后的统计校准回归。
 - **归 0 = `defeated`（轮回级终结）。** lifeTotal 归 0 使角色 `status = defeated`——它与**寿元归 0（大限将至）**并列，是角色终结的**第二条路径**。二者分工清晰：**寿元按事件流逝，lifeTotal 按失败流逝**。**`DefeatReason` 里没有「输掉一场普通战斗」这一项**——`Practice` / `Standard` 档的战斗失败本身不终结角色，对应项是 `LifeTotalExhausted`；**`Finale` 档失败另走 `FinaleFailed` 这条独立通道**（它不是资源触底，见 `systems/adventure-event/combat/`）。
 - **恢复途径 = AdventureEvent。** lifeTotal 通过事件恢复——与等级、`manaLimit` 同属「由事件 cost / reward 推拉」的成长体系，走同一条 `ProfileChangeSpec` → `TryApply` 链路。**推论：回复类事件由此有了明确的玩法位置**——它是玩家在「继续冒险」与「补耐久」之间的常态权衡，也是「寿元 vs lifeTotal」两条资源线互相兑换的接口（花寿元买回耐久）。
 - **取值域 `[0, ∞)`，归 0 构成终态。** `lifeTotal` 在 `ResourceElements` 表中占一行 `(Min = 0, Max = null, DepletionDefeat = DefeatReason.LifeTotalExhausted, CostModifier = null, GainModifier = null)`：**下界截断到 0**（负耐久无意义，且角色在归 0 那一刻即终结），**上界明确为空**——这正是「只跟踪单值、无上限截断」在施加侧的落地，表里的 `Max = null` 不是待填项而是定值。终态判定读表而非硬编码检查本字段，见 `systems/services/life-cycle-service.md`。
@@ -52,7 +52,7 @@ Source: `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` ·
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **回复的幅度与来源分布（已归属专场）。** 「通过 event 恢复」已定，且**幅度必须随境界基线跳档**（10 → 25 → 40 量纲）；**单次回复多少**归**内容横向扩展阶段的「ch1 数值模型」session**；哪些事件类型给回复、回复的成本形态仍未定。→ `systems/adventure-event/`、`systems/balance.md`。
+- **回复的幅度与来源分布（已归属统计校准）。** 「通过 event 恢复」已定，且**幅度必须随境界基线跳档**（10 → 25 → 40 量纲）；**单次回复多少**归**内容扩充后的统计校准**；哪些事件类型给回复、回复的成本形态仍未定。→ `systems/adventure-event/`、`systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/life-total.md`（待建）。

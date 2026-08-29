@@ -33,7 +33,11 @@
 - **合并窗口：push 5 秒防抖**——窗口内多次变更合成一次上行。一次 AdventureEvent 以分钟计，5 秒足以吃掉「事件结算 + 奖励 + 属性推拉」这类连续写。
 - **强制立即 flush（不受防抖约束）：** 篇章边界、轮回结束、角色 `defeated`、**进入战斗前**、**应用失焦 / 挂起**（`NOTIFICATION_APPLICATION_PAUSED` / `WM_GO_BACK_REQUEST`）。最后一条比调频率重要得多——它是**移动端被系统杀死前的最后机会**。
 - 由此 `Push(profile, reason)` 增加 **`PushPolicy { Debounced | Immediate }`**。
-- **账号级设置变更走 `PushPolicy.Debounced` + `SavePointReason.MetaChanged`，不新增 reason、不新增 flush 点。** 立即 flush 清单五项的共性是「不发出去就会丢玩家进度」或「这是被系统杀死前的最后机会」；一次音量变更丢失的代价是一个滑条位置。**它天然被「应用失焦 / 挂起」那一条兜住**——玩家改完设置切后台，那次 `Immediate` flush 顺带把它带走。这是「不必为设置新增 flush 点」的完整理由：不是「丢了也无所谓」，而是**既有机制已经覆盖**。离线时改设置照常可用（进待发队列、不阻塞）。设置的字段面与写入通道见 `systems/player-profile/game-setting.md`。
+- **账号级设置变更走 `PushPolicy.Debounced` + `SavePointReason.MetaChanged`，不新增 reason、不新增 flush 点。** 立即 flush 清单五项的共性是「不发出去就会丢玩家进度」或「这是被系统杀死前的最后机会」；一次音量变更丢失的代价是一个滑条位置。**它天然被「应用失焦 / 挂起」那一条兜住**——玩家改完设置切后台，那次 `Immediate` flush 顺带把它带走。这是「不必为设置新增 flush 点」的完整理由：不是「丢了也无所谓」，而是**既有机制已经覆盖**。**「不新增 reason」是条件式的，不是无条件禁令：当既有 reason 能如实描述该次提交时不新增**——描述不了就必须新增，否则日志与后端聚合上「这次 push 是哪来的」永久不可分辨（见下条）。离线时改设置照常可用（进待发队列、不阻塞）。设置的字段面与写入通道见 `systems/player-profile/game-setting.md`。
+- **批次层的储物袋操作走 `PushPolicy.Debounced` + `SavePointReason.InventoryChanged`（第六个成员）。** 覆盖两处：**战斗外道具使用**与**随售**（规则权威在 `systems/character-profile/item/_index.md`）。
+  - **policy 取 `Debounced`：** 它不在立即 flush 清单五项内，且被「应用失焦 / 挂起」那一条兜住；本地已原子写 ⇒ 进度不丢，push 迟到只影响云端新鲜度。**唯一例外**：使用致某条资源触底 → 判负后走既有 `defeated` 的 `Immediate`，那是既有清单里的一项，不是新增 flush 点。
+  - **不复用 `EventResolved`：** 事件内的即时提交（逐笔交易、Exchange 刷新、战斗中的血 / mana、道具次数）其 diff 由所在事件收口那一次 `EventResolved` 的防抖窗口带走；批次层的这一次**没有所在事件**，上一次 `EventResolved` 的窗口早已过 ⇒ 它必须自己发一次 push、自己带一个 reason。用「事件已结算」标注一次事件之外的操作，会让日志与 reason 聚合维度上的归因永久失真。粒度选择在冻结纪律下本就不对称：**细了可以永远不用（成本恒为零），粗了要补回来得追加新成员且老数据无法回填。**
+  - **成本 = 一个枚举成员，不落存档 schema ⇒ 零迁移**；成员名冻结纪律照常适用（第一批存档写下前冻结），且它以成员名逐字序列化上行 ⇒ **取值清单是两侧共同约定的契约面**，后端那一半见 `backend-design-documents/contracts/profile-sync.md`。
 - **增量 push 粒度 = 按 `CharacterProfile` 做 diff。** `PlayerProfile` 整聚合含全部历史角色、随账号年龄**单调增长**，整体上行不可持续。粗算一次轮回约 200 事件 × ~2 KB diff ≈ **400 KB**，移动网络可接受。
 - **规则字段层与统计计数层同走一条 push 通道，只在校验强度上分开。** 账号级字段分两层（判据 = 有没有被**规则**读，通则见 `systems/player-profile/_index.md`）：**规则字段**（`PlayerPowerFragment.*`、`chapterRetry` 等）严格上行、**后端可复算校验**；**统计计数**（`TotalCyclesCompleted` 等纯读数）走宽松口径、**可容忍丢失与最终一致**。二者**在同一次 diff 里、经同一次 `ProfileManager.TryApply` 写入**，不为统计计数另开写入通道或传输通道；**宽松口径不削弱规则字段的严格上行**。**不做两层之间的交叉一致性校验**——例如「`FinaleWinOrdinal` 应约等于统计通关数」这类校验等于在实现层宣称两个已被刻意分开的数应当相等。
 - **「宽松」具体宽在哪五处。** 统计计数层的容器是 `PlayerStatistics`（见 `systems/player-profile/_index.md`）；两层同走一条 push 通道这一点不变，差异**穷举为五条**：
@@ -241,7 +245,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 | 需更新 | A | `bool UpgradeRequired { get; }` | — UI 收到 `SyncStateChanged` 后**单点查询**，据此选软阻塞模态的第二种文案变体；置位于任一 `class: Upgrade` 错误，清零于重登后的一次成功 pull |
 
 ```csharp
-public enum SavePointReason { CycleStarted, EventResolved, ChapterBoundary, CycleEnded, MetaChanged }
+public enum SavePointReason { CycleStarted, EventResolved, ChapterBoundary, CycleEnded, MetaChanged, InventoryChanged }
 public enum PushPolicy      { Debounced, Immediate }
 public enum SyncState       { Idle, Syncing, Buffered, Offline, Failed }
 // Debounced : 进 5 秒合并窗口   Immediate : 跳过合并窗口，立刻发
@@ -287,9 +291,9 @@ public sealed record ProfileSnapshot(PlayerProfile Profile, long Revision, int S
 
 **事件面：** `SyncStateChanged(SyncState State, OpError LastError)` —— 一个负载覆盖同步成功 / 失败、进入断线缓冲态、缓冲超限（软阻塞）、离线进度被云端覆盖（`State = Failed` + `LastError = Conflict`）；UI 据此渲染「同步中 / 离线 · 待同步 N」指示与模态阻塞。迁移发生 / 拒绝走 `OpError.Migration`。
 
-### 图鉴六键的序列化形态与体积口径
+### 图鉴各键的序列化形态与体积口径
 
-六本图鉴落 `PlayerProfileDiff` 的**六个顶层键**，元素是 `CodexEntry`（只有一个 `Id`；字段面权威见 `systems/player-profile/codex/common-properties.md`）：
+每本图鉴各落 `PlayerProfileDiff` 的**一个顶层键**，元素是 `CodexEntry`（只有一个 `Id`；字段面权威见 `systems/player-profile/codex/common-properties.md`）：
 
 ```jsonc
 "enemyCodex":          [ { "id": "enemy_..." }, { "id": "enemy_..." } ],
@@ -297,17 +301,19 @@ public sealed record ProfileSnapshot(PlayerProfile Profile, long Revision, int S
 "playerPowerCodex":    [ … ],
 "characterItemCodex":  [ … ],
 "playerItemCodex":     [ … ],
-"locationCodex":       [ { "id": "loc_..." } ]
+"locationCodex":       [ { "id": "loc_..." } ],
+"techniqueCodex":      [ … ]
 ```
 
-- **六个键都是顶层键 ⇒ 整键替换。** **推论：解锁一条 = 整本图鉴的 id 列表全量上行。** 六个名已合规（单数 · camelCase）。
-- **体积口径（承重）：** 单条约 25–35 B；某本的上限约「该内容类型的条目总数 × 30 B」，六本合计在内容规模成型后落在 **20–40 KB** 量级。它小于单轮回 `pastEvent` 的量级，但与之同形——**随账号年龄单调增长且永不收缩**。
+- **每个键都是顶层键 ⇒ 整键替换。** **推论：解锁一条 = 整本图鉴的 id 列表全量上行。** 各键名已合规（单数 · camelCase）。
+- **一律用不带计数的措辞指代这组键（「全部 Codex 顶层键」），两侧同款。** 图鉴族是会扩员的——把本数写进契约与本文档的措辞里，每扩一本就要在两个库里各追一遍，而漏掉的那一处不会有任何机制发现它。对侧的对应措辞见 `backend-design-documents/contracts/profile-sync.md`。
+- **体积口径（承重）：** 单条约 25–35 B；某本的上限约「该内容类型的条目总数 × 30 B」，全族合计在内容规模成型后落在 **20–40 KB** 量级。它小于单轮回 `pastEvent` 的量级，但与之同形——**随账号年龄单调增长且永不收缩**。
 - **体积护栏（软上限告警）：** 任一本图鉴的条目数 **>** 该内容类型经 `AllIncludingDisabled()` 得到的条目总数 → `GD.PushWarning` 带图鉴名与两个数值。它抓的是**重复条目 / 悬空条目**这类真实缺陷（正常账号永远达不到上限），成本近乎为零。
 - **明确不做：** 不为图鉴引入分页 / 冷热分离 / 独立存档段——与 `pastEvent` 那条否决同理由、同证据强度（无证据需要，且会重开「云端权威 · 整聚合 pull」的语义）。
 - **本地缓存无独立文件。** 图鉴随整个 `PlayerProfile` 走 `LocalCacheManager`，不新增缓存文件、不新增序列化路径。
-- **六个键不进透明路径白名单。** 后端不复算图鉴、不据它发放任何东西 ⇒ 零配合。**但字段名仍受 camelCase 机械映射约束**——改名仍是破坏性契约变更。⚠ 若图鉴完成度将来被用于驱动发放，六个键须整体升为透明路径并与后端同批落笔。
+- **全部 Codex 顶层键都不进透明路径白名单。** 后端不复算图鉴、不据它发放任何东西 ⇒ 零配合，扩员亦无需后端配合。**但字段名仍受 camelCase 机械映射约束**——改名仍是破坏性契约变更。⚠ 若图鉴完成度将来被用于驱动发放，全部 Codex 顶层键须整体升为透明路径并与后端同批落笔。
 - **`CodexKind` 随 `PastEventEntry.AppliedChange` 落存档**（`AppliedChange` 是 `ProfileChangeSpec` 快照），虽落在不透明部分，**成员名仍须在第一批存档写下前冻结**，与 `SavePointReason` / `Source` 同档对待。
-- **图鉴统计的分母走 `AllIncludingDisabled()`**（「已解锁 X / 共 Y」必须含 disabled 条目，否则线上关一条内容会让完成度百分比跳变）。
+- **图鉴统计的分母走 `AllIncludingDisabled()`，且不再叠加任何其他过滤（承重）。** 「已解锁 X / 共 Y」必须含 disabled 条目，否则线上关一条内容会让完成度百分比跳变；**同样不按内容侧的归属字段（如卡牌的 `Pool`）从分母里剔条目**——凡进得了图鉴的条目都有一条可达的解锁路径（敌方专属的功法打赢那个敌人即解锁），分母里不存在无法达成的项。多一层过滤只会让分母的口径变成要读上下文，而**分母是一个玩家会盯着看的数**，两处算法不一致即百分比对不上。呈现层的分类标注（例如把敌方专属标出来）由内容字段**现场算出**，不进存档、不动分母。
 
 ### 存档 schema 版本
 
@@ -321,7 +327,7 @@ public sealed record ProfileSnapshot(PlayerProfile Profile, long Revision, int S
   |---|---|
   | `ProfileChangeSpec` | 增列 `PlotElements` / `EventStateChanges` / `RngElements` / `TraceElements` / `CodexElements` / `SettingChanges`（元素类型 `RngStateAssignment` / `PastEventEntry` / `CodexUnlock` / `SettingAssignment`）；`ChangeElement` 增第三字段 `Op`；`ElementSpec` 增第六列 `AllowedOps`；`DeckChangeOp` 增 `AddLooseCard` ⇒ **`PastEventEntry.AppliedChange` 的形状随之变** |
   | `CharacterProfile` | 增 `id` / `characterDataId` / `defeatReason` / `technique` / `looseCard`；增 `eventOption` / `activeEvent`；`Status` 移除 `currentMana`（移入 `activeCombat`）；`startContentVersion` / `lastContentVersion` 由 `string` 改 `int`；`rng` 片段键名对齐 camelCase（`cycleSeed` / `stream`） |
-  | `PlayerProfile` | 增六个 Codex 字段（元素 `CodexEntry`）；增 `gameSetting`（子对象 `GameSetting`）；四类持有条目定形，条目键名取 `powerId` / `itemId`；集合字段名一律改单数 |
+  | `PlayerProfile` | 增全部 Codex 字段（元素 `CodexEntry`）；增 `gameSetting`（子对象 `GameSetting`）；四类持有条目定形，条目键名取 `powerId` / `itemId`；集合字段名一律改单数 |
   | `EventOption` | 增 `OutcomeSpec` 与 `Encounter` 两格 |
   | `PastEventEntry` | 增 `EnemyTraceRef` 一格 |
 
@@ -351,7 +357,7 @@ public sealed record ProfileSnapshot(PlayerProfile Profile, long Revision, int S
 - **否决「提示重装」**（存档权威在云端，重装不改变任何东西，只制造「我的进度没了」的误解）与**「回退到云端上一个可用版本」**（`revision` 严格单调递增，回退即主动丢弃已确认进度，违反云端权威）。
 - **不新增硬阻塞点**：两种变体都发生在**启动 pull** 这一既定阻塞处之内。呈现形态见 `ux/error-and-blocking-ux.md`。
 
-Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-codex-entry-schema.md`
+Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md`
 
 ## 与其他服务的关系
 

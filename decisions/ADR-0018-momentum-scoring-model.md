@@ -38,8 +38,8 @@
 ## 后果
 
 - `CombatOutcome` 必须有 `Draw` 这一态（平局不判负、不扣 lifeTotal，只发 `baseReward`）。
-- **`PlayResult` 必须携带本次的实际削减量**：下限 0 的截断发生在每一次结算，「意图削减量 vs 实际削减量」的差在连锁中必然出现——这也是敌人回合逐步反馈成为硬要求的两个来源之一。
+- **每一次结算都必须携带本次的实际削减量**：下限 0 的截断发生在每一次结算，「意图削减量 vs 实际削减量」的差在连锁中必然出现——这也是逐步反馈在**双方回合**都成为硬要求的两个来源之一。逐次结算的这一对值由 `CombatFeedEntry` 承载，玩家动作整条链路的汇总值由 `ActionResult` 承载。
 - **等级差直接变成起跑线差**（`baseMomentum` 按全局等级），与「敌人等级在 eventOptions 上精确标注」形成闭环：看到等级就等于看到起跑线。
 - **额外惩罚以负向条目包在 reward 里**，不另立结构——与 `ProfileChangeSpec` 的带符号约定天然自洽，同一份 `Spoils`、同一次 `TryApply`。
-- 三档奖励厚薄的具体取值与卡牌产 / 削道念的量纲基准**归 ch1 数值标杆专场**，本 ADR 只定规则面。
+- 三档奖励厚薄的具体取值与卡牌产 / 削道念的量纲基准**留待内容扩充后的统计校准**（形状锚点见 `systems/balance.md`），本 ADR 只定规则面。
 - 影响文档：`systems/scoring.md`（权威）· `systems/services/combat-service.md` · `systems/character-profile/life-total.md` · `systems/adventure-event/combat/` · `systems/balance.md` · `ux/combat-ux.md`。

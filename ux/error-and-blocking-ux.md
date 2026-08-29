@@ -188,7 +188,7 @@
 `ERR_*` 与其余分区有一条**本质差别**：它的键不是人取的，是 `code → ERR_ + 全大写 + `.`→`_`` 的**像**。若允许有人手写一个 `ERR_LOGIN_FAILED`，而后端某天新增 `code = "login.failed"`，两者会**撞进同一个键**——一条后端错误会静默显示成一句为别处写的文案。这类 bug 发版后才显形，且现场看不出异常。
 
 - **`ERR_` 分区的每一个键都必须是某个已知 `code` 的像，或该像加一段 `reasonKey` 后缀**（二级键，见上方「`detail.reasonKey`」）。故 `ErrorText.AuditTranslations()` **是双向的**：正向查「已知 `code` 缺不缺条目」（**只查一级键**——客户端不持有 `reasonKey` 清单，二级键无从正向枚举），**反向扫 `ERR_` 分区的消息表，凡不以任何已知 `code` 的像为前缀的 `ERR_*` 键 → `PushWarning` 列出**。成本同样是一个 `foreach`，把撞键挡在开发期。
-- **非错误场景要表达失败**（如「储物袋已满」这类**本地业务拒绝**，它没有后端 `code`）→ 走所属分区的普通键（`PROFILE_MAGICPACK_FULL`），**不占 `ERR_` 前缀**。
+- **非错误场景要表达失败**（如储物袋里「这件道具须在战斗中使用」这类**本地业务拒绝**，它没有后端 `code`）→ 走所属分区的普通键（`PROFILE_ITEM_COMBAT_ONLY`），**不占 `ERR_` 前缀**。储物袋内售出的二段确认文案同理，走 `PROFILE_` 分区的普通键。
 
 ### 灰态判据：区分「玩家可能有意选择的失败」与「必然无结果的操作」
 
@@ -199,7 +199,7 @@
 | **事件选项付不起 `selectCost`** | **不设灰态**；`selectCost` **只在寿元 Band 2（< 10%）如实展示**，常态档不显示 | 「明知是死路仍然走」是**有意义的玩法决策**，与「打不过也得打」同构——灰掉它等于替玩家做决定。而「明知」所需的信息只在寿元濒尽时才真正起作用，故精确值随红字倒数同时开启（权威见 `systems/adventure-event/common-properties.md`） |
 | **礼包购买入口的四条前置不满足** | **置灰 + 一行说明，不隐藏** | 玩家点下去只会撞上一个**必然失败的流程**，没有任何决策价值 |
 | **有一笔购买待兑现时的「开始新轮回」** | **置灰 + 一行说明，不隐藏** | 同上；且此刻的等待是有终点的（一直重试直到发放成功），说明文案须让玩家看见它在推进 |
-| **Exchange 刷新按钮的池前置不满足**（可产出 offer 数 < 1） | **置灰 + 一行说明，不隐藏** | 刷了也必然是空店，没有任何决策价值；且刷新要花 jade ⇒ 不拦就把失败点留在付费之后。**只拦「必然空店」这一种**——刷出一个商品更少的店是正常方差，不提示、不置灰（判据见 `systems/adventure-event/exchange/_index.md`） |
+| **Exchange 刷新按钮的池前置不满足**（可产出 offer 数 < 1） | **置灰 + 一行说明，不隐藏** | 刷了也必然是空店，没有任何决策价值；且刷新要花灵石 ⇒ 不拦就把失败点留在付费之后。**只拦「必然空店」这一种**——刷出一个商品更少的店是正常方差，不提示、不置灰（判据见 `systems/adventure-event/exchange/_index.md`） |
 
 - **判据一句话：灰态禁令适用于「玩家可能有意选择的失败」，不适用于「必然无结果的操作」。**
 - **不隐藏而是置灰**：隐藏会让玩家以为功能消失且无处解释，而闸 ② 触发时后端已收到 `PushError` 上报——**正在被修的运营事故不该表现为「功能不见了」**。
@@ -342,13 +342,13 @@ public readonly record struct BlockingNoticeSpec(
 
 ### 诊断编号的玩家出口
 
-强制在线 + 云端权威下，客服工单的第一件事是定位「这一次请求」；`requestId` 是唯一能做到的标识符，但它只进日志，而移动端**导出日志基本不可行**——这正是「设置屏显示同步版本 #1337」那条已定案背后的同一判据。
+强制在线 + 云端权威下，客服工单的第一件事是定位「这一次请求」；`requestId` 是唯一能做到的标识符，但它只进日志，而移动端**导出日志基本不可行**——这正是「设置屏显示同步版本 #1337」那条纪律背后的同一判据。
 
 - **在阻塞屏与错误模态的底部放一行极小字 `#<requestId>`，可长按复制。**
 - **非模态提示与 toast 级提示不放**——那是高频呈现，加编号是噪音。
 - **纪律：它是诊断展示，不是玩法数据。** ViewModel 只读一次，不进任何玩法路径、不参与判断（与「同步版本 #N」同条纪律）。
 
-Source: `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md`
+Source: `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

@@ -32,9 +32,9 @@
 - **终止条件 = 固定 10 个回合。** 一场战斗**打满 10 个回合**，**双方各 5 个**（「回合」= 单方的一次行动轮，双方交替），结束时比道念、高者胜。**不设「先到某值即胜」的提前终止，也不以卡组耗尽终止。** 推论：战斗是**定长**的——TurnManager 是一个固定长度的循环而非动态终止判定，每场战斗的时间开销可预测，直接服务于篇章时长控制。
 - **平局 = 只发基础奖励。** `Standard` 档打满 10 回合后道念相等时**不判负、不扣 lifeTotal**，只发该事件的**基础奖励**（无任何厚度加成）。这与「道念差是双向刻度」自洽：**差值 0 就是两侧都不加码的那个原点**——负侧的惩罚与胜侧的加厚都从这里向两边展开。落到类型上，`CombatOutcome` 需要 `Draw` 这一态。**它只在 `Standard` 一档可达**：另两档「相等即判胜」，那里没有平局这个中间态。
 - **产出途径 = 卡牌。** 道念由打出的卡牌产生。
-- **削减有两条通道：卡牌与疲劳。** 除卡牌之外，**抽牌堆为空时每尝试抽一张牌，抽牌方失去 1 点道念**（一次抽 N 张即失去 N 点）——**抽牌堆不重洗、弃牌堆不回流**，故卡组是一场战斗内会被真正耗尽的资源。**疲劳不入栈、不产生 `PlayResult`**，是抽牌流程内的一次直接扣减，与卡牌削减共用同一条「下限 0 逐次截断」规则。**推论 ①：卡组规模成为一条真实的构筑取舍**——牌少而精的代价是后期稳定失血，这也是「两侧卡组规模都不设硬限」得以成立的前提（见 `systems/balance.md`）。**推论 ②：不以卡组耗尽终止仍然成立**——耗尽不终止战斗，只是从此每回合失血；定长 10 回合的结构不变。**推论 ③：满手与疲劳互不触发**——抽牌堆非空但满手时牌留在抽牌堆、无事发生、不扣道念；疲劳的触发条件是「牌堆空」，不是「没拿到牌」。
+- **削减有两条通道：卡牌与疲劳。** 除卡牌之外，**抽牌堆为空时每尝试抽一张牌，抽牌方失去 1 点道念**（一次抽 N 张即失去 N 点）——**抽牌堆不重洗、弃牌堆不回流**，故卡组是一场战斗内会被真正耗尽的资源。**疲劳以一条栈条目结算**，与触发式异能同形——可被监听、可被响应、可被削减至 0；它**不产生 `ActionResult`**（它不是玩家动作），与卡牌削减共用同一条「下限 0 逐次截断」规则。**推论 ①：卡组规模成为一条真实的构筑取舍**——牌少而精的代价是后期稳定失血，这也是「两侧卡组规模都不设硬限」得以成立的前提（见 `systems/balance.md`）。**推论 ②：不以卡组耗尽终止仍然成立**——耗尽不终止战斗，只是从此每回合失血；定长 10 回合的结构不变。**推论 ③：满手与疲劳互不触发**——抽牌堆非空但满手时牌留在抽牌堆、无事发生、不扣道念；疲劳的触发条件是「牌堆空」，不是「没拿到牌」。
 - **可互相削减。** 卡牌既能给自己加道念，也能削减对方道念——道念是**可攻可守的双向标尺**，不是单向累加的计分器。
-- **下限 = 0，且截断发生在每一次结算时。** 削减在 0 处截断，不存在负道念；多个效果同时在栈上时，饱和减法**逐次截断**，**不是**全栈结算完后再统一截断。**推论 ①：更保护落后方，且差异是可算的**——对方道念 5、栈上有「削 8」与「+3」：逐次截断 → `5-8 → 0`，再 `+3 → 3`；全栈后截断 → `5-8+3 = 0`。**溢出的削减量不结转**，故落后方不会被一次连锁按死在 0 上。**推论 ②：LIFO 顺序对最终结果有实际影响**——削减与产出交错时结算顺序改变结果，这把「栈序是卡牌设计可利用的资源」从原则变成了具体的算术。**推论 ③：`PlayResult` 必须携带本次的实际削减量**——截断在每次结算发生，故每次结算都是可观测事件，「意图削减量 vs 实际削减量」的差在连锁中必然出现。
+- **下限 = 0，且截断发生在每一次结算时。** 削减在 0 处截断，不存在负道念；多个效果同时在栈上时，饱和减法**逐次截断**，**不是**全栈结算完后再统一截断。**推论 ①：更保护落后方，且差异是可算的**——对方道念 5、栈上有「削 8」与「+3」：逐次截断 → `5-8 → 0`，再 `+3 → 3`；全栈后截断 → `5-8+3 = 0`。**溢出的削减量不结转**，故落后方不会被一次连锁按死在 0 上。**推论 ②：LIFO 顺序对最终结果有实际影响**——削减与产出交错时结算顺序改变结果，这把「栈序是卡牌设计可利用的资源」从原则变成了具体的算术。**推论 ③：每一次结算都必须携带本次的实际削减量**——截断在每次结算发生，故每次结算都是可观测事件，「意图削减量 vs 实际削减量」的差在连锁中必然出现。逐次结算的这一对值由 `CombatFeedEntry` 承载，玩家动作整条链路的汇总值由 `ActionResult` 承载（见 `systems/services/combat-service.md`）。
 - **起始道念 = `baseMomentum`（按自身全局等级）。** 战斗开始时双方各持一个由等级决定的起始道念（表见 `systems/balance.md`）。**推论（承重）：等级差直接变成起跑线差**——炼气十层（10）挑战筑基初期（20）= 开局落后 10 点，须在 10 个回合内追回。这与「敌人等级在 eventOptions 上精确标注」形成闭环：**看到等级，就等于看到起跑线**，越级挑战的风险由此可计算。
 - **节奏的落点。** mana 每回合刷满、道念不下 0、回合数固定——三者合起来把战斗定义为一场**限时积分对抗**：张力不在「谁先撑不住」，而在「10 个回合内谁攒得多、什么时候该转去压对方」。
 
@@ -71,23 +71,24 @@
 | lifeTotal 作为战斗外耐久的语义 | `systems/character-profile/life-total.md` |
 | `baseMomentum` 表、卡牌道念产出分档、道念差 → lifeTotal 损失 / 奖励厚度的系数 | `systems/balance.md` |
 | 哪些卡牌产 / 削道念 | `systems/character-profile/deck/` |
+| 隐藏属性（道心 / 煞气 / 寿元）与战斗层的边界 —— **战斗层不读写隐藏属性，交互全在事件层** | `systems/services/plot-manager.md` |
 
-Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-22-finale-failure-is-death.md`
+Source: `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
-- **计分模型 = 道念（momentum）；道念即战斗胜负判据；失败按道念差扣 lifeTotal**。**ADR 候选**。
-- **终止条件 = 固定 10 回合（双方各 5）；产出途径 = 卡牌、可互削、下限 0；起始道念 = `baseMomentum`；胜利侧按道念差给奖励厚度；平局只发基础奖励**。
-- **道念差 → lifeTotal 损失 = 1:1；`momentum` = 非负整数；失败仍发 `baseReward`、额外惩罚以负向条目包在 reward 内；`combatTier` 三档的回合数与胜负条件按 blind 三档可变**。
-- **下限 0 的截断时机 = 每一次结算时截断**（溢出量不结转，LIFO 顺序因此影响最终结果）。
-- **道念削减的第二条通道 = 疲劳**（抽牌堆不重洗；空堆时每抽一张 −1 道念，同受下限 0 截断）。
+- **计分模型 = 道念（momentum）；道念即战斗胜负判据；失败按道念差扣 lifeTotal** → `decisions/ADR-0018-momentum-scoring-model.md`（Accepted）。
+- **终止条件 = `EncounterSpec.TurnLimit`**（遭遇参数，**不是常量**——`Standard` 档取值为双方合计 10 回合）**；产出途径 = 卡牌、可互削、下限 0；起始道念 = `baseMomentum`；胜利侧按道念差给奖励厚度；平局只发基础奖励** → 同上 ADR-0018。
+- **道念差 → lifeTotal 损失 = 1:1；`momentum` = 非负整数；失败仍发 `baseReward`、额外惩罚以负向条目包在 reward 内；`combatTier` 三档的回合数与胜负条件随档可变** → 同上 ADR-0018；`WinMargin` 在 `Finale` 退场亦见该 ADR。
+- **下限 0 的截断时机 = 每一次结算时截断**（溢出量不结转，LIFO 顺序因此影响最终结果）→ `decisions/ADR-0086-lifo-resolution-and-combat-log.md`（Accepted）。
+- **道念削减的第二条通道 = 疲劳**（抽牌堆不重洗；空堆时每抽一张 −1 道念，同受下限 0 截断）→ `decisions/ADR-0052-no-reshuffle-fatigue.md` · `decisions/ADR-0088-fatigue-as-stack-entry.md`（均 Accepted）。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **三档奖励厚薄的具体取值。** 遭遇参数（`Practice` 8 / `WinMargin 0`、`Standard` 10 / `WinMargin 1`、`Finale` 12 / `WinMargin 0`）；**`BaseReward` 与 `RewardPoolId` 随档位如何调厚薄**未给，归 ch1 数值标杆专场。→ `systems/adventure-event/combat/`、`systems/balance.md`。
-- **卡牌产 / 削道念的量纲基准（已归属专场）。** 「一张牌该产多少」「10 个回合内总产出应达起始值的几倍」——**明确推迟到内容横向扩展阶段的「ch1 数值模型」session**，切入点是起始角色 starter deck 的设计。→ `systems/character-profile/deck/`、`systems/balance.md`。
+- **三档奖励厚薄的具体取值。** 遭遇参数（`Practice` 8 / `WinMargin 0`、`Standard` 10 / `WinMargin 1`、`Finale` 12 / `WinMargin 0`）；**`BaseReward` 与 `RewardPoolId` 随档位如何调厚薄**未给，留待内容扩充后的统计校准。→ `systems/adventure-event/combat/`、`systems/balance.md`。
+- **卡牌产 / 削道念的量纲基准。** 「一张牌该产多少」「10 个回合内总产出应达起始值的几倍」——**明确推迟到内容横向扩展阶段**，留待内容扩充后的统计校准，切入点是起始角色 starter deck 的设计。→ `systems/character-profile/deck/`、`systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/scoring.md`
