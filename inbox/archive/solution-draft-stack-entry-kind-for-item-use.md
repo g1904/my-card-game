@@ -4,7 +4,9 @@ date: 2026-08-28
 question: 用道具产生的栈条目落在 `StackEntryKind` 的哪个成员上（复用既有成员、新增一员、还是另立形态）。
 source: open-questions/01-combat.md → 能力剥夺与统计计数的残留（08-28 新增那条）
 targets: systems/services/combat-service.md（栈条目字段行 · `UseItem` 段的入栈填法 · `CombatFeedKind` · 读档校验 ②）· decisions/（新 ADR，或并入 `ADR-0121` 的「后果」）
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-30 · 批量合并 interview：`TimingIds.ItemUsed` 确认不开。另采纳三项草稿未点名的连带改动：读档校验 ②/⑥ 分档 · 存档「新增字段一格」→ 两格 · `UseItem` 段补齐 mana 扣费与 `InsufficientMana`。
+distilled-to: handoffs/2026-08-30-stack-entry-kind-for-item-use.md
 ---
 
 # 方案草稿 — 用道具的栈条目类型

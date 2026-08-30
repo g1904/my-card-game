@@ -6,6 +6,14 @@
 
 | 草稿 | 类型 | 日期 | 去向 handoff | answer log |
 |------|------|------|--------------|------------|
+| `solution-draft-fatigue-in-encounter-tighten.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-30-fatigue-not-in-encounter-override.md` | `answer-logs/log-fatigue-in-encounter-tighten.md`（移出 1 条 · 新增 1 条） |
+| `solution-draft-stack-entry-kind-for-item-use.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-30-stack-entry-kind-for-item-use.md` | `answer-logs/log-stack-entry-kind-for-item-use.md`（移出 1 条 · 未新增） |
+| `solution-draft-life-lifespan-merge.md` | solution-draft | 2026-08-29 | `handoffs/2026-08-30-life-lifespan-merge.md` | `answer-logs/log-life-lifespan-merge.md`（移出 2 条 · 新增 4 条 · 另登记 4 份旧 log 的结论被取代） |
+| `solution-draft-affinity-and-technique-attributes.md` | solution-draft | 2026-08-29 | `handoffs/2026-08-30-affinity-and-technique-attributes.md` | （无 · 移出 0 条，裁决记录落 handoff 的 Clarifications；同批新增 2 条） |
+| `solution-draft-character-template-pool.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-30-character-template-pool.md` | `answer-logs/log-character-template-pool.md`（移出 1 条 · 新增 2 条） |
+| `solution-draft-realm-progression-artwork-basis.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-30-realm-progression-artwork-basis.md` | `answer-logs/log-realm-progression-artwork-basis.md`（移出 2 条 · 新增 0 条） |
+| `solution-draft-exchange-barter-support.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-30-exchange-barter-support.md` | `answer-logs/log-exchange-barter-support.md`（移出 1 条 · 新增 0 条） |
+| `solution-draft-client-flag-cache-and-binary-overlay.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` | `answer-logs/log-client-flag-cache-and-binary-overlay.md`（移出 2 条 · 新增 0 条 · 跨库成对） |
 | `solution-draft-ability-effect-primitives.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` | `answer-logs/log-ability-effect-primitives.md`（移出 2 条 · 部分答定 1 条 · 新增 1 条） |
 | `solution-draft-out-of-combat-item-use.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-28-out-of-combat-item-use-savepoint-and-trace.md` | `answer-logs/log-out-of-combat-item-use.md`（移出 1 整条 + 1 连带 · 新增 0 条） |
 | `solution-draft-enemy-ai-field-shape.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` | `answer-logs/log-enemy-ai-field-shape.md`（移出 3 条 · 新增 1 条） |

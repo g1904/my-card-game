@@ -13,11 +13,11 @@
 **篇章终局战的胜负即篇章推进的闸门：`d >= 0`（角色道念不落后于敌人）通过，`d < 0` 失败且角色当场终结。**
 
 - 判定统一为一条不按档分发的式子：`d >= WinMargin → Victory`；`d == WinMargin − 1` 且 `WinMargin >= 1` → `Draw`；否则 `Defeat`。代入三档 `WinMargin`（`Practice 0` / `Standard 1` / `Finale 0`）即得各档语义；`Draw` 收为仅 `Standard` 可达。
-- `DefeatReason` 新增 `FinaleFailed`（四值）。**终态判定因此不再是纯查表**：Finale 失败不是资源触底、无对应 `CostKey`、进不了 `ResourceElements` 表，须在资源表循环之前补一条显式旁路，且该旁路只在事件结算后的判定②生效。这是表驱动被开的唯一一个口子。
+- `DefeatReason` 含 `FinaleFailed`（全表三值）。**终态判定因此不再是纯查表**：Finale 失败不是资源触底、无对应 `CostKey`、进不了 `ResourceElements` 表，须在资源表循环之前补一条显式旁路，且该旁路只在事件结算后的判定②生效。这是表驱动被开的唯一一个口子。
 - `WinMargin` 在 Finale 侧删除（初值 3 / 5 / 8 一并退场），该档**不再有专属难度旋钮**；替代校准手段（天劫赋级带位置 / 定制卡组强度 / `TurnLimit`）的取值**留待内容扩充后的统计校准**。
 - 「通过但打平」的区间取最低档奖励，由既有的 `1:1` 强制奖励与 `advantage` 三档换算自动兑现，**零新增字段 / 分支 / 表**。
 - 写入顺序写死：`eventEnd` 的 `TryApply` 提交成功 → 终态判定② → `DefeatCharacter`。
-- `Practice` / `Standard` 两档的失败语义原样不变（只扣 `lifeTotal`，走 `LifeTotalExhausted`）。
+- `Practice` / `Standard` 两档的失败语义原样不变（只扣寿元；扣到 0 时走 `LifeSpanExhausted`）。
 
 逐条规则与判定伪码 → `systems/adventure-event/combat/_index.md`、`systems/services/life-cycle-service.md`；难度校准手段 → `systems/balance.md`。
 
@@ -26,14 +26,14 @@
 - **闸门语义要与玩家的心理模型一致。** 一场被全库叙述为「篇章高潮」的战斗打输了却照样过关，使 Finale 在规则层没有分量；胜负即闸门是把已有的叙事重量兑现为规则。
 - **三处判定口径的不一致只有靠二值化才能一次消掉。** 统一成一条式子后，三档差异全部落在 `WinMargin` 一个取值上，实现侧不需要按档分发。
 - **`WinMargin` 删除是本库既有的死结构判据。** 胜负线固定为 0 后它在 Finale 没有消费者；`PlotModulation.Tighten` 拧它对该档零效果（对 `Standard` 仍有效，故 `Tighten` 本身不是死结构）。
-- **借道 `LifeTotalExhausted` 被否决**：`LifeTotal` 无置值通道（`systems/services/profile-service.md` 明写），为它开一个 `Set` 是更大的口子；且玩家 / 客服 / 数据侧将永远分不清「打穿死」与「渡劫死」。
+- **借道任何一个资源触底原因被否决**：资源触底的原因由 `ResourceElements` 表驱动、须真有一条资源被打到 `Min`，而渡劫失败不消耗任何资源；硬把它塞进去要为该资源开一个置值通道，那是更大的口子。**独立成员同时保住可观测性**：玩家 / 客服 / 数据侧一眼分得清「大限将至」与「渡劫身死」。
 - **残卷四项与首胜里程碑照常，是唯一保住后端零改动的形态**（`FinaleWinOrdinal` 同时是掷骰序号、幂等键与后端复算入参，「序号 +1 却不掷骰」会使后端校验稳定失败）。
 
 ## 备选方案
 
 - **保留「失败但存活」的 1% 分支** — 使胜负不构成推进闸门，与终局战的叙事重量相抵；且它是三处判定口径不一致的根源。
 - **`Draw` 区间判为失败** — 会把「刚好打平」也变成角色终结，而难度口径此时已足够苛（开局落后 5 / 13 / 25）。
-- **借道 `DefeatReason.LifeTotalExhausted` 表达渡劫失败** — 见上，需为 `LifeTotal` 开置值通道，且失去可观测性。
+- **借道某个资源触底原因表达渡劫失败** — 见上，需为该资源开置值通道，且失去可观测性。
 - **为「最低档奖励」新造一条奖励线** — 既有两条换算规则已自动给出该档（验算：各章该区间 `advantage` 上界 0.133 / 0.125 / 0.093，整体落在 `Tier.Narrow`）；为已被满足的需求造结构会新增一个 `Tighten` 够不到的旋钮。
 - **为 Finale 补一个新的难度旋钮** — 难度校准依赖内容扩充后的统计样本，此刻凭直觉选旋钮与「先定形状、后定数值」的分工相悖。
 
@@ -48,4 +48,4 @@
 - **`Practice` 与 `Finale` 同取 `WinMargin 0` 是巧合**，不得提取共享常量。
 - **后端零改动**（已核实：后端 Finale 相关内容只覆盖通过路径，`defeatReason` 在 `backend-design-documents/contracts/` 内零登记）。日后 `characterProfile.defeatReason` 若进入上行透明段，枚举名须与客户端逐字一致。
 - 叙事侧补一条「渡劫身死」定性文案，复用被腾空的 `ResolveOutcome` → `eventEnd` 链路，结构成本为 0；边界不变且更吃紧——**绝不暗示道统残卷**。
-- 遗留：**死亡 / 轮回结束屏尚无设计**，而四条终结原因现在需要区分呈现。见 `open-questions/06-meta-progression.md`。
+- 遗留：**死亡 / 轮回结束屏尚无设计**，而三条终结原因需要区分呈现。见 `open-questions/06-meta-progression.md`。

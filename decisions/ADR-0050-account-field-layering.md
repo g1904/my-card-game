@@ -2,7 +2,7 @@
 
 - **状态：** Accepted
 - **日期：** 2026-08-09
-- **来源：** handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md, handoffs/2026-08-19-costkey-statkey-registry.md
+- **来源：** handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md, handoffs/2026-08-19-costkey-statkey-registry.md, handoffs/2026-08-22-purchase-count-statkey.md
 
 ## 背景
 

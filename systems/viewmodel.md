@@ -56,6 +56,7 @@ ViewModel 是这些纪律的**消费侧落点**，定义各在其权威文档，
 
 - 该 `.png` 文件本身归 `game-feature-branch/`，本库只登记这条约定。
 - `Artwork` 可空是常态（美术挂点先占位、末段替换），缺失的机械发现归加载期的收口汇总，**不由本层告警**；字段定义与告警形态见 `systems/common-properties.md`。
+- **角色形象的回落是两级，占位入口仍只有一处。** 组装角色形象时：① 取 `CharacterData.RealmArtworks` 中 `Realm == CharacterProfile.realm` 的那一条 → ② 无匹配则取共有字段 `CharacterData.Artwork`（基础图）→ ③ 仍为 `null` 则取上面那张唯一的占位资产。**没有当前轮回时（角色选择屏 / 图鉴 / 主菜单等无 `CharacterProfile` 的场合）跳过第 ① 级，直接取基础图。** 字段形态与三条加载期校验见 `systems/character-profile/_index.md`。
 
 ### 永不渲染清单
 
@@ -69,7 +70,7 @@ ViewModel 是这些纪律的**消费侧落点**，定义各在其权威文档，
 - **它的权威在结构一侧，不在措辞一侧。** 上述各条回答的是依赖方向、生命周期、只读性、缓存归属、重组装时机，**没有一条在回答「怎么说」**——故归 `systems/`，不归 `ux/`（`ux/` 已自我限定为「怎么说、说在哪、说几次」）。
 - **先例同向：** 非服务的横切件里，`game-progression` 因有自己的机制面而单列顶层文件，EventBus 因全部内容就是一条 API 契约总则而留在总则表内。判据是「它的内容是不是一条 API 契约总则」；本层的纪律绝大多数是跨屏的落地纪律，形态上属前者。
 
-Source: `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md`
+Source: `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

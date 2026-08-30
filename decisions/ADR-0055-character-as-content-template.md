@@ -2,7 +2,7 @@
 
 - **状态：** Accepted
 - **日期：** 2026-08-12
-- **来源：** handoffs/2026-08-12f-cultivation-technique-deck-building.md
+- **来源：** handoffs/2026-08-12f-cultivation-technique-deck-building.md, handoffs/2026-08-30-character-template-pool.md
 
 ## 背景
 
@@ -29,6 +29,6 @@ roguelike 的角色可以是「一个空白起点 + 随机初始配置」，也�
 
 ## 后果
 
-- 角色模板池的形态（池规模 / 是否账号级解锁 / 能否重抽或指定）**仍是未决项**，它改写元进程压力模型。
+- 角色模板池的形态已收口：**首批 5 个角色，开局由玩家从全池指定，无重抽通道，首批不做账号级逐步解锁**（且解锁不得做成付费点）。元进程压力模型因此定形——ch1 重开只换随机流，不换角色。字段面、加载期校验与已接受的代价 → `systems/character-profile/_index.md`。
 - `CharacterData` 进入 `content/` 的类型登记表，条目按内容流水线产出。
 - `CharacterProfile.id` 由客户端在轮回创建时生成 GUID，不用 `characterDataId` 作键——同一个模板可以开多个轮回。

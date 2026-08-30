@@ -23,6 +23,14 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-0830.md` | 2026-08-30 | `/summarize-open-questions game`（全量整理，无草稿来源） | 1 |
+| `log-fatigue-in-encounter-tighten.md` | 2026-08-30 | `inbox/archive/solution-draft-fatigue-in-encounter-tighten.md` → `handoffs/2026-08-30-fatigue-not-in-encounter-override.md` | 1（另有两条同批裁决本不在清单上：三处 ADR 措辞不动 · `FatigueAmount` 保持双向；同批新增待答 1 条） |
+| `log-stack-entry-kind-for-item-use.md` | 2026-08-30 | `inbox/archive/solution-draft-stack-entry-kind-for-item-use.md` → `handoffs/2026-08-30-stack-entry-kind-for-item-use.md` | 1（`TimingIds.ItemUsed` 不开为同批确认，本不在清单上，不单独计数；未新增待答项） |
+| `log-life-lifespan-merge.md` | 2026-08-30 | `inbox/archive/solution-draft-life-lifespan-merge.md` → `handoffs/2026-08-30-life-lifespan-merge.md` | 2（均为复合条目的一半，剩余部分仍待答；另登记 4 份旧 log 的结论被取代） |
+| `log-character-template-pool.md` | 2026-08-30 | `inbox/archive/solution-draft-character-template-pool.md` → `handoffs/2026-08-30-character-template-pool.md` | 1（同批新增待答 3 条；灵根侧移出 0 条故不另建 log） |
+| `log-realm-progression-artwork-basis.md` | 2026-08-30 | `inbox/archive/solution-draft-realm-progression-artwork-basis.md` → `handoffs/2026-08-30-realm-progression-artwork-basis.md` | 2（未新增待答项） |
+| `log-exchange-barter-support.md` | 2026-08-30 | `inbox/archive/solution-draft-exchange-barter-support.md` → `handoffs/2026-08-30-exchange-barter-support.md` | 1（两条 interview 裁决为该条的组成部分，不单独计数） |
+| `log-client-flag-cache-and-binary-overlay.md` | 2026-08-30 | `inbox/archive/solution-draft-client-flag-cache-and-binary-overlay.md` → `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` | 2（跨库成对，对侧同批移出 2 条） |
 | `log-ability-effect-primitives.md` | 2026-08-28 | `inbox/archive/solution-draft-ability-effect-primitives.md` → `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` | 2 整条 + 1 部分答定 + 1 条主题文档内待决项（同批新增待答 1 条） |
 | `log-out-of-combat-item-use.md` | 2026-08-28 | `inbox/archive/solution-draft-out-of-combat-item-use.md` → `handoffs/2026-08-28-out-of-combat-item-use-savepoint-and-trace.md` | 1 整条（两问全部答定）+ 1 条连带 + 1 条主题文档内待决项（未新增待答项） |
 | `log-enemy-ai-field-shape.md` | 2026-08-28 | `inbox/archive/solution-draft-enemy-ai-field-shape.md` → `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` | 3（均出自主题文档待决项；台词一条为收窄，同批新增待答 1 条） |

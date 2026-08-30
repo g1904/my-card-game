@@ -9,7 +9,7 @@
   - **灵石 / `spiritStone` —— 基础货币（软通货，官方货币名）。** 单次轮回内的日常通货，主要花销在 Exchange。
   - **仙玉 / `immortalJade` —— 高阶货币。** 用于 Exchange 中的高阶商品。**「高阶」由稀有度与价格量级表达，不由新机制表达**：它走的是与灵石**完全相同**的 element 通道、相同的 Exchange 交易 pipeline，区别只在「哪些商品收它」与「一次能拿到多少」。
 
-- **两者的取值域同为 `[0, ∞)`，归 0 都不构成终态。** 它们在 `ResourceElements` 表中各占一行 `(Min = 0, Max = null, DepletionDefeat = null, CostModifier = null, GainModifier = null, Add)`：施加负值使其低于 0 时**截断到 0**，玩家只是变穷，不触发任何终结路径——`DefeatReason` 四值封闭、无货币项，且两种货币都随轮回清理，不承载终态语义。表的定义见 `systems/architecture.md`「共享核心类型」，逐行理由见 `systems/services/profile-service.md`。
+- **两者的取值域同为 `[0, ∞)`，归 0 都不构成终态。** 它们在 `ResourceElements` 表中各占一行 `(Min = 0, Max = null, DepletionDefeat = null, CostModifier = null, GainModifier = null, Add)`：施加负值使其低于 0 时**截断到 0**，玩家只是变穷，不触发任何终结路径——`DefeatReason` 三值封闭、无货币项，且两种货币都随轮回清理，不承载终态语义。表的定义见 `systems/architecture.md`「共享核心类型」，逐行理由见 `systems/services/profile-service.md`。
 
 - **消耗侧的形态至此确定：两种货币的主消耗点都是 Exchange。** 购买商品（`-ListPrice`）与刷新库存（`-RerollCost`）是当前仅有的两个消耗形态，**逐笔即时经 `ProfileManager.TryApply` 提交**，不攒到事件收口；售出法宝是反向的产出形态。定价不逐条目手写，由 `systems/balance.md` 的「商品族 × 稀有度」定价表给出——**该表的每一格同时给出支付币种与基准价**，故一件商品收灵石还是收仙玉由它落在表上的位置决定，内容侧不额外书写。机制权威见 `systems/adventure-event/exchange/_index.md`。
   - **商店价格修正在物化 / 展示侧施加，不在 element 路径重复施加**——故 `ResourceElements` 表里 `SpiritStone` 与 `ImmortalJade` 两行的两个修正列都恒为 `null`，见 `systems/services/profile-service.md`。
@@ -27,7 +27,7 @@
 - **灵石与仙玉之间完全不可兑换（正面纪律，零机制）。** 不设任何单向或双向兑换通道。**理由：两层货币的意义在于两条独立的产出曲线各自约束一片消费面**——一旦可兑换，双层立刻退化为「单层 + 一个汇率」，高阶商品的门槛从「你是否走到过那个稀有事件」变成「你攒够灵石没有」，稀有度这一重表达随之失效。这与「禁止跨层兑换以防清仓换经济成为最优解」是同一条论证结构。
   - **售出侧同币回收，因而不产生事实汇率。** `SellRatePercent` 的折算基准取「族 × 稀有度」定价表上的基准价，而币种就在那一格上 ⇒ 卖出所得恒与买入同币。不可兑换因此由既有结构闭合，不需要任何额外判断。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

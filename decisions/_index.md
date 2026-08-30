@@ -4,6 +4,12 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| [ADR-0132](ADR-0132-stack-entry-kind-used-item.md) | 用道具的栈条目自成一员 `StackEntryKind.UsedItem`，栈条目增 `itemId` | Accepted | 2026-08-30 | systems/services/combat-service.md, systems/character-profile/deck/common-properties.md |
+| [ADR-0127](ADR-0127-life-merged-into-lifespan.md) | `lifeTotal` 并入 `lifeSpan`：一条命、两个扣减来源，且完全显性 | Accepted | 2026-08-30 | systems/character-profile/life-span.md, systems/scoring.md, systems/balance.md, systems/services/plot-manager.md, systems/services/profile-service.md, systems/adventure-event/research/_index.md, ux/screen-flow.md, vision/pillars.md |
+| [ADR-0126](ADR-0126-exchange-barter-payment.md) | Exchange 支付侧二选一：货币，或一件点名的轮回级法宝 | Accepted | 2026-08-30 | systems/adventure-event/exchange/_index.md, exchange/common-properties.md, systems/services/profile-service.md, systems/common-properties.md, ux/screen-flow.md |
+| [ADR-0125](ADR-0125-no-binary-over-overlay.md) | 二进制资产不经 overlay / blob 通道下发；指向恒落在随包基线内 | Accepted | 2026-08-30 | systems/common-properties.md, systems/services/content-service.md, art/visuals/_index.md |
+| [ADR-0124](ADR-0124-artwork-single-slot-realm-override.md) | `Artwork` 基数恒为单格；境界覆写只落 `CharacterData.RealmArtworks` | Accepted | 2026-08-30 | systems/common-properties.md, systems/character-profile/_index.md, systems/viewmodel.md, art/visuals/art-direction.md |
+| [ADR-0123](ADR-0123-affinity-technique-learning-gate.md) | 灵根与功法属性：唯一的规则后果是硬性修习准入 | Accepted | 2026-08-30 | systems/character-profile/_index.md, systems/character-profile/deck/_index.md, systems/adventure-event/research/common-properties.md, systems/services/future-event-service.md, systems/player-profile/codex/technique-codex.md, terminology.md |
 | [ADR-0122](ADR-0122-batch-layer-inventory-commit-and-trace.md) | 批次层储物袋操作不是决策点而是一次即时提交；补两列与 `pastItemUse` 序列 | Accepted | 2026-08-28 | systems/services/profile-service.md, systems/character-profile/_index.md, systems/character-profile/item/_index.md, systems/services/sync-service.md, systems/architecture.md |
 | [ADR-0121](ADR-0121-item-use-effect-face-by-world.md) | `ItemData` 使用效果面按世界分两格，移除 `Abilities`，新增 `MaxUsesPerCombat` | Accepted | 2026-08-28 | systems/character-profile/item/_index.md, systems/services/profile-service.md, systems/character-profile/power/_index.md, systems/architecture.md |
 | [ADR-0120](ADR-0120-content-artwork-and-enemy-lines.md) | 插画引用升为顶层共有字段 `Artwork`；敌人台词落 `Lines`，不开音效字段 | Accepted | 2026-08-28 | systems/common-properties.md, systems/enemies/common-properties.md, systems/enemies/_index.md, systems/viewmodel.md |
@@ -34,6 +40,7 @@
 | [ADR-0083](ADR-0083-full-art-card-face.md) | 卡面 = 全幅插画，唯一文字是 `manaCost`；`Power` 战斗内以技能条目呈现 | Accepted | 2026-08-25 | ux/combat-ux.md, art/visuals/art-direction.md, art/_index.md |
 | [ADR-0082](ADR-0082-itemized-combat-rewards.md) | 战后奖励改为逐项领取 / 跳过；领取进度成为决策点 D6 | Accepted | 2026-08-23 | systems/services/combat-service.md, ux/combat-ux.md |
 | [ADR-0081](ADR-0081-hidden-stats-outside-combat.md) | 隐藏属性不是战斗内资源：战斗层既不读也不写它 | Accepted | 2026-08-23 | systems/services/plot-manager.md |
+| [ADR-0129](ADR-0129-hidden-stat-direction-slot.md) | 隐藏属性推拉的方向落在 `HiddenStatGrant` 第三格，沿数值轴命名、无哨兵 | Accepted | 2026-08-22 | systems/architecture.md, systems/adventure-event/common-properties.md, systems/services/future-event-service.md, systems/balance.md |
 | [ADR-0111](ADR-0111-event-count-limit-plot-immunity.md) | `eventCountLimit` 恒为内容侧定值：`PlotModulation` 不长第七格，overlay 仍可改 | Accepted | 2026-08-22 | systems/game-progression.md, systems/services/plot-manager.md, systems/adventure-event/travel/_index.md |
 | [ADR-0110](ADR-0110-enemy-pool-chapter-scope.md) | 敌人池篇章框定 = `EnemyData.ChapterScope`，切叙事归属而非强度 | Accepted | 2026-08-22 | systems/enemies/_index.md, systems/enemies/common-properties.md, systems/services/future-event-service.md |
 | [ADR-0080](ADR-0080-refresh-token-client-custody.md) | refresh token 归 `AuthManager` 私有；续期软信号不做任何本地时钟判断 | Accepted | 2026-08-22 | systems/services/account-service.md, ux/screen-flow.md, ux/error-and-blocking-ux.md |
@@ -56,6 +63,7 @@
 | [ADR-0070](ADR-0070-codex-entry-id-only.md) | `CodexEntry` 首批只有一格 `Id`；计数与首次解锁元数据全部不落 | Accepted | 2026-08-19 | systems/player-profile/codex/common-properties.md |
 | [ADR-0069](ADR-0069-subrequirement-signoff-inheritance.md) | 子需求签核继承父 FR；唯一例外是 Open-questions 闸 | Accepted | 2026-08-19 | requirements/_index.md |
 | [ADR-0023](ADR-0023-premium-entitlement-and-redemption.md) | 付费凭证 = `PlayerEntitlement` 两字段；购买段后端权威、兑现段客户端演算 | Accepted | 2026-08-19 | systems/monetization.md, systems/player-profile/_index.md, systems/services/sync-service.md, ux/screen-flow.md |
+| [ADR-0128](ADR-0128-status-changes-assignment-column.md) | `ProfileChangeSpec` 增 `StatusChanges` 列：Status 规则字段的绝对置值 | Accepted | 2026-08-17 | systems/architecture.md, systems/services/profile-service.md, systems/services/life-cycle-service.md, systems/adventure-event/travel/common-properties.md, systems/adventure-event/explore/_index.md |
 | [ADR-0109](ADR-0109-lifespan-cost-fixed-value.md) | `lifeSpanCost` 恒为非负整数定值：不带区间、不带公式，变异位共三个 | Accepted | 2026-08-17 | systems/adventure-event/common-properties.md, systems/balance.md, systems/services/future-event-service.md |
 | [ADR-0068](ADR-0068-draw-primitives-two-levels.md) | 抽取原语只有两级；分界判据 = 这道过滤需不需要读 `Profile` | Accepted | 2026-08-17 | systems/services/content-service.md, systems/player-profile/player-power/_index.md |
 | [ADR-0067](ADR-0067-element-carrier-three-tier-criterion.md) | 新施加语义按三级问法落点：新增一列 → 同列加 `Op` → 配表加一列 | Accepted | 2026-08-17 | systems/architecture.md, systems/services/profile-service.md |
@@ -81,7 +89,9 @@
 | [ADR-0055](ADR-0055-character-as-content-template.md) | 角色是有身份的内容条目 `CharacterData`，不是程序化生成的空白人 | Accepted | 2026-08-12 | systems/character-profile/_index.md, content/_index.md |
 | [ADR-0054](ADR-0054-technique-as-deck-unit.md) | 功法是卡组的构筑单位；层数提升即整组替换 | Accepted | 2026-08-12 | systems/character-profile/deck/_index.md, terminology.md |
 | [ADR-0053](ADR-0053-error-copy-client-owned.md) | 错误文案由客户端持有，键由后端 `code` 机械变换；`message` 永不进弹窗 | Accepted | 2026-08-12 | ux/error-and-blocking-ux.md |
-| [ADR-0016](ADR-0016-hidden-stat-band-model.md) | 隐藏属性档位模型：一张档位表统一五个消费方，叙事挂档位不挂事件 | Accepted | 2026-08-12 | systems/services/plot-manager.md, systems/character-profile/_index.md, systems/balance.md |
+| [ADR-0016](ADR-0016-hidden-stat-band-model.md) | 隐藏属性档位模型：一张档位表统一三个消费方，叙事挂档位不挂事件 | Accepted | 2026-08-12 | systems/services/plot-manager.md, systems/character-profile/_index.md, systems/balance.md |
+| [ADR-0131](ADR-0131-upgrade-error-non-blocking.md) | `Upgrade` 类错误只在两处硬阻塞；缓冲闸门口径不变、只换文案与选项 | Accepted | 2026-08-11 | systems/services/sync-service.md, ux/error-and-blocking-ux.md, systems/architecture.md |
+| [ADR-0130](ADR-0130-flags-third-override-layer.md) | `ContentEnabled` 增第三层覆盖来源 flags；overlay 不再是唯一热更层 | Accepted | 2026-08-11 | systems/services/content-service.md, systems/architecture.md |
 | [ADR-0052](ADR-0052-no-reshuffle-fatigue.md) | 抽牌堆不重洗，抽空即疲劳；卡组规模两侧皆不设硬限 | Accepted | 2026-08-11 | systems/services/combat-service.md, systems/enemies/common-properties.md, systems/balance.md |
 | [ADR-0019](ADR-0019-card-type-taxonomy-and-battlefield.md) | 卡牌类型五分、异能三分、永久物；战场划线判据 | Accepted | 2026-08-11 | systems/services/combat-service.md, systems/character-profile/deck/, terminology.md |
 | [ADR-0007](ADR-0007-local-content-layer-and-overlay.md) | 内容载体形态：随包基线 + overlay 热更 + 云端版本校验 | Accepted | 2026-08-11 | systems/services/content-service.md, systems/services/plot-manager.md, systems/architecture.md, vision/scope.md |
@@ -97,7 +107,7 @@
 | [ADR-0048](ADR-0048-consented-power-loss-ladder.md) | 法则不会被强制剥夺：只有自愿置换能真正移除；三级严重度阶梯 | Accepted | 2026-08-06 | systems/player-profile/player-power/_index.md, systems/character-profile/_index.md |
 | [ADR-0047](ADR-0047-event-priority-single-axis.md) | `eventPriority` 是唯一选择约束轴：两档、服务独占置位、抬升写判据 | Accepted | 2026-08-06 | systems/services/future-event-service.md, systems/adventure-event/common-properties.md |
 | [ADR-0046](ADR-0046-skip-channel-removal.md) | 跳过通道整体移除：一批 eventOptions 只有一次操作——择一进入 | Accepted | 2026-08-06 | systems/adventure-event/common-properties.md, systems/services/future-event-service.md |
-| [ADR-0045](ADR-0045-life-total-single-value.md) | 删除 `lifeTotalLimit`：只跟踪 `lifeTotal` 单值，无上限截断 | Accepted | 2026-08-06 | systems/character-profile/life-total.md, systems/balance.md |
+| [ADR-0045](ADR-0045-life-span-single-value.md) | 寿元只跟踪 `lifeSpan` 单值：无上限字段、无上限截断 | Accepted | 2026-08-06 | systems/character-profile/life-span.md, systems/balance.md |
 | [ADR-0044](ADR-0044-enemy-leveling-band.md) | 敌人赋级带 = 当前全局等级 `±2` 的对称带，无例外硬规则 | Accepted | 2026-08-06 | systems/balance.md, systems/services/future-event-service.md, systems/services/plot-manager.md |
 | [ADR-0043](ADR-0043-travel-as-structural-gate.md) | 配额用尽即 Travel 以最高 `eventPriority` 出场；Travel 升格为结构性闸门 | Accepted | 2026-08-05 | systems/game-progression.md, systems/adventure-event/travel/_index.md |
 | [ADR-0042](ADR-0042-location-flat-set-and-single-map.md) | location 是平坦内容条目集合 + 单份全局邻接表；三章共用同一张图 | Accepted | 2026-08-05 | systems/game-progression.md, systems/adventure-event/travel/_index.md, content/_index.md |
@@ -106,7 +116,7 @@
 | [ADR-0039](ADR-0039-stack-without-interaction-and-three-step-turn.md) | 借入 stack 但不借交互与优先权；回合固定三步 | Accepted | 2026-08-02 | systems/services/combat-service.md, vision/pillars.md |
 | [ADR-0038](ADR-0038-experience-point-progression.md) | 等级成长走 `experiencePoint`；阈值曲线境界内递增、境界间重置量纲 | Accepted | 2026-08-02 | systems/game-progression.md, systems/balance.md |
 | [ADR-0037](ADR-0037-codex-family-third-track.md) | 图鉴自成一族，是元进程的第三条积累线；只记解锁状态 | Accepted | 2026-08-01 | systems/player-profile/codex/_index.md, systems/player-profile/_index.md |
-| [ADR-0018](ADR-0018-momentum-scoring-model.md) | 计分模型 = 道念；道念即胜负判据；失败按道念差扣 lifeTotal | Accepted | 2026-08-01 | systems/scoring.md, systems/services/combat-service.md, systems/character-profile/life-total.md |
+| [ADR-0018](ADR-0018-momentum-scoring-model.md) | 计分模型 = 道念；道念即胜负判据；失败按道念差 × `lossPerMomentum` 扣寿元 | Accepted | 2026-08-01 | systems/scoring.md, systems/services/combat-service.md, systems/character-profile/life-span.md |
 | [ADR-0008](ADR-0008-service-hierarchy-vocabulary.md) | 五级层次词表；拆分轴 = 生命周期层 + 行为边界 | Accepted | 2026-08-01 | systems/architecture.md, systems/services/_index.md, program-overview.md |
 | [ADR-0036](ADR-0036-decision-point-saves.md) | 事件过程按决策点落存档；非战斗四类的决策点只是可退出点 | Accepted | 2026-07-30 | systems/services/combat-service.md, systems/services/life-cycle-service.md |
 | [ADR-0035](ADR-0035-mana-no-curve-model.md) | mana 不设曲线：每回合恢复至 `manaLimit`；上限由事件推拉 + 大境界 `+1` | Accepted | 2026-07-30 | systems/character-profile/mana.md, systems/balance.md |

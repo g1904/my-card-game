@@ -56,5 +56,6 @@
 - `systems/common-properties.md` 是 `Artwork` 的权威，七个落点只写投影段；`systems/enemies/common-properties.md` 是 `Lines` 与音效判定的权威。
 - `systems/viewmodel.md` 因此背上一条此前不存在的职责：资产加载的占位回落。
 - 图鉴词条构成表里「立绘」一项限定为 `PowerData` / `ItemData` 两类，消掉该文件内部两处自相矛盾的表述。
-- overlay 语义只写可机械成立的部分：覆盖一条 `.tres` 时 `Artwork` 随之被覆盖，指向必须落在随包基线内已存在的资产。**「二进制资产是否可经 overlay / blob 通道下发」在两库均无表述，已登记为待答项**，后端库留对侧承接项。
+- overlay 语义：覆盖一条 `.tres` 时 `Artwork` 随之被覆盖，指向必须落在随包基线内已存在的资产。**二进制资产不经 overlay / blob 通道下发，换图 / 加图随版本发布**——正因为本 ADR 取了直接资源引用，才推不出二进制热更；权威与完整判据见 `systems/common-properties.md`，决策档案见 `ADR-0125-no-binary-over-overlay.md`。
+- **`Artwork` 的基数恒为「一条内容一格」，境界维度不进本字段。** 七个挂载面里能被境界索引的只有 `CharacterData` 一个，按判据卡属该类自有字段：角色形象的稀疏境界覆写落 `CharacterData.RealmArtworks`，本 ADR 的七类挂载面、单格形态、可空语义、告警形态与占位回落一律不受影响 → `systems/character-profile/_index.md`，决策档案见 `ADR-0124-artwork-single-slot-realm-override.md`。
 - 生成出的二进制资产归 `game-feature-branch/`，本库只登记约定 → `ADR-0040`。

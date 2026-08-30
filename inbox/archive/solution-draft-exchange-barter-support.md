@@ -4,7 +4,9 @@ date: 2026-08-28
 question: Exchange 是否支持「以物易物」（支付侧为一件指定持有物）——还是它只是「以资源换取」的口语说法？
 source: open-questions/03-adventure-event-types.md → 「Exchange 是否支持以物易物（08-26 新增）」
 targets: systems/adventure-event/exchange/_index.md · systems/adventure-event/exchange/common-properties.md · systems/services/profile-service.md（仅当采纳 B）· systems/common-properties.md（仅当采纳 B）· ux/screen-flow.md（仅当采纳 B）· handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md（措辞回改，见「与既有决策的张力」④）
-status: decided
+status: distilled
+reviewed: 2026-08-28 批量评审裁定落地定值以物易物（支付侧 = 货币或轮回级持有物）；2026-08-30 合并 interview 另裁 2 题（不持有 → 灰显 + 支付要求可见 + 一条 `EVENT_` 说明，**推翻草稿括注里「按 `Holds` 决定是否呈现」** · **新增 `Source.ExchangeBarter = 10`**，推翻草稿 §3c 的否决）
+distilled-to: handoffs/2026-08-30-exchange-barter-support.md
 ---
 
 # 方案草稿 — Exchange 是否支持以物易物

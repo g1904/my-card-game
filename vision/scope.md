@@ -13,7 +13,7 @@
 - **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。见「平台与约束」。
 - **premium bundle 端到端。** 支付接入（Google Play Billing / App Store / 微信支付三渠道）+ Store 屏 + 购后兑现。它是客户端唯一必须引入第三方 SDK 的地方，牵动 Godot 导出配置与各平台构建。形态见 `systems/monetization.md`。
 
-Source: `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md`
 
 ## 范围之外（暂时）
 > _明确推迟——先泊车，以免蔓延进来。_
@@ -49,7 +49,7 @@ Source: `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-0
 **框架 → 内容 → 平衡与体验 → 社交及其他。**
 
 1. **先做游戏框架**——服务骨架、核心循环、存档 / 同步、内容管线；
-2. **再横向填充内容**——五类 AdventureEvent、卡牌、敌人、剧本。**第二阶段内部的次序：优先打磨第一篇章（ch1）的内容**，切入点是设计起始角色的 starter deck。所有数值标杆（卡牌的道念产 / 削量纲、`lifeTotal` 回复幅度、`lifeSpanCost` 分档）**先定形状、后定数值**：本阶段只立形状锚点框住旋钮之间的相对关系与量纲比例，具体取值留待内容扩充后的统计校准。**推论：机制阶段不必先把这些数字定死**——数值标杆需要完整的内容上下文与可统计的样本量，比在机制讨论中拍脑袋更可靠。
+2. **再横向填充内容**——五类 AdventureEvent、卡牌、敌人、剧本。**第二阶段内部的次序：优先打磨第一篇章（ch1）的内容**，切入点是设计起始角色的 starter deck。所有数值标杆（卡牌的道念产 / 削量纲、回寿量三档、`lifeSpanCost` 分档、`lossPerMomentum` 的 ch2 / ch3 系数）**先定形状、后定数值**：本阶段只立形状锚点框住旋钮之间的相对关系与量纲比例，具体取值留待内容扩充后的统计校准。**推论：机制阶段不必先把这些数字定死**——数值标杆需要完整的内容上下文与可统计的样本量，比在机制讨论中拍脑袋更可靠。
 3. **然后打磨平衡与体验**——数值标杆的取值定标归此阶段：内容铺开且游戏可运行后，由实测样本统计校准；
 4. **最后才考虑社交与其他功能**——**每日种子、排行挑战归于此阶段**，因此**当前不为其预留任何结构**（例如不预留 `contentVersion` 冻结机制；若将来引入，正确做法是让该模式内的轮回绑定一份冻结快照，把例外局部化——见 `systems/services/content-service.md`）。
 

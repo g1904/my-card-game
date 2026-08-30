@@ -137,11 +137,26 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 - **应用闸与观测闸是同一条判据的两次兑现：拉回的那一批，`flagsVersion` ≤ 内存值即整批丢弃。** 单调闸不能只挂在 `X-Flags-Version` 头上——头与应答体可能来自不同来源（多实例、区域传播窗口、中间层缓存了旧 body），一次「头说 42、体里是 41」的拉取若把 41 那批**应用**上去，被秒关的内容当场复活，而这正是整条单调纪律要防的事。故：**拉回版本 > 内存值 → 应用；否则丢弃 + `PushWarning`（带拉回值与内存值）+ 上报一次**，通道与去重口径（上报侧本会话一次）与上一条「观测到更小版本」完全相同，不新增第二套。
   - **等值也丢弃，且这不是保守：** 后端保证同一 `(flagsVersion, 账号)` 解析结果恒定（`backend-design-documents/contracts/content-manifest.md`「服务端保证」B 组），故等值那一批与本地已生效的那一批**逐字相同**，应用它是纯粹的空操作。丢弃使「应用」这一步只有一条判据（严格增大），不必在实现里区分「无害的等值」与「有害的更小」。
 - **热应用：拉到即生效于下一次抽取。** 不需重启、不需重新合并 overlay、不触碰 ContentRegistry 的校验 ⇒ **轮回进行中安全**。数值型 overlay 无此性质，这正是把它独立出来的收益。
-- **本地缓存 `user://cache/flags.json`**（`accountId` / `flagsVersion` / `disabledIds`；原子写、跨启动保留，与 `sync-envelope.json` 同处同纪律）。**原子写走共享静态工具 `AtomicJsonFile`**（见 `systems/architecture.md`），不自带实现。
+- **本地缓存 `user://cache/flags.json`**（`schemaVersion` / `accountId` / `flagsVersion` / `disabledIds`；原子写、跨启动保留，与 `sync-envelope.json` 同处同纪律）。**原子写走共享静态工具 `AtomicJsonFile`**（见 `systems/architecture.md`），不自带实现。
   - **缓存的收益不在离线开局——那条路径根本不存在**：启动 pull 是**硬阻塞**，强制在线下无权威档即不可玩，故不存在「断网启动并进入轮回」。
   - 真实收益只有一处：**登录成功但 flags 拉取失败**时的降级值。用上一次已知 flags 优于回落到 overlay 里的布尔（后者会让被秒关的条目复活）。
   - **切账号即失效**：`accountId` 不匹配 → 丢弃（`PushError` + 定位上下文）。分桶是**按账号解析后的结果**，跨账号复用等于灰度串号。与 `sync-envelope.json` 的切账号纪律同构。
   - **内存 `FlagsVersion` 冷启动一律归零。** 缓存只提供 `disabledIds` 的降级值，**不回填版本**。故启动后的首次观测必然增大 ⇒ 必拉；切账号丢弃缓存后同理。这条是「增大即拉」的爆炸半径闸——它把下方那条契约依赖被违反时的停摆限制在**单次会话内**，而不是跨启动永久化。
+  - **带 `schemaVersion`**，按 `systems/architecture.md` 的逐份判据（多字段的结构体带版本 + 一条迁移路径；单字段的设备维度小文件不带）。它是三格以上的结构体且字段面还会增长（报文侧的 `enabledIds` 是已立好的保留字段，见 `backend-design-documents/contracts/content-manifest.md`）。**迁移路径就是丢弃**：这是一份可再生的降级缓存，丢掉的代价只是本次会话在拉到第一批 flags 之前退回 overlay 的布尔值，故不需要逐版迁移。
+  - **写入时点唯一 = 一批 flags 通过单调闸并被应用之后**，原子覆写；等值 / 更小而被丢弃、验签失败被拒、拉取失败（网络 / 限流）**一律不写**。写入点必须与「应用」逐字重合——否则一批未过单调闸的旧 flags 会在盘上覆盖已生效的那批，把一条内存里的护栏在盘上打穿。
+  - **盘上的 `flagsVersion` 只进日志与告警上下文**（如「用缓存降级：`accountId=… flagsVersion=…`」），**不参与任何判断、不回填内存版本**。明写这一格的用途，是因为它看起来正好能拿来回填，而回填会悄悄拆掉上一条的爆炸半径闸。
+  - **失效语义三条，不设 TTL：**
+
+    | 情形 | 语义 | 处置 |
+    |---|---|---|
+    | `accountId` ≠ 当前登录账号 | 必需但错误——跨账号复用等于灰度串号 | 丢弃 + `PushError` + 定位上下文 |
+    | 解析失败 / 字段缺失 / `schemaVersion` 不认识 | 可选缺失 | 丢弃 + `PushWarning`（带 `path=user://cache/flags.json`） |
+    | 其余 | 有效 | 作 `disabledIds` 的降级值 |
+
+    **「丢弃」= 本次会话按无缓存处理，不删除文件**（下次成功应用即覆写）——与 `refresh-token.json` 的「告警 + 删除」分岔在此，因为这份文件里没有凭据，主动删除只是多一条会失败的 I/O 路径，换不到任何安全性。
+    **不设时间 TTL**：设备时钟不可信；且一份「过期的 flags」与最新一批的唯一差别是可能少关了几条内容，而这正是拉取成功后第一件事就会修正的东西。给它加 TTL 只会在断线时把玩家从「上一批已知开关」推回 overlay 布尔，让被秒关的条目复活——恰是这份缓存存在目的之反面。
+  - **登出不主动删除。** 判据已由 `accountId` 那一格承接：同账号再登入照常可用，换账号则命中第一条丢弃分支。
+  - **报文侧对位（不复述）：** `no-cache` 只约束 HTTP 缓存层、不约束本地这一份持久化，且契约不下发任何缓存策略字段；本缓存的可复用性依赖「同一 `(flagsVersion, 账号)` 解析结果恒定」这条服务端保证。两者的权威在 `backend-design-documents/contracts/content-manifest.md`。
 - **拉取失败 → `PushWarning` + 用缓存（无缓存则用 overlay 的 `ContentEnabled` 值）+ 绝不阻塞**（硬阻塞仍只有两处）。下一次搭车观察到版本差异时自然重试——不为它另开重试机制。连续失败时叠一道**闸门式退避**：退避窗口只是「窗口内的版本观测只更新最高已观测版本、不发请求」，**窗口到期不主动发起，仍等下一次搭车观测才拉**——它是一条抑制规则，不是一条独立的重试通道。
   - 底数 / 因子 / cap 见 `systems/balance.md`，**无放弃阈值**：放弃意味着这台设备此后再不同步开关。**实际间隔 = max(本地退避计算值, 服务端给的等待时间)**——省略后者会把一次限流变成第二次限流，这条与通道无关。**不加抖动**：flags 拉取由搭车观测触发、天然错峰，抖动的错峰收益在此不存在。
   - 退避只影响**重试节奏**，不影响生效值——降级（用上一批已知 flags）在首次失败时就已生效，仍落在既有的降级形状内，未发明新的一种。
@@ -166,7 +181,7 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 
 - **粒度 = 文件级。** manifest 已携带逐条目 hash，只下载 hash 不匹配的文件。**整包全量重下仅两种情形**：首次安装 overlay、本地 overlay 是按**旧 `manifestSchema`** 落地的（客户端支持云端那个 schema，但本地布局对不上）。
 - **`manifestSchema` 不受支持则跳过，不是重下。** 客户端内置一个「支持的 `manifestSchema` 集合」；云端 manifest 的 schema **高于**该集合 → **跳过本次更新、照常用现有 overlay / 基线**，与断网降级同构。两种情形必须分开——把「不认识的结构」当成「重下一遍」只会把同一个失败重复一次。
-- **不做字节级断点续传**（`.tres` 是 KB 级，续传复杂度换不回收益），改做**文件级事务**：
+- **不做字节级断点续传**（`.tres` 是 KB 级，续传复杂度换不回收益）——**「KB 级」是这条否决的前提，且它由「二进制资产不经本通道下发」保障恒成立**（见 `systems/common-properties.md` 的 `Artwork` 一节），不是一句凑巧的观察。改做**文件级事务**：
 
 ```
 user://overlay/                 已生效热更层（永远完整）
@@ -177,9 +192,20 @@ user://overlay.staging/         下载落地区，允许脏，失败即清空
 - **更新流程：** ① 比对本地与云端 manifest 得出待下集；② 逐文件下载进 `overlay.staging/` 并**逐文件校验 hash**，失败重下该文件（指数退避，最多 3 次）；③ **全集齐备且全部校验通过后**才搬入 `overlay/`，最后**原子写 `overlay.manifest.json`（临时文件 → rename）= 提交点**；④ 任一步失败 → 清空 staging，`overlay/` 与其 manifest **保持上一个完整版本**，本次更新视为**未发生**，走既有断网降级（用现有层照常开局）。
 - **由此永不存在半套 overlay：** `overlay/` 的有效性由**那一次 rename** 定义——与存档原子写**同构**。
 
+**manifest 里出现非 `.tres` 文件时的两道处置。** overlay 只承载 `.tres` 内容文件；这条若只是一句约定，实现期一次误配置就会把二进制推到设备上。按「纪律的可执行化」的既有分级：
+
+| 层 | 处置 | 说明 |
+|---|---|---|
+| **overlay 打包工具**（发布侧，强形态） | `files[]` 出现非 `.tres` 路径 → **不产出包** | 与合并期两条闸的前移形态同款；发布侧是唯一能在事故发生前拦住的地方。**运维形态归 `backend-design-documents/open-questions/04-content-delivery.md`，本库不实现、不复述** |
+| **客户端**（兜底） | **跳过该文件、不落盘**，`LoadAll()` 后**汇总一行** `PushWarning`（条数 + 前 N 个 path） | 处理手工塞进 `user://overlay/` 的非发布路径 |
+
+- **客户端取「跳过」而非「拒绝整批」：** 拒绝整批 = 一次误配置让全体玩家的内容更新停摆；跳过不破坏文件级事务的任何性质——提交点不变，`.tres` 侧的合并与强校验照常，被跳过的文件不会被任何 `ExtResource` 指向（`Artwork` 的指向恒落在随包基线内，见 `systems/common-properties.md`）。
+- **告警取汇总一行而非逐文件**，与 `Artwork` 缺失的告警形态同款：逐条目告警会训练出忽略整个通道的行为。
+- **不新增 manifest 字段、不提升客户端支持的 `manifestSchema` 集合、不新增第三处硬阻塞**——报文层对文件类别中立，这道处置全在客户端与打包工具两侧。
+
 ### manifest 契约对位：客户端的四条义务
 
-服务端只保证三件事（每个文件有稳定 URL · URL 字节不可变 · manifest 与它列出的文件发布上原子），事务模型全在客户端一侧。对上后端 manifest 字段表，客户端另有四条**具体义务**：
+服务端义务的完整清单在 `backend-design-documents/contracts/content-manifest.md`「服务端保证」（A 组覆盖 overlay 分发、B 组覆盖 flags 通道），**本库不复述**；事务模型全在客户端一侧。对上后端 manifest 字段表，客户端另有四条**具体义务**：
 
 - **`files[].path` 落盘前校验路径穿越**（禁 `..` 与绝对路径）——这是内容分发里唯一有实质危害的注入面。
 - **`files[].size` 用于下载前的磁盘空间预检**，使「磁盘空间」这类失败提前判定，而非写到一半才失败（对上 `CheckAndUpdateAsync` 已定的磁盘分支）。
@@ -344,7 +370,7 @@ public interface ISingletonContent { }
 | **ContentRegistry** | 合并 overlay + 基线，按 `Id` 建立索引，暴露泛型仓储接口；合并后统一校验 |
 | **ContentUpdateManager** | 读本地 manifest、比对云端 `contentVersion`、**manifest 验签**、逐文件下载进 `overlay.staging/` 并校验 hash、事务性搬入 `overlay/`、断网降级 |
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-22-singleton-balance-resource-registry.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-23-flags-version-client-gate.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-22-singleton-balance-resource-registry.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-23-flags-version-client-gate.md` · `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md`
 
 ## API 面（契约）
 

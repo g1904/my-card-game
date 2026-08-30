@@ -9,10 +9,11 @@
 - **手机登录是两步握手,UI 必须在两步之间停留。** 输入手机号 → 请求验证码 → 输入验证码 → 提交。中间态需要:验证码输入框、**倒计时始终可见的重发按钮**(倒计时期间禁用)、以及验证码过期后的重新获取路径。倒计时是常驻可见状态,**不做 hover 提示**;触控目标尺寸达标。微信登录无此步(授权由渠道 SDK 一次完成)。
 - **绑定 / 解绑不在登录屏。** 它们是已登录态的低频操作,落在主菜单的「玩家档案」屏(见 `ux/screen-flow.md`);放进登录屏会让最高频路径变重,且未登录时无账号可绑,语义上就不成立。
 - **首玩篇章门禁。** 首玩者进入主菜单后**只能从炼气(第一篇章)开始**;其余篇章选项在主菜单中**隐藏**,后续解锁后才出现。这是新玩家的天然收束——单一入口、零选择负担。
-- **解锁态是账号级元进程数据**(落在 PlayerProfile 层,见 `systems/services/life-cycle-service.md`),与既有「篇章边界存档 → 读档续章」模型衔接:炼气可无门槛随机角色起手并无限重试;后续篇章需先解锁 / 有落过境界存档的角色(存档角色是有限资源)。
+  - **唯一的例外是角色选择。** 开局要从角色池中指定一个角色,这是首玩者面临的**唯一一次起手选择**;缓解手段是在选择屏对首玩局**标注推荐项**(内容侧一格标记),**不做「首局跳过选择」的特判**——特判会造出两条起手路径,而两条路径必然各自漂移。屏的形态见 `ux/screen-flow.md`。
+- **解锁态是账号级元进程数据**(落在 PlayerProfile 层,见 `systems/services/life-cycle-service.md`),与既有「篇章边界存档 → 读档续章」模型衔接:炼气可无门槛起手(角色由玩家从全池指定,不设任何角色层门禁)并无限重试;后续篇章需先解锁 / 有落过境界存档的角色(存档角色是有限资源)。
 - **篇章解锁触发。** 解锁触发 = **角色通关上一篇章**,该角色随即成为下一篇章的**可挑战角色**。**若某篇章没有可重试 / 可挑战的角色,该篇章重新进入锁定(隐藏)状态**——即解锁是「有可挑战角色」的动态状态,而非一次性永久标志。
 
-Source: `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md`
+Source: `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

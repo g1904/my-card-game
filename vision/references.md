@@ -6,7 +6,7 @@
 - **借鉴：** 节点地图式的轮回结构；以卡牌构筑为核心 build；回合制、意图预告（intent-telegraphed）的战斗；**战后奖励面板的形态**——部分奖励强制自动计入，另一部分逐项列出、由玩家逐项领取或跳过。
 - **规避：** 每个节点都战斗的节奏。在本作中，**并非每个 AdventureEvent 都是一场战斗**——许多是事件/抉择。
 
-Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04-art-audio-library-scaffold.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04-art-audio-library-scaffold.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
 
 ## Balatro
 - **借鉴：** roguelite 卡牌构筑的手感；组装一次轮回的引擎所带来的乐趣；明快的移动端游玩时段；**blind 的难度分档结构**——**Practice / Combat / Finale 对位 small / big / boss blind**，三档的回合数与胜负条件递进（Practice 更简单、Combat 为标准 10 回合、Finale 更难）。借的是**难度分档**，不是出现节律（Finale 只在篇章边界出现）。
@@ -15,7 +15,7 @@ Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · 
 ## Reigns（手游）
 - **借鉴：** **属性平衡求生张力**——玩家不断在相互竞争的压力之间权衡，而非优化单一数值；每次抉择会同时拨动多个仪表。
 - **规避：** 它那种纯粹左右滑动二选一、无 deck 的极简——我们仍想要一层真正的卡牌构筑。
-- **有意背离并给出替代：** Reigns 的张力来自**可见**仪表；本作**属性全隐藏**，改以「**跨档时给一条定性叙事**」制造**可感知但不可测量**的张力——玩家学到方向与因果，学不到精确数值，因而**无法做电子表格式优化**。见 `systems/services/plot-manager.md`。
+- **有意背离并给出替代：** Reigns 的张力来自若干条**可见且互相牵制**的仪表；本作把资源压力收成**一条明文可算的尺**（寿元），而把**塑造路径的那两个属性**（道心 / 煞气）整体隐藏，改以「**跨档时给一条定性叙事**」制造**可感知但不可测量**的影响——玩家学到方向与因果，学不到精确数值。**分工是明确的**：资源账要算得清（那是决策的深度所在），路径的塑造要留在感知层。见 `systems/character-profile/life-span.md` 与 `systems/services/plot-manager.md`。
 
 ## 月圆之夜 (Night of the Full Moon)
 - **借鉴：** **事件 / 抉择机制**——它是 AdventureEvent 如何呈现抉择并触发后果的范本；**节点形态**亦参照它——精心策划的事件菜单，而非 StS 式完全分支地图。

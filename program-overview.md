@@ -35,7 +35,7 @@
 
 ---
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-08-28-out-of-combat-item-use-savepoint-and-trace.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-08-28-out-of-combat-item-use-savepoint-and-trace.md`
 
 ## 二、服务 / 管理器职责矩阵
 
@@ -159,7 +159,7 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 ```
 ┌────────────────────────────────────────────────────────────────────┐
 │ ① future-event-service.ComputeEventOptions(characterProfile)       │
-│      ├─▶ PlotManager：读隐藏属性(道心 / 煞气 / 寿元) + key points   │
+│      ├─▶ PlotManager：读隐藏属性(道心 / 煞气) + key points           │
 │      │     └─ 按 key points 从 ContentRegistry 取剧本节点（纯本地）  │
 │      ├─▶ location 框定候选池（由 Travel 事件刷新）                  │
 │      └─▶ SeedManager 的 map 子流抽取                                │
@@ -168,7 +168,7 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │ ② game-progression ─▶ ViewModel 组装                               │
 │      静态文案(ContentRegistry) + 运行时数值 + capability 可见性     │
 │      ──▶ 月圆之夜式菜单，横向滑动                                   │
-│          不设不可选 / 置灰态；selectCost 仅在寿元 Band 2 精确展示   │
+│          不设不可选 / 置灰态；selectCost 恒精确展示             │
 │                          ↓                                          │
 │ ③ 玩家触控：【选择】——唯一操作，无跳过通道               │
 │      Priority == 1 的选项存在时，0 档本轮被封锁                     │
@@ -196,15 +196,15 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      │   │       敌人回合逐步呈现（飘字 + 战报）= 唯一动态情报      │
 │      │   │     战斗内所有写入 ─▶ ProfileManager                     │
 │      │   │     决策点 ─▶ 存档（退出重进恢复同一局面 + RNG 状态）    │
-│      │   │     胜负判据：道念（momentum）高者胜，lifeTotal 不参与过程│
-│      │   │     └─▶ CombatResult（胜负 / 双方道念 / 剩余 lifeTotal） │
+│      │   │     胜负判据：道念（momentum）高者胜，寿元不参与过程    │
+│      │   │     └─▶ CombatResult（胜负 / 双方道念 / 剩余寿元）      │
 │      │   └── 其余四类 ────────────────────────┤                     │
 │      │       通用结算器：数据驱动的 outcome / effect 定义            │
 │      │       （DnD 式选分支时回查 PlotManager.ChooseBranch）         │
 │      ├─ event.eventEnd() ─────────────────────┘                     │
 │      │                                                              │
 │      ├─ ProfileManager.TryApply(产出 + lifeSpanCost(物化时已取负)    │
-│      │            + 失败时按道念差扣 lifeTotal + 等级产出 + 隐藏属性推拉)│
+│      │            + 失败时按道念差扣寿元 + 等级产出 + 隐藏属性推拉)      │
 │      │            隐藏属性跨档 ─▶ 附一条定性叙事（不给数字）         │
 │      ├─ 记入 CharacterProfile.pastEvent 修行历程（PastEventEntry）  │
 │      ├─ 收口前的重算走只读投影 ProfileManager.Project(spec)：       │
@@ -212,7 +212,7 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      │    eventOptions → 与本次产出一并进同一次 TryApply            │
 │      │    （不提交 / 不广播 / 不落存档点；一次事务、一个存档点）    │
 │      └─ CycleStateManager 判定：                                     │
-│           寿元 ≤ 0 或 lifeTotal ≤ 0 ─▶ DefeatCharacter()  ─▶ 阶段 5 │
+│           寿元 ≤ 0 ─▶ DefeatCharacter()                   ─▶ 阶段 5 │
 │           Finale 失败 ─▶ DefeatCharacter(FinaleFailed) ─▶ 阶段 5   │
 │           Finale 通过          ─▶ CompleteChapter() ─▶ 阶段 5      │
 │           否则 ─▶ EventBus.Emit(EventResolved)                      │

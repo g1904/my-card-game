@@ -1,6 +1,6 @@
 # PlotManager（管理器 · 隶属 future-event-service）
 
-> 隐藏剧本管理器：剧本层级（Story / Chapter / SideChapter / SideStory 四级）、隐藏属性驱动（道心 / 煞气 / 寿元）、CharacterProfile 上的 key points、剧本内容的本地解析、eventOptions 调制。
+> 隐藏剧本管理器：剧本层级（Story / Chapter / SideChapter / SideStory 四级）、隐藏属性驱动（道心 / 煞气）、CharacterProfile 上的 key points、剧本内容的本地解析、eventOptions 调制。
 > **它是 manager 而非 service**：生活在 `future-event-service` 内部，共享其事务边界与生命周期，**不被跨服务直接调用**。
 > **本 manager 纯本地，永不跨进程边界。** 剧本内容属本地内容层（`res://` 基线 + overlay），经 ContentRegistry 读取。
 
@@ -20,32 +20,28 @@
 
   即：三个 **Chapter** 相连组成一个 **Story**；Chapter 内可穿插 **SideChapter**，跨 Chapter 可穿插 **SideStory**。
 
-- **隐藏属性驱动。** 属性模型借鉴 **Reigns** 但**反其道：属性隐藏、不作可见仪表**。隐藏属性（**道心 / faith**、**煞气 / Bloodlust**、**寿元 / lifeSpan**）**跨入某个带 `PlotTriggerId` 的档位**时触发对应剧情线。隐藏属性落在 `CharacterProfile.Status`（见 `life-cycle-service.md` 与 `systems/character-profile/`）；由 AdventureEvent 推拉，一切写入经 `profile-service.ProfileManager`。
+- **隐藏属性驱动。** 属性模型借鉴 **Reigns** 但**反其道：属性隐藏、不作可见仪表**。隐藏属性（**道心 / faith**、**煞气 / Bloodlust**）**跨入某个带 `PlotTriggerId` 的档位**时触发对应剧情线。隐藏属性落在 `CharacterProfile.Status`（见 `life-cycle-service.md` 与 `systems/character-profile/`）；由 AdventureEvent 推拉，一切写入经 `profile-service.ProfileManager`。
 
 - **跨档给定性叙事反馈（数值仍隐藏）。** 数值继续隐藏，但**当某个隐藏属性跨过一个隐藏档位时，给一条定性的叙事描述**——**给方向与因果，不给数字**：
 
   ```
   道心 ↑ 跨档：  「你于静室枯坐三日，心念澄明。」
   煞气 ↑ 跨档：  「你的指节泛起一层洗不去的暗红。」
-  寿元 进入 30%：「鬓角新添的白发，你已数不清是第几根。」
   ```
 
   - **只在跨档时触发**（每个隐藏属性分若干**隐藏档位**，档位表见下条），**不是每次结算都播**——稀缺才有分量。
   - **落点 = 已有的 `ResolveOutcome` → `eventEnd` 阶段，无新结构**（见 `systems/adventure-event/common-properties.md`）。
   - **设计意图：** 玩家学到**方向与因果**（做这类事会推高煞气），学不到**精确数值**，因此**无法做电子表格式优化**。这正是本作对 Reigns 张力的替代路径——Reigns 靠**可见**仪表制造权衡，本作靠**可感知但不可测量**。
 
-- **一套档位模型统一五个消费方（承重）。** 「跨过一个隐藏**档位**」与「达**阈值**时触发剧情线」**是同一件事**：剧情线触发 = 跨入某个带 `PlotTriggerId` 的档。一张档位表同时回答五个问题，不需要五套判定：
+- **一套档位模型统一三个消费方（承重）。** 「跨过一个隐藏**档位**」与「达**阈值**时触发剧情线」**是同一件事**：剧情线触发 = 跨入某个带 `PlotTriggerId` 的档。一张档位表同时回答三个问题，不需要三套判定：
 
   | 消费方 | 用到几档 | 说明 |
   |---|---|---|
   | **eventOptions 调制**（本 manager 的主业） | **全部档** | 档位是调制的粒度：煞气 1 档与 2 档就该抽出不同风味的事件池。**这是档位表存在的首要理由。** |
-  | **剧情线触发** | 带 `PlotTriggerId` 的档（3 个） | 煞气反噬 / 心魔滋生 / 大限将至 |
-  | **跨档叙事文案** | **只有极值档（4 个）** | 见下方「文案只挂极值档」 |
-  | **寿元红字标注** | 寿元 Band 2 | 既定（见 `ux/screen-flow.md`） |
-  | **`selectCost` 精确展示** | 寿元 Band 2 | 与红字标注**同一个开关、同时开启**：Band 0 / Band 1 完全不显示成本，Band 2 如实展示精确扣减量。规则与代价见 `systems/adventure-event/common-properties.md`（权威）。**这是本表复用性的又一个实例——不新增字段、不新增流程。** |
-  | **回寿数字展示** | 寿元 Band 2 | 与上两条**同一个开关、同时开启**：Band 0 / Band 1 只给定性文案（eventOption 收益标注 / 道具描述 / 结算面板寿元行），Band 2 才给精确 `+n`。**只封成本侧不封产出侧等于给寿元量纲留后门，而回寿是一次性的大数、更适合被当作标尺。** 规则与代价见 `systems/adventure-event/common-properties.md`（权威）。 |
+  | **剧情线触发** | 带 `PlotTriggerId` 的档（2 个） | 煞气反噬 / 心魔滋生 |
+  | **跨档叙事文案** | **只有极值档（2 个）** | 见下方「文案只挂极值档」 |
 
-  **12 档的分辨率有真实消费者，不是先于内容而定的空结构（承重）。** 首要消费方 eventOptions 调制的作用面是**全覆盖的**——**所有事件都有可能推拉这三个隐藏属性，不限事件类型**（Combat / Exchange / Research / Explore / Travel 五类无一例外）。故调制需要的分辨率是真实的，12 档 + 回滞 δ + 3 个存档字段这套结构成立。
+  **9 档的分辨率有真实消费者，不是先于内容而定的空结构（承重）。** 首要消费方 eventOptions 调制的作用面是**全覆盖的**——**所有事件都有可能推拉这两个隐藏属性，不限事件类型**（Combat / Exchange / Research / Explore / Travel 五类无一例外）。故调制需要的分辨率是真实的，9 档 + 回滞 δ + 2 个存档字段这套结构成立。
   - **硬度 = 允许，不是强制。** 取消的是「只有某几类事件才能推拉隐藏属性」这道结构性限制；**具体哪一条内容推哪个属性、推哪一档 `HiddenStatGrade`，仍是逐条目的内容编排决策，不填 = 不推**。内容层的字段核对清单据此写：`HiddenStatGrade` 是**可选**字段,对全部事件类型开放。
 
   **隐藏属性对五类事件的输入与输出两侧全开（承重）。** 产出侧即上述 `HiddenStatGrade`；**输入侧**同样对五类一律开放，由两条**既有**通道承载，**不新增机制、不新增字段**：
@@ -57,7 +53,7 @@
 
   - **承重边界：输入侧全开**不**等于把隐藏属性接进胜负判定。** `VictoryRule` 仍是**单字段**（`WinMargin` 一个数），不做可替换的判定对象、无需策略枚举、无需分发。隐藏属性影响一场遭遇的路径是**拧参数**（更凶的敌人模板、更高的敌人赋级、更差的起手），不是**加一条并列的判定条件**。例：煞气 Band 3 触发的 arc 用 `EnemyPoolScope` 换更凶的天劫模板、用 `LevelBias` 把赋级推向带上沿；道心 Band −2 的 arc 同理。
     - **`Tighten` 对 `Finale` 整档豁免**（`Tier == Finale` → 跳过整个 `Tighten` 的施加，不是错误、不告警）—— **剧本要加压 Finale，只能走敌人侧的两个字段**。`Tighten` 对 `Practice` / `Standard` 仍有真实效果（`WinMargin` 1 → 2 是有意义的加压），故该字段不是死结构。详见下方「`EncounterTighten`」。
-  - **「输入」不含「作为 `selectCost` 消耗」。** 隐藏属性**不进成本侧**：成本侧只放**可如实计价的量**（Band 2 精确展示纪律的全部目的是让玩家自己算出「这一步可能是最后一步」，而隐藏量玩家永远算不出那一格——与「能力 element 恒不出现在 `selectCost`」是同一条判据的第二个实例）；且它**没有消费者**——道心 / 煞气触底不构成终态、截断到 `[0, 100]`，扣了不产生任何可判定的后果。`selectCost` 的 element 清单因此仍只有 `lifeSpanCost` 一项。
+  - **「输入」不含「作为 `selectCost` 消耗」。** 隐藏属性**不进成本侧**：成本侧只放**可如实计价的量**（`selectCost` 恒精确展示，其全部目的是让玩家自己算出「这一步可能是最后一步」，而隐藏量玩家永远算不出那一格——与「能力 element 恒不出现在 `selectCost`」是同一条判据的第二个实例）；且它**没有消费者**——道心 / 煞气触底不构成终态、截断到 `[0, 100]`，扣了不产生任何可判定的后果。`selectCost` 的 element 清单因此仍只有 `lifeSpanCost` 一项。
 
   **战斗层不读写隐藏属性（承重边界 · 权威）。** 隐藏属性**不作为战斗内的资源或结算输入**——`mana` 与道念是战斗内仅有的两种资源，战斗层既不读隐藏属性的当前值、也不写它。**隐藏属性与战斗的全部交互发生在事件层**，由上表两条通道加收口推拉共三条承载，无一条落在战斗内部：
 
@@ -69,19 +65,19 @@
 
   **两处与战斗层相邻的情形不构成反例：**
   - **`lifeSpanCost`（寿元的成本侧）** 在「择一进入」时施加，是**事件成本**；Combat 事件同样扣，但扣发生在进入战斗之前，战斗内不再触碰它。
-  - **失败时按道念差扣 `lifeTotal`** 写的是**战斗外耐久 `lifeTotal`**，不是隐藏属性，且施加时点在 `eventEnd` 收口（见 `systems/scoring.md`）。
+  - **失败时按道念差扣的寿元**写的是**明文资源 `lifeSpan`**，不是隐藏属性，且施加时点在 `eventEnd` 收口（见 `systems/scoring.md`）。寿元自身「战斗过程中不被读写」的资源纪律见 `systems/character-profile/life-span.md`。
 
   这条边界与「输入侧全开」并行不悖：全开说的是**哪些事件类型可以经上述三条通道与隐藏属性发生关系**，本条说的是**这些通道一条都不伸进战斗状态机内部**。战斗侧的呼应见 `systems/adventure-event/combat/_index.md`。
 
   **关键的解耦：档多 ≠ 文案多。** 玩家感知到「这条线在动」主要来自**摆在他面前的事件变了**（调制），而不是来自一句旁白。**档数不随文案收窄而减**——砍中间档等于砍掉调制的分辨率，是拿主业去迁就点缀。
 
-  **档号方向（承重）：`BandIndex` 越高 = 越远离常态，而不是「数值越大」。** 「下行不播叙事」若读成「数值下降不播」，寿元既定的 30% 提示（它本身就是数值下降触发的）会被字面废掉。统一定义为「离常态的距离」后，**触发规则对三属性完全一致：`|newBand| > |oldBand|` 才播，反向静默**——不需要方向字段，也不需要为寿元开特例。
+  **档号方向（承重）：`BandIndex` 越高 = 越远离常态，而不是「数值越大」。** 「下行不播叙事」若读成「数值下降不播」，道心下臂的跨档（心魔滋生 —— 它本身就是数值下降触发的）会被字面废掉：它与上臂在数值轴上方向相反，在「离常态」这条轴上却同向。统一定义为「离常态的距离」后，**触发规则对两个属性、两条臂完全一致：`|newBand| > |oldBand|` 才播，反向静默**——不需要方向字段，也不需要为任何一臂开特例。
 
 - **取值域与档位表。**
 
-  **道心 faith：`[0, 100]`，轮回起始 `50`，双向推拉**（它是「状态」：心境澄明 ↔ 心魔渐生）。**煞气 Bloodlust：`[0, 100]`，轮回起始 `0`，以上行为主、可被净化类事件下拉**（它是「累积物」，既定的「累积到阈值触发煞气反噬」直接对应最高档）。**施加后截断到 `[0, 100]`，不构成终态**（与寿元不同）——两者的区间与终态语义与其余资源 element 同形，逐条写在 `ResourceElements` 表里，见 `systems/services/profile-service.md`。
+  **道心 faith：`[0, 100]`，轮回起始 `50`，双向推拉**（它是「状态」：心境澄明 ↔ 心魔渐生）。**煞气 Bloodlust：`[0, 100]`，轮回起始 `0`，以上行为主、可被净化类事件下拉**（它是「累积物」，既定的「累积到阈值触发煞气反噬」直接对应最高档）。**施加后截断到 `[0, 100]`，不构成终态**（与寿元不同——寿元触底即角色终结）——两者的区间与终态语义与其余资源 element 同形，逐条写在 `ResourceElements` 表里，见 `systems/services/profile-service.md`。
 
-  **有界的理由：** 无界属性的档位只能靠不断加新档追赶，而档位是内容条目、**overlay 只改不增** ⇒ 加档必须发版。有界 + 顶档吸收溢出，使档数在整条内容生命周期里是常量。寿元不套用本条（它已有既定预算模型）。
+  **有界的理由：** 无界属性的档位只能靠不断加新档追赶，而档位是内容条目、**overlay 只改不增** ⇒ 加档必须发版。有界 + 顶档吸收溢出，使档数在整条内容生命周期里是常量。
 
   **道心 —— 5 档，阈值 20 / 40 / 60 / 80**（唯一的双臂属性，带符号档号）
 
@@ -106,33 +102,23 @@
   | 1 | 25–49 | 煞气初显 | — | 静默 |
   | **0** | **0–24** | **常态**（轮回起点 0） | — | 静默 |
 
-  **寿元 —— 3 档，阈值 30% / 10%**（单臂，**档号与数值反向**）
+  > **寿元不在本表内。** 它是明文资源、恒精确展示，没有档、没有 band 字段、不经本 manager 的任何通道；语义见 `systems/character-profile/life-span.md`。「大限将至」对应的是**寿元归 0（终态）**，是 `defeated` 的一个原因子类型，不经 `PlotTriggerId` 通道。
 
-  | Band | 区间 | 语义 | 文案 |
-  |---|---|---|---|
-  | **2** | **< 10%** | **红字数值倒数**开始（既定） | **✅ 有**（既定） |
-  | **1** | **10% – 30%** | **定性叙事提示**开始（既定） | **✅ 有**（既定） |
-  | **0** | **> 30%** | **常态，无提示** | 静默 |
-
-  > 「大限将至」对应的是**寿元归 0（终态）**，不是任何一档——它是 `defeated` 的一个原因子类型，不经 `PlotTriggerId` 通道。
-
-  **百分比的分母 = `CharacterProfile.Status.ChapterLifeSpanBudget`（承重澄清）。** 「剩余寿元跨篇章结转」使寿元没有固定分母；若拿「本章增量」（100 / 100 / 300）作分母，省着花的玩家在第二篇章一开局就可能超过 100%，阈值含义随之漂移。**ChapterManager 在篇章边界把「结转后的可用预算」冻结为该字段**，百分比一律以它为分母（见 `life-cycle-service.md`）。
-
-  **回滞（hysteresis）：每档带进入阈值与退出阈值。** 没有回滞，一个在阈值上反复 ±3 震荡的道心值会把「稀缺才有分量」直接毁掉。**退出阈值 = 进入阈值向常态方向放宽 δ**（写「向常态方向」而非「减」，才对双臂属性成立）；δ 初值：**道心 / 煞气 = 4**（≈ 档宽的 20%）· **寿元 = 3 个百分点**。**代价明写：档位不再是当前值的纯函数 ⇒ 必须持久化「当前所处档」**（`CharacterProfile.Status` 上的三个 band 字段），这是本机制唯一新增的存档结构。**回滞与「下行不播」各管一半**：方向规则挡的是「上去又下来又上去」里的**下来那一次**，回滞挡的是**在同一条阈值线上反复上行**（62 → 58 → 63 会连播两次同一档文案）。
+  **回滞（hysteresis）：每档带进入阈值与退出阈值。** 没有回滞，一个在阈值上反复 ±3 震荡的道心值会把「稀缺才有分量」直接毁掉。**退出阈值 = 进入阈值向常态方向放宽 δ**（写「向常态方向」而非「减」，才对双臂属性成立）；δ 初值：**道心 / 煞气 = 4**（≈ 档宽的 20%）。**代价明写：档位不再是当前值的纯函数 ⇒ 必须持久化「当前所处档」**（`CharacterProfile.Status` 上的两个 band 字段），这是本机制唯一新增的存档结构。**回滞与「下行不播」各管一半**：方向规则挡的是「上去又下来又上去」里的**下来那一次**，回滞挡的是**在同一条阈值线上反复上行**（62 → 58 → 63 会连播两次同一档文案）。
 
 - **跨档叙事文案：挂档位、不挂事件；走内容层；只挂极值档。**
 
   - **挂档位定义**（每档一组固定候选文案），**不随触发它的事件而变**。三条理由：① 同类先例（「渡劫身死」文案）就挂在**状态转换**上、与触发它的事件无关；② 挂事件是 `事件数 × 属性数 × 档数 × 方向` 的组合爆炸（一章 30 事件 × 3 属性 × 2 方向 = 180 条），内容侧不可维护；③ 挂事件会泄露事件与属性的精确映射（「做这件事 → 播这句话」），与「学到方向与因果、学不到精确数值」的边界擦得太近。**局部保留的可能**：日后确需时可在少数标志性事件上加一条覆盖 `Id`，不改本结构。
   - **每档 2–3 条候选，等概率随机取一。****随机源不带种子**——只影响呈现、不产生任何玩法结果，故不占 `SeedManager` 子流。
   - **只有一组文案，没有「上行组 / 下行组」之分。** 配合档号方向定义，触发面收敛为「跨入一个 `|BandIndex|` 更大的档」这一种情形；**回到离常态更近的档一律静默**（只更新 band 字段、不播）。
-  - **只有极值档配文案。** 道心 / 煞气**各只有最外一档播**，寿元保持既定两档 ⇒ **全库有文案的档 4 个**（道心 `+2` · 煞气 `3` · 寿元 `1` · 寿元 `2`），**寿元是唯一有两个文案档的属性**。三条依据：
+  - **只有极值档配文案。** 道心 / 煞气**各只有最外一档播** ⇒ **全库有文案的档 2 个**（道心 `+2` · 煞气 `3`）。三条依据：
     - **体裁定位（承重）。** 本作是 **deck building / turn-based card combat game，不是 visual novel**。叙事是点缀不是载体；「多写几句」与「少写几句」存疑时一律取少。
     - **因果的主要载体是事件文案本身。** 玩家从内容侧（这个事件在描述什么、他选了什么）就能推断抉择的影响——一个「屠戮山门」的选项不需要旁白告诉他煞气涨了。中间档的旁白是**重复信息**，只会稀释极值那一条的分量。
     - **解耦后频次各调各的**：档位密度服务调制分辨率，文案密度服务「稀缺才有分量」。
-    - **玩家侧的理解由题材常识兜底（承重）。** 四档文案之所以够用，是因为它**依赖玩家对修仙题材的基础设定认知**——道心低了会入魔、煞气高了会反噬、寿元将尽是大限——这些不需要本作教。**中间档的沉默不是信息缺口，是常识已经填上的部分。** 由此，「文案只挂四档」是设计意图的正面表述,而不是「覆盖不足、待补」的临时状态。
-  - **静默是默认，不用字段声明。** 纪律的可机械检查形态 = 「`|BandIndex| == 该属性的最大档号` 才允许配 `NarrativeIds`，其余档配了 → 加载期 `PushWarning`」。12 档里 8 档静默，为常态设一个必须显式置位的布尔是反向的负担。
-  - **常态档（三属性的 Band 0）恒无文案**：没有任何跨入它的路径是「远离常态」。
-  - **频次序 = 寿元（每章必来 · 压力计时器）> 煞气 / 道心（打到极端才有 · 里程碑）**：寿元 ≈ 4–6 条 / 轮回、煞气与道心各 ≈ 1–2 条 ⇒ **合计 ≈ 6–10 条 / 轮回**，文案总量 **8–12 条**。一轮回约 86–102 个事件 ⇒ 约每 9–17 个事件一条。
+    - **玩家侧的理解由题材常识兜底（承重）。** 这两条文案之所以够用，是因为它**依赖玩家对修仙题材的基础设定认知**——道心低了会入魔、煞气高了会反噬——这些不需要本作教。**中间档的沉默不是信息缺口，是常识已经填上的部分。** 由此，「文案只挂极值档」是设计意图的正面表述，而不是「覆盖不足、待补」的临时状态。
+  - **静默是默认，不用字段声明。** 纪律的可机械检查形态 = 「`|BandIndex| == 该属性的最大档号` 才允许配 `NarrativeIds`，其余档配了 → 加载期 `PushWarning`」。9 档里 7 档静默，为常态设一个必须显式置位的布尔是反向的负担。
+  - **常态档（两属性的 Band 0）恒无文案**：没有任何跨入它的路径是「远离常态」。
+  - **跨档叙事是里程碑，不是计时器。** 煞气与道心各 ≈ 1–2 条 / 轮回 ⇒ **合计 ≈ 2–4 条 / 轮回**，文案总量 **4–6 条**。它只在玩家把某条线推到极端时响一次，稀缺正是它的分量来源；日常的「这条线在动」由调制承担，不由旁白承担。
   - **明写的取舍：中间档的跨越对玩家完全无提示**，他只会察觉「摆在面前的事件变了」。这是有意的——**调制才是隐藏属性的主要显影通道，旁白只是极值时刻的一次强调。**
   - **退让位（不是待答项）**：日后若实测觉得太闷，按顺序放宽——① 煞气 Band 2 → ② 道心 `+1` → ③ 才考虑道心下臂。**每一步都只是加内容条目，结构 / 字段 / schema 全不动。** 但**第一旋钮是 `HiddenStatGrade` 的映射值**（见 `systems/balance.md`）——它同时也在改调制的推进速度，比加文案更贴近「让这条线动起来」的真实诉求；**档数永远不是该动的旋钮**。
 
@@ -143,9 +129,9 @@
   public partial class HiddenStatBandData : Resource
   {
       [Export] public string     Id             { get; set; }  // "plot.band.faith.2"
-      [Export] public HiddenStat Stat           { get; set; }  // Faith | Bloodlust | LifeSpan
+      [Export] public HiddenStat Stat           { get; set; }  // Faith | Bloodlust
       [Export] public int        BandIndex      { get; set; }  // 带符号：0 = 常态，|值| 越大越远离常态
-      [Export] public int        EnterValue     { get; set; }  // 该档朝常态一侧的边界；LifeSpan 以百分点书写
+      [Export] public int        EnterValue     { get; set; }  // 该档朝常态一侧的边界
       [Export] public int        Hysteresis     { get; set; }  // δ，退出阈值 = EnterValue 向常态方向放宽 δ
       [Export] public string[]   NarrativeIds   { get; set; }  // 跨入本档的候选文案；只有极值档允许非空
       [Export] public string     PlotTriggerId  { get; set; }  // 可空：跨入即起剧情线
@@ -154,7 +140,7 @@
   ```
 
   - **档位文案的正文单独成条目**（与「渡劫身死」文案共用那个定性文案类型），本类只持 `Id` 数组——与「快照 / 结构里不存字符串正文」的既有分层一致，也让文案与档位可各自热更。**这条只对档位叙事成立，不推广到剧本正文**：档位文案拆条目是因为每档 2–3 条候选可等概率取一、可单独关掉；剧本节点的正文是一对一、不可替换、与节点同生同灭的，且定性文案类型照旧只改不增（见下方「剧本正文内嵌在节点上」）。
-  - `HiddenStat` 是枚举 `{ Faith, Bloodlust, LifeSpan }`（API 表已在用这个类型名）。
+  - `HiddenStat` 是枚举 `{ Faith, Bloodlust }`（API 表已在用这个类型名）。
   - **热更边界（承重）：阈值 / δ / 文案可线上改，档数不可线上增减**（overlay 只改不增 ⇒ 加一档必须发版）。这正是取值域取有界的原因。
   - **档位条目恒启用，文案条目照常参与放量。** 档位解析走**全量视图**、不经 `AllEnabled()` 抽取池——判据是 content-service 的既定不对称（**过滤只在产出侧**，而档位判定是**查表读取**）；关掉一档会在档位表上造出空洞、触发假跨档。故 `HiddenStatBandData.ContentEnabled == false` → 加载期 **`PushError`**；文案条目不受此限（每档 2–3 条候选，关一条只是少一个候选），秒关一条措辞的运营手段因此保留。
   - **overlay 改阈值后的对齐：** 热更后首次 `eventEnd` 时若存档 band 与按新阈值算出的档不符 → **直接对齐、不播叙事**、`PushWarning` 留痕。否则一次数值热更会给全体在线玩家批量假跨档。
@@ -178,11 +164,10 @@
   - **承重的边界：它讲的是「劫下身死」，绝不能暗示道统残卷。** 残卷在失败侧**不给任何文案 / 暗示 / 进度条 / 百分比**——而失败恰恰是残卷累积发生的那一刻，这条边界因此比在别处更吃紧。
 
 - **`Practice` 档战斗失败的定性文案走「力竭负伤 / 自愧不如」的口径。** 与「渡劫身死」同属本叙事层、同一条落点（`ResolveOutcome` → `eventEnd`），**不新增结构**。
-  - **它承担的是一条机制上不打算解决的张力：** `Practice` 被定位为「比试 / 切磋——点到为止」，而失败仍按道念差 1:1 全额扣 `lifeTotal`（理论上可致角色终结）。**不为它给 `lifeTotal` 加折扣系数**——1:1 的价值恰恰在于它没有例外，开一档就要论证另两档为何不开，而「落后 N 点 = 输了掉 N 点」这条通用刻度一旦分档，玩家的心算账本随之分叉。张力因此落在叙事措辞上：写力竭、写自愧，**不写「败于同门之手身受重创」**。
+  - **它承担的是一条机制上不打算解决的张力：** `Practice` 被定位为「比试 / 切磋——点到为止」，而失败仍按道念差全额扣寿元（理论上可致角色终结）。**不按 `combatTier` 给寿元扣减分档**——`lossPerMomentum` 三档共用同一系数；开一档就要论证另两档为何不开，而同一时刻并存两套换算会让玩家的心算账本当场分叉。按**篇章**分档不产生这个问题：一个篇章之内看到的始终是同一个系数，它吸收的是 `baseMomentum` 的量纲膨胀。张力因此落在叙事措辞上：写力竭、写自愧，**不写「败于同门之手身受重创」**。
   - **不为该口径新增档位 / 字段 / 校验**，它是文案写作口径而非结构。规则侧的完整依据见 `systems/adventure-event/combat/_index.md`。
 
-- **寿元 / lifeSpan = 递减的寿命预算。** 炼气起始 **100**、抵达筑基 **+100**、抵达金丹 **+300**、抵达元婴 **+500**（累计 1000；但元婴即游戏终点，该增量**不产生可消耗预算**，只是最后一次数值更新并存档——见 `systems/balance.md`）；**剩余寿元跨篇章结转**（下一篇章预算 = 该章增量 + 上一章剩余，见 `life-cycle-service.md`）。**每完成一个 AdventureEvent 按其 `lifeSpanCost` 扣减寿元**（内容侧为正数量值、物化时取负；`lifeSpanCost` 是 `selectCost` 复合成本类型的一个 element，见 `systems/adventure-event/common-properties.md`）；**递减到 0 → 触发「大限将至」→ 角色 defeated**。寿元是**独立于 `lifeTotal`** 的寿命数值。
-- **寿元告警两段式。** **初始隐藏 → 进入 30% 给一条定性叙事提示 → 进入 10% 转为红字数值倒数。** **不要只在 10% 处给一次告警**：对 100 点的第一篇章预算而言那太晚，来不及做战略调整；30% 的定性提示给出一个可行动的提前量，同时不破坏「数值隐藏」。呈现位置是 **EventOption 选择界面的静态标注**，见 `ux/screen-flow.md`。
+- **寿元不归本 manager。** 它是明文资源、恒精确展示、不设档位、不触发任何 `PlotTriggerId`；预算、两个扣减来源、回复通道与呈现位置的权威在 `systems/character-profile/life-span.md`。本 manager 只在「大限将至」这条终态的死亡文案上与它相邻。
 
 - **CharacterProfile 只存 key points；剧本内容属本地内容层。** `CharacterProfile` 上记录 AdventurePlot 的 **key points（关键节点 / 进度锚点）**；**完整的剧本与分支内容不落存档**，而是作为**内容条目**存于 `res://content/` 基线 + `user://overlay/`，经 **ContentRegistry** 按 `Id` 读取。**没有云端剧本服务，也没有逐事件的剧本请求**——剧本文本在事件发生之前就已在盘上。
 
@@ -374,7 +359,7 @@
 
   按此判据核过当前的物化格：产出侧的定稿载体属**模板 outcome 定义的物化产物**，给剧本一个字段去改它等于开「改模板字段」的口子——剧本要改产出，正确形态是用 `EventWeights` 抬高另一条**内容条目**的权重（换池，不改内容）；`SelectCost` 是成本侧、隔着遮罩改定价等于动全局时长旋钮；`Priority` 在上表里明写无字段；Travel 的目的地与出场概率、Research 候选池、Exchange 库存同理，均落在约束面或「换池才是唯一合法表达位」的那一侧。
 
-  **NPC 与势力也由这张表承载，不新增第七个字段。** 「投靠了甲就进不了乙的线」= `PlotArcData.ExclusiveGroup`；「该势力的事件更常出现」= `EventWhitelist` / `EventWeights`；「坊市多交易」= location 的事件类型出现概率修正。**不建 `NpcData` / `FactionData`，不设好感 / 关系度数值**——好感度若有持久数值它就是第四个隐藏属性（牵动 12 档档位表、`Status` 字段与枚举迁移），而**一条 arc 的进度本来就是「关系走到哪一步」的离散表达**，与「给方向不给数字」同向。完整论证见 `systems/adventure-event/exchange/_index.md`。
+  **NPC 与势力也由这张表承载，不新增第七个字段。** 「投靠了甲就进不了乙的线」= `PlotArcData.ExclusiveGroup`；「该势力的事件更常出现」= `EventWhitelist` / `EventWeights`；「坊市多交易」= location 的事件类型出现概率修正。**不建 `NpcData` / `FactionData`，不设好感 / 关系度数值**——好感度若有持久数值它就是第三个隐藏属性（牵动 9 档档位表、`Status` 字段与枚举迁移），而**一条 arc 的进度本来就是「关系走到哪一步」的离散表达**，与「给方向不给数字」同向。完整论证见 `systems/adventure-event/exchange/_index.md`。
 
   **剧情线不转入 `Finale`（承重）。** 隐藏属性剧情线（煞气反噬 / 心魔滋生）触发后**不会造出第二个 Finale**，它的高潮由调制表达。四条理由：
 
@@ -491,12 +476,11 @@
 
 ### event / EventData（剧本内容侧）
 - **event = 剧本内容单元。** 承载**提示文本以及分支式的选择 / 结果**；AdventurePlot 负责结构模型，event 内容侧负责具体剧本文本与分支。event 内容是**本地内容条目**（`res://` 基线 + overlay，经 ContentRegistry 按 `Id` 读取），由 key points 定位。
-- **隐藏属性驱动剧情线（三条）：**
+- **隐藏属性驱动剧情线（两条）：**
   - **煞气 / Bloodlust** —— 跨入 Band 3（75+）→ 触发 **「煞气反噬」** 剧情线（经 `PlotTriggerId`）。
   - **道心 / faith** —— 跨入 Band `−2`（0–19）→ 触发 **「心魔滋生」** 剧情线（经 `PlotTriggerId`）。**该档无叙事文案**，剧情线与调制是它唯一的显影通道。
-  - **寿元 / lifeSpan** —— 递减到 0 → 触发 **「大限将至」**（角色 defeated）。**它对应终态而非任何一档**，不经 `PlotTriggerId` 通道。
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
 
 ## 管理器角色 / API 面（契约）
 > _总则与共享类型见 `systems/architecture.md`「API 契约总则」。**本 manager 纯本地，永不跨进程边界，故全部方法为形态 A**（剧本内容属本地内容层）。_
@@ -535,7 +519,7 @@ Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` 
 
 **事件面：** 剧情线触发经宿主服务广播 `PlotThresholdReached(string CharacterId, HiddenStat Stat, int BandIndex)`；分支揭示 / 选择、key point 推进同样由**宿主服务**代为广播（manager 不直接持有 EventBus 通道）。
 - **负载末位是 `BandIndex` 而非 `Threshold`**：它传的不是阈值数值，而是「跨进了第几档」；`OnHiddenStatThreshold` 的方法名不随之改动。
-- **数据契约：** CharacterProfile 存 key points（轻量锚点，**必须可独立解析、缺失时可安全跳过**）；剧本内容是本地内容条目（不落存档，经 ContentRegistry 读）；**档位表是内容条目 `HiddenStatBandData`，当前所处档持久化在 `CharacterProfile.Status` 的三个 band 字段上**（见「意图」与 `systems/character-profile/_index.md`）。
+- **数据契约：** CharacterProfile 存 key points（轻量锚点，**必须可独立解析、缺失时可安全跳过**）；剧本内容是本地内容条目（不落存档，经 ContentRegistry 读）；**档位表是内容条目 `HiddenStatBandData`，当前所处档持久化在 `CharacterProfile.Status` 的两个 band 字段上**（见「意图」与 `systems/character-profile/_index.md`）。
 
 ## 决策(-> ADR)
 
@@ -551,7 +535,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 ## 待决问题
 
 - **DnD 式选分支：** 触发点、UI、以及玩家可见 / 不可见分支的边界未定。
-- **隐藏属性清单与推拉触发：** 已定 **道心 / 煞气 / 寿元** 三项且均隐藏，**取值域、档位表、阈值与回滞已定案**（见「意图」）；仍待定：是否还有其他隐藏属性、**增减触发（哪些 AdventureEvent 推拉、各推哪一档 `HiddenStatGrade`）**、每条剧情线的具体内容与 key points。**Combat 三档已有默认口径**（`Practice` 推道心不推煞气 · `Finale` 胜负同推道心，见 `systems/adventure-event/combat/_index.md`），它是这条待答项的一个子集，其余四类与逐条目编排仍欠。（寿元的消耗侧与回复侧均已定案：回复通道存在、只走 outcome 侧，且**回升 = 档号减小 = 静默**，不改任何结构，见 `systems/adventure-event/common-properties.md`。）→ 亦见 `life-cycle-service.md`、`systems/balance.md`。
+- **隐藏属性清单与推拉触发：** 现为 **道心 / 煞气** 两项且均隐藏，取值域、档位表、阈值与回滞见「意图」；仍待定：是否还有其他隐藏属性、**增减触发（哪些 AdventureEvent 推拉、各推哪一档 `HiddenStatGrade`）**、每条剧情线的具体内容与 key points。**Combat 三档已有默认口径**（`Practice` 推道心不推煞气 · `Finale` 胜负同推道心，见 `systems/adventure-event/combat/_index.md`），它是这条待答项的一个子集，其余四类与逐条目编排仍欠。（寿元不在本清单内，它已不是隐藏属性，见 `systems/character-profile/life-span.md`。）→ 亦见 `life-cycle-service.md`、`systems/balance.md`。
 - **`HiddenStatGrade` 的三个映射值留待内容扩充后的统计校准。** 初值 `Minor 2 / Standard 5 / Major 10` 与「每属性每篇章跨档 2–4 次」是**反推验收项，不是死数字**，其校验依赖上一条的「增减触发」。**档位结构、阈值形态、文案形态、呈现形态均不被它阻塞**——它约束的是标定，不是结构。→ `systems/balance.md`。
 
 Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`

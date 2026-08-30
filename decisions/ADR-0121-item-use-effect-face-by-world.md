@@ -56,4 +56,4 @@
 - 连带：`Sorcery` 不得带任何异能（禁令由「不得带 `Static` / `Activated`」扩为全禁），`PushWarning` 改为只判 `OnPlay` → `ADR-0115`。
 - 战斗外那一半的表达面收敛为 `GrantedFlags` + `Modifiers` 两条通道 → `ADR-0116`。日后开战斗外时点是新增一族时点 + 对应广播点，纯加法。
 - **载体族改名的机械替换面超出本次提炼所触及的文档**，仍需一轮全库扫尾。
-- 待答：用道具产生的栈条目落在 `StackEntryKind` 哪个成员上。
+- 用道具产生的栈条目自成一员 `StackEntryKind.UsedItem`，并新增 `itemId` 一格 → `ADR-0132-stack-entry-kind-used-item.md`。

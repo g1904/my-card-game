@@ -15,7 +15,7 @@
 
 一次轮回由**三个相连的篇章**组成，每个篇章是两个相邻境界之间的攀登（炼气→筑基、筑基→金丹、金丹→元婴）。篇章环环相扣：每一章都从上一章某个可用的*结束点*出发，因此你在哪里收尾，就为下一章的起点埋下伏笔。每个篇章边界都是一个**史册记录 / 存档点**（共三个）；抵达元婴则是最终的**奖杯**。_（细节与延续规则：见 `scope.md` 与 `systems/game-progression.md`。）_
 
-Source: `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md`
 
 ## 设计支柱
 > _每条一句话——它划定了什么在内、什么在外。_
@@ -38,7 +38,7 @@ Source: `handoffs/2026-08-25-info-economy-and-codex-expansion.md`
 > _目标手感。_
 
 - **grimdark 叙事**，秉承 **Warhammer 40k** 的精神——阴郁、高风险、不浪漫。
-- 如手游 **Reigns** 般的**属性平衡求生张力**——玩家在多重相互竞争的压力之间权衡，而非最大化某一个数值。
+- 如手游 **Reigns** 般的**求生张力**——压力线是一条：寿元既随每一步流逝、也随每一次失败被削。玩家权衡的是**同一把尺子上的取舍**（多走一步 vs 赌一场硬仗 vs 买回容错），而非最大化某一个数值。隐藏的道心 / 煞气在背后塑造这条路的形状。
 - **战斗存在但并非无处不在**——不同于 Slay the Spire，并非每个 AdventureEvent 都是一场战斗。
 - **明快、竖屏、单手的移动端游玩时段。**
 - 美术方向参考 **三国杀 (Legends of the Three Kingdoms)** 与 **弈仙牌**——具有绘画感的中式卡牌游戏插画。_（见 `references.md`；完整的美术 / 音频方向与生成指导见 `art/`。）_

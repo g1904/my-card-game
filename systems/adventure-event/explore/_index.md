@@ -12,15 +12,15 @@
   - **不含 Explore 自身**（不嵌套）——元类型定义使然。
   - **Travel 可被遮罩，但揭示出的 Travel 必走随机那一档**：只给一个 seeded 随机邻接地域，玩家无从选择去哪（见 `../travel/_index.md` 的 80 / 20 掷定）。这与「秘境把人带到别处」的叙事同向。
 - **一次选择仍只结算一个事件。** Explore 不是嵌套的二级菜单——进入即揭示即结算，`pastEvent` 上仍是**一条**痕迹（`EventType` 记当时呈现给玩家的 Explore，`RevealedEventId` 记真身）。
-- **只存在一份 `selectCost`：Explore 壳自己的那一份（承重）。** 支付先于揭示——`TryApply(SelectCost)` 排在 `eventStart` 阶段的揭示**之前**，被施加的必然是 Explore 模板物化出的 `EventOption.SelectCost`，**真身模板的成本字段从头到尾不在链路上**；`PastEventEntry` 上也只有一份 `SelectCost`。因此「Band 2 该展示哪一份成本」不是二选一：如实展示唯一存在的那一份即可，展示侧没有泄漏面。
+- **只存在一份 `selectCost`：Explore 壳自己的那一份（承重）。** 支付先于揭示——`TryApply(SelectCost)` 排在 `eventStart` 阶段的揭示**之前**，被施加的必然是 Explore 模板物化出的 `EventOption.SelectCost`，**真身模板的成本字段从头到尾不在链路上**；`PastEventEntry` 上也只有一份 `SelectCost`。因此「该展示哪一份成本」不是二选一：如实展示唯一存在的那一份即可，展示侧没有泄漏面。
   - **物化纪律（可机械检查）：** 物化一个 Explore `EventOption` 时，`SelectCost` 一律取 Explore 模板 + 定价表的 **Explore 行**，**不读真身模板的任何成本字段**。物化组装后加一条断言，与「`SelectCost.AbilityElements` 恒空」同一处、同一档（`PushError`）。
   - **真身模板的成本字段不是死字段。** 同一个 Combat / Travel / Exchange 条目**也可能作为普通选项直接出现**在同批 eventOptions 里，那时它自己的 `selectCost` 照常施加。「被遮罩时不读」是 Explore 这条路径的局部规则，不是对该字段的全局否定。
-- **泄漏面在定价侧，由两条纪律封死。**
-  - **Explore 在 `lifeSpanCost` 定价表上自成一行，该行不得由真身推导。** 若成本取自真身（「遮罩什么就收什么价」），Band 2 的精确展示会让玩家**用成本数值反推真身类型**——Combat / Travel / Exchange 三行定价不同即构成指纹。
+- **泄漏面在定价侧，由两条纪律封死（承重 · 独立成立）。** `selectCost` 恒精确展示，故成本数字**始终**摆在玩家面前；指纹泄漏因此不靠任何呈现门控挡住，全部由**定价结构**堵死：Explore 行是一个与真身无关的唯一定值，壳恒按该行报价 ⇒ 成本数字不含任何真身信息。
+  - **Explore 在 `lifeSpanCost` 定价表上自成一行，该行不得由真身推导。** 若成本取自真身（「遮罩什么就收什么价」），精确展示会让玩家**用成本数值反推真身类型**——Combat / Travel / Exchange 三行定价不同即构成指纹。
   - **Explore 条目禁用条目级成本覆盖值。** `lifeSpanCost` 一律取定价表的 Explore 行，内容条目**不得**标偏移 / 覆盖值——作者写出的差异化成本本身就是第二种指纹（玩家会记住「这个秘境花 4 点的总是打架」），会把上一条封死的泄漏面从另一侧重新捅开。落地为**内容模板加载期校验**，违规条目 `PushError` + `Id`。
     - **代价（明写接受）：** Explore 作者失去一个风味旋钮，无法用成本表达「这个秘境格外凶险」——那类表达改由文案与美术承载。要求「同一 location / 篇章内取值齐平」的折中效果等价，但**无法机械检查**、只能靠作者自律，而本库对内容侧的收口方式是「能加载期校验的就不留自律」。
     - **这是 Explore 独有的例外，不是对定价表通则的收紧。** 其余四类照常「不填即取类型基准，需要时标偏移 / 覆盖」。
-  - **Band 0 / Band 1 本就完全不显示 `selectCost`**，故上述两条只在 Band 2 承重；但校验一律生效，不随 Band 开关。
+  - **两条纪律恒常承重，不随任何呈现开关。** 它们是本作对「资源换外部情报」这条禁令在 Explore 上的兑现——每一张 Explore 卡若都免费给出一个关于真身的信号，遮罩机制的价值即被抽空。
 - **泄漏面还有字段侧的一条：`RevealedEventId` 与 `DestinationLocationId` 同属揭示前不得进入呈现层的字段（承重）。** 两者**都在物化时掷定并落在壳实例上**（目的地必为随机那一档，见 `../travel/_index.md` 的 80 / 20 掷定）——这是既有防重掷纪律的要求：候选须预先算定并落决策点存档，否则玩家退出重进即可刷一个更合意的真身 / 地域。**落在实例上不等于可呈现**：ViewModel 在 `IsRevealed == false` 时**这两个字段一个都不读**。两者写在同一条里而非分列两条，因为它们是同一条纪律的两个实例——分开写迟早会有人只守其中一条。
   - **同一条纪律在呈现侧的完整形态：遮罩态卡面只取 Explore 模板自己的**显示名 / 描述 / 风味文案 / 图标。真身的任何一个字段泄漏到卡面上，都会成为定价侧两条纪律之外的又一种指纹。呈现细节（卡片与其余 eventOption 完全同构、揭示转场层）见 `ux/screen-flow.md`。
   - **遮罩态不标注敌人等级。** 「战斗类事件在物化时精确标注敌人等级」按**呈现给玩家的类型**成立，而遮罩态呈现的是 Explore，无等级可标；揭示后的战斗前确认页照常精确标注。
@@ -67,7 +67,7 @@
   四条与**物化组装后**那两条断言（`SelectCost` 不读真身任何成本字段 · `SelectCost.AbilityElements` 恒空）共享同一个 Explore 校验段，避免散落。
 
 - **壳的 `OutcomeSpec` 由真身模板物化：「成本取壳、产出取真身」是一条有意的不对称（承重）。** 物化一个 Explore `EventOption` 时，`OutcomeSpec`（以及 `AbilityChangeSlots`）一律取 `RevealedEventId` 指向的**真身模板**的产出格展开，而 `SelectCost` 一律取 Explore 壳自己的那一份。**物化组装后加一条断言，与上述两条同处、同档（`PushError`）。**
-  - **成本侧取壳的唯一理由是防泄漏**——Band 2 精确展示会让成本数值成为真身类型的指纹。**产出在揭示前从不展示**（遮罩态卡面只取 Explore 模板自己的显示名 / 描述 / 风味文案 / 图标），该理由在产出侧整条不成立。
+  - **成本侧取壳的唯一理由是防泄漏**——`selectCost` 恒精确展示，成本数值一旦由真身推导即成为真身类型的指纹。**产出在揭示前从不展示**（遮罩态卡面只取 Explore 模板自己的显示名 / 描述 / 风味文案 / 图标），该理由在产出侧整条不成立。
   - **产出侧的理由是防重掷，且已由 `Encounter` / `DestinationLocationId` 立过先例**：抽取型产出若等到揭示那一刻才掷，玩家退出重进即可重刷一件更合意的产出。
   - **取壳的后果是同一份数据两种行为**：一个「秘境里的商店」除了买卖之外拿不到真身条目写好的任何 outcome，真身模板的产出格在被遮罩时整条失效——而同一条目作为普通选项出现时它是生效的。
   - **必须把这条不对称写明**，否则后来者读到两条相反的处置会去「统一」其中一条，而统一到哪一侧都造成实际损坏（统一取壳 ⇒ 真身产出整条失效；统一取真身 ⇒ 成本数值成为指纹）。
@@ -100,7 +100,7 @@
 - **这不是缺陷，正是 Explore 的定价**——元类型出售的就是「不知道」。若为它补一条「秘境内的战斗不得越级」之类的保护，等于用规则把风险抹平，Explore 随之失去存在理由；且它会成为 `±2` 带那条**无例外硬规则**的一个例外，而该规则明写不接受例外。
 - **风险的界仍由 `±2` 带给出**（赋级规则挂在 Enemy 上、`combatTier` 三档一视同仁），已经足够：秘境里的战斗不会比常规战斗更超纲，只是玩家事前不知道有没有。它与「打不过也得打是正常出口」自洽——产出侧本就不欠可战胜保证。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

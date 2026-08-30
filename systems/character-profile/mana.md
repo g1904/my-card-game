@@ -5,7 +5,7 @@
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-- **出牌资源 = mana（已定方向）。** 每回合的出牌资源采用 **mana** 模型，其形态参考 **Magic: the Gathering** 与 **Hearthstone**。对齐 `CharacterProfile.Status` 的 `currentMana / manaLimit`。**战斗内的两个量是 mana（出牌）与道念（计分与胜负）**——life 已退到战斗外承接失败惩罚（见 `life-total.md`、`systems/scoring.md`）。
+- **出牌资源 = mana（已定方向）。** 每回合的出牌资源采用 **mana** 模型，其形态参考 **Magic: the Gathering** 与 **Hearthstone**。对齐 `CharacterProfile.Status` 的 `currentMana / manaLimit`。**战斗内的两个量是 mana（出牌）与道念（计分与胜负）**——寿元退到战斗外承接失败惩罚，战斗过程中不被读写（见 `life-span.md`、`systems/scoring.md`）。
 - **无 mana 曲线。** 不采用递增曲线：既非 Hearthstone 式每回合 +1 上限，也非 MTG 式打地递增。**炼气期标准基线（起始满值）：mana = 5/5。**
 - **战斗中每回合的开始阶段恢复至上限。** 战斗内，每个回合的**开始阶段**、**回合归属方**的 `currentMana` **自动恢复到其当前 `manaLimit`**（满值），且恢复排在「回合开始时」触发**之前**。回合内未用完的 mana **不结转**。**恢复的只是归属方的 mana**——本作没有交互与优先权（见 `systems/services/combat-service.md`），非归属方在对手回合无法出牌，其 mana 在那段时间没有用途，故 mana 的实际语义是「**每次轮到我时刷满**」。
 - **`manaLimit` 的成长有两条来源，且共用同一个增量通道。**
@@ -33,7 +33,7 @@
 
   - **压低只以「负向奖励条目」的形态出现**（包在 reward 里，与业障进卡组同一个位置），不另立结构——与「下降极罕见、不设下界护栏」一致。**闭关的风险档不是例外**：`manaLimit ±1` 是所选操作的**附带产出**（`ResearchCandidate.ManaDelta`），不是一种独立的槽内操作。
   - **下降是玩家选来的，不是被施加的（承重）。** 唯一的下降通道要求玩家主动选中一个标注为风险的候选——**没有任何随机惩罚会在玩家未做选择时压低上限**。被系统随机扣上限只产生挫败并让玩家整体回避闭关，而闭关是构筑的唯一落点；自己按下那个按钮则与「明知是死路仍然走」同族。
-  - **⚠「战斗不给 `manaLimit`」是一条会被质疑的取向**：它让战斗成为**纯消耗**（花 lifeTotal 风险换灵石 / 卡牌 / 经验），成长上限全靠非战斗事件。**这是有意的分工**（避免滚雪球），但若篇章内战斗占比过高，玩家会感到成长停滞——**须与事件池分布一并校准**。
+  - **⚠「战斗不给 `manaLimit`」是一条会被质疑的取向**：它让战斗成为**纯消耗**（花寿元风险换灵石 / 卡牌 / 经验）；**合并后这条质疑更强**——战斗输了扣的是角色唯一的那条命，同时压缩本章还能做的事件数，成长上限全靠非战斗事件。**这是有意的分工**（避免滚雪球），但若篇章内战斗占比过高，玩家会感到成长停滞——**须与事件池分布一并校准**。
   - **分档表本质上是取向**（「闭关是主通道」符合叙事，但也可以是「秘境才是主通道」），改动成本低（改的是事件内容的 reward 配置，不是规则）。
 - **篇章预算感：一章内由事件推拉净增 +1~+2**（这条预算不因境界跃升而上调）。推导：`manaLimit` 每 +1，可打出的牌约多 0.5 张 / 回合 ≈ 2.5 张 / 场；而**一场的手牌流入约 14 张（起手 4 + 5×2）、手牌上限 7** —— 若 `manaLimit` 膨胀过快会出现「有 mana 没牌打」，mana 重新变成沉没成本。**上限收紧为 7 后这条耦合更紧**：牌流的有效上界被上限咬掉一截，`manaLimit` 的增长空间随之变窄。**牌流是 `manaLimit` 增长的天花板**，这是两条数值线的真实耦合点，须在内容扩充后的统计校准中一并回归。
   - **三章末推算**（每章事件推拉 +1~+2，叠加进筑基 / 进金丹各 `+1`，炼气起 5）：
@@ -48,7 +48,7 @@
   - **ch2 / ch3 的溢出是已知且被接受的代价。** 带宽在后两章超过牌流能供给的量，这是「让突破在 mana 一侧可见」这条取向换来的。**若后两章希望 mana 仍是紧约束，正确的旋钮是上调费用曲线或收紧牌流，而不是削掉境界跃升**——这是内容扩充后统计校准的一条输入。
   - **这条推算唯一能被真正反转的前提是「费用曲线是否随境界整体上移」**（高境界的牌普遍更贵 ⇒ 可打出张数同比缩水、溢出收窄）。该前提当前未定，登记在 `systems/balance.md` 的待决问题里。
 
-Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

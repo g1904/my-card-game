@@ -19,10 +19,21 @@
   - **逐笔提交与刷新那两处同时是事件内决策点**（`X1` / `X2`，见 `systems/services/life-cycle-service.md` 的非战斗四类决策点清单）：**取消点与存档点在此重合，故不新增任何写入动作**——即时提交的两条判据与决策点判据在 Exchange 上指向同一批时刻。收口（玩家点「离开」）是第三个点，并入 `eventEnd` 的单一事务存档点。**面板打开不是决策点**：那一刻的全部状态已由 `TryApply(SelectCost + EventStateChanges[ActiveEvent])` 覆盖。
 - **一笔交易的 spec 形状：** `Elements` 一条 `ChangeElement(offer.Currency, -ListPrice, Add)` + 该商品族对应的产出 element——道具 / 神通走 `AbilityElements` 的 `Grant`（携带 `Source.ExchangePurchase`），功法走 `DeckElements` 的 `LearnTechnique`，单卡走 `DeckElements` 的 `AddLooseCard`（`Tier = -1`，一条 element 一张）。逐族载体见 `common-properties.md`。
 - **`ResolveOutcome` 只带账，不带第二次施加。** resolver 在玩家点「离开」时收口，`ResolveOutcome` 携带 ① 本次已提交的交易清单（**记账用，不再施加**）② 非购买 outcome / effect（对话结果、赠礼、隐藏属性推拉）。②照常并入 `eventEnd` 那一次合并 `TryApply`；①由 life-cycle-service 累加进 `PastEventEntry.AppliedChange`。
-- **商店购买是「余额不足即拒」的唯一消费点。** 事件推进路径不做付得起校验（`selectCost` 无条件施加），主动消费则相反：买不起的商品**灰显并保留价格可见**，不产生一次注定失败的提交。所需的两样东西——`ProfileService.CanAfford(spec)` 与 `ApplyResult.MissingElement`（告诉 UI 差的是哪一样）——因此保留。
+- **商店购买是「余额不足即拒」的唯一货币消费点**（barter 格不动货币，它的可用性由持有查询判定，见下）。事件推进路径不做付得起校验（`selectCost` 无条件施加），主动消费则相反：买不起的商品**灰显并保留价格可见**，不产生一次注定失败的提交。所需的两样东西——`ProfileService.CanAfford(spec)` 与 `ApplyResult.MissingElement`（告诉 UI 差的是哪一样）——因此保留。
   - **两种币共用同一条 pipeline，零改动。** `CanAfford(spec)` 与 `ApplyResult.MissingElement` 本就以 `CostKey` 为参数，币种由 spec 里那条 element 携带 ⇒ 支付链路对「这件商品收哪种币」完全无感；余额不足时 `MissingElement = offer.Currency`，UI 据它指出差的是哪一种货币。
   - **判据（写下判据而非结论）：「明知做不到仍然去做」有没有意义。** 事件选择面有意义（明知是死路仍然走，与「打不过也得打」同构，且换来一段终局叙事），故不设不可选 / 置灰态；商店里点一件买不起的商品**没有任何意义**——不产生终态、不产生叙事、不推进任何东西，只产生一次挫败。两处不同处置出自同一条判据，不是双标；「事件面不灰显」不得被推广到商店。
   - 灰显 / 售罄 / 刷新按钮的呈现形态见 `ux/screen-flow.md`。
+- **支付侧二选一：一条货币 element，或一件点名的轮回级法宝（以物易物 / barter）。** 两种形态**并存，一种不排除另一种**——绝大多数 offer 仍是货币交易，barter 是内容作者点名编排的少数格子。「拿这件换那件」因此有了一步到位的形态，而不必依赖「在同一家 `SellEnabled` 商店里先卖后买」两步。
+  - **支付物仅 `CharacterItem`（法宝）一族**，与售出准入同一条代码级常量。**账号级持有物（法则 / 古宝，`Scope == Player`）不得作支付侧**：它跨轮回，拿它换一次性收益会把账号级资产变成轮回级消耗品。神通与功法同样不开。
+  - **barter 由内容作者点名定值，不经抽取。** 不进抽取池、不掷 `RngStream.Shop`、不受 `RarityFilter` 与稀有度权重影响、**不参与档位供需闸 ① 与三道短缺闸**（那些算的是抽取池分母）、**不参与刷新**（重掷一条定值编排没有语义，`RerolledCount` 只作用于 `ExchangeStock`）。判据同「`TargetId` 指定定值的编排不经抽取池」。产出物同样是点名的 `GoodsId`——若产出走池则支付物固定而产出随机，玩家无从判断这笔换划不划算，且 barter 无价格可比。
+  - **一笔 barter 的 spec = 支付侧一条 `AbilityChangeElement(Remove, Item, Character, PayItemId, Source.ExchangeBarter)` + 产出侧那一条既有 element（`Source.ExchangePurchase`，按商品族取载体）。** `PairKey` 留空——配对要求两端 `(CarrierKind, Scope)` 相同，跨族 barter（付法宝换功法）根本配不出对；**原子性由 `TryApply` 的「全有或全无」保证**，`PairKey` 是置换语义的配对校验、不是事务边界。**barter 一枚货币都不动** ⇒ 不产生任何跨币流动、不触碰两币不可兑换纪律。支付侧单列成员的判据、code 与合法子集表在 `systems/common-properties.md`，本处不复述。
+  - **「换得起」的判定走门面级前置拒绝，`CanAfford` 一字不改（承重）。** 直接把 barter spec 交给 `CanAfford` 会**静默通过**（它按定义只看 `Op == Add && BaseValue < 0` 的资源 element，barter spec 里一条都没有），而提交时「`Remove` 目标不在持有列表」是**可选缺失**（`PushWarning` + 空操作、不阻断整批）⇒ 产出侧照常发放，玩家白拿一件商品。这条漏洞可被玩家发现并稳定复现，故堵法是强制项：**`profile-service` 门面上一条只读 `Holds(...)` + barter 提交路径在组装 spec 前查一次，`false` → `ApplyResult.Fail`（业务失败，绝不抛）**。element 层那条「可选缺失」是防御位，正常链路不可达。形态与失败语义见 `systems/services/profile-service.md`。
+  - **不扩 `CanAfford` 的语义。** 扩到 `AbilityElements` 就要回答「`Remove` 不足算不算 `Fail`」，而那与既有失败语义表正面矛盾——改它等于改全库每一条 `Remove` 的语义。`UseItemOutOfCombat` 已给出「门面前置查一次 + element 层留防御位」的现成同构解。
+  - **代价明写：灰显判据从此有两条来源**——`CanAfford` 管货币格，`Holds` 管 barter 格。两条各自单点、互不交叠，但「预校验只有一个方法」这句话不再为真。
+  - **不持有支付物时 barter 格灰显、支付要求保持可见、点按给一条说明。** 与「买不起 → 灰显但价格保持可见」逐字同构：**玩家是否持有某件法宝是可变状态**（该法宝可在轮回内买到、由事件产出、或已持有后被卖掉），落在「可变即灰显」一侧，而不是「恒真的不可用项不出现」一侧。**不按持有面过滤呈现**——那会让同一个 `EventOption` 在两次进入之间呈现不同内容，与「产出即定稿、恢复即读结果」正面冲突。文案走 `EVENT_` 普通分区的翻译键，**不占 `ERR_` 前缀**（本地业务拒绝，没有后端 `code`）。呈现形态见 `ux/screen-flow.md`。
+  - **兑换须就地二段确认。** 它不可逆地损失一件具体法宝，与储物袋售出同一条判据（购买不确认，是因为损失的是可再获得的货币）。换出后该格标「已换」并保留占位，与售罄 offer 同款。
+  - **Exchange 第一次持有指向内容条目的定值引用**（`PayItemId` / `GoodsId`）——此前它只持有抽取规则、从不点名任何条目。它不违反「这条信息在游戏里没有商店时是否仍然存在」这条归属判据（「这家店要拿 X 换 Y」不存在 ⇒ 归 Exchange 侧），但它确实是一个新的形态类别。
+  - **零增量的面（明写，防止 derive 时被误改）：** `ExchangeGoodsKind` / `EventOutcome` / `AbilityChangeOp` 不动 · 定价表与两条折扣通道不动（barter 不读定价表）· 两档回收率不动 · `Remove` 的全局失败语义不动 · 平衡数值零增量 · **后端零配合**。模板与物化形态、九条校验与日志形态见 `common-properties.md`。
 
 ### 库存生成
 
@@ -109,7 +120,7 @@
 
 - **不新建 `NpcData` / `FactionData`，不设好感 / 关系度数值，不跨轮回留存。** 四条依据：
   - **风味不需要一套数据模型来承载**（`decisions/ADR-0002-adventure-event-taxonomy.md` 的判据原样延伸到字段）。NPC 若只影响文案与插图，它就是 `Id` 命名约定 + `LocalizedText` + 图标字段，已经全部就位。
-  - **好感 / 关系度若有持久数值，它就是第四个隐藏属性。** 档位表已定为三属性 12 档且明写「档数永远不是该动的旋钮」；加一条要连带新增 `CharacterProfile.Status` 的 band 字段、一套档位数据、回滞 δ、加载期校验与 `HiddenStat` 枚举成员（存档迁移）。代价与收益完全不成比例。
+  - **好感 / 关系度若有持久数值，它就是第三个隐藏属性。** 档位表是两属性 9 档且明写「档数永远不是该动的旋钮」；加一条要连带新增 `CharacterProfile.Status` 的 band 字段、一套档位数据、回滞 δ、加载期校验与 `HiddenStat` 枚举成员（存档迁移）。代价与收益完全不成比例。
   - **跨轮回留存撞既有分层。** 账号级持久数据归 `PlayerProfile`（其字段结构本身仍是待答项），且它与两种货币「随轮回存在、随轮回清理」的经济分层不同轴——一个跨轮回的社交数值会让「新轮回是干净重置」不再为真。
   - **表达「关系」的既有通道更贴合本作形态。** `PlotArcData` + `PlotKeyPoint`（每条已激活 arc 一条带 `State` 的锚点）天然就是「与某人 / 某势力的一段关系走到哪一步」；`pastEvent` 是 PlotManager 的只读输入，「见过谁、跟谁做过交易」直接读得出。**好感度本质上就是一条 arc 的进度**，只是用离散节点而非连续数值表达——恰与「给方向不给数字」同向。
 - **「势力」的承载 = 三个既有字段的组合，零新增：** `PlotArcData.ExclusiveGroup`（同组 arc 一次轮回内至多激活一条 ⇒「投靠了甲就进不了乙的线」）· `PlotModulation.EventWhitelist` / `EventWeights`（该势力的事件更常出现）· location 的事件类型出现概率修正（坊市多 Exchange）。见 `systems/services/plot-manager.md`。
@@ -139,7 +150,7 @@
 - **回寿法宝（补天丹一类）是 `CharacterItem` 族的一个普通商品，零机制增量。** 它使商店成为「货币 → 寿元」的一条兑换通道，但**不需要任何新接口**：库存抽取、定价（「族 × 稀有度」表的 `CharacterItem` 行）、购买 spec（`ChangeElement(offer.Currency, -ListPrice)` + `AbilityChangeElement(Grant, Item, Character, id, Source.ExchangePurchase)`）全部照既有路径走。**账号级古宝 `PlayerItem` 一族被结构性排除在这条通道之外**——含寿元产出的 `ItemData.Scope == Player` 在加载期即 `PushError`，见 `systems/character-profile/item/_index.md`。回寿通道的完整形态与平衡护栏见 `systems/adventure-event/common-properties.md`。
 - **商品的内容定义一律归各自的内容子树，Exchange 只承载交易机制。** 五个商品族的定义位置：`Card` → `systems/character-profile/deck/`；`CultivationTechnique` → 同上；`CharacterItem` → `systems/character-profile/item/`；`CharacterPower` → `systems/character-profile/power/`；`PlayerItem` → `systems/player-profile/player-item/`。
 
-Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-purchase-count-statkey.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
+Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-purchase-count-statkey.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-30-exchange-barter-support.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -151,6 +162,7 @@ Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` �
 - **支付币种是定价表格值的一部分（表驱动）；售出同币回收，交易两侧都不构成跨币种通道。**
 - **NPC / 势力为风味层，不建数据模型。**
 - **交易不产生统计依赖：不为「购买次数」设 `StatKey` 成员**（判据与代价见「交易不产生统计依赖」一节）。
+- **支付侧二选一：一条货币 element，或一件点名的轮回级法宝（定值以物易物）** —— ADR 候选，待 `/write-adr` 立档。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_

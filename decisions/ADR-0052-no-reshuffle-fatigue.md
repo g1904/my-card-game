@@ -2,7 +2,7 @@
 
 - **状态：** Accepted
 - **日期：** 2026-08-11
-- **来源：** handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md, handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md
+- **来源：** handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md, handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md, handoffs/2026-08-30-fatigue-not-in-encounter-override.md
 
 ## 背景
 

@@ -14,7 +14,7 @@ public enum ExchangeGoodsKind { Card, CultivationTechnique, CharacterItem, Chara
 | 族 | 取池来源 | 购买产出的 element |
 |---|---|---|
 | `Card` | `CardData` 仓储（`Pool != Enemy`） | `DeckChangeElement(AddLooseCard, cardId, Tier = -1)` |
-| `CultivationTechnique` | `CultivationTechniqueData` 仓储（`Pool != Enemy`） | `DeckChangeElement(LearnTechnique, Id, Tier = 1)` |
+| `CultivationTechnique` | `CultivationTechniqueData` 仓储（`Pool != Enemy` ∧ 通过该角色的灵根修习准入） | `DeckChangeElement(LearnTechnique, Id, Tier = 1)` |
 | `CharacterItem` | `ItemData` 且 `Scope == Character` | `AbilityChangeElement(Grant, Item, Character, id, Source.ExchangePurchase)` |
 | `CharacterPower` | `PowerData` 且 `Scope == Character` | `AbilityChangeElement(Grant, Power, Character, id, Source.ExchangePurchase)` |
 | `PlayerItem` | `ItemData` 且 `Scope == Player` | `AbilityChangeElement(Grant, Item, Player, id, Source.ExchangePurchase)` |
@@ -26,9 +26,14 @@ public enum ExchangeGoodsKind { Card, CultivationTechnique, CharacterItem, Chara
 
   ```
   AllEnabled() → 按 Kind 映射到对应仓储 → 排除 ExclusiveSource != null（能力族；Card 族无此字段，恒为空操作）
-  → Card 族另排除「被任一功法引用的成员卡」 → 排除已持有（能力族）
+  → Card / CultivationTechnique 两族另排除 Pool == Enemy
+  → Card 族另排除「被任一功法引用的成员卡」
+  → CultivationTechnique 族另排除该角色修不了的功法（灵根修习准入 CanLearn）
+  → 排除已持有（能力族）
   → RarityFilter 过滤 → 按 RarityTier 权重表 PickMany(shopRng, SlotCount)     // 无放回
   ```
+
+  `Pool != Enemy` 这一层在两个卡池族上各叠一次（权威见 `systems/character-profile/deck/_index.md`「卡池划分」）；灵根修习准入只作用于功法族，它需要读 `Profile` 取角色灵根，故与 `Pool` 一样由调用方自叠、不进 `DrawPool<T>`（见同文档「灵根修习准入」）。
 
   `PickMany` 无放回是既定契约 ⇒ **同一批库存内不出现重复商品**，这条免费成立、不需要新规则。
   `ExclusiveSource` 只覆盖 `PowerData` / `ItemData`（见 `systems/common-properties.md`），故它对 `Card` 族恒不生效——成员卡的排除是另一条规则，不由这个字段承载。
@@ -52,6 +57,7 @@ public enum ExchangeGoodsKind { Card, CultivationTechnique, CharacterItem, Chara
 public partial class ExchangeSpec : Resource          // AdventureEventData 上 Exchange 专有的一格；非 Exchange 条目为 null
 {
     [Export] public ExchangeStockRule[] StockRules      { get; set; }   // 库存槽位规则；空 → 加载期 PushError
+    [Export] public ExchangeBarterRule[] BarterRules    { get; set; }   // 以物易物规则；可空 = 该商店无 barter 格
     [Export] public int                 RerollBaseCost  { get; set; }   // 刷新基价（灵石）；0 = 本条目不可刷新
     [Export] public int                 RerollCostStep  { get; set; }   // 每次刷新的递增量
     [Export] public int                 MaxRerollCount  { get; set; }   // 刷新次数上限；0 = 不可刷新
@@ -68,10 +74,19 @@ public partial class ExchangeStockRule : Resource     // 一条规则 = 若干�
     [Export] public int               PriceOffset     { get; set; }   // 相对定价表的条目级偏移；正数量值，语义由方向承载
     [Export] public int               DiscountPercent { get; set; }   // 该槽的固定折扣（内容侧静态值，风味用）
 }
+
+[GlobalClass]
+public partial class ExchangeBarterRule : Resource    // 一条规则 = 一个定值 barter offer，不产生随机
+{
+    [Export] public string            PayItemId { get; set; }   // 支付物：ItemData 且 Scope == Character 的稳定 Id
+    [Export] public ExchangeGoodsKind GoodsKind { get; set; }   // 产出物所属族
+    [Export] public string            GoodsId   { get; set; }   // 产出物：该族对应仓储内的稳定 Id
+}
 ```
 
 - **售出准入不在这两个类型上。** 「哪一族能卖」是代码级常量（恒为 `CharacterItem`），`SellEnabled` 只表达「这家店收不收」、`SellRatePercent` 只表达「几折收」。理由见 `_index.md`。
 - **`SellRatePercent` 折算的基准是定价表的基准价，不是 `ListPrice`。**
+- **`BarterRules` 与 `StockRules` 平级另开一格，不往 `ExchangeStockRule` 上加 `PayItemId`。** 一条 stock rule 按定义是「若干个**同族**槽位」，`SlotCount` 个 offer 共用一条规则；而支付物只有一件、且必须逐 offer 定稿——形状对不上，加进去必然引出「N 个槽位是不是各要一件支付物」。**barter 一条规则恰好产出一个 offer，不含随机、不读定价表、不带折扣。**
 - **币种不在规则上，取「族 × 稀有度」定价表该格。** `ExchangeStockRule` 与 `ExchangeSpec` 都**不设币种字段**：不给字段就不存在「谁有权用它」的问题，也就不存在一个填错的条目把高阶商品变成基础货币可买、而校验无从判断作者是否故意。定价表的格值形态（币种 + 基准价）见 `systems/balance.md`。
 
 ### 物化侧：`ExchangeOffer`
@@ -93,6 +108,25 @@ public sealed record ExchangeOffer(          // 定稿商品实例：immutable�
 - **`BasePrice` 与 `ListPrice` 都存**：前者是售出折算与诊断的基准，后者是玩家看到并实际支付的数。两者都是物化产出，重算不保证同结果。
 - **`Currency` 同为物化产出**：物化时从「族 × 稀有度」定价表该格抄下，与两个价格一同定稿。**恢复即读，绝不回查定价表重算**——与「产出即定稿、消费侧不得回查模板」同款。购买 spec、售出所得与余额不足的 `MissingElement` 三处一律读它，币种在一件商品的整个生命周期内是同一个。
 
+### 物化侧：`BarterOffer`
+
+```csharp
+public sealed record BarterOffer(            // 定稿实例：immutable，随 EventOption 落存档
+    string            OfferId,               // 本 Exchange 实例内唯一，与 ExchangeOffer 同一命名空间（兑换 / 已换按它定位）
+    string            PayItemId,             // 支付物内容 Id
+    ExchangeGoodsKind GoodsKind,
+    string            GoodsId,
+    int               GoodsTechniqueTier,    // 产出为功法时的层数；其余族为 0
+    bool              SoldOut);              // 兑换后置位
+```
+
+- **落在 `EventOption.BarterStock` 上**，与 `ExchangeStock` / `RerolledCount` 平级 ⇒ `EventOption` 增一格 ⇒ **bump 存档 schema 版本**（当前无线上存档 = 空迁移，走既有 MigrationManager 骨架）。承载与读档校验见 `systems/character-profile/_index.md`。
+- **不往 `ExchangeOffer` 上加 `PayItemId` + 一个「这是 barter」的布尔。** 那会让 `Currency` / `BasePrice` / `ListPrice` 三格在 barter 行上恒无意义，而「一个字段在某些行上恒为空」正是分列判据（键与载荷的形状根本不同，见 `systems/architecture.md`）。
+- **`BarterStock` 由 `ExchangeSpec.BarterRules` 逐条平移得出**，不经取池链、不掷 `RngStream.Shop`、不参与三道短缺闸。物化伪码见 `systems/services/future-event-service.md`。
+- **不参与刷新：** `RerolledCount` 增加时整批替换的只有 `ExchangeStock`，`BarterStock` 原样保留。
+- **文本一律不进快照**：支付物与产出物的显示名 / 图标由 UI 按 `PayItemId` / `GoodsId` 现场取模板组装，与 `ExchangeOffer` 同款。
+- **`GoodsId` 不受「成员卡不从散牌产出侧发放」排除**：那条只约束散牌产出侧的**抽取池**，barter 是点名给出、不经池，与「`TargetId` 指定定值的编排不受影响」同一判据。
+
 ### 加载期校验（坏数据在启动期大声失败）
 
 | 违规 | 处置 |
@@ -108,6 +142,12 @@ public sealed record ExchangeOffer(          // 定稿商品实例：immutable�
 | `SellEnabled == true` 且 `SellRatePercent <= PackSellRatePercent`（随售档全局单值） | `PushError`（带 `EventId` + 两个值）——收购价不高于随手卖掉，这家店作为「更优机会」不成立。判据见 `_index.md`「售出」 |
 | 定价表某格缺失 | 启动期 `PushError`（同 `ResourceElements` 表的全成员断言） |
 | 定价表某格的币种缺失，或不在 `{ SpiritStone, ImmortalJade }` 内 | 启动期 `PushError`（带 `Kind` + 档位）——同一条全成员断言纪律；币种缺失即无从物化 `ExchangeOffer.Currency` |
+| `BarterRule.PayItemId` 解析不到，或不是 `ItemData` 且 `Scope == Character` | `PushError`（带 `EventId` + 规则序号）——支付面仅法宝一族，与售出准入同一条代码级常量 |
+| `BarterRule.PayItemId` 的条目 `ExclusiveSource != null` | `PushError`——该条目只能由指定渠道给出，把它编排成支付物即要求玩家先走完那条渠道，是无法满足的编排 |
+| `BarterRule.GoodsId` 解析不到，或与 `GoodsKind` 对应的仓储 / `Scope` 不匹配 | `PushError`（悬空 `Id` 会污染存档，与 `DeckChangeElement.Id` 同档） |
+| `BarterRule.PayItemId == GoodsId` | `PushError`（换回自己，空交易） |
+| 同一条目内两条 `BarterRule` 的 `PayItemId` 相同 | `PushError`——支付物换出即售罄，第二条恒不可达 |
+| `eventType != Exchange` 而 `BarterRules` 非空 | `PushError`（与 `ExchangeSpec != null` 那条同款） |
 | 反建成员索引后，存在被任一功法引用的卡 | `PushWarning`：一次性列出被排除的卡 `Id` 与引用它的功法 `Id`，供人工审阅（审阅辅助，非坏数据） |
 
 **档位供需的核算口径 = 逐 `Kind` 逐 `RarityTier` 档位（承重）：**
@@ -121,7 +161,9 @@ public sealed record ExchangeOffer(          // 定稿商品实例：immutable�
 - **不按「同 `Kind` + 同 `RarityFilter` 完全相同才合并」核算**：两条 `RarityFilter` 分别为 `[Tier1, Tier2]` 与 `[Tier2, Tier3]` 的规则同样抢同一批 Tier2 条目，按「完全相同才合并」会各自单独判、**放过一个真实的短缺编排**，而闸 ① 的存在理由就是机械化的硬保证。
 - **也不按 `Kind` 取并集合并**：并集足够而某单档不足时判不出，方向偏保守但同样漏。逐档位核算精确、无漏无误报，实现是一次分组求和，落在加载期不计成本。
 - **`ExchangePoolMargin` 必须存在，不能只断言「≥ Σ`SlotCount`」**：能力族取池链含**排除已持有**，池随玩家推进单调收缩，一个恰好等于所需的静态池在轮回中段必然短缺。取值归 `systems/balance.md`。
+- **`CultivationTechnique` 族的分母须按灵根收缩后的子集取**：修习准入是第二重收缩，核算口径按可修条目最少的那个灵根定，否则某个角色会频繁撞上档位短缺。见 `systems/character-profile/deck/_index.md`「灵根修习准入」。
 - **成员卡排除后，`Card` 族的分母只剩游离散牌**：编排了 `Card` 规则的条目更容易被闸 ① 拦在启动期。这同样是一条有意的收紧——它把「散牌池实际有多大」在启动期就摆到内容作者面前，而不是等到轮回中途开出一个空商店。
+- **barter 不进任何一格核算**：闸 ① 算的是抽取池分母，而 barter 是点名定值、不经池；它同样**不计入「槽位总数上界」那条校验**（该校验按定义算 `StockRules` 的 `SlotCount` 之和），也**不另设 barter 条数上界**——不为尚不存在的问题加旋钮。
 - **这是一条有意的收紧**：编排更容易在启动期失败，而当前内容存量为零 ⇒ 落地代价为零，晚做则每多一个 `.tres` 多一份返工。
 
 ### 运行期校验
@@ -135,6 +177,9 @@ public sealed record ExchangeOffer(          // 定稿商品实例：immutable�
 | 某条 `StockRule` 抽到 `0 < n < SlotCount` | 可选缺失 | `PushWarning` + want / got；**该规则产出 n 个 offer，不补位、不用别族顶替** |
 | 某条 `StockRule` 抽到 0 条 | 可选缺失 | 同上；该规则贡献 0 个槽位，其余规则照常 |
 | 整店 `ExchangeStock` 为空 | 必需缺失（取池期前置本应拦住） | `PushError` + 上报，该条目本次不进批次 |
+| 兑换时 `barterOffer.SoldOut == true` | 业务失败 | `OpResult` 拒绝 + `PushWarning`（正常路径已灰显，到达此处说明 UI 与状态不同步） |
+| 提交 barter 时不持有 `PayItemId` | 业务失败 | 门面 `ApplyResult.Fail`，**绝不抛**；不组装 spec、不进 `TryApply`（见 `systems/services/profile-service.md`） |
+| barter 产出目标已持有（能力族） | 可选缺失 | `PushWarning` + 空操作 —— barter 不经取池 ⇒ **没有「已排除已持有」这一层**，故 UI 侧须同样灰显 |
 
 - **短缺处置的层次、取池期前置（闸 ②）与三道闸的分界判据归 `systems/services/future-event-service.md`**；本处只记 Exchange 侧的逐情形行为。
 - **短缺不给玩家任何提示、不新增文案键**（reroll 按钮的池前置置灰是另一个界面元素，见 `_index.md`）。玩家看到的就是一个商品少一点的店，它与内容作者编排出的小店在观感上无法区分。
@@ -145,6 +190,7 @@ public sealed record ExchangeOffer(          // 定稿商品实例：immutable�
 ```
 [Exchange-Purchase] offer=<OfferId> content=<ContentId> price=<ListPrice> currency=<CostKey> balanceAfter=<n>
 [Exchange-Sell]     item=<ItemId> base=<BasePrice> rate=<SellRatePercent> currency=<CostKey> balanceAfter=<n>
+[Exchange-Barter]   offer=<OfferId> pay=<PayItemId> goods=<GoodsId> kind=<GoodsKind>
 [Exchange-Reroll]   event=<InstanceId> count=<n> cost=<c>
 
 [ContentRegistry-Validate]  exchange pool short: event=<EventId> kind=<ExchangeGoodsKind> rarity=<RarityTier> need=<ΣSlotCount+margin> pool=<n>
@@ -152,9 +198,9 @@ public sealed record ExchangeOffer(          // 定稿商品实例：immutable�
 [FutureEvent-ExchangeStock] instance=<InstanceId> event=<EventId> rule=<i> kind=<Kind> want=<n> got=<m>
 ```
 
-一笔交易只动一种币 ⇒ 买卖两行各记**一个** `currency` + 一个 `balanceAfter`，不并列两个互斥的余额字段。
+一笔交易只动一种币 ⇒ 买卖两行各记**一个** `currency` + 一个 `balanceAfter`，不并列两个互斥的余额字段。**`[Exchange-Barter]` 一行连这两格都没有**——barter 一枚货币都不动。
 
-Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
+Source: `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

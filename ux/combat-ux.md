@@ -4,7 +4,7 @@
 
 ## 意图
 
-- **道念是战斗屏幕的主视觉。** 胜负判据是**道念(momentum)高者胜**(见 `systems/scoring.md`),因此战斗屏幕的视觉重心是**双方道念的对比**——玩家任何时刻都应一眼看出「我现在领先还是落后、差多少」。**lifeTotal 退居次要**:它在战斗过程中不变化,只在结算时按道念差被扣减,故不需要战斗内的常驻血条式强调。具体形态(对比条 / 双数值 / 天平隐喻)待战斗 UX 专场。
+- **道念是战斗屏幕的主视觉。** 胜负判据是**道念(momentum)高者胜**(见 `systems/scoring.md`),因此战斗屏幕的视觉重心是**双方道念的对比**——玩家任何时刻都应一眼看出「我现在领先还是落后、差多少」。**寿元不进战斗屏**:它在战斗过程中既不被读也不被写,只在收口时刻按道念差被扣减,故不做战斗内的常驻血条式强调。具体形态(对比条 / 双数值 / 天平隐喻)待战斗 UX 专场。
 - **道念显示位:双方各随其头像（承重）。** 道念对比条横贯屏幕,**双方的头像与数值分居其两端**——对比条与头像位不互斥,两者同时成立,合称**双方道念位**。**玩家侧因此有一个头像位**(战斗屏此前只写了敌人立绘):它只作道念的锚点,**不承担任何图鉴入口**,也不并列玩家自身等级。本文件中以「道念对比条」为基准的布局纪律,凡涉及压暗豁免与压缩顺序处,指的都是这一整组。
 - **战斗是定长的 10 个回合,故进度可视。** 双方各 5 个回合、打满即比大小——**「还剩几回合」是一个必须呈现的信息**:它把「我落后 8 点、还剩 2 个回合」变成玩家可算的账,是限时积分对抗的紧张感来源。**起始道念按等级给**,故战斗一开场就可能呈现出一段明显的落差。呈现形态(回合计数器 / 进度条 / 双方轮次指示)待战斗 UX 专场。
 - **敌人等级精确可见(答结「等级差是否可见」)。** 玩家**能**看到敌人的等级——**在 eventOptions 上就已精确标注**(见 `systems/services/future-event-service.md`),而非模糊的危险度档位(「同阶 / 略高 / 越阶 / 无从揣度」一类标签**否决**)。**承重理由:看到等级即看到起跑线**——等级 → `baseMomentum` → 开局领先 / 落后量,故标注的等级**就是这场遭遇的难度刻度**;「越级挑战」也因此成为可主动选择的风险 / 回报维度。
@@ -51,7 +51,7 @@
   - **不上提为跨事件类型的 `eventLog`(边界)。** 战报只属于 Combat,**不外延到 Exchange / Research / Explore / Travel**。三条理由:
     - **会制造第二权威。** `PastEventEntry`(`SelectCost` / `AppliedChange` / `EventOutcome` / `Unchosen`)已经是「一个事件里发生了什么」的事实来源,且已被剧本调制、履历、诊断三方消费。再立一份「记录事件中有意义的决策」的日志 = 同一批事实的第二份表,两份各自漂移而无机制发现。
     - **非战斗事件没有可记的时间轴。** 其余四类都是单决策点事件(择一 → 结算 → 收口一次 `TryApply`)。战报存在的两条前提——**LIFO 栈使因果链长于 1**、**敌人不作事前预告故事中呈现是唯一情报通道**——一条都不外延。
-    - **非战斗事件里唯一「值得记」的东西恰好必须隐藏。** 玩家自己选了什么他知道;他不知道的是道心 / 煞气 / 寿元被推了多少、剧本被怎么调制——而那正是「给方向不给数字、调制是隐藏属性的主要显影通道」所要遮住的(见 `systems/adventure-event/plot-manager.md`)。诚实的 `eventLog` 会掀开这层;不诚实的只剩「你选了 A」这种零信息条目。
+    - **非战斗事件里唯一「值得记」的东西恰好必须隐藏。** 玩家自己选了什么他知道;他不知道的是道心 / 煞气被推了多少、剧本被怎么调制——而那正是「给方向不给数字、调制是隐藏属性的主要显影通道」所要遮住的(见 `systems/adventure-event/plot-manager.md`)。诚实的 `eventLog` 会掀开这层;不诚实的只剩「你选了 A」这种零信息条目。
     > **一句话纪律:一个权威、两种寿命——事件内的过程态是纯呈现层、不落存档(战报);事件间的账目归 `PastEventEntry`、落存档。**
 - **战斗屏再多两个可读对象:本场可用道具区与神通 / 法则条。** 卡牌不再只有一个来源区,呈现层要跟着补:
   - **本场可用道具区** —— 竖屏空间紧张且它不像手牌那样每回合变化,**建议默认收起为一个角标(显示可用道具数),点开为抽屉式面板**,不值得常驻占位。**措辞上不要在战斗语境里称它为「储物袋」**:储物袋是元界面里的持有物全量视图(含大量战斗外道具),战斗里出现的只是它的一个筛选视图;**敌人没有储物袋却同样有道具**,也证明这两个概念必须分开。该区**同时呈现两级持有物**(轮回级法宝 + 账号级古宝),条目上带 `AbilityScope` 标识来源——两级的规则面权威见 `systems/player-profile/player-item/_index.md`,UX 侧不复述。
@@ -77,7 +77,7 @@
 - **结算会在中途停下来问「指谁」（承重）。** 触发式异能在栈上若需要选择目标,**那次目标选择是玩家的一次真实输入,也是一个决策点**(见 `systems/services/combat-service.md`)。**推论 ①:结算动画不能是一段不可打断的过场**——它必须能在中途停住、进入一个可交互的选目标态,再继续弹栈。**推论 ②:选目标态需要明确的进入 / 退出信号**,否则玩家会以为战斗卡住了(尤其在连锁触发中,停顿点可能出现在玩家没有预期的时刻)。**推论 ③:这不是「响应窗口」,呈现上必须区分**——玩家此刻不是在决定"要不要插手",而是在补全一个已经在结算中的效果的参数;措辞与视觉都不该暗示这是一次可放弃的机会。**推论 ④:这一步会落存档**,而 UI **不必**为此表达"已存档"(与战后奖励面板同理)。
 - **战斗屏多了一个区:战场(battlefield)（承重）。** 场上**正在生效**的卡牌 / 持续状态 / 等待中的触发器落在 battlefield 上,与**栈**(等待结算的队列)是**两个不同的区**。**推论 ①:竖屏要容下三块**——战场 / 栈 / 手牌,再加上道念对比、回合计数与战报,窄高屏的分区压力显著上升(具体排布待战斗 UX 专场)。**推论 ②:玩家须能区分"已经在生效"与"正在等待结算"**——二者混成一片就读不懂触发连锁。**推论 ③:回合内状态的消散有了可视对象**——结束阶段清理的是战场上标记为回合内的条目,动画有了明确的落点。
 - **满手时抽牌的表现:牌抽不进(规则已定)。** 满手时抽牌**抽不进**(牌留在抽牌堆、本次抽牌无事发生),「加入手牌」类效果同理落空——**规则已定,剩下的只是表现形式**。**推论 ①:需要一个"没抽进"的可见反馈**,否则玩家会以为抽牌漏了或界面卡了;**推论 ②:手牌上限本身要常驻可读**(「我还能拿几张」),否则满手是个突然出现的意外;**推论 ③:不会有牌被弃掉或销毁的画面**——上限是纯上界,不产生弃牌堆流量,视觉上不该出现"牌被丢掉"的动作。
-- **道念差是玩家可直接换算的账。** 失败时 `lifeTotal` 的扣减量**就是道念差**(1:1),故战斗屏上的「我落后 8 点」同时就是「输了要掉 8 点 lifeTotal」——**这条 1:1 关系让主视觉的价值大增**:玩家不需要额外的教学就能读懂风险,也让「道念差是否显式呈现」这个问题的答案更倾向于「显式呈现」。
+- **道念差是玩家可直接换算的账。** 失败时寿元的扣减量 = 道念差 × 该篇章的 `lossPerMomentum`,而**第一篇章的系数锁定为 1** ⇒ 战斗屏上的「我落后 8 点」同时就是「输了要掉 8 点寿元」——**这条关系让主视觉的价值大增**:玩家不需要额外的教学就能读懂风险,也让「道念差是否显式呈现」这个问题的答案更倾向于「显式呈现」。**后两章要乘一个已知系数后才可算**,这条论据在 ch2 / ch3 相应减弱(见待决问题)。
 - **回合数不是固定的 10。** 10 回合是 **`Standard` 档的标准值**;`Practice` / `Finale` 档可改写回合数与胜负条件。**推论:「还剩几回合」的呈现必须由本场遭遇的配置驱动**,不能把 10 写死进 UI。
 - **敌人等级的展示措辞。** **面向玩家一律用「境界名 + 层级」,全局序 1–22 不出现在任何 UI 上**(例:「筑基中期」「炼气十三层」)。
   - **理由(最强的一条):境界名让 `baseMomentum` 的跨度断层可读** —— 「筑基巅峰 vs 金丹初期」一眼就是跨境界,而跨境界正是起跑线的量级跳变处(32 → 45);「17 vs 18」看不出来。**起跑线就是「这场有多难」的唯一刻度**,故让它可读是等级展示的全部目的;全局序是内部比较刻度,不是玩家词汇。
@@ -116,9 +116,10 @@
 - **多目标槽位的询问顺序 = `slotIndex`。** 一张牌有多个目标槽位时,UI **在打出前按 `slotIndex` 顺序逐个问、一次收齐**;**各槽位的类别由选目标态的指令条按同一顺序点名**(「摧毁目标阵法」而非「摧毁目标」)——否则玩家不知道自己现在在选哪一个。指令条本就「必须自解释」、位置绝对固定、常驻连锁进度(见上),故这项告知**不新增任何部件**。
 - **静默退出的告知责任落在战斗屏。** 玩家主动退出**不做二次确认弹窗**(手感优先,不在最频繁的操作上加模态);代价是「进度保留在当前决策点、成本不退还」这条规则玩家看不见——**须由战斗屏的常驻措辞或首次退出时的一次性提示承担告知,不是弹窗流程**。
 - **进入战斗前的同步失败不产生任何额外提示。** 告知由**常驻的「离线 · 待同步 N」指示**承担——**该指示在战斗屏内必须可见**(这是本条成立的前提)。理由:断线期间**每一场**战斗的入口都会命中这条路径,在此弹 toast 等于把一次性的网络状态变成**逐场重复的打扰**,且时机恰是玩家最专注处。**这与「静默退出的告知责任」是同一条纪律的第二个实例**:不在最高频操作上加提示,告知由别处的常驻呈现承担。**边界**:真正需要打断玩家的情形仍由既定机制承担——缓冲超限的软阻塞模态(下一次事件选择前)与两处硬阻塞(启动 pull 失败、被挤下线)。规则侧见 `systems/services/sync-service.md`「`Immediate` flush 的失败语义」。
-- **寿元红字倒数不进战斗内。** 寿元告警的呈现位置已定为 **EventOption 选择界面**的静态标注,**不常驻战斗屏幕**、不做全局 HUD。见 `ux/screen-flow.md`。
+- **寿元余量不常驻战斗屏(已答结)。** 战斗屏只呈现道念对比与差值;余量的常驻位置是 **EventOption 选择界面**的静态标注,**不常驻战斗屏幕**、不做全局 HUD(见 `ux/screen-flow.md`)。**理由**:战斗内本就没有任何手段改变这个值,常驻显示一个战斗内不可改变的量只增噪音,还会诱导「留血打」的错误心智;而进入战斗前的确认页已给出余量。
+  - **结算面板必须如实展示本次扣减量与扣后余量。** 失败代价最重的那一条不能只在数字里静悄悄地少一截——这是「不常驻」的配套条件,两者一并成立。
 
-Source: `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-26d-activate-ability-contract.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-26d-activate-ability-contract.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
@@ -133,8 +134,7 @@ Source: `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirem
 - **竖屏分区整体是否过载(承重)。** 六个区 + 若干挂件已在本文件累计出现多处 `⚠ 竖屏压力最大处 / 需实际排版验证` 的标注。**根子是把 MTG 的完整分区模型搬进手机竖屏**;尤其**栈在零交互下玩家做不了任何事、只能看**,它是否必须常驻(而非结算时的临时演出层)值得重估。**→ 已排期：单开一个专门 session 答疑**,不在逐次 handoff 中零敲碎打。
   - **该专场须一并容纳的挂件形态**:只读层的形状(角标 vs 常驻一排小图标)· 启动式 `Power` 的静态启动可供性标记 · 随身抽屉内 `AbilityScope` 两级标识的视觉形态 —— 三者都只定了原则、没定形状,且都要占己方战场区边缘那一圈已经很挤的空间。
   - **阵法(`Enchantment`)上启动式异能的 UI 宿主同归本专场。** 启动式异能不是 `Power` 专属,阵法作为留场永久物同样可挂;现有形态只定了 `Power` 那一半(长按图标升起的弹层内的启动键),阵法条目在战场区内**没有对应的启动入口**。服务契约不依赖它(按战场条目 id 寻址,与宿主无关),但**没有宿主就没有玩家可发起的路径**。
-- **道念对比的视觉形态。** 主视觉地位已定;**用什么形态**(左右对比条 / 双数值 / 天平隐喻)、道念变化时的反馈(数字跳动 / 特效)、以及「道念差」是否显式呈现(它决定失败时扣多少 lifeTotal,而 lifeTotal 归 0 即角色终结)均未定。**形态须同时容纳「双方头像与数值分居两端」这一已定落位。** → 亦见 `systems/scoring.md`。
-- **lifeTotal 在战斗屏幕上的位置。** 已定「退居次要」;但**是否仍常驻显示**(作为「失败会掉多少」的参照)还是完全移出战斗屏,未陈述。
+- **道念对比的视觉形态。** 主视觉地位已定;**用什么形态**(左右对比条 / 双数值 / 天平隐喻)、道念变化时的反馈(数字跳动 / 特效)、以及「道念差」是否显式呈现(它决定失败时扣多少寿元,而寿元归 0 即角色终结;ch2 / ch3 需乘一个系数,「当场可算」这条支持论据相应减弱)均未定。**形态须同时容纳「双方头像与数值分居两端」这一已定落位。** → 亦见 `systems/scoring.md`。
 - **战后奖励面板的形态。** 交互已定(逐项列出、逐项领取 / 跳过、已处置不可反悔、候选恒 3 项)。仍未定:**强制项与可选项如何同屏区分**(自动计入的部分是否也要展示"你获得了什么")、**逐项列表在竖屏的排布**、**已领取 / 已跳过两态的视觉处置**(消失 / 置灰 / 移入已领区)、以及它与"事件收口"之间的视觉衔接。
 - **栈与战场的同屏呈现(承重)。** 触发式能力入栈使**栈深可以大于 1**,故栈**必须**可见;**此外还有一个战场区**(正在生效的卡牌 / 持续状态 / 触发器)。连锁可读性由战报展开态的因果树承担,不在本条残留内。仍待定:竖屏小尺寸上如何**同时**表达"哪些东西在等待结算、以什么顺序"与"哪些东西已经在生效"、两区如何在视觉上区分、连锁触发的结算动画如何不拖慢节奏。→ `systems/character-profile/deck/`、`systems/services/combat-service.md`。
 - **三步结构的呈现细节。** 开始阶段的 mana 刷满与抽牌是否各有独立节拍与动画、**"没抽进"的反馈形态**(规则已定为抽不进,表现未定)、**手牌上限的常驻可读形态**、**回合内状态消散**如何被看见、以及"轮到谁"的常驻指示形态,均未定。→ `systems/services/combat-service.md`。

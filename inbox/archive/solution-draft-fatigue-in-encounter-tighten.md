@@ -4,7 +4,9 @@ date: 2026-08-28
 question: 疲劳扣减（`FatiguePerDraw`）是否应进 `EncounterSpec` 的可空覆写组（连带：是否应进 `EncounterTighten` 第六格）
 source: open-questions/01-combat.md → 「内容与数值的残留」（08-27 重开条目）
 targets: systems/balance.md（「疲劳扣减刻意不进覆写组」三条理由与重开判据）· systems/services/combat-service.md（`EncounterSpec` 覆写组一节）· systems/character-profile/deck/common-properties.md（`ModifierTarget.FatigueAmount` 的方向约束，仅当取向项 A 选「限定为只能下调」）
-status: awaiting-review
+status: distilled
+reviewed: 2026-08-30 · 批量合并 interview：三处 ADR / plot-manager 措辞一处不改（选 a）；`ModifierTarget.FatigueAmount` 确认保持双向。理由 ③ 的改写按比草稿更精确的口径落笔（`DrawEffect` 使「抽牌预算封死上界」不成立）。
+distilled-to: handoffs/2026-08-30-fatigue-not-in-encounter-override.md
 ---
 
 # 方案草稿 — 疲劳扣减是否进 `EncounterSpec` 覆写组

@@ -1,12 +1,12 @@
 # balance
 
-> 可调的全局数值：lifeTotal / mana 基线、ante 曲线、掉落权重、重试上限等。系统从数据（`.tres`）读取，不硬编码。
+> 可调的全局数值：寿元预算 / mana 基线、ante 曲线、掉落权重、重试上限等。系统从数据（`.tres`）读取，不硬编码。
 
 ## 意图
 > _从 handoffs 中提炼的设计意图。保持更新。_
 
-- **炼气期基线（起始满值）：** 生命 lifeTotal = **10**（单值，无上限字段）、法力 mana = **5 / 5**。mana 采用**无曲线 · 每回合恢复至 `manaLimit`** 模型，且 **`manaLimit` 由事件 cost / reward 推拉**（见 `systems/character-profile/mana.md`），**不设下界护栏**。
-  - **`RealmBreakthroughManaBonus = 1`（全局单值 · 初值）。** 进入筑基 `+1`、进入金丹 `+1`（元婴是终点，不给），在篇章边界施加一次。**mana 不设境界基线表**——境界跨度由 `baseMomentum` 与卡牌的道念产 / 削量承载，mana 侧只多这一个常量，**不新增任何跨境界曲线表**，校准面因此只多一个数。语义、增量通道与三章末推算（约 6~7 / 8~10 / 10~13）见 `systems/character-profile/mana.md`。**lifeTotal 是战斗外耐久**（战斗内不参与，只在失败结算时按道念差扣减，见 `systems/scoring.md`、`character-profile/life-total.md`）。这些是可调数值，存入 `.tres` 而非硬编码。
+- **炼气期基线（起始满值）：** 寿元 lifeSpan = **100**（单值，无上限字段）、法力 mana = **5 / 5**。mana 采用**无曲线 · 每回合恢复至 `manaLimit`** 模型，且 **`manaLimit` 由事件 cost / reward 推拉**（见 `systems/character-profile/mana.md`），**不设下界护栏**。
+  - **`RealmBreakthroughManaBonus = 1`（全局单值 · 初值）。** 进入筑基 `+1`、进入金丹 `+1`（元婴是终点，不给），在篇章边界施加一次。**mana 不设境界基线表**——境界跨度由 `baseMomentum` 与卡牌的道念产 / 削量承载，mana 侧只多这一个常量，**不新增任何跨境界曲线表**，校准面因此只多一个数。语义、增量通道与三章末推算（约 6~7 / 8~10 / 10~13）见 `systems/character-profile/mana.md`。**寿元是角色唯一的资源命线**（战斗内不被读写，只在失败结算时按道念差扣减，另按 `lifeSpanCost` 逐事件扣减，见 `systems/scoring.md`、`character-profile/life-span.md`）。这些是可调数值，存入 `.tres` 而非硬编码。
 - **全局等级序的境界基数（连续无跳变）。** 修行等级由「境界 realm + 境界内 level」合成为全局序 **1–22**：**炼气 1–13 / 筑基 14–17 / 金丹 18–21 / 元婴 22**，枚举值自带描述（`level=1` → 炼气一层，`level=14` → 筑基初期，…）。**境界之间不留跳变**——境界鸿沟改由 `baseMomentum` 的跨度放大承载（见下表），这条分工使等级序本身保持为一把简单的直尺。
 
 - **`baseMomentum`：每个等级的战斗起始道念（可调数值 · 承重）。** 战斗开始时双方各持一个由自身等级决定的起始道念（模型见 `systems/scoring.md`）：
@@ -25,7 +25,7 @@
 - **敌人赋级的合法区间 = 角色当前等级 `±2` 的对称带（三章统一）。** 物化赋级落在 `[角色等级 − 2, 角色等级 + 2]` 内，在全局序 **1–22** 上截断。它**不是**按境界给的绝对天花板，且**同时给出上界与下界**。**赋级规则挂在 Enemy 上、不挂在事件类型上**，故 **`combatTier` 三档一视同仁**（天劫亦然，见 `systems/adventure-event/combat/`）。
   - **带边界住在平衡资源 `EnemyLevelingData` 里**（与下方的带内分布权重表**同住一份**），随内容 overlay 可调。代码侧只读「当前篇章的带」这一个概念，**不为分章写分支**（当前三章取同一组值）。形态与加载期校验见下方「敌人赋级资源 `EnemyLevelingData`」。
   - **`±2` 是无例外的硬规则。** 任何调制源（PlotManager、location 框定、事件模板、Finale）**都不得产出带外 `diff`**；**赋级函数不接受任何区间覆盖参数**——不给这个口子，就不存在「谁有权用它」的问题。最强论据来自 Finale：全作最凶的天劫**不享有任何等级规则上的例外**，其特殊性全部落在定制卡组与遭遇参数上。**「绝境感」只能由样本卡组 / item / power / 遭遇参数四个旋钮表达，永远不由等级差表达**（且剧情线的差异化改走**专属敌人模板池**，见 `systems/services/future-event-service.md`）。已知代价：在卡牌的道念量纲经统计校准定出之前，剧本侧**暂时造不出可校准的绝境遭遇**——绝境感被推迟，不是被取消。
-  - **推论 ①（承重）：「一次惨败打穿耐久」由规则层封住。** 最坏情形是境界边界的跨越（炼气十三层 `baseMomentum` 15 遇筑基中期 24 = 落后 9），在炼气 `lifeTotal` 10 之内。**内容侧纪律是第二道防线**（见 `systems/character-profile/life-total.md`、`systems/scoring.md`）。
+  - **推论 ①（承重）：一次惨败的量级由规则层框住。** 最坏情形是境界边界的跨越（炼气十三层 `baseMomentum` 15 遇筑基中期 24 = 落后 9），对炼气段 100 点的寿元预算约为 9%——与回寿三档的中档同量级。**内容侧纪律是第二道防线**（见 `systems/character-profile/life-span.md`、`systems/scoring.md`）。
   - **推论 ②：越阶遭遇只出现在每个境界的末两级** —— 12 · 13 → 筑基；16 · 17 → 金丹；20 · 21 → 元婴。**三章统一**；越阶压迫感自动向篇章尾部集中，与 Finale 落在篇章边界同向。
   - **推论 ③：上界档不必然越阶。** `diff = +2` 只在境界末两级才是越阶；境界中段的 `+2` 是同阶。
   - **推论 ④：表达形式简单。** 全局序上一次加减 + 截断即可，**不需要境界表**；境界边界的特殊性由 `baseMomentum` 的跨度放大自然承载，与「等级序保持为一把简单直尺」的既定分工一致。
@@ -66,13 +66,13 @@
   }
   ```
 
-  - **行类型定名 `EnemyLevelRange`，刻意不写成 `LevelBand`。** 「Band」在本库已被**隐藏属性档 / 寿元档**占用（`HiddenStatBandData` · `BandIndex` · `PlotTrigger.HiddenStatBand`），同页两义会让读者把两个毫不相干的档位概念混起来——判据与 `Tier`（优势档）/ `RarityTier`（稀有度档）不得复用同一枚举那条硬约定完全一致。中文侧照旧叫「赋级带」，改的只是代码标识符。
+  - **行类型定名 `EnemyLevelRange`，刻意不写成 `LevelBand`。** 「Band」在本库已被**隐藏属性档（道心 / 煞气）**占用（`HiddenStatBandData` · `BandIndex` · `PlotTrigger.HiddenStatBand`），同页两义会让读者把两个毫不相干的档位概念混起来——判据与 `Tier`（优势档）/ `RarityTier`（稀有度档）不得复用同一枚举那条硬约定完全一致。中文侧照旧叫「赋级带」，改的只是代码标识符。
   - **带边界与权重必须同住一份资源。** 权重表的支撑集就是带宽：`−2 … +2` 五个档位不是五个独立数字，而是「从下界到上界逐档」的枚举。分放两份会立刻产生一条**跨文件不变式**（档数 == `Upper − Lower + 1` 且顺序一一对应），这种不变式要么无人校验、要么校验代码得同时加载两份资源猜它们的对应关系；一旦破了，赋级会静默取到错位的权重（下界档吃到上界档的 10%）——**能上线、线上分布悄悄不对却不崩**。同住一份，它退化为一次本地断言。
   - **不并入 `CombatRulesData`：** 那一份的消费者是 combat-service（起手 / 抽牌 / 手牌上限，且可被 `EncounterSpec` 可空覆写），赋级则发生在 future-event-service 的物化阶段、战斗开始之前，且**不接受任何覆写参数**。消费者不同、覆写纪律相反，合成一份会让「哪些字段可被 `EncounterSpec` 覆写」变成逐字段记忆的事。（这是下方「平衡资源三问判据」问 ①② 的一处应用。）
   - **注册形态：`EnemyLevelingData` 是 `ISingletonContent`，进 ContentRegistry、经 `Content.Single<EnemyLevelingData>()` 取**；条数与启用态的加载期校验见 `systems/services/content-service.md`。
   - **三行当前同值 `(−2, +2)` 不是冗余**：三章统一是**当前取值**而非结构性约束，留三行等于把「分章 ↔ 统一」的可逆性保留在数据侧，而不是焊进代码。读取收敛为一次取值 `BandFor(chapter)`，调用侧看到的仍是「当前篇章的带」这一个概念，与「不为分章写分支」自洽。
   - **写权收口：** 带边界只有这一份权威，赋级函数不接受任何区间覆盖参数；**PlotManager 只能乘性调制带内权重（只改权重不改支撑集），不得改带边界**——调制若能改支撑集，就等于给剧本开了一个绕过 `±2` 硬规则的后门，而 `±2` 的数值安全性推导正建立在支撑集封闭之上。
-  - **`EnemyLevelRange` 与功法层数不建立机械对应关系。** 敌人的功法层数在 `EnemyData` 上**逐条编排为固定值**，赋级只动 `baseMomentum`；同一个敌人不因掷到 `+2` 而换一套更高层的卡组。理由：**卡组保持强度中立、不叠第二条强度曲线**（见 `systems/enemies/_index.md`），而层数按定义就是严格升级的第二条纵轴——让它随赋级浮动，`±2` 带的数值安全性推导与下方的 `lifeTotal` 境界基线当场失效。「强敌 = 更高层数」成立于**内容编排层**，不成立于物化层。连带收益：层数固定 ⇒ 敌方卡组的展开在加载期即唯一确定，图鉴的静态性与关键卡牌的加载期校验都不必改。
+  - **`EnemyLevelRange` 与功法层数不建立机械对应关系。** 敌人的功法层数在 `EnemyData` 上**逐条编排为固定值**，赋级只动 `baseMomentum`；同一个敌人不因掷到 `+2` 而换一套更高层的卡组。理由：**卡组保持强度中立、不叠第二条强度曲线**（见 `systems/enemies/_index.md`），而层数按定义就是严格升级的第二条纵轴——让它随赋级浮动，难度曲线就失去可控性——同一个敌人条目在两次遭遇中强度不同，且强度差不体现在玩家唯一能读到的刻度（等级）上。「强敌 = 更高层数」成立于**内容编排层**，不成立于物化层。连带收益：层数固定 ⇒ 敌方卡组的展开在加载期即唯一确定，图鉴的静态性与关键卡牌的加载期校验都不必改。
 
   **加载期校验（五条，全部带定位上下文）：**
 
@@ -87,26 +87,9 @@
   - **不设「下界不得使 `diff` 门槛不可达」这条一致性检查**——被检查的对象（按 `diff` 分档的信息揭示门槛）在本作中不存在。**这一点必须留在文档里**，否则它会作为「曾经提过的校验」被日后实现重新捡起来，去检查一个不存在的东西。
   - **截断重分配不进加载期校验**：全局序 1–22 的截断是**运行期**行为（角色 L1 时 `−2 / −1` 落空、权重按比例并入剩余档），与加载期的「权重和 = 1」作用在不同时刻，二者不矛盾。
 
-- **`lifeTotal` 的境界基线（初值）。** 只跟踪 `lifeTotal` 单值、无上限截断（见 `systems/character-profile/life-total.md`）；本条给的是**进入每个境界时 `lifeTotal` 被一次性抬升到的目标值**：
+- **敌人功法层数的内容编排护栏。** 敌人的功法层数按篇章给一个基准档（对齐玩家在该阶段的典型层数），**逐条目偏离不超过 ±1 档**。一档 `TechniqueTier` 差在标准 10 回合内累计 ≈ 一档 `diff` 的落差（见下方追分锚点），故层数差是一条与 `diff` 同量纲的强度旋钮；不设护栏就等于在赋级带之外再开一条不可见的难度轴。护栏本体与核对归属见 `systems/enemies/_index.md`。
 
-  ```
-  lifeTotal 境界基线 ≈ ceil(1.1 × 该境界内可能出现的最坏开局落差)
-  ```
-
-  | 境界 | 带内最坏开局落差 | 境界基线 |
-  |------|----------------|---------|
-  | 炼气 | 9（炼气十三层 15 遇筑基中期 24） | **10**（公式恰好复现之） |
-  | 筑基 | 23（筑基巅峰 32 遇金丹中期 55） | **25** |
-  | 金丹 | 35（金丹后期 65 遇元婴初期 100） | **40** |
-  | 元婴 | —（终点，不产生遭遇） | **40**（沿用金丹，仅供元婴界面展示） |
-
-  - **余量系数 1.1 使既定的炼气 10 成为公式的一个解**，不必为第一篇章开特例；公式只是把「最惨的一次失败几乎但不完全打穿耐久」这条隐含口径显式化，`baseMomentum` 表日后调整时基线能自动跟随。
-  - **成立前提：敌我卡组层数相当（偏离 ≤ 1 档）。** 上表的余量只覆盖**起跑线**落差（`baseMomentum` 之差），不覆盖卡组本身的强弱差；而一档 `TechniqueTier` 差在标准 10 回合内累计 ≈ 一档 `diff` 的落差（见下方追分锚点），炼气段即约相当于 +4~+5 道念，而炼气基线 10 的全部余量只有 1 点。**层数差是一条与 `diff` 同量纲的旋钮，本公式没有为它留量。**
-    - **内容编排护栏：敌人功法层数按篇章给一个基准档**（对齐玩家在该阶段的典型层数），**逐条目偏离不超过 ±1 档**。
-    - **落点是内容编排口径，不是加载期校验**——「典型层数」随内容扩充而漂移，焊进加载期只会让每次内容调整都撞一次 `PushError`。核对走 **`/audit-content` 汇总（只报告不阻断）**，与「负向 `OnFailureRules` 占比」同款处理。
-  - **配套硬要求：回复类事件的单次幅度必须随境界基线跳档**（10 → 25 → 40 的量纲），否则后两章的回复事件不痛不痒。
-  - **已知风险**：开局落差 ≠ 最终道念差（后者 = 开局落差 − 追回量 + 敌方回合产出优势，**可能大于开局落差**），1.1 的余量是否够取决于「一张牌产多少道念」——故上表是**初值，不是安全证明**。三个基线之比（1 : 2.5 : 4）小于 `baseMomentum` 之比（约 1 : 2 : 5），故**跨境界容错率实际是收紧的**（越高越险，有意接受）。
-- **寿元预算与消耗（可调数值）：** 炼气起始寿元 = **100**、抵达筑基 **+100**、抵达金丹 **+300**、抵达元婴 **+500**（隐藏属性；递减到 0 → defeated，见 `systems/services/plot-manager.md`）。**剩余寿元跨篇章结转**——第二篇章可用预算 = `+100 + 第一篇章剩余`，故「省着花」有跨篇章回报。消耗侧：每个 AdventureEvent 的 `lifeSpanCost` 由内容侧以**正数量值**书写（物化时取负，见 `systems/services/future-event-service.md`）。
+- **寿元预算与消耗（可调数值）：** 炼气起始寿元 = **100**、抵达筑基 **+100**、抵达金丹 **+300**、抵达元婴 **+500**（明文常驻、恒精确展示；递减到 0 → defeated，见 `systems/character-profile/life-span.md`）。**剩余寿元跨篇章结转**——第二篇章可用预算 = `+100 + 第一篇章剩余`，故「省着花」有跨篇章回报。消耗侧：每个 AdventureEvent 的 `lifeSpanCost` 由内容侧以**正数量值**书写（物化时取负，见 `systems/services/future-event-service.md`）。
 
 - **`lifeSpanCost` = 控制篇章时长的主旋钮（目标时长驱动的分档）。** 判据是**目标游玩时长**——一个篇章 = 移动端一个时段：
 
@@ -121,22 +104,22 @@
   - **旋钮的绝对水平由目标时长压低。** 上表的时长对着不变的寿元预算，故**单次定价的绝对值偏低、一个篇章的事件总数偏多**；**篇章之间「逐章上调」的相对关系不受影响**（第三篇章 300 点预算对 45–55 分钟，单价仍显著高于第一篇章 100 点对 30–40 分钟）。
   - 事件之间定价有差异（**闭关 Research 比常规事件耗时更长**）；**具体取值待定**，见待决问题。
   - **定价的载体 = 本文件的一张「事件类型 × 篇章」定价表，不逐条目手写。** 内容条目**默认不填** `lifeSpanCost`，取表上的类型基准值；只在需要体现代价差异时标一个偏移 / **更小的**覆盖值。**表值与覆盖值一律非负**——寿元回复只走 outcome 侧，成本侧的 `LifeSpan` 恒为消耗向（两条 `PushError` 与三条理由见 `systems/adventure-event/common-properties.md`）。
-    - **每格是一个定值，表中不设区间列。** 区间掷定会让一个篇章的寿元支出成为随机变量，反推目标时长时要按期望值算并接受方差，而旋钮精度正是这张表存在的唯一理由；且 Band 0 / Band 1 完全不显示 `selectCost`，方差对玩家不可感知。条目级偏移 / 覆盖值同为定值。**本条只定形态，不动任何取值。**
+    - **每格是一个定值，表中不设区间列。** 区间掷定会让一个篇章的寿元支出成为随机变量，反推目标时长时要按期望值算并接受方差，而旋钮精度正是这张表存在的唯一理由。条目级偏移 / 覆盖值同为定值。**本条只定形态，不动任何取值。**
     - **表的行 = `eventType` 五类，其中 Combat 一行再按 `combatTier` 三档细分**（8 / 10 / 12 三个回合数意味着战斗时长本就有三档，定价须分别计）；**列 = ch1 / ch2 / ch3**。
     - **理由：定价的判据本就是全局的目标时长，不是单个条目的风味。** 改一张表即可全局调时长，不必重扫数百个 `.tres`；也避免同类事件在不同作者手里定价漂移。**它同时让上面那条「反推链是脆的」缓解一半**——重定价现在是改一张表，不是批量重标内容。
     - **Travel 有它的一行，且该格必须 > 0（结构性约束，不是数值偏好）。** Travel 不计入 `eventCountLimit`（配额闸拦不住它）+ 换图 = 换 location 的类型修正 + 整批重算 ⇒ 若定价为 0 即开出一条**零成本的事件池 reroll**，「来回横跳直到刷出想要的事件」成为最优策略，而它正是本库反复否决的那类可电子表格化优化。**寿元定价是唯一能拦住它的闸。**
       - **取值为常规事件基准的 1/3 ~ 1/2**（「赶路便宜，但不是免费的」）：换图的策略价值保住、reroll 漏洞被寿元堵死、20% 随机档也不至于显得亏（付的是小钱）。**绝对数字随本表其余格一同由目标时长反推**，这条相对关系先立，是内容侧的定价直觉。
 
-- **回寿量 = 一张与 `lifeSpanCost` 并列的「事件类型 × 篇章」小表，标定口径是「占本章 `ChapterLifeSpanBudget` 的百分比」。** 推导用百分比、落表写各篇章的绝对点数（内容侧仍写正数量值，链路不变）。
-  - **为什么不是绝对点数：** 绝对点数在三章之间失真——ch1 预算 100、ch3 预算 +300 且带结转，同一个「+10」在两章的意义差 3 倍以上。百分比口径与寿元 Band 的阈值（30% / 10%）**同量纲**，让「一颗丹能把玩家拉回几档」成为可直接读出的设计量。
+- **回寿量 = 一张与 `lifeSpanCost` 并列的「事件类型 × 篇章」小表，标定口径是「占本章可用预算的百分比」。** 推导用百分比、落表写各篇章的绝对点数（内容侧仍写正数量值，链路不变）。**「占本章预算百分比」是本表的书写口径术语，不是运行期读取的字段**——本章可用预算 = 该篇章增量 + 上一篇章结转，作者按它标定、落表时换算成定值。
+  - **为什么不是绝对点数：** 绝对点数在三章之间失真——ch1 预算 100、ch3 预算 +300 且带结转，同一个「+10」在两章的意义差 3 倍以上。百分比口径同时让回寿量与「一次典型失败扣掉多少」可直接对比。
 
   | 档 | 占本章预算 | 手感目标 |
   |---|---|---|
-  | 小 | **5%** | 缓一口气，不改变所处档 |
-  | 中 | **10%** | Band 2 中位（≈5%）→ 15%，越过 Band 1 的退出阈值 13%（10% + 回滞 δ 3 个百分点）⇒ **恰好拉回一档** |
-  | 大 | **20%** | Band 1 → Band 0，一次显著的战略续航 |
+  | 小 | **5%** | 缓一口气，约抵回一到两个常规事件的开销 |
+  | 中 | **10%** | 约抵回一次典型失败的扣减（ch1 最坏落差 9 ≈ 9%） |
+  | 大 | **20%** | 一次显著的战略续航，能吃下一次惨败还有余 |
 
-  - **中档由 Band 阈值反推，且经回滞校验成立**：它使「濒死时一颗补天丹换回一档」为真，而这正是该题材词对玩家的隐含承诺。
+  - **中档以「一次典型失败」为标定靶心**：它使「打输一场，一颗补天丹补得回来」为真，而这正是该题材词对玩家的隐含承诺。**合并后回寿量同时承担原闭关回复的职能，三档取值须在新量纲下一并重估**，见待决问题。
   - **⚠ 三档是量值口径，不是新枚举，且不得复用 `HiddenStatGrade { Minor, Standard, Major }`。** 寿元走资源 element 路径（绝对量值）；`HiddenStatGrade` 是道心 / 煞气推拉的档位映射，其映射值为 `[0,100]` 取值域标定，套不到跨章 100 / 200 / 300+ 的寿元预算上。与 `Tier` / `RarityTier` 那条硬约定同性质。
   - **绝对点数与「回寿量折合几个事件的时间」的联合反推留待内容扩充后的统计校准**，见待决问题。通道形态与平衡护栏见 `systems/adventure-event/common-properties.md`。
 
@@ -205,9 +188,10 @@
   - 取值留待内容扩充后的统计校准；**改一张表即可全局调节奏**，不必重扫数百个 `.tres`。字段语义见 `systems/adventure-event/common-properties.md`。
 
 - **`eventCountLimit` = 篇章节奏的第二个旋钮，与 `lifeSpanCost` 互相约束。** 每个 location 携带一个事件容量上限，配额用尽即由 Travel 送往下一个地域（见 `systems/game-progression.md`）。**推论：一个篇章的事件总数 ≈ 途经各 location 的容量之和**，因此**两个旋钮必须一同反推目标时长**（30–40 / 35–45 / 45–55 分钟）：`lifeSpanCost` 定「每个事件多贵」，`eventCountLimit` 序列定「一共能做几个」，各调各的会互相抵消。**具体数值（各 location 的容量、一章途经几个 location）归内容制作阶段**，与事件出现概率（event odds）一同。
-  - **`eventCountLimit` 恒为定值（不掷区间）⇒ 一章的事件总数可枚举**，故时长反推是一道算术题而非按期望值取的估算——这与 `lifeSpanCost` 每格为定值出自同一条理由（旋钮精度）。语义见 `systems/game-progression.md`。
+  - **`eventCountLimit` 恒为定值（不掷区间）⇒ 一章的事件总数可枚举**，故**事件侧**的时长反推是一道算术题而非按期望值取的估算——这与 `lifeSpanCost` 每格为定值出自同一条理由（旋钮精度）。语义见 `systems/game-progression.md`。
+  - **战斗失败扣减是第三个旋钮，且它是一个随机变量。** 反推目标时长时必须再叠一项「战斗失败的期望扣减」（失败频率 × 道念差期望 × `lossPerMomentum`），故整章长度不是纯算术量而带一段分布。**这是被接受的代价**：两个消耗面吃同一份预算正是合并的定义。三个旋钮（`lifeSpanCost` · `eventCountLimit` · `lossPerMomentum` 与失败期望）**必须一同反推**。
 
-- **道念（momentum）相关数值。** 计分 = 道念、胜负 = 道念高者胜、**`Standard` 档定长 10 个回合**（见 `systems/scoring.md`）。**已定：起始值**（上方 `baseMomentum` 表）、**负侧换算 = 道念差 1:1 扣 lifeTotal**（不是系数、不是分档）、**胜侧换算 = 两条支路**（见下条）。**敌人侧不设专属的道念产出缩放曲线**——敌人的产出能力由它的卡组决定，决定因素与玩家完全一致（同一门功法同一层数，敌我两侧展开出同一批卡牌条目），不存在独立于卡牌数值的敌方隐藏乘区。仍归本文件待设计的因此只剩一组：**各卡牌 / 行为的道念产出与削减量**，留待内容扩充后的统计校准。**「一张牌该产多少」的基准由 `baseMomentum` 与回合数共同框定**——它决定越级追分的难度（**追分可能，但很难，境界差越大越难**；`baseMomentum` 跨度随境界放大正是为此）。
+- **道念（momentum）相关数值。** 计分 = 道念、胜负 = 道念高者胜、**`Standard` 档定长 10 个回合**（见 `systems/scoring.md`）。**已定：起始值**（上方 `baseMomentum` 表）、**负侧换算 = 道念差 × `lossPerMomentum`**（逐篇章系数，ch1 = 1，见下方表）、**胜侧换算 = 两条支路**（见下条）。**敌人侧不设专属的道念产出缩放曲线**——敌人的产出能力由它的卡组决定，决定因素与玩家完全一致（同一门功法同一层数，敌我两侧展开出同一批卡牌条目），不存在独立于卡牌数值的敌方隐藏乘区。仍归本文件待设计的因此只剩一组：**各卡牌 / 行为的道念产出与削减量**，留待内容扩充后的统计校准。**「一张牌该产多少」的基准由 `baseMomentum` 与回合数共同框定**——它决定越级追分的难度（**追分可能，但很难，境界差越大越难**；`baseMomentum` 跨度随境界放大正是为此）。
 
 - **越级追分的形状锚点（调参靶心 · 是形状不是取值）。** 上一条的「基准由 `baseMomentum` 与回合数共同框定」在数值上收敛为一条可对账的标定目标：
 
@@ -215,7 +199,7 @@
 
   - **作用粒度 = 整副卡组整体高一档。** 标定的对象是「卡组内**每门功法都高一档**」时的累计产出差。开局底盘为 **3 门功法**（2 门角色绑定 + 1 门开局构筑选来，见 `systems/character-profile/deck/_index.md`），故追分要求整体升级；**单门功法高一档不构成该产出差**，只兑现其中一份。
   - **「一档 `diff`」的落差按通式算：`diff = +n` 的开局落差 = 自角色等级起连续 n 步 `baseMomentum` 增量之和。** 境界中段的一步即相邻全局等级差（炼气段 +1 · 筑基段 +4 · 金丹段 +10）；**境界巅峰级再 `+1` 那一步是 +5 / +13 / +25**；倒数第二级（12 / 16 / 20）以 `diff = +2` 跨境界时则为 **8 / 17 / 35**。自洽校验：炼气十三层遇 `diff = +2` → 5 + 4 = 9，正是上文「带内最坏开局落差 9」。
-  - **为什么按赋级带的 `diff` 档计：「等级差 → 开局落差」的唯一产生通道就是赋级带的 `diff`。** `baseMomentum` 另有若干消费点（`advantage` 的归一化分母 · 战斗内法则强度上沿的刻度 · `lifeTotal` 境界基线公式 · 胜侧单价表逐篇章下调），但它们都不产生开局落差。锚点若不按 `diff` 档计，就没有可对账的对象。
+  - **为什么按赋级带的 `diff` 档计：「等级差 → 开局落差」的唯一产生通道就是赋级带的 `diff`。** `baseMomentum` 另有若干消费点（`advantage` 的归一化分母 · 战斗内法则强度上沿的刻度 · 胜侧 `rewardPerMomentum` 与负侧 `lossPerMomentum` 两张单价表逐篇章调整），但它们都不产生开局落差。锚点若不按 `diff` 档计，就没有可对账的对象。
   - **「标准 10 回合」= 一场 `Standard` 档遭遇的整场**：`TurnLimit = 10` 计的是双方交替的行动轮，己方占其中 5 轮，故锚点实际约束的是**己方 5 次产出的累计差**——与本文件全篇按「己方 5 个回合」推算牌流与资源线的口径一致。
   - **两个旋钮独立**：境界 / 等级鸿沟由 `baseMomentum` 的起跑线承载，追分能力由功法产出承载。改其一不必动其二，这正是锚点存在的意义。
   - **它直接兑现「追分可能，但很难，境界差越大越难」**：`diff = +2` 的越阶遭遇需**两档以上**的卡组层数差才追得平；而越阶只出现在每个境界的末两级（`±2` 带的推论 ②），且 `baseMomentum` 跨度随境界放大 ⇒ 所需的层数差随境界同步变大。
@@ -241,6 +225,22 @@
     - **净产出敞口正面写下（被接受的取舍）：** 免费取得（战后奖励 / 事件产出）的仙玉计价法宝，其售出所得是仙玉的**一条净产出**——取得成本为 0，回收率不足 100% 只是打折，净额仍为正。**它的量级由「定价表哪几格填仙玉 × 该族的掉率」共同决定**，故不需要新机制去堵，归那一次统计校准一并把关（见待决问题）。
 
     **单价逐篇章下调**是必需的：否则奖励通胀曲线会被偷偷绑死在 `baseMomentum` 的百倍曲线上，而那条曲线的形状是为「越级难度」设计的，不是为经济设计的。
+
+  - **负侧对称的一张表 · `lossPerMomentum`（篇章 × 系数）。** 与胜侧单价表同住本文件、同形态；**只有篇章一维，不按 `combatTier` 分档**（三档共用同一系数，故一个篇章之内玩家的心算账本只有一本；`Practice` 的轻量化由 `TurnLimit` 8 / `WinMargin` 0 / `ExperienceGrade` 偏置三个既有旋钮承担）。
+
+    ```
+    寿元扣减 = 道念差 × lossPerMomentum[篇章]
+    ```
+
+    | 篇章 | 角色 `baseMomentum` 量级 | `lossPerMomentum` |
+    |------|----------------------|-------------------|
+    | ch1 炼气 | 1–15 | **1**（锁定） |
+    | ch2 筑基 | 20–32 | 待反推 |
+    | ch3 金丹 | 45–75 | 待反推 |
+
+    - **ch1 = 1 是锁定值，不是初值。** 「落后 8 点 = 掉 8 点」在教学期价值最高，而 ch1 正是 MVP 范围。
+    - **ch2 / ch3 的形状锚（是形状不是取值）：** **一次带内最坏落差的失败，恒落在本章可用预算的 8%–12%**。ch1 天然满足（落差 9 / 预算 100 = 9%）；ch2 / ch3 的系数由该形状连同「典型道念差的分布」一同反推。写法与上方「越级追分的形状锚点」同款——先定形状、后定数值。
+    - **它同时是失败螺旋的调参旋钮，不只是量纲吸收旋钮。** 战斗失败既扣容错也压缩篇章时长，两者叠成一条正反馈曲线；调 ch2 / ch3 系数即调这条曲线的陡度。**不设上限截断**——截断会让「一次惨败」失去分量，正确的旋钮是系数本身。
   - **支路 B · 可选奖励（品质）= 归一化三档**：`advantage = 道念差 / max(1, 角色 baseMomentum)` → `< 0.25` 险胜 `Tier.Narrow` / `0.25 ~ 0.75` 优胜 `Tier.Solid` / `≥ 0.75` 碾压 `Tier.Crushing`。档位**只影响候选池的稀有度权重，不影响候选数量**（数量恒 3，见 `systems/services/combat-service.md`）。归一化是必需的——`±2` 带下「碾压」在炼气段可能只是领先 3 点、在金丹段却是 30 点，**绝对值不可跨境界比较，比值才可以**。
   - **⚠ `RarityTier` 与 `Tier` 是两个东西（硬约定）。** 本条的 `Tier { Narrow, Solid, Crushing }` 是**优势档**（道念差归一化后的碾压程度）；内容的**稀有度档**是 `RarityTier { Tier1, Tier2, Tier3, Tier4, Tier5 }`（档号越高越稀有，挂 `PowerData` / `ItemData` / `CardData`，缺失 → `PushError`）。**两者不得复用同一枚举，也不得互相换算**——类型名不写成裸 `Tier` 正是为了避免它们在本文件的同一页里造出两个含义。准确口径：**稀有度权重表按 `RarityTier` 五档索引，由优势档 `Tier` 三档选表**。它同时是置换候选池的过滤键（同 `RarityTier` 才同池，见 `systems/player-profile/player-power/_index.md`）。
   - **呈现要求**：奖励结算屏**显式陈列算式**；档位以标签（险胜 / 优胜 / 碾压）呈现，**玩家不需要心算 `advantage`**。
@@ -258,12 +258,26 @@
   | 敌人侧（起手 / 抽牌 / 手牌上限） | **三项完全同值** | 参战方对称；**敌人回合的可读性依赖对称**（否则玩家无法从自己的经验推断敌人的行动空间，图鉴的「关键卡牌」也失去参照系）。玩家只能靠对称性去预期敌人的资源节奏，故这三项**不容差异化** |
   | 敌人侧 `manaLimit`（`EnemyManaLimit`） | **5** | 全局常量，**可被 `EncounterSpec.EnemyManaLimit` 覆写**。玩家侧 `manaLimit` 随大境界提升而增长（语义见 `systems/character-profile/mana.md`），敌方恒取本常量 ⇒ **第三章玩家约 9~12 而敌人 5**。**这是对上一行那条对称纪律的明写例外**（代价与已知后果见 `systems/services/combat-service.md`）：敌人的强度差由 `baseMomentum` 与逐条编排的卡组承载，不由 mana 承载。初值 `5` 留待内容扩充后的统计校准 |
   | 卡组规模 | **两侧皆不设硬限** | 敌人侧由 `EnemyData` 逐条编排、玩家侧由构筑决定。**代价由疲劳承接**——抽牌堆不重洗，抽空后每抽一张 −1 道念（见 `systems/scoring.md`）；小卡组换来的是「每张都是好牌」，付出的是后期稳定失血。**规模因此成为一条真实的构筑 / 编排维度**，而不是一个需要被锁死的常量 |
-  | 疲劳扣减（`FatiguePerDraw`） | **每张 1 点道念** | 与「道念差 → lifeTotal 1:1」同样不隔映射层；一次抽 2 张即 −2。**全局常量，不进 `EncounterSpec` 覆写组**（理由与重开判据见下） |
+  | 疲劳扣减（`FatiguePerDraw`） | **每张 1 点道念** | 疲劳扣减不隔映射层：抽一张就是 −1，一次抽 2 张即 −2。**全局常量，不进 `EncounterSpec` 覆写组**（理由与重开判据见下） |
 
   - **接受「敌人侧不做规则层差异化」**：难度差异走 `baseMomentum` 与遭遇参数，不走规则分叉。规则层的不对称是第四条冗余旋钮，且是**玩家看不见的最不可读的一条**。这确实关闭了一条平衡手段，已知并接受。
   - **`EncounterSpec` 携带一组可空覆写**（null = 取本表默认值）：起手抽牌数 / 每回合抽牌数 / 手牌上限 / `EnemyManaLimit` 四格，与回合数 / 胜负判据属**同一档旋钮**——「更宽容的 Practice」最自然的形态之一就是多抽一张。**覆写组的字段形状权威在 `systems/services/combat-service.md`**（本条只给取值）。
-  - **疲劳扣减刻意不进覆写组**（它与抽牌数 / 手牌上限同住上表，故须写明这是取向而非遗漏）。三条理由：**① 触发窗口由卡组规模决定、不由档位决定**——`Practice` 的回合数更短反而使疲劳更难触发，调它买不到宽容度，与覆写组「更宽容的 Practice」这条动机不同向；**② payoff 面很窄**——疲劳只打抽牌方自己；`MoveCard` 虽能把对手抽牌堆的牌搬进别的区（闭集内流转，`From` 可取抽牌堆），但那是逐条内容、有限次、受载体消耗性约束的效果，撑不起一条需要用档位旋钮调节的「疲劳流」构筑方向；**③ 量纲撑不起一条路线**——单方一场牌流入上限 14 张（起手 4 + 5×2），即便对手从第 1 回合起就空堆，5 回合疲劳总量也只有 −10 上限。多开一格的代价是每个消费点都要写一次 `?? ` 合并、且「哪些字段可被 `EncounterSpec` 覆写」这份记忆清单又长一格。
-  - **重开判据（出现任一即重新评估上一条）：** ① 出现真的削减对手抽牌堆的内容条目（**结构上现已可写**，故这一条的复核已在待答清单上，见 `open-questions/01-combat.md`）；② 某个遭遇档需要显式调节疲劳压力，而非靠卡组规模编排；③ 卡组规模区间经统计校准定出后，实测发现疲劳几乎从不触发、或普遍在第 3 回合前就触发。
+  - **疲劳扣减刻意不进覆写组**（它与抽牌数 / 手牌上限同住上表，故须写明这是取向而非遗漏）。四条理由：
+    - **① 触发窗口由内容侧决定、不由档位决定** —— 决定一方何时空堆的是卡组规模与削减对手抽牌堆的条目，两者都在内容侧；档位侧一条也没有。`Practice` 的回合数更短反而使疲劳更难触发，调它买不到宽容度，与覆写组「更宽容的 `Practice`」这条动机不同向。
+      **连带的反向咬合**：`EncounterTighten` 的 `DrawPerTurnDelta` / `InitialDrawDelta` 恒 `<= 0`，**收紧牌流量的同时是在减轻疲劳压力**（抽得少 ⇒ 空堆后触发次数少）。若疲劳量也进增量组，一条 arc 就能同时朝两个方向拧同一条压力线，净效果对内容作者不可预测。
+    - **② payoff 面很窄** —— 疲劳只打抽牌方自己；`MoveCard` 虽能把对手抽牌堆的牌搬进别的区（闭集内流转，`From` 可取抽牌堆），但那是逐条内容、有限次、受载体消耗性约束的效果，撑不起一条需要用档位旋钮调节的「疲劳流」构筑方向。
+    - **③ 量纲撑不起一条路线** —— **常规**抽牌预算（起手 + 每回合抽）已被覆写组三格连同 `EncounterTighten` 的两格增量覆盖；内容侧 `DrawEffect` 能把单场实际抽牌次数抬到该预算之上，但它逐条有限、同受载体消耗性约束，而对局终止性由 `EncounterSpec.TurnLimit` 独立封顶 ⇒ **再加一格档位旋钮买不到额外的安全性**。
+    - **④ 方向不单调** —— 疲劳作用于「抽牌方」而非「玩家」：同一个正向 delta 对小卡组构筑是加压、对大卡组是送礼。`EncounterTighten` 的准入判据要求该格上存在一个全序**加**一个单调难度方向（见 `systems/services/plot-manager.md`）；`FatiguePerDraw` 有全序（`int`）却没有单调方向 —— 它失败在「单调」而非「全序」上，与 `Enemy` / `Tier` / `FirstSide` 被挡在增量组之外是同一条判据。**疲劳量因此是「回答不了『更紧在这一格上是什么方向』」的第一个具体候选，`EncounterTighten` 五格的封闭性由它得到一次实证。**
+
+    多开一格的代价是每个消费点都要写一次 `?? ` 合并、且「哪些字段可被 `EncounterSpec` 覆写」这份记忆清单又长一格。
+  - **遭遇级的疲劳压力已有三条承接通道** ⇒ 「某个遭遇档需要显式调节疲劳压力」本身不构成开格理由：
+
+    | 通道 | 形态 | 权威 |
+    |---|---|---|
+    | 敌人卡组规模编排 | `EnemyData` 逐条编排卡组，规模直接决定空堆时点 | `systems/enemies/`（取值）· `decisions/ADR-0052-no-reshuffle-fatigue.md`（抽牌堆不重洗） |
+    | 内容侧的疲劳量修正 | `StaticModifierData{ What = FatigueAmount, Scope.Side = Self \| Opponent }` 经求值管线聚合；**双向可调，不加方向约束**——免疫 / 削减疲劳是它的立项样板，而上调的失控风险已被 `TurnLimit` 封顶与载体消耗性两条上界封死 | `systems/character-profile/deck/common-properties.md` · `decisions/ADR-0088-fatigue-as-stack-entry.md` |
+    | 牌流量本身 | 覆写组 `InitialDraw` / `DrawPerTurn` 两格，连同 `EncounterTighten` 的两格增量 | `systems/services/combat-service.md` · `systems/services/plot-manager.md` |
+  - **重开判据（出现任一即重新评估上两条）：** ① 出现 `Pool` 覆盖敌人侧、以削减对手抽牌堆为**主要**效果、且**已签核（`ready`）**的内容条目，其在同一抽取池内的密度足以让一方在 `TurnLimit` 的**前 40%**（`Standard` 档 = 前 4 个回合；**该比例是待实测校准的占位**）内空堆 —— **结构可写性不构成触发**，判据要的是真正落地的条目；② 卡组规模区间经统计校准定出后，实测发现疲劳几乎从不触发、或普遍在第 3 回合前就触发。
   - **结构性结论不随校准改变**（首回合抽 · 不设先后手差 · 敌人同值 · 数值住在平衡资源并可被 `EncounterSpec` 覆写），只有几个数字会动；真正的校准输入是「一张牌该产多少道念」与起始卡组的平均费用，留待内容扩充后的统计校准。
   - **先后手本身不是平衡数值**：它由 `EncounterSpec.FirstSide`（可空）承载，剧情可指定、未指定则由 combat 子流掷，见 `systems/services/combat-service.md`。
   - **不设 mulligan**：起始手牌一次发到位，无换牌 / 调度窗口。
@@ -286,7 +300,7 @@
   | `Removal` | 1.0 |
   | `AmbushCaution` | 1.0 |
   | `HandRetention` | 1.0 |
-  | `KeyCardAffinity` | 1.0 |
+  | `KeyCardBias` | 1.0 |
   | `ClosingUrgency` | 1.0 |
   | `ItemEagerness` | 1.0 |
 
@@ -344,7 +358,7 @@
 
     公式 `threshold(L) = 4 + floor((L−1)/2)`（L = 1..11），**L = 12 特例取 10**——这个收尾台阶与 `baseMomentum` 表「第十三层跳到 15」的突破前台阶同构。**ch1 合计 79**。ch2 = **32 / 38 / 44**（合计 114）；ch3 = **38 / 46 / 54**（合计 138）。
   - **给予量以「一次标准事件的成功产出」为基准**：`ExperienceGrade { None 0 / Minor 0.5× / Standard 1.0× / Major 1.5× }` 枚举 + 平衡表映射，**内容侧不落裸数字**。**阈值与给予量同比放大**（ch1 标准 **4** / ch2 **12** / ch3 **16**），与 `baseMomentum` 跨境界放大的数值语言同构——恒定给予量会让 ch3 需要 34 个标准事件才升一级，产出感被稀释。
-  - **失败 = 同档的 50%**，向下取整、**下限 1**（给了就不能是 0，否则「挫折亦是修行」在数值上落空）。50% 而非更低：失败**已经付了一笔硬代价**（`lifeTotal` 按道念差 1:1 扣、归 0 即角色终结），靠反复失败刷经验天然不是优势路线，经验侧不必再压。
+  - **失败 = 同档的 50%**，向下取整、**下限 1**（给了就不能是 0，否则「挫折亦是修行」在数值上落空）。50% 而非更低：失败**已经付了一笔硬代价**（按道念差扣寿元、归 0 即角色终结，且这笔扣减同时压缩本章还能做的事件数），靠反复失败刷经验天然不是优势路线，经验侧不必再压。
   - **供给 / 需求 ≈ 1.15–1.20**（更高则玩家提前满级、后半章的经验奖励变废纸；更低则跳过几个事件就卡在 12 级进不了 Finale）。**卡级的后果 = 寿元耗尽而等级未满 → `defeated`**，这是有意保留的失败面，但要求 `lifeSpanCost` 与 `eventCountLimit` 的反推**必须验证「按标准路线走能在预算内升满」**——这是把经验曲线绑进时长旋钮反推的一条**验收项**。
   - **单次给予量 ≤ 该境界的最小阈值**（ch1 即 ≤ 4，`Major` 的 6 是唯一例外，仍 < 最小两级之和）——一次事件跳两级违背「产出可细碎而连续」这条定案。作为内容侧硬纪律 + 加载期对 `ExperienceGrade` 映射值的一次断言。
   - **已知风险：反推链是脆的。** 事件总数一变（`eventCountLimit` 调整、`lifeSpanCost` 重定价），整条阈值曲线跟着失效。**缓解：把「供给 / 需求比」做成一份可算的校验表**（各章事件数 × 平均档位 ÷ 阈值总和），每次调时长旋钮时重算，而不是死记这组数字。
@@ -371,7 +385,7 @@
   - **它是叙事密度的第一旋钮。** 跨档叙事若实测觉得太闷，先调本表的映射值（它同时也在改 eventOptions 调制的推进速度，比加文案更贴近「让这条线动起来」的真实诉求），其次才是逐档补文案；**档数永远不是该动的旋钮**（档位服务的是调制分辨率）。
   - **跨档叙事的目标密度：≈ 6–10 条 / 轮回**（寿元 4–6 · 煞气 1–2 · 道心 1–2），对约 86–102 个事件的一轮回即**每 9–17 个事件一条**；文案总量 8–12 条。
 - **每场战斗的时长可预测。** 回合数固定、且每个回合的步骤固定为三步（开始阶段 / 行动阶段 / 结束阶段，见 `systems/services/combat-service.md`）——**定长 ⇒ 时长可预测**，故**无须为战斗内交互次数另设护栏**（响应次数上限 / 计时一类）。这条直接服务篇章时长控制：一场 `Standard` 档战斗的时长可作为反推 `lifeSpanCost` 的稳定输入。
-- **数值定标的流程 = 内容量达标 → 游戏可运行 → 实测统计 → 校准。** 卡牌的道念产 / 削量纲、`lifeTotal` 的回复幅度等**具体数值标准**，在**内容横向扩展阶段**由实测统计动态确定：先把内容量铺到足以收集统计数据、且游戏能完整跑起来，再据实测样本校准。切入点是**设计起始角色 starter deck 的过程**，并**优先打磨 ch1 的内容**。
+- **数值定标的流程 = 内容量达标 → 游戏可运行 → 实测统计 → 校准。** 卡牌的道念产 / 削量纲、回寿量三档的绝对点数、`lossPerMomentum` 的 ch2 / ch3 系数等**具体数值标准**，在**内容横向扩展阶段**由实测统计动态确定：先把内容量铺到足以收集统计数据、且游戏能完整跑起来，再据实测样本校准。切入点是**设计起始角色 starter deck 的过程**，并**优先打磨 ch1 的内容**。
   - **先定形状、后定数值（承重前提）。** 落笔任何具体取值之前先立**形状锚点**（见上方「越级追分的形状锚点」），把各旋钮之间的相对关系框住；无锚点堆内容，事后必然要整体重调一遍。
   - **推论：这些条目不是机制焦点区的阻塞项。** 数值定标属开发路线的第 ③ 阶段「平衡与体验」，与「机制先行、内容随后」一致（阶段划分见 `vision/scope.md` 的开发路线与 `decisions/ADR-0006-development-phase-order.md`）。
 - **元婴 +500 无玩法影响（阶梯闭合项）。** 抵达元婴 = 第三篇章通关 = **游戏终点**（四境三篇章，见 `systems/game-progression.md`），轮回到此结束——因此 +500 **不产生任何可消耗的寿元预算**，只是**最后一次数值更新并存档**。它是形式上的阶梯完整性，**不是平衡杠杆**：调整它不改变任何一局的可玩长度。**但它有明确的读者：元婴界面**——一块**类似「通关证书」的终局展示面**——需要读到最终寿元值，因此该字段更新**值得保留**，不是死字段。见 `ux/screen-flow.md`。
@@ -469,6 +483,7 @@
   | `ExchangePoolMargin` | 逐 `Kind` 逐 `RarityTier` 档位 ≥ 覆盖该档位的 Σ`SlotCount` | `systems/adventure-event/exchange/common-properties.md` |
 
   - **为什么必须有余量，而不是只断言「≥ 所需」：** 三条取池链都含**排除已持有**，池随玩家推进单调收缩；一个恰好等于所需的静态池在轮回中段必然短缺。
+  - **功法这一维的分母是按灵根收缩后的子集，不是全池（承重）。** 灵根修习准入是叠在 `Pool != Enemy` 之上的**第二重收缩**，且它按角色而异 ⇒ `ResearchPoolMargin` 与 `ExchangePoolMargin` 涉及功法族的那部分，须按**可修功法条目最少的那个灵根**的子集来定，否则某个角色会频繁撞上候选短缺。**`ADR-0073` 候选短缺三段处置的三段边界同样按这个新口径复核。** 准入的判定式与接入位置见 `systems/character-profile/deck/_index.md`「灵根修习准入」。
   - **为什么不焊成同一个数：** 三处的用途量级差异明显（防退款争议 vs 防构筑面板缩水 vs 防商店冷清），共用一格则调其一必动其二。
   - **取值留待内容扩充后的统计校准，可先填 0：** 结构与断言不依赖取值，形态与「首批内容默认关闭 reroll」同一种偏好。
 - **篇章重试上限 = 平衡资源里的两行，由付费凭证选行。** 重试上限是可变量，其落地形态：
@@ -506,7 +521,7 @@
     - 经 **`Content.Single<ChapterRetryLimitsData>()`** 取，**调用方不写任何 `Id` 字面量**——直读路径会绕过 overlay 覆盖层，「平衡数值可热更而不发版」当场失效。
     - **加载期校验：** 两行均非 `null`、各字段 `>= -1`，违规 `PushError` + 路径。
     - **不并入 `CombatRulesData` / `EnemyLevelingData`**：消费者不同（ChapterManager vs combat-service / future-event-service），与 `EnemyLevelingData` 拒绝并入 `CombatRulesData` 同判据。
-- **平衡数值集中管理。** 可调数值（lifeTotal / mana 基线、寿元预算、ante 曲线、掉落权重、重试上限、缩放）存放在导出字段或专门的平衡资源中，系统从数据中读取——与 `data-resource-rules.md` 一致。
+- **平衡数值集中管理。** 可调数值（寿元预算 / mana 基线、ante 曲线、掉落权重、重试上限、缩放）存放在导出字段或专门的平衡资源中，系统从数据中读取——与 `data-resource-rules.md` 一致。
 
 - **不设 `GlobalBalanceData` 兜底大表；平衡资源按三问判据逐份切（承重）。** 平衡资源与其余内容**走同一条路**——进 ContentRegistry、走同一个泛型仓储、有稳定两段式 `Id`（`<类型>.default`）、经 `Content.Single<T>()` 取而调用方不写 `Id` 字面量；注册形态、`ISingletonContent` 标记接口与加载期条数校验的**权威在 `systems/services/content-service.md`**（`ADR-0030` / `ADR-0074`），本处只给切分判据与逐份落点。
 
@@ -539,7 +554,7 @@
   | 剧本预取深度 | **下一批 eventOptions 对应的 key points** | `systems/services/plot-manager.md` |
 
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md`
+Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-08-30-fatigue-not-in-encounter-override.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
@@ -549,11 +564,13 @@ Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` 
 
 - **`lifeSpanCost` 定价表的具体取值（承重）：** 定价方向与**表的形态**已定（「`eventType` × 篇章」表，Combat 行按 `combatTier` 细分；条目只标偏移 / 覆盖值；目标时长驱动、逐篇章上调、闭关更耗）；仍待定**每格填多少**——需以 **30–40 / 35–45 / 45–55 分钟反推**，反推出的单次定价绝对值偏低。→ `systems/adventure-event/common-properties.md`。
 - **商店定价表每格填多少 · 哪些格填仙玉 · Exchange 的三组数值格（留待内容扩充后的统计校准）：** 表的**形态**已定（「商品族 × 稀有度」、格值 = 支付币种 + 基准价、内容条目只标偏移、不设篇章维），仍待定每格取值、**每格的支付币种落在灵石还是仙玉**，以及刷新基价 / 递增量、两档回收率（商店档 `SellRatePercent` 与随售档 `PackSellRatePercent`）、槽位总数上界。**定价表的绝对数字被两种货币的获取渠道阻塞**——产出侧一片空白时无从反推消耗侧，而灵石与仙玉的相对价值由两条产出曲线共同决定。→ `systems/character-profile/currency.md`、`systems/adventure-event/exchange/_index.md`。
-- **道念的两组剩余数值：** **起始值已定**（`baseMomentum` 表）、**负侧换算已定**（道念差 1:1）、**胜侧换算已定**（两条支路 + 单价表）。**敌人侧的产出结构亦已定**（无敌方专属缩放曲线，产出决定因素与玩家一致）。仍待定，**留待内容扩充后的统计校准**：卡牌的道念产出 / 削减量这一组量纲。→ `systems/scoring.md`、`systems/adventure-event/combat/`。
+- **道念的两组剩余数值：** **起始值已定**（`baseMomentum` 表）、**负侧换算已定**（道念差 × `lossPerMomentum`，ch1 = 1）、**胜侧换算已定**（两条支路 + 单价表）。**敌人侧的产出结构亦已定**（无敌方专属缩放曲线，产出决定因素与玩家一致）。仍待定，**留待内容扩充后的统计校准**：卡牌的道念产出 / 削减量这一组量纲。→ `systems/scoring.md`、`systems/adventure-event/combat/`。
 - **`RarityTier` 的分布与剩余权重表：** 五档已定名并挂上 `PowerData` / `ItemData` / `CardData`；**授予池的权重表已定**（见上方 `GrantPoolWeights`），**置换候选池不需要权重表**（同档等概率）。仍待定：**战后奖励池**各档权重（按优势档 `Tier` 三档各一张表，族维度含卡牌 / 道具 / 功法三类），以及内容侧「每档应有多少条目」的编排口径；另有三格取池余量（`GrantPoolMargin` / `ResearchPoolMargin` / `ExchangePoolMargin`）的具体取值（结构已定、数值待内容规模明朗，可先填 0 而不阻塞落地）。→ `systems/services/combat-service.md`、`systems/player-profile/player-power/_index.md`、`systems/adventure-event/research/common-properties.md`、`systems/adventure-event/exchange/common-properties.md`。
 - **重试上限的两档数值是否再调：** **落点已定**——两行住在平衡资源、由 `HasPremiumBundle` 选行（见上方条目），故它已是可调平衡项；仍待定的只有**数值本身**是否随实测调整。
-- **回寿量三档的绝对点数（留待内容扩充后的统计校准）：** `5% / 10% / 20% × ch1 / ch2 / ch3` 折算出的点数，以及它与 `lifeSpanCost` 定价表的联合反推（一次回寿折合「几个事件的时间」）。**标定口径与三档比例已定**（见上方条目），只欠取值；**不阻塞结构**。→ `systems/adventure-event/common-properties.md`。
-- **闭关构筑面板的三个数值格（留待内容扩充后的统计校准）：** `Recuperate` 的 `lifeTotal` 回复量 · 走火入魔风险档候选的出现权重 · 开局构筑条目 `lifeSpanCost = 0` 的覆盖登记（形态是既有的条目级覆盖通道，只欠在定价表里记一笔）。形态均已定，见 `systems/adventure-event/research/_index.md`。
+- **回寿量三档的绝对点数（留待内容扩充后的统计校准）：** `5% / 10% / 20% × ch1 / ch2 / ch3` 折算出的点数，以及它与 `lifeSpanCost` 定价表、战斗失败期望扣减的联合反推（一次回寿折合「几个事件的时间」「补得回几次失败」）。**标定口径与三档比例已定**（见上方条目），只欠取值；**不阻塞结构**。→ `systems/adventure-event/common-properties.md`。
+- **`lossPerMomentum` 的 ch2 / ch3 系数（留待内容扩充后的统计校准）：** ch1 = 1 已锁定，**形态与形状锚已定**（一维按篇章、三个 `combatTier` 共用；一次带内最坏落差的失败恒落在本章可用预算的 8%–12%），只欠取值。它被「典型道念差的分布」阻塞——上表的 9 / 23 / 35 是**最坏开局落差**，而最终道念差可能更大。它同时是失败螺旋陡度的旋钮，须与 `experiencePoint` 阈值曲线一同反推。→ `systems/scoring.md`、`systems/character-profile/life-span.md`。
+- **合并后敌人赋级带 `±2` 与层数散布 `±1 档` 是否可放宽（留待内容 / 平衡阶段）：** 两条护栏的取值当前不变，其依据已改挂难度曲线可控性与「不给覆盖参数」的硬规则；寿元预算的分母远大于原耐久量纲，带宽是否仍需这么窄要等有内容样本与遭遇编排后再判。→ `systems/enemies/_index.md`、`decisions/ADR-0044-enemy-leveling-band.md`。
+- **闭关构筑面板的两个数值格（留待内容扩充后的统计校准）：** 走火入魔风险档候选的出现权重 · 开局构筑条目 `lifeSpanCost = 0` 的覆盖登记（形态是既有的条目级覆盖通道，只欠在定价表里记一笔）。形态均已定，见 `systems/adventure-event/research/_index.md`。
 - **Explore 真身占比的实测校准（留待内容扩充后的统计校准）：** 初值 **`Combat : Exchange : Travel ≈ 5 : 3 : 2`**（推导见 `systems/adventure-event/explore/_index.md`）。它**不是运行时约束而是内容编排口径**——落点是 `adventure-event` 类型档案的条目台账 + 一项 `/audit-content` 汇总报告（只报告不阻断），故这里要校准的是**目标区间本身**，不是任何一个代码里的数值。同批还有定价表的 Explore 行取值。
 - **`EncounterTighten` 三格牌流量的六个界常量取值（留待内容扩充后的统计校准）：** `MaxInitialDrawTighten` / `MaxDrawPerTurnTighten` / `MaxHandLimitTighten` / `MinInitialDraw` / `MinDrawPerTurn` / `MinHandLimit`。**结构已定**（每格必有一个内容侧上界与一条物化期下界，两条硬性约束 `MinDrawPerTurn >= 1` / `MinHandLimit >= MinInitialDraw` 先于取值成立），只欠数字；它们被基准值 4 / 2 / 7 的校准阻塞。→ `systems/services/plot-manager.md`。
 - **卡牌费用曲线是否随境界整体上移（承重 · 留待内容扩充后的统计校准）：** 即高境界的牌是否普遍更贵。**它是 `manaLimit` 增长口径唯一能被翻盘的前提**——玩家侧 `manaLimit` 有两条来源（每章事件推拉 +1~+2，外加进筑基 / 进金丹各 `+1`），三章末约 6~7 / 8~10 / 10~13，而**牌流上界三章同形**（起手 4 / 每回合抽 2 / 手牌上限 7 / 己方 5 个回合 ⇒ 一场流入 14 张）。费用曲线不上移则 ch2 / ch3 的 mana 明显溢出牌流（已知并被接受）；上移则溢出收窄，`RealmBreakthroughManaBonus` 与「一章净增 +1~+2」两项预算都要连带重估。同批待定 **`RealmBreakthroughManaBonus` 初值 `1`**（形态已定，只欠取值）。→ `systems/character-profile/mana.md`、`systems/character-profile/deck/common-properties.md`。

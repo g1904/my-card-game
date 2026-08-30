@@ -34,8 +34,8 @@
 - **敌人等级不在模板上定死**——等级是 future-event-service 的**物化产物**，故同一个敌人可在不同篇章 / 情境下以不同等级出场。
 - **敌人持有道念、行为，并持有自己的卡组**；**敌人侧的战斗内量与玩家侧对称**，也是道念，不设独立的血量池。
 - **敌人的战斗强度以 `baseMomentum` 为主刻度**：等级 → 起始道念 → 开局领先量，这是越级压迫感的直接来源。**卡组保持强度中立，不叠第二条强度曲线**（否则 `±2` 带的数值安全性推导立刻失效）。
-- **层数在 `EnemyData` 上逐条编排为固定值，随赋级只动 `baseMomentum`。** 同一个敌人不因赋级变强变弱，强度中立**在同一条目内**成立；「强敌 = 更高层数」成立于内容层而非物化层，`EnemyLevelRange` 与层数**不建立机械对应关系**。理由：层数是严格升级，按定义就是第二条强度曲线——让它随赋级浮动会使一份已成文的数值安全性推导当场失效，而「无隐藏乘数、观察即所得」这个诉求不需要靠层数浮动来兑现。连带收益：层数固定 ⇒ 展开在加载期即唯一确定 ⇒ `KeyCardIds` 的加载期校验与图鉴的静态性一字不改。
-- **条目之间的层数散布须有护栏。** 层数固定只解决了同一条目内的浮动；条目**之间**的散布仍是一条与 `diff` 同量纲的旋钮（一档 `Tier` 差 ≈ 一档 `diff` 的 `baseMomentum` 落差），而 `lifeTotal` 境界基线的余量系数没有为它留量（前提与推导见 `systems/balance.md`）。故：敌人功法层数按**篇章给一个基准档**（对齐玩家在该阶段的典型层数），逐条目偏离 **≤ ±1 档**。这是**内容编排口径**——落 `/audit-content` 汇总，只报告不阻断，**不进加载期校验**。
+- **层数在 `EnemyData` 上逐条编排为固定值，随赋级只动 `baseMomentum`。** 同一个敌人不因赋级变强变弱，强度中立**在同一条目内**成立；「强敌 = 更高层数」成立于内容层而非物化层，`EnemyLevelRange` 与层数**不建立机械对应关系**。理由：层数是严格升级，按定义就是第二条强度曲线——让它随赋级浮动会使难度曲线失去可控性（同一条目在两次遭遇中强度不同，且强度差不体现在玩家唯一能读到的刻度上），而「无隐藏乘数、观察即所得」这个诉求不需要靠层数浮动来兑现。连带收益：层数固定 ⇒ 展开在加载期即唯一确定 ⇒ `KeyCardIds` 的加载期校验与图鉴的静态性一字不改。
+- **条目之间的层数散布须有护栏（承重 · 本文件是它的权威）。** 层数固定只解决了同一条目内的浮动；条目**之间**的散布仍是一条与 `diff` 同量纲的旋钮——一档 `TechniqueTier` 差在标准 10 回合内累计 ≈ 一档 `diff` 的 `baseMomentum` 落差（追分锚点见 `systems/balance.md`），而赋级带只框住了起跑线那一维，对层数这一维**不给任何约束**。不设护栏就等于在唯一可见的难度刻度（等级）之外再开一条不可见的强度轴。故：**敌人功法层数按篇章给一个基准档**（对齐玩家在该阶段的典型层数），**逐条目偏离 ≤ ±1 档**。这是**内容编排口径**——「典型层数」随内容扩充而漂移，焊进加载期只会让每次内容调整都撞一次 `PushError`；核对落 **`/audit-content` 汇总（只报告不阻断）**，与「负向 `OnFailureRules` 占比」同款处理。
 - **产出缩放与玩家同因**：敌人各等级的道念产出**不设敌方专属的隐藏数值乘区**，决定因素与玩家完全一致；同一门功法同一层数，敌我两侧展开出的是同一批卡牌条目。
 
 ### `EnemyInstance` —— 物化定稿实例
@@ -186,11 +186,11 @@ public partial class AiWeight : Resource             // 内嵌 Resource + 两个
   | `Removal` | 本动作移除的**对手**战场条目数 |
   | `AmbushCaution` | 对手埋伏计数 > 0 时对高费一次性投入的折价（**只读计数、不读内容**——这正是「埋伏的威慑力与实际效果是两件事」的落地） |
   | `HandRetention` | 打出后手牌张数过低时的负分（消耗流留手） |
-  | `KeyCardAffinity` | 本动作的卡牌 `Id` ∈ 该敌人的 `KeyCardIds` 时加分 |
+  | `KeyCardBias` | 本动作的卡牌 `Id` ∈ 该敌人的 `KeyCardIds` 时加分 |
   | `ClosingUrgency` | 己方剩余回合数 ≤ 2 时，对即时收益加权、对铺垫类收益减权 |
   | `ItemEagerness` | 己方剩余回合数 ≤ 2 时对用道具加分（道具不带走，末回合不用即浪费） |
 
-- **`KeyCardAffinity` 有一条免费的正向副作用**：`KeyCardIds` 是图鉴「关键卡牌」词条的数据源，而图鉴是**事前知识的主通道**；让 AI 真的偏向打出关键卡，使图鉴所述与玩家实际观察到的行为对齐。这是它存在的第二个理由，不只是打法风格。
+- **`KeyCardBias` 有一条免费的正向副作用**：`KeyCardIds` 是图鉴「关键卡牌」词条的数据源，而图鉴是**事前知识的主通道**；让 AI 真的偏向打出关键卡，使图鉴所述与玩家实际观察到的行为对齐。这是它存在的第二个理由，不只是打法风格。
 - **目标选择复用同一个评分函数**：对每个槽位，在既定的 `LegalTargets` 求解结果中取使该动作试算分数最高的那一个；仍平手取序列中的第一个。不为目标另写一套启发式——两套会各自漂移，而本库没有机制发现它们不一致。**`LegalTargets` 为空的槽位使该候选整个不进候选集**（不是先选中再 fizzle）：AI 没有理由主动打出一张必然落空的牌。
 - 候选集的完整组成、动作与视图类型、纯函数签名见 `systems/services/combat-service.md`。
 
@@ -214,7 +214,7 @@ public partial class AiWeight : Resource             // 内嵌 Resource + 两个
 - **不另加带数字的胜率口径**（如「定制相对兜底的基准胜率偏差 ≤ ±5pp」）：该数字在量纲基准与首批 starter deck 成型之前无法测量，写下即是一条无人执行的条款。日后确有需要时它是纯加法。
 - 取值域住平衡资源，故可随 overlay 热更收紧，不必发版。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md`
+Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md`
 
 ## 决策(-> ADR)
 

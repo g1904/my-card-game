@@ -7,10 +7,110 @@
 
 - **CharacterProfile = 单次轮回 / 单个角色的状态与历史。** 每个 CharacterProfile 对齐 **CycleState** 概念：一次轮回、一个角色所走过 / 可走的整段修行历程与当前状态。它由账号级的 **PlayerProfile** 持有（`List<CharacterProfile>`）。（+ `systems/services/life-cycle-service.md`、`terminology.md`）。
 - **角色是有身份的模板，不是程序化生成的空白人（承重）。** 引入内容条目 **`CharacterData`**（区别于本文档的 `CharacterProfile` —— 前者是模板，后者是某一次轮回的角色状态）：
-  - **开局随机分配一个角色**（与既定的「炼气起手 = 随机角色」一致，本次只是给「角色」以内容形态）。
+  - **开局由玩家从角色池中指定一个角色**（炼气起手仍可无限重试，门禁只落篇章层、不落角色层）。
   - **每个角色自带一个神通（`CharacterPower`）与两门绑定功法**，且**与角色绑定**——同一个角色的每一局，神通与这两门功法都相同。**推论：跨轮回的熟悉感有了载体**，「这个角色打起来是什么手感」成为玩家可积累的知识。
   - **绑定不等于不可动摇**：那两门功法**同样可被弃置**（见 `deck/_index.md`）——角色给的是**起手形状**，不是永久底盘。
-  - 角色池的规模、是否账号级逐步解锁、能否重抽或指定，见待决问题。
+  - **每个角色带一个先天灵根 `Affinities`**，它是角色之间除「神通 + 两门绑定功法」之外的第二条辨识轴，唯一的规则后果是功法的**硬性修习准入**（见下方「灵根」段与 `deck/_index.md`）。
+  - 角色池的规模、选取机制、是否账号级逐步解锁，见下方「角色模板池的形态」与「`CharacterData` 的字段面」。
+- **`CharacterData` 的字段面（内容条目，`[GlobalClass] partial class CharacterData : Resource`，以 `.tres` 编写）。** 它与 `CharacterProfile` 是两件东西：前者是模板、共享只读单例、静态字段不落存档；后者是某一次轮回的角色状态。
+
+  | # | 字段 | 类型 | 必填 | 语义 / 取值 |
+  |---|---|---|:--:|---|
+  | 1 | `Id` | `string` | 是 | 两段式 **`character.<snake_case_slug>`**（例 `character.ling_yun`）。前缀 `character` 与既有主类型前缀词表（`character_item.` / `player_item.` / `character_power.` / `player_power.`）不撞车 |
+  | 2 | `ContentEnabled` | `bool` | 是 | 照常参与 `AllEnabled()` 与 flags 通道；**读取侧 `Get(id)` 不过滤** |
+  | 3 | `Artwork` | 见 `systems/common-properties.md`「`Artwork` 挂载面」 | 是 | 角色形象的**基础图**（全部境界的回落底） |
+  | 4 | `RealmArtworks` | `RealmArtwork[]` | 否 | **稀疏的境界覆写**：只列「这个境界要换图」的那几档；默认空数组 = 全程用基础图。见下方「角色形象随境界的覆写」段 |
+  | 5 | `PowerId` | `string` | 是 | 绑定的那一个神通，须 `PowerData.Scope == Character` |
+  | 6 | `TechniqueIds` | `string[]`（长度恒 2） | 是 | 两门绑定功法；**可被弃置**（弃置的是 `CharacterProfile` 里的那份，模板不变） |
+  | 7 | `Affinities` | `Affinity[]` | 是 | 该角色的先天灵根，见下方「灵根」段 |
+  | 8 | 绑定功法的初始层数 | — | — | **⟨待定⟩**：全库尚无明文说明两门绑定功法开局各处于第几层（是否恒为 1、是否可逐条编排）。取值定下前 `content/character/` 的条目写不到 `ready` |
+
+  - **明确不带的格：** **`Rarity`**（它在本库的两个消费点是抽取加权与定价档，角色既不进任何授予池也不被定价；加一格会立刻引出「稀有角色抽不到」这条与「无门槛起手」正面冲突的语义）· **`ExclusiveSource`**（该字段只覆盖 `PowerData` / `ItemData`，语义是「不进抽取池」，与角色的取用方式无关）· **任何解锁条件字段**（首批不做账号级逐步解锁，见下）。
+  - **静态字段不落存档、不进上行负载。** 存档侧的载体只有 `CharacterProfile.characterDataId` 一格，它早已存在且形态已定 ⇒ **存档 schema 增量为 0、不 bump `schemaVersion`、后端零影响**。
+- **`Artwork`（共有字段 · 类型 `Texture2D`）在本层的投影。** 落在 `CharacterData` 上，是该角色的**基础形象**。
+  - **本层合法取值 / 默认值 =** 可空，`null` = 尚未产出、呈现层回落占位资产。
+  - **本层消费点：** ViewModel 组装角色形象时作为回落链的第二级（第一级是下方 `RealmArtworks` 的境界覆写），见 `systems/viewmodel.md`。
+  - 类型定义、取值清单、校验语义见 `systems/common-properties.md`。
+- **角色形象随境界的覆写：`RealmArtworks`（本类自有字段，不是共有字段）。** 角色是七个 `Artwork` 挂载面里**唯一**带真实境界维度的那一个——敌人的境界是 `EnemyInstance` 的物化产物、不在模板上（见 `systems/enemies/_index.md` 与 `decisions/ADR-0044-enemy-leveling-band.md`），地域三章共用同一张图（`decisions/ADR-0042-location-flat-set-and-single-map.md`），卡牌 / 法则 / 神通 / 古宝 / 法宝 / 事件插图与境界正交。**只有一个落点的字段不进 `common-properties.md`**（判据卡），故它落在本文档，共有字段 `Artwork` 的基数保持「一条内容一格」不变。
+
+  ```csharp
+  // CharacterData 上的一格。稀疏覆写：只列「这个境界要换图」的那几档。
+  [Export] public Godot.Collections.Array<RealmArtwork> RealmArtworks { get; set; } = new();
+
+  [GlobalClass]
+  public partial class RealmArtwork : Resource
+  {
+      [Export] public Realm     Realm   { get; set; }   // 共享核心枚举，见 systems/architecture.md
+      [Export] public Texture2D Artwork { get; set; }   // 挂了这一条就必须给图（校验 R-2）
+  }
+  ```
+
+  - **字段名取复数 `RealmArtworks`、元素类型名取单数 `RealmArtwork`。** 集合字段名与元素类型名不得逐字相同——类内的成员查找会遮蔽同名类型，`new RealmArtwork()` 在 `CharacterData` 内无法解析。同族先例是 `EnemyData.Lines : EnemyLine[]`（`decisions/ADR-0120-content-artwork-and-enemy-lines.md`）。
+  - **取稀疏数组，不取按 `Realm` 序号索引的定长四格数组。** 定长形态里「这一档没画」与「这一档就用基础图」不可区分，而两者的正确行为不同（前者该进缺失统计、后者不该）；稀疏数组把它变成干净可判的条件——与可选 `LocalizedText` 字段「缺失 = 子资源本身不存在」（`systems/common-properties.md`）同一种判据风格。
+  - **它天然是纯加法。** 内容侧可以先只填基础图一张，日后逐境界补一条，零结构改动，完全落在「美术挂点先占位、末段替换」内（`decisions/ADR-0006-development-phase-order.md`、`vision/scope.md`）。**首发不承诺出满四档。**
+  - **选取与回落由 ViewModel 单点承担**（境界覆写 → 基础图 → 占位资产；无当前轮回时直接取基础图），落点与承重见 `systems/viewmodel.md`。**境界来源是既有存档字段 `CharacterProfile.realm`** ⇒ **零新增存档字段、不 bump `schemaVersion`、无迁移、后端零配合**。
+  - **overlay 语义与共有字段 `Artwork` 逐字同款**：`RealmArtwork` 是同一份 `.tres` 内的子资源，overlay 覆盖该条 `.tres` 时随之被覆盖，**指向必须落在随包基线内已存在的资产**（换的是引用，不是二进制本身）。
+  - **三条加载期校验：**
+
+    | 编号 | 违规 | 处置 |
+    |---|---|---|
+    | R-1 | 同一条目的 `RealmArtworks` 内 `Realm` 重复 | `PushError`，带 `characterId` 与 `.tres` 路径 —— 两条同境界 ⇒ 选取不确定 |
+    | R-2 | 某条 `RealmArtwork` 已挂上但 `Artwork == null` | `PushError`，带 `characterId` 与该条的 `Realm` —— 「挂了却为空」是坏数据，同可选 `LocalizedText` 的既定口径 |
+    | R-3 | `RealmArtworks` 为空数组 | **不告警**，合法常态 = 全程用基础形象（同 `Lines` 默认空数组 = 无台词） |
+
+  - **不进 `LoadAll()` 那行 `Artwork` 缺失汇总**：已挂条目的缺图由 R-2 拦死，该汇总的口径不变（只数共有字段 `Artwork == null` 的条目数）。
+  - **资产量级：** 每个角色一条基础 + 至多三条境界覆写 ⇒ 全量 **20 张**（池规模 5 × 4 档），MVP（炼气 → 筑基一个篇章）只需 **10 张**，稀疏形态使首发下限为 **5 张**（每角色一张基础图）。
+- **角色模板池的形态：全池指定 · 首批 5 个 · 不做账号级解锁。**
+  - **池规模 = 5**，五个角色各持一个不同的单灵根（金木水火土全覆盖）。**池规模不是一格数值旋钮，而是 `content/character/` 里 `ContentEnabled == true` 的条目数**；线上收缩用 `ContentEnabled` / flags。增减角色是纯加法（加一份 `.tres` + 一个神通条目 + 两门功法条目），不改任何结构。**它是待校准初值**，随 ch1 starter deck 打磨与功法条目规模定标。**不进 `systems/balance.md`**——角色池的归属在本文档，`balance.md` 无角色维度数值表，新开一行即制造第二权威。
+  - **内容量账：** 5 个 `character-power/` 条目 + 10 门 `cultivation-technique/` 条目 × `MaxTier` 套卡牌定义。这是 ch1 排期必须正视的那一笔。
+  - **选取机制 = 开局由玩家从全池自行指定。** 无随机候选集、**无重抽通道**（重抽等于免费 reroll，与「候选预先算定、封死 reroll」同向否决；且本作没有账号级可支配货币，重抽也无从定价）。**完全不涉及 RNG**——四条子流不变、`AccountStream` 不动、不新开子流、不占 `RngElements` 列。服务面见 `systems/services/life-cycle-service.md`。
+  - **角色是「被选取的产出侧对象」，故配有 `ContentEnabled` 开关。** 判据用现成的那一条——「能被抽取 / 被选取的才配有开关」（`PlotArcData` 与 `LocationData` 的分野即此）。关一个角色只让它**不再被新轮回选中**；已写进 `characterDataId` 的角色照常经 `Get(id)` 解析，**进行中的轮回不因线上关闭而坏档**。这正是「解析不到 → `PushError`」与「线上可秒关一个问题角色」两条不冲突的原因。
+  - **可抽取性 = 自身 `ContentEnabled` ∧ 全部绑定条目 `ContentEnabled`。** 它使「绑定条目被关掉」不需要任何运行时特判——取池时多一层过滤即可，与 `AllEnabled()` 的过滤位置完全同构。
+  - **首批不做账号级逐步解锁**，全部角色恒可用。三条依据任一单独成立即足以否决：「元进程解锁」明确在范围之外（`vision/scope.md`）· 炼气可无门槛起手、门禁只落篇章层（`ux/onboarding.md`），角色层再加一道门等于把「无门槛」这四个字改掉 · 没有现成载体（`PlayerEntitlement` 只放付费凭证本身与其兑现水位、`Achievement` 的奖励形态限定为法则 / 古宝条目、Codex 记的是「见过」而非准入；flags 是运营灰度通道，分桶规则不在客户端、`AllEnabled()` 拒绝接受 `bucketContext`，与玩家进度通道不得合流）。
+    - **负面边界（承重）：解锁绝不可做成付费点。** `systems/monetization.md` 的负面边界五项 + 唯一预留方向（纯外观）已把它关死——付费解锁角色既不是「有档、有上限的宽松化」，也不在纯外观内。
+    - **日后要做时的最小路径：** `PlayerProfile` 加一个具名集合字段（元素用 `readonly record struct` 包一层，照 `CodexEntry` 的加法窗口纪律）+ 一条取池过滤（`AllEnabled()` ∩ 已解锁集合）+ 一次 `schemaVersion` bump。**不需要任何新机制。**
+  - **已接受的代价（承重）：** ch1 无限重试 + 全池指定下，**角色强度差有可能塌缩为「只有一个角色被玩」**，跨轮回熟悉感因此只覆盖玩家自选的那一个。灵根把角色差异从「谁更强」推向「能修哪一路功法」，已部分缓解这条代价，但**仍可能存在一个综合最优的属性池**——待实测。这条代价是日后重估角色池设计的判据起点，不得删。
+  - **首玩局的缓解 = 在选择屏标注推荐项**（内容侧一格标记），**不做「首局跳过选择」的特判**——特判会造出两条起手路径，而两条路径必然各自漂移。
+- **灵根 `Affinity`：角色的先天资质，唯一的规则后果是功法的硬性修习准入。**
+
+  ```csharp
+  public enum Affinity
+  {
+      Unspecified = 0,   // 防御性哨兵：唯一作用是让「漏填」可被加载期检出（照 Source.Unknown = 0 的先例）
+      Metal = 1,         // 金
+      Wood  = 2,         // 木
+      Water = 3,         // 水
+      Fire  = 4,         // 火
+      Earth = 5,         // 土
+  }
+  ```
+
+  - **`Unspecified = 0` 是必需的**：Godot 的 `[Export]` 枚举未填即取 0，没有哨兵就无法把「漏填」与「填了金」区分开——这与 `Pool` / `CardType` 必填纪律的理由完全相同。
+  - **灵根固定在 `CharacterData` 上，一局不变。** 它是内容条目上的**静态分类维度**（与 `Rarity` / `Pool` 同族），**不产生任何运行时状态、不进 `CharacterProfile`、不进上行负载**——故它不落在 `vision/scope.md`「范围之外（暂时）」所排除的那种「支撑 Reigns 式平衡张力的完整属性模型」内（那一条指的是 `faith` / `bloodlust` 一类运行时可推拉的资源条）。
+    - **日后若要做成轮回内可变，最小路径已知：** `CharacterProfile` 加一格可空 `Affinity[] affinitiesOverride`（`null` = 取模板值）+ `ProfileChangeSpec` 加一列 + 一次 `schemaVersion` bump + 一条读档校验。**不需要任何新机制**，首批不做。
+  - **首批只做单灵根**：五个角色 `Affinities` 各为 `[Metal]` / `[Wood]` / `[Water]` / `[Fire]` / `[Earth]`，长度恒为 1。**「长度恰为 1」是内容编排口径，不是字段约束**——字段本身即为数组，日后引入多灵根角色零结构变更。
+  - **无契合度设定、无相生相克、没有「天灵根」品级说法。** 五行之间**没有任何规则关系**，关系只存在于「角色灵根 ⊇ 功法要求」这一条包含判定上。品级标签隐含「单灵根最强」，而机制上它只是「池更窄但有专属功法」，标签会制造预期落差。相生相克的位置留着，日后要开是纯加法。
+  - **追加成员（雷 / 冰 / 风一类）的成本为零**：`Affinity` 不落存档、不进上行负载 ⇒ 加成员**不 bump `schemaVersion`、无迁移、后端零影响**。今天的不做不构成明天的债。
+  - **规则后果只有一处：功法的硬性修习准入**（判定式、单点纯函数、四个取池点的接入位置、`MaxTier` 一律不折减，全部见 `deck/_index.md`「灵根修习准入」）。**灵根此外一格不碰**：不影响 `mana` / `manaLimit` · 道念的产出与削减 · 寿元与 `lifeSpanCost` · 商店价格 · 隐藏属性 · 经验值 · `baseMomentum` · 敌人赋级 · 任何卡牌数值 · 任何战斗内规则。逐条理由：战斗侧那一批根本看不见功法；其余每一项都已有指定的唯一旋钮，往上叠第二个输入正是本库反复否决的「第二条强度曲线」。
+  - **风味标注走描述文本**（`LocalizedText`），不另开字段。
+- **`CharacterData` 的加载期校验（十一条，全部带定位上下文）。** 判据 = 「坏数据必须在启动期大声失败」。
+
+  | # | 违规 | 处置 |
+  |---|---|---|
+  | 1 | `AllEnabled<CharacterData>()` 条数 `== 0`（池为空） | `PushError` + 抛 —— 无角色可选 ⇒ 开不了任何轮回，是最硬的一条 |
+  | 2 | 绑定的 `PowerId` / 两个 `TechniqueId` 解析不到 | `PushError` + 抛，带 `characterId` 与悬空 `Id` |
+  | 3 | 绑定的神通 / 功法 `ContentEnabled == false` | `PushWarning` + **该角色退出可选池**（overlay 秒关一门坏功法是既定运营手段，不该让引用它的角色把整个启动打崩；但一个残缺角色不能被选出去） |
+  | 4 | 绑定的 `PowerData.Scope != Character` | `PushError` + 抛 —— 角色自带的是**神通**不是法则，两层不得串写 |
+  | 5 | `Id` 不符合 `character.<snake_case_slug>` 形态 | `PushError` + 抛 |
+  | 6 | `CharacterData.Affinities` 为空 / 含 `Unspecified` / 含重复 | `PushError` + 抛，带 `characterId` |
+  | 7 | `CultivationTechniqueData.RequiredAffinities` 含 `Unspecified` / 含重复 | `PushError` + 抛，带功法 `Id` 与 `.tres` 路径。**空数组合法**（= 无属性要求的通用功法） |
+  | 8 | `MaxCharacterAffinityCount < 0` | `PushError` + 抛，带功法 `Id` |
+  | 9 | `MaxCharacterAffinityCount > 0` 且 `< RequiredAffinities.Length` | `PushError` + 抛，带功法 `Id` 与两个值 —— 要求的属性数已超过允许的灵根总数，该条目对任何角色都不可修 |
+  | 10 | 某个在册角色的可修功法条目数（`Pool != Enemy` 且通过准入）低于取池余量阈值 | `PushError` + 抛，带 `characterId` 与实际条数 —— **该角色开不出局** |
+  | 11 | 某个在册 `Affinity` 成员没有任何 `Pool != Enemy` 的功法条目 | `PushWarning`，带成员名（该属性尚无内容；若无角色持有它则不阻断） |
+
+  - **校验 10 与 `ADR-0073` 的候选短缺三段处置是两回事**：那条处理的是运行中池被抽空，这条处理的是**内容层面根本就没铺够**。它是运行期硬阻断的唯一落点；内容编排期的提前发现由 `/audit-content` 的对账项承担。
+  - **校验 6–9 落在功法与角色两个类型上，但它们成对成立**，故一并登记于此；功法侧两格的字段面权威在 `deck/_index.md`。
 - **CharacterProfile 的完整字段表。** 本表**只有形态列**（字段 / 类型 / 写入通道 / 权威）——字段的语义、取值域与读档校验一律留在权威列所指的文档里，本表只做索引与回链。**写入通道** = 该字段经 `ProfileChangeSpec` 的哪一列写入；`—` = 不经 spec，由 life-cycle-service 在轮回创建 / 篇章边界 / 结算收口时直接赋值。
 
   | # | 字段 | 类型 | 写入通道 | 权威 |
@@ -45,7 +145,6 @@
 
   | 字段 | 类型 | 写入通道 | 取值域权威 |
   |---|---|---|---|
-  | `lifeTotal` | `int` | `Elements`（`CostKey.LifeTotal`） | `ResourceElements` |
   | `manaLimit` | `int` | `Elements`（`CostKey.ManaLimit`） | `ResourceElements` |
   | `experiencePoint` | `int` | `Elements`（`CostKey.ExperiencePoint`） | `ResourceElements` |
   | `faith` | `int` | `Elements`（`CostKey.Faith`） | `ResourceElements` |
@@ -53,8 +152,6 @@
   | `lifeSpan` | `int` | `Elements`（`CostKey.LifeSpan`） | `ResourceElements` |
   | `FaithBand` | `sbyte` | `StatusChanges` | `StatusFields` |
   | `BloodlustBand` | `sbyte` | `StatusChanges` | `StatusFields` |
-  | `LifeSpanBand` | `sbyte` | `StatusChanges` | `StatusFields` |
-  | `ChapterLifeSpanBudget` | `int` | `StatusChanges` | `StatusFields` |
   | `CurrentLocationId` | `string` | `StatusChanges` | `StatusFields` |
   | `LocationEventCount` | `int` | `StatusChanges` | `StatusFields` |
 
@@ -78,7 +175,7 @@
 
   - **`id` 由客户端生成、不向后端申请。** `CharacterProfileDiff` 的键值以下对后端完全不透明，后端从不解析它；向后端申请一个 id 会在轮回开始处插入一次网络往返，而轮回开始是**自动存档点而非阻塞点**。**不用「第 N 个角色」的序号**（要一个账号级计数器 + 一条幂等问题，而角色只增不删却可能并行创建于多篇章，GUID 零协调）；**不用 `characterDataId` 作键**（同一模板可在不同篇章各有一个 ongoing 角色）。它是 diff 的寻址键与全部日志 / 读档校验的定位上下文。
   - **`characterDataId` 是「同一个角色每一局手感相同」的存档载体**，也是 `PlotNodeData.CharacterIds` 比对的那一格。读档校验：解析不到 → **必需缺失** → `PushError` 带 `characterId` + `characterDataId`（角色模板是结构性内容，解析不到即坏档，不能像 `pastEvent` 那样降级）。
-  - **`defeatReason` 不设 `None` 哨兵。** `DefeatReason` 是四值封闭枚举（`Discarded` / `LifeSpanExhausted` / `LifeTotalExhausted` / `FinaleFailed`），加一个不该出现的成员会让每个消费点都要处理一个多余分支；可空是 C# 表达「这一维只在某状态下有意义」的既有形态。读档校验：`status == Defeated` 且为 null → **可选缺失** → `PushWarning`（履历少一行，不阻断）；`status != Defeated` 且非 null → 不可能态 → `PushWarning` + 按 null 处理。消费方是元进程界面的角色履历与轮回结束屏。
+  - **`defeatReason` 不设 `None` 哨兵。** `DefeatReason` 是三值封闭枚举（`Discarded` / `LifeSpanExhausted` / `FinaleFailed`），加一个不该出现的成员会让每个消费点都要处理一个多余分支；可空是 C# 表达「这一维只在某状态下有意义」的既有形态。读档校验：`status == Defeated` 且为 null → **可选缺失** → `PushWarning`（履历少一行，不阻断）；`status != Defeated` 且非 null → 不可能态 → `PushWarning` + 按 null 处理。消费方是元进程界面的角色履历与轮回结束屏。
   - **`TechniqueEntry` 取 `readonly record struct`**（字段少、条目个位数、要落存档且进 diff），与 `StatusAssignment` / `DeckChangeElement` 同款；`PastEventEntry` 与 `EventOption` 字段多，才取引用型。
   - **`looseCard` 是裸 `string` 多重集而非 record 列表**：散牌没有任何随实例变化的状态（`CardInstance` 的运行态只存在于战斗内、随 `activeCombat` 走），一个 `Id` 就是全部信息。
   - 读档校验：`TechniqueId` / `looseCard` 元素解析不到 → **必需缺失** → `PushError`（与 `DeckChangeElement.Id` 的施加侧同口径——悬空 `Id` 写进 Profile 即污染存档）；`Tier < 1` → `PushError`。
@@ -118,12 +215,13 @@
     | 2 | `activeEvent.Option.InstanceId == EventInstanceId`，且 `EventId` 与批中原实例一致 | 读档 |
     | 3 | `activeEvent.Option.RerolledCount >= 批中原实例.RerolledCount`（单调不减是刷新价递增的前提） | 读档 |
     | 4 | `IsRevealed` 只允许 `false → true`（回落 = 重新遮罩，等于开一次重掷） | 运行时断言 |
-    | 5 | `RerolledCount` 增加 ⇒ `ExchangeStock` 整批替换（不允许只涨计数不换库存，或反之） | 运行时断言 |
+    | 5 | `RerolledCount` 增加 ⇒ **`ExchangeStock`** 整批替换（不允许只涨计数不换库存，或反之）。**本条只约束 `ExchangeStock`**——`BarterStock` 是定值编排、不参与刷新，刷新前后必须逐条不变 | 运行时断言 |
     | 6 | `activeCombat != null ⇒ activeCombat.eventInstanceId == activeEvent.EventInstanceId` | 读档（拒绝恢复该战斗，与 `combat-service.md` 既有第 ① 条同档同处置） |
     | 7 | `RerolledCount <= MaxRerollCount` | 读档 + 运行时 → `PushWarning` + 钳到上界（内容侧数值可被 overlay 调低，属可降级） |
 
-  - **恢复即读结果、绝不重走取池链。** 恢复路径读 `activeEvent.Option` 的 `ExchangeStock` / `IsRevealed` 直接呈现，不重新抽取——与「奖励候选预先算定、恢复时读结果不重抽」是同一条纪律的又一个实例。`activeEvent == null` 时直接呈现 `eventOption` 的横滑选择区。
-  - **痕迹侧零字段增量**：`PastEventEntry` 的定稿实例快照取自 `activeEvent.Option`，而 `ExchangeStock` / `RerolledCount` 收口后永无消费方 ⇒ 按「重算不出来**且有消费方**」的完整口径不进痕迹，与 `plotKeyPoint`「不记已走分支路径」同款处置。
+  - **Exchange 的物化字段有三格：`ExchangeStock` · `BarterStock` · `RerolledCount`。** `BarterStock : BarterOffer[]` 承载以物易物的定稿 offer（由 `ExchangeSpec.BarterRules` 逐条平移，不经取池、不掷 `Shop` 子流），形态与校验见 `systems/adventure-event/exchange/common-properties.md`；它随本次落定并入同一次 **schema bump**（当前无线上存档 → 空迁移）。
+  - **恢复即读结果、绝不重走取池链。** 恢复路径读 `activeEvent.Option` 的 `ExchangeStock` / `BarterStock` / `IsRevealed` 直接呈现，不重新抽取——与「奖励候选预先算定、恢复时读结果不重抽」是同一条纪律的又一个实例。`activeEvent == null` 时直接呈现 `eventOption` 的横滑选择区。
+  - **痕迹侧零字段增量**：`PastEventEntry` 的定稿实例快照取自 `activeEvent.Option`，而 `ExchangeStock` / `BarterStock` / `RerolledCount` 收口后永无消费方 ⇒ 按「重算不出来**且有消费方**」的完整口径不进痕迹，与 `plotKeyPoint`「不记已走分支路径」同款处置。
   - 随本次落定 **bump schema 版本**（老档缺字段 → `null`，按「无进行中批次」处置，下一次 `RefreshAfterEvent` 重算一批；当前无线上存档 → 空迁移）。
 - **`pastEvent`：修行历程 = `IReadOnlyList<PastEventEntry>`。** 元素**不是 `Resource`**——存的是**定稿实例快照 + 本次结算的最终账**，这是物化模型的直接推论（`AdventureEventData` 是 ContentRegistry 的共享只读单例，痕迹要记的是「这一次走过的那个实例」）。
   - **条目形态 `PastEventEntry`（13 字段）、判据「重算不出来的存」、未选项轻摘要 `UnchosenOptionRef`、`EventOutcome` 四值枚举与加载时校验，权威在 `systems/adventure-event/common-properties.md`**（本文件只登记它是 CharacterProfile 的一个字段）。
@@ -155,10 +253,10 @@
 - **`chapterRetry`：篇章重试计数器。** 一个**类**，计数第一 / 第二 / 第三篇章各自的重试次数——**因为 ch2 与 ch3 有重试上限**（无限 / 3 / 1，持 premium bundle 为 无限 / 9 / 3，见 ADR-0004）。**它是计数器容器，不是上限持有者**：上限仍按 ADR-0004 的既定纪律读取（可被账号级持有状态改写、凡读取处不得硬编码常量），`chapterRetry` 只答「用掉了几次」。**推论：篇章解锁 / 重新锁定与「剩余重试次数展示」有了确定的数据源。**
   - **形态 = 三个具名字段 `Ch1RetryUsed` / `Ch2RetryUsed` / `Ch3RetryUsed`**，第一 / 第二 / 第三篇章各一，**不是字典也不是按索引的数组**。**`Used` 后缀**避开两个已被占用的词缀——`Ordinal` 表达「第几次」这个位置且要当幂等键用，`Count` 属统计计数层，而 `chapterRetry` 是规则字段层的一个数量（命名硬约定见 `systems/player-profile/_index.md`）。**与「四境三篇章」这条硬事实对齐**（篇章数是游戏结构，不是可扩展列表）：具名字段让存档 schema 显式、读取处不必处理「键不存在」的分支，也免去按索引访问的越界校验。**代价是新增篇章需改 schema——但篇章数不是设计变量。**
   - **通关后保留计数，不清零** ⇒ **它是历史，不只是配额**。一个通关角色身上留着「我在筑基段挣扎了 3 次」的记录，可供元进程界面的角色履历展示；**同时它简化实现**——没有清零时机就没有「何时清零」的边界情形。
-  - **ch1 的角色级计数恒为 0，这不是缺陷。** ch1 重试 = 随机生成新角色，故角色级 ch1 计数对每个新角色恒为 0。**「你在炼气段重开了多少次」目前没有字段回答**——账号级统计的首批只有 `TotalCyclesCompleted` / `TotalCyclesDefeated`，后者不区分篇章（见 `systems/player-profile/_index.md`）。这是一个**展示需求**，需要时在 `PlayerStatistics` 上纯加法补一项即可（统计层新增字段零迁移、零后端配合）。**两层口径不同，不是同一个数的两份拷贝**：角色级参与闸门判定，账号级只被读来看。
+  - **ch1 的角色级计数恒为 0，这不是缺陷。** ch1 重试 = 重新走一次角色选择、创建一个新的 `CharacterProfile`，故角色级 ch1 计数对每个新角色恒为 0。**「你在炼气段重开了多少次」目前没有字段回答**——账号级统计的首批只有 `TotalCyclesCompleted` / `TotalCyclesDefeated`，后者不区分篇章（见 `systems/player-profile/_index.md`）。这是一个**展示需求**，需要时在 `PlayerStatistics` 上纯加法补一项即可（统计层新增字段零迁移、零后端配合）。**两层口径不同，不是同一个数的两份拷贝**：角色级参与闸门判定，账号级只被读来看。
   - **连带：`attemptIndex` 派生层整层删除**（篇章重试 = 换一套随机流，见 `systems/common-properties.md`）。
 - **`disabledAbility`：本轮回禁用表**（与 `pastEvent` / `chapterRetry` / `activeCombat` 平级）。**法则不被强制剥夺，其余一律降级为本轮回禁用**——本字段是这条语义的承载面，覆盖**四类**能力条目（神通 / 法则 / 法宝 / 古宝）。
-  - **不落 `Status` 内。** `Status` 装的是**数值型运行状态**（`lifeTotal` / `manaLimit` / `experiencePoint` / 隐藏属性），禁用表是**集合型 build 状态**，与 deck、神通持有列表同层。
+  - **不落 `Status` 内。** `Status` 装的是**数值型运行状态**（`lifeSpan` / `manaLimit` / `experiencePoint` / 隐藏属性），禁用表是**集合型 build 状态**，与 deck、神通持有列表同层。
 
     ```csharp
     IReadOnlyList<DisabledAbilityEntry> disabledAbility;   // 单数命名，沿用 pastEvent 的既有风格
@@ -186,14 +284,11 @@
   // 当前所处档（索引 HiddenStatBandData.BandIndex；0 = 常态，|值| 越大越远离常态）
   sbyte FaithBand;             // 带符号 —— 道心是唯一的双臂属性，取值 -2..+2
   sbyte BloodlustBand;         // 0..3
-  sbyte LifeSpanBand;          // 0..2
-  int   ChapterLifeSpanBudget; // 本篇章起始可用预算 = 本章增量 + 上章结转；ChapterManager 在篇章边界赋值
   ```
 
-  - **三个 band 落成三个具名字段而非字典** —— 与 `chapterRetry` 的「篇章数是固定的游戏结构，不用字典 / 索引数组」同款判据：隐藏属性清单虽仍待答，但**增删属性本就要动 schema**，字典只换来一层查找与一处可空。
+  - **两个 band 落成两个具名字段而非字典** —— 与 `chapterRetry` 的「篇章数是固定的游戏结构，不用字典 / 索引数组」同款判据：隐藏属性清单虽仍待答，但**增删属性本就要动 schema**，字典只换来一层查找与一处可空。
   - **写入并入 `eventEnd` 那一次 `TryApply`**（band 在组装 spec 时按「前值 + `AppliedChange`」算出**绝对值**，不是相对增量；载体是 `ProfileChangeSpec.StatusChanges` 的 `StatusAssignment`，`sbyte` 存档字段在 spec 内以 `int` 承载）⇒「一个事件的收口是一次事务、一个存档点」原样成立，**不新增存档点、不新增结算阶段**。
   - **不进 `PastEventEntry`**：band 设值已在 `AppliedChange` 内、可重放，按判据「重算得出来的不存」⇒ 快照不加字段。
-  - **`ChapterLifeSpanBudget` 随该篇章起始存档带回**（篇章重试时同理），故它对读档与重试都是确定值。
   - 档位表本身、阈值 / 回滞 δ 与跨档叙事规则归 `systems/services/plot-manager.md`。
   - 随本次落定 **bump schema 版本**（当前无线上存档 → 空迁移）。
 - **`Status` 上的地域位置与地域配额（两个字段）。** 图本身不落存档（全局不变、启动加载一次），落存档的只有「人在哪」与「在这儿做了几件事」：
@@ -256,9 +351,9 @@
   ```
 
   派生规则与恢复语义见 `systems/common-properties.md`；双 `contentVersion` 的诊断用途见 `systems/services/content-service.md`。
-- **角色状态是终态收敛的状态机。** `status` 收敛为 `ongoing | defeated | completed`（`defeated` 的四种原因：discarded / 寿元归 0 / lifeTotal 归 0 / 渡劫失败——前三种是资源触底，末一种是篇章闸门）；`defeated` 与 `completed` 数据都会在轮回结束时被清理。→ 见 `systems/services/life-cycle-service.md` 与 `decisions/ADR-0004-realm-checkpoint-retry-model.md`。
+- **角色状态是终态收敛的状态机。** `status` 收敛为 `ongoing | defeated | completed`（`defeated` 的三种原因：discarded / 寿元归 0 / 渡劫失败——前两种是资源触底，末一种是篇章闸门）；`defeated` 与 `completed` 数据都会在轮回结束时被清理。→ 见 `systems/services/life-cycle-service.md` 与 `decisions/ADR-0004-realm-checkpoint-retry-model.md`。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md`
+Source: `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md`
 
 ## 子系统导航
 
@@ -268,20 +363,21 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 | 法宝 item | `item/_index.md`、`item/common-properties.md` | **CharacterItem**：轮回级角色道具（含道具设计内容；细节待定）。 |
 | 轮回货币 currency | `currency.md` | 轮回货币 **灵石 `spiritStone`（基础）/ 仙玉 `immortalJade`（高阶）** 的获取 / 消耗；两者不可兑换。 |
 | 神通 power | `power/_index.md`、`power/common-properties.md` | **CharacterPower**：轮回级角色能力，**对标账号级 PlayerPower（法则）**（同一概念的两层，分界是生命周期）；随轮回清理，**可承载战斗内触发式效果**。 |
-| 生命总量 lifeTotal | `life-total.md` | **战斗外的耐久 / 失败惩罚承受量**（战斗内不参与，失败结算时按道念差扣减）；**归 0 → defeated**；经 AdventureEvent 恢复；炼气基线 10；无曲线。 |
+| 寿元 lifeSpan | `life-span.md` | **角色唯一的资源命线**：两个扣减来源（每个事件的 `lifeSpanCost` · 战斗失败按道念差 × `lossPerMomentum`），战斗过程中不被读写；**归 0 → defeated**；回复走 outcome 侧三通道；炼气起始 100；单值、无上限。 |
 | 法力 mana | `mana.md` | 每回合出牌资源；**每回合恢复至 `manaLimit`**，上限由事件推拉、另在每次大境界提升时 `+1`；炼气基线 5/5。 |
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
-- **子系统结构。** `deck` / `item` / `power` 为**文件夹**——除规则外还要容纳**内容设计**（起始卡组 starter decks、道具设计 item designs、能力条目）；`life-total` / `currency` / `mana` 为**扁平 `.md`**——它们是系统性资源（systematic resource），预期规则足够短，暂以单文件承载。
+- **子系统结构。** `deck` / `item` / `power` 为**文件夹**——除规则外还要容纳**内容设计**（起始卡组 starter decks、道具设计 item designs、能力条目）；`life-span` / `currency` / `mana` 为**扁平 `.md`**——它们是系统性资源（systematic resource），预期规则足够短，暂以单文件承载。
 - **境界存档 · 篇章重试模型**（CharacterProfile 状态机 `ongoing | defeated | completed`、全部继承、重试上限）→ `decisions/ADR-0004-realm-checkpoint-retry-model.md`（Accepted）。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **角色模板池的形态。** 池中有几个角色、是否账号级逐步解锁、**能否重抽或指定**——涉及元进程压力模型（既定的「炼气可无限重试」在「重开就换一个角色」下的手感与在「可指定角色」下完全不同）。→ 本文档、`systems/player-profile/`。
-- **隐藏属性完整清单是否还有第四项。** `Status` 上目前是道心 / 煞气 / 寿元三项；取值域、档位表与阈值见 `systems/services/plot-manager.md`。→ 见 `systems/services/plot-manager.md`。
+- **两门绑定功法的初始层数。** 角色开局时那两门功法各处于第几层（是否恒为 1、是否可逐条编排）尚无明文；它是 `content/character/` 条目写到 `ready` 的前置。→ 本文档、`deck/_index.md`。
+- **全池指定下角色强度差是否仍塌缩为单一最优。** 灵根把差异推向「能修哪一路功法」，但仍可能存在一个综合最优的属性池；ch1 无限重试放大该效应。待实测。→ 本文档。
+- **隐藏属性完整清单是否还有第三项。** `Status` 上目前是道心 / 煞气两项；取值域、档位表与阈值见 `systems/services/plot-manager.md`。→ 见 `systems/services/plot-manager.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/_index.md`（待建）。

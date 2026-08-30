@@ -25,7 +25,7 @@
 | &nbsp;&nbsp;├ [item/](character-profile/item/_index.md) | 角色持有的道具。 |
 | &nbsp;&nbsp;├ [power/](character-profile/power/_index.md) | **神通 CharacterPower**（轮回级，对标账号级 PlayerPower / 法则）。 |
 | &nbsp;&nbsp;├ [currency](character-profile/currency.md) | 轮回货币：灵石 spiritStone · 仙玉 immortalJade。 |
-| &nbsp;&nbsp;├ [lifeTotal](character-profile/life-total.md) | 生命总量 / **战斗外的耐久与失败惩罚承受量**（战斗内不参与；归 0 → defeated；经 event 恢复）。 |
+| &nbsp;&nbsp;├ [lifeSpan](character-profile/life-span.md) | 寿元 / **角色唯一的资源命线**（两个扣减来源：事件成本与战斗失败；战斗过程中不被读写；归 0 → defeated；回复走 outcome 侧三通道）。 |
 | &nbsp;&nbsp;└ [mana](character-profile/mana.md) | 法力 / 每回合出牌资源。 |
 | [player-profile/](player-profile/_index.md) | 玩家档案（跨轮回的元进程）。 |
 | &nbsp;&nbsp;├ [player-item/](player-profile/player-item/_index.md) | 可购道具定义。 |
@@ -50,4 +50,4 @@
 >
 > **`common-properties.md` 按内容建，不按对称建。** 一层要建 `common-properties.md`，须**两条同时成立**：① 该层存在**其子节点共有、且不适用于全库**的属性或机制（否则它属顶层）；② 这批内容的篇幅已压过 `_index.md` 的索引职责（经验界：约 40 行以上，或超过该层 `_index.md` 的一半）。因此 `character-profile/` 与 `player-profile/` **有意不建**中间层 `common-properties.md`（两者的横切共性各只有一两句，已写在各自 `_index.md` 内），而 `adventure-event/` 与 `enemies/` 建了。**结构不对称不是缺陷，是判据的正确产物**——空壳 `common-properties.md` 会成为一个「看起来该写点什么」的坑，把本属顶层的字段吸下来复述一遍，造出第二权威。字段写在哪一层的完整判据卡见 [common-properties](common-properties.md) 的 `## 内容共有字段` 节首。
 
-Source: `handoffs/2026-08-14-common-properties-layering.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-14-common-properties-layering.md`

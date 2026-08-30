@@ -14,9 +14,12 @@
 |---|---|
 | 功法名 · 描述（一句路数概括） | `CultivationTechniqueData` 的显示名 / 描述（`LocalizedText`） |
 | 稀有度 | `Rarity: RarityTier` |
+| 属性（灵根要求） | `RequiredAffinities: Affinity[]`；空数组渲染为「无属性要求」。`MaxCharacterAffinityCount == 1` 时另加「单灵根专属」标注 |
 | 风味 / 出处传说 | `CodexFlavor: LocalizedText`，可选；`null` 即不渲染该段、不告警 |
 
 **全部来自条目自身已有的字段**（`CodexFlavor` 是族级共有的那一格），不新增结构化的多项写作规格——与能力 / 道具四本同一条深度口径，理由见 `common-properties.md`。
+
+**属性一行是路数概括的天然一部分，且不泄露卡表**（它讲的是这门功法走哪一路，与「这一层是哪几张牌」无关）。它与「敌方专属」标注同款——**由呈现层从条目字段现场算出，不新增任何存档字段**。词条**不表达「你能不能修」**：那取决于当前角色的灵根，而图鉴是跨轮回的知识面，写进去会让同一条词条在不同轮回下读出不同结论。准入规则见 `systems/character-profile/deck/_index.md`。
 
 ### 词条不列该功法的卡牌清单（承重）
 
@@ -51,12 +54,12 @@
 
 > 条目共有字段与解锁语义见 `common-properties.md`；图鉴族总览见 `_index.md`。
 
-Source: `handoffs/2026-08-25-info-economy-and-codex-expansion.md`
+Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
-- **功法图鉴收录已习得或已遭遇的功法**，词条 = 功法名 / 描述 / `Rarity` + 可选 `CodexFlavor`，不套用敌人的五项规格。
+- **功法图鉴收录已习得或已遭遇的功法**，词条 = 功法名 / 描述 / `Rarity` / 属性 + 可选 `CodexFlavor`，不套用敌人的五项规格；属性一行由呈现层从条目字段现算，不新增存档字段，且词条不表达「当前角色能否修」。
 - **词条不列卡牌清单**：卡表只在玩家持有该功法时由卡组 / 构筑界面给出，以免沿「敌人词条 → 功法图鉴」反查出敌人完整卡组。
 - **两条解锁路径（习得 · 连锁）皆幂等**；升阶不产生新条目，弃置不删条目。
 - **`Pool == Enemy` 的功法照常收录**，「敌方专属」标注由呈现层从 `Pool` 现算，不新增存档字段；**完成度分母含它**，不加 `Pool` 过滤。

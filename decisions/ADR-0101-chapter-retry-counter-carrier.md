@@ -14,7 +14,7 @@
 
 **`attemptIndex` 这一层 RNG 派生整个删除。** 重试换随机流的实现是「给这一次重试一套新的随机流」，不是在既有流上再派生一层。
 
-ch1 的重试语义不变（重开即随机生成新角色），其重开次数以账号级统计计数承载，与 ch2 / ch3 的角色级计数不同层。
+ch1 的重试语义不变（重开即重新选一个角色、开一个新的 `CharacterProfile`），其重开次数以账号级统计计数承载，与 ch2 / ch3 的角色级计数不同层。
 
 字段清单与逐条语义 → `systems/services/life-cycle-service.md`、`systems/character-profile/_index.md`。
 

@@ -4,7 +4,9 @@ date: 2026-08-28
 question: 角色模板池的形态 —— 池中有几个角色、是否账号级逐步解锁、能否重抽或指定
 source: open-questions/06-meta-progression.md → 「角色模板池的形态（08-12f 新增 · 承重）」
 targets: systems/character-profile/_index.md · terminology.md · content/_index.md · decisions/ADR-0055-character-as-content-template.md · systems/services/life-cycle-service.md（仅取向 B/C）· ux/screen-flow.md（仅取向 B/C）
-status: decided
+status: distilled
+reviewed: 2026-08-28 批量评审裁定全池指定 · 不做账号级解锁；池规模由 2026-08-29 的灵根裁决覆盖为 5
+distilled-to: handoffs/2026-08-30-character-template-pool.md
 ---
 
 # 方案草稿 — 角色模板池的形态

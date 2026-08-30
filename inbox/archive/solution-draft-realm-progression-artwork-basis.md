@@ -4,7 +4,9 @@ date: 2026-08-28
 question: 境界晋升是否改变角色 / 敌人外观？—— 即共有字段 `Artwork` 是保持「一条内容一张」的单格，还是升为按境界索引的结构。
 source: open-questions/deferred-content.md → 「美术与音频」末条 · art/visuals/_index.md → 「待决问题」末条 · systems/common-properties.md → `Artwork` 节的 ⚠ 前置依赖 · open-questions.md → 「落笔前的必须裁决」①
 targets: systems/common-properties.md（删 ⚠ 一行 + `Artwork` 基数收口一句）· art/visuals/_index.md（类目表「角色形象」「敌人立绘」两行 + 移出待决问题）· art/visuals/art-direction.md（「境界越高画面越沉」的适用口径限定）· systems/character-profile/_index.md（若采纳角色多套：`CharacterData` 新增一格 + `Artwork` 投影段）· systems/viewmodel.md（境界选取的落点）· decisions/（ADR 候选一条）
-status: decided
+status: distilled
+reviewed: 2026-08-28 批量评审取选项 B（玩家角色随境界换形象、稀疏 `RealmArtwork`）；2026-08-30 合并 interview 另裁 1 题（「境界越高画面越沉」收窄为按条目自身的叙事定位取沉，`ADR-0100` 与 `art-direction.md` 同改）
+distilled-to: handoffs/2026-08-30-realm-progression-artwork-basis.md
 ---
 
 # 方案草稿 — 境界晋升是否改变角色 / 敌人外观（`Artwork` 的基数）

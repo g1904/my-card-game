@@ -5,7 +5,9 @@ question: 两条跨边界空档的客户端半 —— ① flags 是否落客户�
 source: open-questions.md → 「跨边界闭合（强制检查项）」前两条 · open-questions/deferred-content.md → 「美术与音频」的「二进制资产是否可经 overlay / blob 通道下发」 · art/visuals/_index.md → 「待决问题」
 targets: systems/services/content-service.md（`flags.json` 的四格落盘纪律 + overlay 非 `.tres` 文件的处置）· systems/common-properties.md（`Artwork` 的 overlay 一格由「尚未答定」改为收口）· art/visuals/_index.md（移出一条待决问题 + 一条条件化记录）· open-questions/deferred-content.md（移出「二进制资产是否可经 overlay / blob 通道下发」）· decisions/（ADR 候选一条）
 counterpart: backend-design-documents/inbox/solution-draft-client-flag-cache-and-binary-overlay.md
-status: decided
+status: distilled
+reviewed: 2026-08-28 批量评审取选项 A（二进制资产不经 overlay / blob 下发，换图 / 加图随版本发布）；2026-08-30 提炼时零问题进 interview，四条机械性对账按既有权威与路由规则处置
+distilled-to: handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md
 ---
 
 # 方案草稿 — flags 本地缓存的落盘纪律 · 二进制资产不经 overlay（客户端半）

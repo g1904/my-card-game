@@ -14,7 +14,7 @@
     - **功法条目不挂 AI 出牌策略。** 出牌策略是**敌人模板**级的定制（见 `systems/enemies/`），与「战斗内不感知功法」同一条纪律：功法若挂策略，战斗内就得反查每张牌属于哪门功法。故本文档不为功法登记任何 AI 附属定义。
   - **推论 ③：存档存 build 层而非展开层** —— 卡组落存档的是「**功法 `Id` + 层数**」列表 + **游离牌 `Id`** 列表，展开成卡牌集合由内容侧完成。与既定的「存档只记 `Id`、静态字段挂 `Resource`」一致。
   - **推论 ④：功法是新的内容类型** `CultivationTechniqueData : Resource`（稳定 `Id` · `ContentEnabled` · 经 ContentRegistry 加载 · `.tres` 编写）。
-  - **承载形态 = 轻量 header + 每层的卡牌 `Id` 列表（承重）。** 功法条目**只持引用，不内联卡牌定义**：`Id` · 显示名 / 描述（`LocalizedText`）· `Rarity` · **`Pool : CardPool`**（必填、无默认、缺失 `PushError`，见下方「卡池划分」）· `ContentEnabled` · **层数上限 `MaxTier`** · **可选 `CodexFlavor`**（`LocalizedText`，可空——功法图鉴词条的风味文案，缺失即词条不呈现该段，属可选缺失、不报错）· **每层一份卡牌 `Id` 列表**；**每张卡各自是 `content/card/` 里独立的条目**。**成员关系写在功法侧，卡牌侧不带功法标记。**
+  - **承载形态 = 轻量 header + 每层的卡牌 `Id` 列表（承重）。** 功法条目**只持引用，不内联卡牌定义**：`Id` · 显示名 / 描述（`LocalizedText`）· `Rarity` · **`Pool : CardPool`**（必填、无默认、缺失 `PushError`，见下方「卡池划分」）· `ContentEnabled` · **层数上限 `MaxTier`** · **`RequiredAffinities : Affinity[]`**（要求角色具备的灵根属性，**可为空数组 = 无属性要求的通用功法**）· **`MaxCharacterAffinityCount : int`**（对角色灵根**数量**的上限要求，默认 `0` = 不限，`1` = 单灵根专属）· **可选 `CodexFlavor`**（`LocalizedText`，可空——功法图鉴词条的风味文案，缺失即词条不呈现该段，属可选缺失、不报错）· **每层一份卡牌 `Id` 列表**；**每张卡各自是 `content/card/` 里独立的条目**。**成员关系写在功法侧，卡牌侧不带功法标记。**
     - **推论：一张卡可被多门功法引用**（共享牌自然成立）。
     - **功法成员卡不进散牌产出侧（承重）。** 成员关系的唯一权威是功法侧每层的卡牌 `Id` 列表；**加载期由它反建索引，凡被任一功法引用的卡一律从散牌产出侧排除**，这些卡只能随它所属的功法整组入组。排除面 = **商店 `Card` 族库存** · **战后奖励池的 `Card` 部分** · 其余走池抽产出 `AddLooseCard` 的通道；取池链的形态各归其主：商店见 `systems/adventure-event/exchange/common-properties.md`，战后奖励池见 `systems/services/combat-service.md`。**一张卡被多门功法引用时只被排除一次**，语义无二义。
       - **这条与「功法本身可作为独立族进战后奖励池」是两件事，不要混谈。** 排除的对象是**散牌**（单张卡作为一件商品 / 一份奖励发放）；**功法是另一个族**，它整门进池、玩家选中即整组入组，不受本条影响。
@@ -102,7 +102,7 @@
 - **为什么共用 `CardData` 体系**：`DeckModule` 是同一个第三级组件、双方各持一个（两套 `CardData` 意味着它要泛型化或分叉，**为零收益付结构成本**）· 战场是单一记录、栈是单一 StackManager，**双方的牌落进同一个区、经同一条结算路径**（不同数据类型则战场条目的 `SourceId` 无法统一解析）· 异能三分 / 次类型筛选 / 效果元素若写两遍，等于把整套战斗规则实现两份。
 - **为什么不共用卡池**：**奖励抽取必须能排除敌方专用牌**（一个字段过滤比另立注册表简单得多，且与 `ContentEnabled` 的过滤位置完全同构——都在产出侧）· 两侧设计目标不同（玩家牌服务于**构筑**，敌人牌服务于**可读的对手行为**：要能被意图汇总成一条结果值、要能写进图鉴的「关键卡牌」）· **`Both` 档保留交集**，避免同一张牌写两份 `.tres`（那会造成 `Id` 二义与图鉴重复）。
 - **为什么功法层也带这一格**：敌方专用的路数（天劫一类）需要一个表达面，而它必须与玩家可习得的功法**同类型同注册表**（否则「图鉴写的即玩家能拿到的」当场断裂，且内容产能翻倍）。一格 `Pool` 既保住共用，又让玩家侧的取池能把敌方专用整门排除——与卡牌层完全同一条推理。
-- **玩家侧的功法取池点共四处，各叠一层 `Pool != Enemy`**：闭关三选一（学新）· 开局构筑三选一 · 商店 `CultivationTechnique` 族 · 战后奖励池的功法族。取池链的形态各归其主：闭关与开局构筑见 `systems/adventure-event/research/common-properties.md`，商店见 `systems/adventure-event/exchange/common-properties.md`，战后奖励见 `systems/services/combat-service.md`。**升阶 / 弃置候选不叠这一层**——它们取自卡组内已持有的功法，入口处已被过滤。
+- **玩家侧的功法取池点共四处，各叠一层 `Pool != Enemy` 与一层灵根修习准入**（见下节）：闭关三选一（学新）· 开局构筑三选一 · 商店 `CultivationTechnique` 族 · 战后奖励池的功法族。取池链的形态各归其主：闭关与开局构筑见 `systems/adventure-event/research/common-properties.md`，商店见 `systems/adventure-event/exchange/common-properties.md`，战后奖励见 `systems/services/combat-service.md`。**弃置候选不叠这一层**——它取自卡组内已持有的功法，入口处已被过滤；**升阶候选叠准入但不叠 `Pool`**（overlay 中途改动可使已持有的功法不再通过准入，见下节的边界情形）。
 - **敌方侧不过滤，因为它根本不是取池。** `EnemyData` 逐条引用功法 / 卡牌 `Id`，走**读取侧** `Get(id)`；`AllEnabled()` 只约束**抽取**，读取侧不过滤是既定纪律（见 `systems/services/content-service.md`）。**推论：flags 关掉一门敌方专用功法，不会让引用它的敌人卡组出洞。** 这与下面的加载期校验不冲突——后者是**编排期**的静态核对，不是产出侧过滤。
 - **加载期校验（全部带定位上下文）**：
   - 玩家侧奖励池 / 商店库存 / 闭关与开局构筑的抽取源必须只含 `Pool != Enemy`（卡牌层与功法层各一遍）；
@@ -113,6 +113,35 @@
 - **已知代价**：共用体系意味着敌人牌也吃全部加载时校验，**敌方内容的编写门槛与玩家侧相同，内容产能上没有折扣**。
 - **「玩家专属、敌人永不使用」的强牌允许存在**（`Pool = Character`），属内容口径，不改规则。
 - **敌人卡组规模不设硬限、允许同名条目重复**；抽牌规则与玩家完全同规则（起手 4 / 每回合 2 / 手牌上限 7 / 满手抽不进 / 空堆疲劳 / seeded 洗牌），**且双方共用同一条 `combat` RNG 子流**——两侧牌序在参战方组装时各洗一次即定、抽牌本身不消耗随机，故不存在互相打乱牌序的通道，无需按侧分流。数值与理由见 `systems/balance.md`、`systems/enemies/`。
+
+### 灵根修习准入：角色的灵根决定它能修哪些功法
+
+**角色带灵根 `CharacterData.Affinities`，功法带两格灵根要求**（`RequiredAffinities` / `MaxCharacterAffinityCount`）；二者之间**唯一**的规则后果是一条布尔式的硬性准入。灵根枚举本身、角色侧的字段面与全部加载期校验见 `../_index.md`。
+
+```
+CanLearn(character, technique) :=
+      technique.RequiredAffinities ⊆ character.Affinities
+  && (technique.MaxCharacterAffinityCount == 0
+      || character.Affinities.Length <= technique.MaxCharacterAffinityCount)
+```
+
+不满足 ⇒ 该功法**不进入该角色的任何玩家侧候选**。
+
+- **两格的主语不同，命名刻意可分。** `RequiredAffinities` 是功法**要求角色具备的**属性（决定「这门功法属于哪一路」），`CharacterData.Affinities` 是角色**拥有的**；`MaxCharacterAffinityCount` 约束的是**角色**的灵根数量，而同一个类上的 `MaxTier` 约束的是**功法自身**的层数。判定式写成 `technique.RequiredAffinities ⊆ character.Affinities` 时主语自明——与 `Tier` / `RarityTier`、`level` / `TechniqueTier`、`EnemyLevelRange` 三处「同名不同义不上移」的处置同款。
+- **`RequiredAffinities` 空数组 = 无属性要求的通用功法**，任何角色都能修（空集是任何集合的子集，判定式不需要特例）。**代价明写并接受：** 空数组与「整格漏填」不可区分（`Unspecified` 哨兵只能检出「填了但填错」）；`MaxCharacterAffinityCount = 0`（不限）与漏填同样不可区分。理由：漏填的后果是「一门功法对所有角色可见」，属**可见性放宽**而非「敌方内容混进玩家池」那种越界（`Pool` 仍在独立把关），且 `/audit-content` 会汇总通用功法的条数与占比，异常膨胀一眼可见。**日后要收紧，正确方式是加一格显式的 `NoAffinityRequired` 布尔标记，而不是把空数组重新变成非法。**
+- **准入实现为单点纯函数** `bool CanLearn(CharacterData, CultivationTechniqueData)`，各调用方各调一次；**不在各取池点各写一遍判定逻辑**（那即制造第二权威）。实际的抽取代码落点是三段而非四段——开局构筑与闭关共用同一条链（见 `systems/services/future-event-service.md` 与 `systems/adventure-event/research/common-properties.md`）。
+- **准入不进 `DrawPool<T>`，由调用方在把候选交给 `PickMany` 之前筛掉。** 依据是既定的分界判据「这道过滤需不需要读 `Profile`」——准入要经 `characterDataId` 取到 `CharacterData.Affinities`，故它在第一级之外。四处取池点的 `Pool != Enemy` 已经是各调用方自叠的一层 `Filter(predicate)`，灵根准入同址同形，**零新原语、零签名变更**。
+- **敌人侧一律不做准入。** `EnemyData` 逐条引用功法 `Id`，走**读取侧** `Get(id)` 而非取池，准入对它无处作用；敌方功法照常带 `RequiredAffinities`，纯作图鉴 / 呈现价值。
+- **卡牌侧一格不加**，这是结构性的、不是取舍：① 一张卡可被多门功法引用，若卡牌也带属性，同一张卡在两门不同属性的功法里必然打架 ⇒ 两个权威，而本库没有任何机制能发现它们不一致；② 战斗内不感知功法 ⇒ 卡级属性无法与角色灵根建立任何战斗内关系，剩下的只是卡面上的一个风味标记，而没有规则后果的分类维度本库连概念占位都不给。
+  - **负面边界：** 日后若确要做「战斗内五行相克」，**载体只能是既有次类型 `CardSubtypeData` + `EntryFilter.RequiredSubtypes`，且必须照常过准入判据**（≥3 条目共享 + ≥1 处筛选引用）；不得以「灵根已经有五行了」为由绕过，也不得在 `CardData` 上新开一格。
+- **`MaxTier` 一律不折减。** 灵根的表达完全落在「能不能修」，不落在「能修多深」——`MaxTier` 就是这门功法已经写了几套卡牌定义，任何「按灵根多修 / 少修一层」的做法要么要求一套不存在的卡，要么让已写好的一套卡对某些角色永远不可见。
+- **准入是硬收缩，带来三条必须一起成立的后果：**
+  1. **三格取池余量须按收缩后的池重估**——每个角色实际可见的池只有全池的一个子集，阈值必须按**可修功法条目最少的那个灵根**来定（见 `systems/balance.md`）。
+  2. **`ADR-0073` 的候选短缺三段处置会被更频繁触发**，三段的边界须按新口径复核。
+  3. **内容编排从建议升格为硬约束**：每个在册角色的可修功法条目数须 ≥ 取池余量阈值，低于即加载期 `PushError`（校验 10，见 `../_index.md`）；编排期的提前发现由 `/audit-content` 的对账项承担。
+- **内容编排口径：功法池的形状 = 五份小池 + 一份共享池。** 每个角色的可修池 = 「自己属性的功法」+「无属性要求的通用功法」。通用功法是压低首批内容量的主要手段（否则五个不相交的池各要独立铺够）；但**它的占比须控制**——占比过高会把灵根的辨识度稀释回「五个角色抽到的东西差不多」。编排取向是「底盘共享、亮点分化」：build-around 的高稀有度功法一律带属性、通用功法偏向低稀有度的底盘。**这是编排口径，不是字段约束。**
+- **`MaxCharacterAffinityCount = 1` 的单灵根专属功法首批可以为空**（五个角色全是单灵根，不需要对冲）。它的内容义务在**引入第一个多灵根角色的同一批**产生，须与那批角色同批铺。
+- **边界情形：overlay 在轮回中途改了灵根或功法属性。** 已持有的功法若因内容更新而不再通过准入，**读档不拒绝、不没收该功法、不告警玩家**，只是它此后不再出现在 `UpgradeTechnique` 候选中。理由：功法已写进 `CharacterProfile.technique` 且已展开为实际卡组，没收它等于在轮回中途拆掉玩家已获得的构筑；这落在既有的「不承诺跨内容版本复现」之内，不构成新的例外。
 
 ### 「回合内状态」= 生命周期三件套
 
@@ -214,7 +243,7 @@ public enum CountdownSide
 - **载体 = 古宝 + 阵法双载体**（前者「关键回合一定拿得到」，后者 build 向：牺牲一次出牌与场上位置换持续的牌序优势）；法则 `Power` 可有但极稀缺；**法术不做**——受抽牌运制约，**这类效果最怕「需要时抽不到」**，且一张只给便利不产道念的牌在 5 回合对局里几乎永远不该打。
 - **花费 = mana 为主 + 古宝上叠 `Charges`，明确排除弃牌**：弃牌把这类成本压在 5 回合对局里极稀缺的**手牌资源**上，代价过重且不可预测；mana 每回合刷满不结转，「花 1 点看一眼牌堆顶 = 这回合少打一张小牌」代价即时、可感、不跨回合累积。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15-content-id-technique-shape-and-subtype-reset.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-26b-combat-substream-arbitration.md` · `handoffs/2026-08-27-ability-primitive-grammar.md` · `handoffs/2026-08-27-card-pool-and-reshuffle.md`
+Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15-content-id-technique-shape-and-subtype-reset.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-26b-combat-substream-arbitration.md` · `handoffs/2026-08-27-ability-primitive-grammar.md` · `handoffs/2026-08-27-card-pool-and-reshuffle.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -227,11 +256,14 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 - **关键字体系 = `KeywordData` 内容层条目（清单归零、机制保留）；目标 target 与作用域 scope 分开建模并共用 `EntryFilter`** → `common-properties.md`。
 - **功法的两条强度纵轴：层数 = 严格升级；稀有度 = 强度上限与构筑复杂度，不是严格支配**。
 - **功法成员卡由功法引用派生排除于散牌产出侧；不新增字段，`CardData.Rarity` 保持必填但成员卡无规则消费点**。
+- **灵根修习准入 = 灵根的唯一规则后果**：功法增 `RequiredAffinities` / `MaxCharacterAffinityCount` 两格，判定为单点纯函数、由调用方在取池点自叠，不进 `DrawPool<T>`；卡牌侧一格不加，`MaxTier` 不折减，敌人侧不做准入。
 - **出牌费用 = mana**：每回合出牌资源为 mana，**每回合开始恢复至 `manaLimit`**（炼气基线 5/5，不结转）；`manaLimit` 由事件 cost / reward 推拉 → `../mana.md`。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
+- **多灵根角色的强度对齐换算尚无解法。** 多灵根角色的可修池天然更宽（池更宽 = 更强）。对冲手段（`MaxCharacterAffinityCount = 1` 的单灵根专属功法）结构已就位，但「多宽的可修池 = 多强的专属功法」这条换算没有答案，且依赖尚未定的道念量纲。首批全为单灵根，故在首批不发生；**引入第一个多灵根角色时必须先答**。→ 本文档、`systems/balance.md`。
+- **通用功法（无属性要求）的占比口径。** 占比过高会把灵根辨识度稀释回「五个角色抽到的东西差不多」。编排取向已定（底盘共享、亮点分化），但这是编排口径不是字段约束，取值随 ch1 starter deck 打磨定。→ 本文档。
 - **功法的规模参数（归内容扩充后的统计校准）。** 一门功法含几张牌、**层数上限 `MaxTier`** 是几、**每层的替换幅度**多大 —— 与「一张牌该产多少道念」「起始卡组给多少张」是同一个未知的几个面。→ `systems/balance.md`。
 - **关键字与次类型的首批清单。** 两套清单当前均为空、机制完整成立；填什么条目要从「哪些组合真的重复了 ≥3 次」倒推，切入点是 starter deck 的设计过程。→ `systems/balance.md`、`common-properties.md`。
 - **起始卡组的具体内容未设计。** `CardData` 的字段清单已收口（类型五分 · 异能三分 · 次类型 · `Pool` · `Subtypes` · 目标声明与效果引用 · `ManaCost` · `OnPlay`，见 `common-properties.md`）；**starter deck 装哪些牌**仍空白——**它正是内容扩充后统计校准的切入点**。

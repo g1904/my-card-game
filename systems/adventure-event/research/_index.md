@@ -6,7 +6,7 @@
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
 - **闭关（Research）= 玩家调整 / 升阶自己的卡组。** 一种非战斗 AdventureEvent 子类型，走事件式结算；语义上是角色静修钻研，机制上是**轮回内构筑的落点**——升阶 / 弃置 / 学新功法都发生在这里。见 `systems/character-profile/deck/_index.md`。
-- **开局那个强制的构筑事件归 Research。** **炼气新角色**的起始批次（含 ch1 的篇章重试）中**必有一个强制事件**，让玩家选**一门功法**与**一件法宝**（各三选一）——形态取 Slay the Spire 第一章的味道。它是 Research 的一个条目，**不需要第六类**；承载机制是既有的 `eventPriority = 1`（本批有效可选集收窄为该档），**不新增机制**。**推论：Research 既定起手形状（开局），也承担整个轮回的多轮构筑（途中）**——两者是同一类事件的两种编排。
+- **开局那个强制的构筑事件归 Research。** **炼气新角色**的起始批次（含 ch1 的篇章重试）中**必有一个强制事件**，让玩家选**一门功法**与**一件法宝**（各三选一）——形态取 Slay the Spire 第一章的味道。它是 Research 的一个条目，**不需要第六类事件**；承载机制是既有的 `eventPriority = 1`（本批有效可选集收窄为该档），**不新增机制**。**推论：Research 既定起手形状（开局），也承担整个轮回的多轮构筑（途中）**——两者是同一类事件的两种编排。
 - **Research 不可被 Explore 遮罩。** 卡组编辑是玩家主动规划的动作，把它藏在未知后面只制造挫败，不制造张力。见 `../explore/_index.md`。
 - **不单列「休养 / Rest」。** 休养语义并入 战斗 或 闭关——闭关承担其中的静养 / 修整语义。见 `systems/adventure-event/_index.md`、`terminology.md`。
 - **闭关比常规事件耗时更长。** 这是寿元定价上的一条既定差异：定价表里 Research 的 `lifeSpanCost` 高于常规事件。表的形态与取值归 `systems/balance.md`。
@@ -22,7 +22,7 @@
 - **槽内选择不落存档；决策点在此的语义是「可退出点」。** 每个决策槽各是一个事件内决策点（`R1`），但**不触发第二次写入**——候选已在 `activeEvent.Option.ResearchSlots` 里。**玩家在多槽面板上选了一半退出，重进读 `activeEvent.Option` 直接重开面板：恢复回到面板初始态，候选一字不变、槽内选择丢失**；`AdvanceEventAsync` 照常返 `AdvanceResult(Success: false, FailedAt: Cancelled)`，`activeEvent` 保留、`pastEvent` 未记。
   - **依据：决策点存档的全部理由是关掉「退出重进即重掷」的窗口**，而候选在物化时即已掷定并落存档 ⇒ 该窗口本就不存在，剩下的只是几次点击的便利。代价可量化：常态条目 1 个槽（重选 0 次）、开局构筑事件 2 个槽（至多重选 1 次）。给 `ActiveEventState` 加一格装「已选未提交」则要 bump 存档 schema 并连带一条「槽数 / 索引一致性」读档校验（overlay 调低 `CandidateCount` 后旧索引可能越界），不成比例。逐类决策点清单见 `systems/services/life-cycle-service.md`。
 
-### 操作清单 = 六类，闭合
+### 操作清单 = 五类，闭合
 
 | 操作 | 语义 | 载体 element |
 |---|---|---|
@@ -31,21 +31,21 @@
 | **`ForgetTechnique`** | 弃置一门已持有功法（含角色绑定的两门） | `DeckChangeElement` |
 | **`RemoveLooseCard`** | 移除一张游离散牌（业障 / 单卡奖励） | `DeckChangeElement` |
 | **`GrantItem`** | 获得一件法宝 `CharacterItem` | `AbilityChangeElement(Grant, Item, Character, id, Source.EventOutcome)` |
-| **`Recuperate`** | 回复 `lifeTotal` | `ChangeElement(CostKey.LifeTotal, +n)` |
 
 **`manaLimit ±1` 不单列为一种操作**——它是上述操作的**附带产出**（钻研到位则容量提升，走火入魔则容量受损），与「压低只以负向奖励条目的形态出现、不另立结构」一致。
 
-**明确不在清单内的三项：**
+**明确不在清单内的四项：**
 
+- **回寿不作为 Research 的一种操作。** 寿元的回复通道恒定为三条（回寿事件 outcome / 补天丹类法宝 / 商店购入），槽内回寿会开出第四条。合并后 Research 的门票与槽内回寿落在**同一个值**上，事件的净成本会随玩家的槽内选择浮动——而「付不起在事件选择面整体消失」这条准入语义要求 `lifeSpanCost` 是一个静态量。**Research 因此收敛为纯构筑事件**：付寿元、拿构筑。回寿的编排位置见 `systems/adventure-event/common-properties.md`。
 - **加一张游离散牌不作为 Research 的正向操作。** 构筑单位是功法，正向的卡组增长走 `LearnTechnique`；单卡入组的既有通道是**战斗奖励与事件负向奖励**，Research 再开一条会让「功法是构筑单位」的颗粒度被单卡稀释。（业障作为 Research 的**负向**结果进卡组不受此限——那走既有的负向奖励条目通道。）
 - **领悟法则（`PlayerPower`）不做。** 合法子集表里 `EventOutcome × (Power, Player)` 是 ❌，这是一条现成的机械约束，不是取向问题。
 - **授予神通 `CharacterPower` 暂不放进 Research。** 语义上归战斗奖励与 Exchange 更自然；技术上随时可开（合法子集表该格已 ✅），属内容口径而非规则改动。
 
-### 产出面的边界：卡组 + `manaLimit` + `lifeTotal` + 共有的隐藏属性推拉，此外不给
+### 产出面的边界：卡组 + `manaLimit` + 共有的隐藏属性推拉，此外不给
 
 这条收窄使「Research = 调整卡组」不至于被泛化成「万能的正向事件」。
 
-- **允许回复 `lifeTotal`。** 「休养 / Rest 并入闭关」已定，休养并进来了它的产出却没地方去等于并了一半；`life-total.md` 的「恢复途径 = 通过 event 恢复」未限定事件类型。**`Recuperate` 与 `UpgradeTechnique` 在同一决策槽内并列**，正是 StS 篝火（rest / smith）那个玩家真会犹豫的二选一——它给当前纯收益的 Research 一条内部张力。载体是既有的 `ChangeElement`，零新增。
+- **不给寿元产出。** 「休养 / Rest 并入闭关」说的是叙事归属（闭关期间静养），它的资源产出仍走事件 outcome 侧的回寿通道，不落进构筑槽——**同一次事件先付寿元、再在槽内退回一部分**会让门票价格变成一个随玩家选择浮动的量。
 - **隐藏属性推拉照常**：它是五类事件**共有**的通道（`eventEnd` 合并施加 + 跨档定性叙事），不是 Research 的专有产出，Research 侧无需表态。
 - **不给货币（`SpiritStone` / `ImmortalJade`）产出。** 两种货币的长期价值出口都已分派给 Exchange，Research 产货币会与之抢同一条价值线。
 
@@ -54,7 +54,7 @@
 **玩家可以选一个高风险的钻研候选：成功 `manaLimit +1`，失败 `−1`；掷定发生在物化阶段并随 `EventOption` 落存档**（退出重进不改变结果）。
 
 - **叙事轴与 mana 的推拉分档表天然对齐。** Research 已是推高的**主通道**（钻研 / 潜修在叙事上就是提升法力容量），走火入魔是同一条轴的反面，挂同一类型不需要新叙事前提。Explore 是纯元类型、无自己的产出口径，其可揭示的三类都不是走火入魔场景。
-- **它补上 Research 唯一缺失的张力。** 没有它，Research 是**纯收益事件**（付寿元、拿构筑，没有任何可能变糟），而闭关的 `lifeSpanCost` 又是全类型最贵一档——一个「最贵且必然赚」的事件会成为批次里的无脑首选，压掉「从一批里择一」的决策价值。
+- **它是 Research 唯一的内部张力，因此是承重的。** 没有它，Research 就是**纯收益事件**（付寿元、拿构筑，没有任何可能变糟），而闭关的 `lifeSpanCost` 又是全类型最贵一档——一个「最贵且必然赚」的事件会成为批次里的无脑首选，压掉「从一批里择一」的决策价值。**风险档是这条张力的唯一载体**，不可省。
 - **「玩家自选」而非「随机惩罚」是关键的一半。** 被系统随机扣上限只会让玩家感到被惩罚，并进而回避 Research——而 Research 是构筑的唯一落点；**自己按下那个按钮**则与「明知是死路仍然走 / 打不过也得打」是同族的取向，风险是被选择的，不是被施加的。
 - 载体是 `CostKey.ManaLimit`（`ResourceElements` 该行两个修正列均为 `null`，见 `systems/services/profile-service.md`）。
 
@@ -79,18 +79,18 @@
   - **缺席是一次大声失败的运营事故**（`PushError` + 上报），运行期唯一可能的成因是 flags 把功法 / 法宝池关到见底。**不新增任何降级路径或补发机制**——空池是运营事故，不是玩法分支。
   - 反面的做法是运行期静默把 `AllowDecline` 改成 `true` 让它照常出场：那用「静默改写一条内容侧的强约束」换「不缺席」，而开局底盘残缺的后果贯穿整个轮回，且玩家与运营都看不见发生过什么。
 
-Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
 - **Research 为五类分类法之一，语义 = 调整 / 升阶卡组；休养并入闭关（或战斗）；开局强制构筑事件归 Research** → `decisions/ADR-0002-adventure-event-taxonomy.md`。
-- **结算形态 = 复数决策槽的构筑面板；操作清单六类闭合；产出面收窄为卡组 + `manaLimit` + `lifeTotal`；`manaLimit` 下降挂玩家自选风险档；不另收资源代价** → `decisions/ADR-0022-research-build-panel.md`（Accepted）。
+- **结算形态 = 复数决策槽的构筑面板；操作清单五类闭合；产出面收窄为卡组 + `manaLimit`；`manaLimit` 下降挂玩家自选风险档；不另收资源代价** → `decisions/ADR-0022-research-build-panel.md`（Accepted）。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **`Recuperate` 的回复量与走火入魔候选的出现权重（留待内容扩充后的统计校准）。** 形态已定、取值未定。→ `systems/balance.md`。
+- **走火入魔候选的出现权重（留待内容扩充后的统计校准）。** 形态已定、取值未定。→ `systems/balance.md`。
 - **功法的层数上限（留待内容扩充后的统计校准）。** `UpgradeTechnique` 的「未达层数上限」这条候选过滤有形态无取值，`ResearchCandidate.Amount` 的取值域待它答定。→ `systems/character-profile/deck/_index.md`、`systems/balance.md`。
 
 ## 对应

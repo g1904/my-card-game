@@ -14,7 +14,7 @@
 
 **`selectCost` 内的 `LifeSpan` 恒为消耗向：取值域收紧为非负（承重）。寿元回复只能落在 outcome / reward 侧。**
 
-回寿数字与 `selectCost` **共用寿元 Band 2 那一个开关**（Band 0 / Band 1 均不显示）。
+回寿数字与 `selectCost` **同样恒精确展示**——成本侧与产出侧对称，只精确一侧会让玩家在同一屏上读到两种口径。
 
 **平衡护栏 = 三道软闸 + 一条结构性禁令，不设硬上限。**
 
@@ -35,4 +35,6 @@
 
 - 加载期校验 9 拒绝 `selectCost` 内出现 `Stat == LifeSpan` 的负值。
 - 回寿法宝的总量护栏后来因储物袋取消容量上限而少了一道软闸，护栏落到内容编排面（→ `ADR-0097`）。
-- 两道加载期校验保留：`Scope == Player` 且产出 `LifeSpan` → 拒；`LifeSpan` 产出 + `UsableScene` 含 `InCombat` → 拒。
+- 两道加载期校验保留，**理由各自独立**：`Scope == Player` 且产出 `LifeSpan` → 拒（付费面「付费续命」那条排除）；`LifeSpan` 产出 + `UsableScene` 含 `InCombat` → 拒（**战斗内不得读写这条命**，否则以生命值为终止条件的消耗战从后门回来——资源纪律见 `systems/character-profile/life-span.md`）。`PowerData` 不得含 `LifeSpan` 产出的同族禁令同理。
+- **回寿的三条通道是寿元回升的全部路径**：Research 一类的构筑面板不承载回寿（→ `ADR-0022`），故软闸 ①「回寿事件照常付 `selectCost` ⇒ 净收益恒小于回寿量」在每一条通道上都成立。
+- **软闸的射程延及战斗失败扣减**：合并后寿元同时承接失败惩罚，回寿因此也是「买回容错」，其总量护栏的重要性随之上升（→ `open-questions/01-combat.md` 的回寿法宝总量口径）。

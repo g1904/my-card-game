@@ -273,6 +273,7 @@ public abstract partial class EffectCondition : Resource { }
 | 17 | `CardData`：`CardType == Power` 且 `ManaCost != 0` | `PushError`（`Power` 永不被打出） |
 | 18 | `CardData`：`CardType == Sorcery` 且 `OnPlay` 为空 | `PushWarning`（什么也不做的法术。`Sorcery` 的 `Abilities` 恒空，故只判 `OnPlay` 一格——法术的一次性效果本就走 `OnPlay`） |
 | 19 | 某个 `EffectData` 子类从未被任何内容条目使用 | `PushWarning`（与「关键字未被任何 `KeywordRef` 引用」同构） |
+| 20 | `TimingId == card.played` 且该触发的 `TriggerFilter.CardTypes` 仅含 `Item` | `PushWarning`（该异能永不触发：道具在战斗内以 `CardType.Item` 呈现，但用道具不广播 `card.played`——形态见 `systems/services/combat-service.md` 的 `UseItem` 段。清单式软检查，与上方 `> 4` 一条同构） |
 
 > 「需要选目标的触发式异能 ≤ 10%」那条统计式 `PushWarning` **已存在**，落点在 `systems/services/combat-service.md`（决策点清单一节），不在本表重复登记。
 
@@ -280,7 +281,7 @@ public abstract partial class EffectCondition : Resource { }
 
 **零新增字段、空迁移。** `EffectData` / `StaticModifierData` / `TriggerConditionData` / `EffectCondition` 全部是**内容侧静态定义**，经 `CardId` / `abilityId` 解析而来，不落 `ActiveCombat`（与 `CardType` / `Subtypes` 不落存档同款判据）。`BumpCounterEffect` 写的是既有的 `counters` / `Counters`。代码侧落点 = `combat-service > StackManager > EffectProcessor > handler`（一原语一 handler），与「开放 `kind` ⇒ 一 kind 一 handler」的既定判据对齐。
 
-Source: `handoffs/2026-08-27-ability-primitive-grammar.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md`
+Source: `handoffs/2026-08-27-ability-primitive-grammar.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-08-30-stack-entry-kind-for-item-use.md`
 
 ## 目标（target）与作用域（scope）
 

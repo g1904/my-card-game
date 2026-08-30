@@ -28,11 +28,6 @@
 
 | 文件 | status | 说明 | 下一步 |
 |------|--------|------|--------|
-| `solution-draft-client-flag-cache-and-binary-overlay.md` | decided | flags 本地缓存的落盘纪律（`schemaVersion` / 三条失效语义 / 写入时点）+ **二进制资产不经 overlay 下发**（已裁）、`Artwork` overlay 收口。与后端库同名草稿成对 | `/analyze-new-ideas`（**须与 `backend-design-documents/inbox/solution-draft-client-flag-cache-and-binary-overlay.md` 同批**） |
-| `solution-draft-character-template-pool.md` | decided | 角色模板池：**全池指定**（已裁，覆盖草稿推荐的随机 3 选 1）· 池规模 **4**（已裁）· 首批不做账号级解锁 | `/analyze-new-ideas`（须一并松动 `ADR-0055` 的「随机分配」引用句） |
-| `solution-draft-realm-progression-artwork-basis.md` | decided | 境界晋升与 `Artwork` 基数：共有字段保持单格 · 敌人与其余五类不换相 · **玩家角色随境界换形象、按稀疏 `RealmArtwork` 落**（已裁） | `/analyze-new-ideas`（同批删 `common-properties.md:247` 的 ⚠ 行 ⇒ derive 第 1 步前置解除） |
-| `solution-draft-exchange-barter-support.md` | decided | Exchange 以物易物：**落地定值以物易物**（已裁）· 支付侧 = 货币 **或** 轮回级持有物 · 含一条会白送商品的漏洞堵法（门面 `Holds` + 前置拒绝，强制项） | `/analyze-new-ideas` |
-| `solution-draft-fatigue-in-encounter-tighten.md` | awaiting-review | 疲劳扣减不进 `EncounterSpec` 覆写组（三条理由重估 + 新增「方向不单调」第四条 + 重开判据 ① 收紧）；净落地面 = 文字改写，零字段零数值 | `/analyze-new-ideas`（**含 1 项 `[采纳推荐 — 待复核]`**：`FatigueAmount` 保持双向） |
-| `solution-draft-stack-entry-kind-for-item-use.md` | awaiting-review | 用道具的栈条目类型：`StackEntryKind` 增 `UsedItem` · `CombatFeedKind` 增 `ItemUse` · 栈条目补一格 `itemId` | `/analyze-new-ideas`（**含 1 项 `[采纳推荐 — 待复核]`**：不开 `TimingIds.ItemUsed`） |
+| *（空）* | | | |
 
 清空即为「无在办草稿」。已提炼草稿 → handoff 的对应关系见 `archive/_index.md`。

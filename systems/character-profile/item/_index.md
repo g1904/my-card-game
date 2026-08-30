@@ -57,7 +57,7 @@
 
   | 列 | 是否开放 | 理由 |
   |---|:--:|---|
-  | `Elements` | ✅ | 回寿、回 `LifeTotal`、给灵石 / 仙玉、给经验——道具战斗外产出的主体 |
+  | `Elements` | ✅ | 回寿、给灵石 / 仙玉、给经验——道具战斗外产出的主体 |
   | `CodexElements` | ✅ | 「使用后解锁一条图鉴词条」是幂等收录、无副作用；不开它日后必然再开一格 |
   | `Stats` | ✅ | 纯计数自增、失败不阻断，天然安全 |
   | `AbilityElements` | ❌ 恒空 | 道具不得授予 / 移除 / 禁用能力。账号级资产的授予渠道受 `ExclusiveSource` 与残卷机制约束，一件可购道具若能直接给法则，那两套约束全部旁路；与「事件产出不能给账号级法则或古宝」同一条理由，而道具比事件更易获取 |
@@ -130,14 +130,14 @@
     | 违规 | 依据 |
     |---|---|
     | `ItemData.Scope == Player` 且 `OutOfCombatUseOutcome.Elements` 含 `(Key == CostKey.LifeSpan && BaseValue > 0)` | 付费面五项排除的第一条**付费续命**：礼包从 `(Item, Player)` 池抽 2 件古宝，池中一旦有回寿古宝，「花钱 → 抽到 → 续寿」就是它的软形态——没有「撤销一次 `defeated`」，只是让 `defeated` 更晚到来，而那条压力线被按次稀释、效果相同 |
-    | `OutOfCombatUseOutcome.Elements` 含 `(Key == CostKey.LifeSpan && BaseValue > 0)` 且 `UsableScene` 含 `InCombat` | `lifeTotal` 是战斗内耐久、寿元在战斗内不参与结算 ⇒ 战斗内根本没有寿元结算通道，一件能在战斗内回寿的道具指向一条不存在的路径 |
+    | `OutOfCombatUseOutcome.Elements` 含 `(Key == CostKey.LifeSpan && BaseValue > 0)` 且 `UsableScene` 含 `InCombat` | **战斗内不得读写这条命**：一旦能在战斗里回寿，以生命值为终止条件的消耗战就从后门回来，而本作的战斗终止条件是道念比拼（资源纪律见 `systems/character-profile/life-span.md`） |
 
   - **能力条目一概不得产出寿元**（`PowerData` 两个 `Scope` 皆然），判据是次数——它没有 `Charges`，见 `../power/_index.md`。回寿只挂在**有明确次数上限的一次性消费**与**占事件位的事件产出**上。
   - **回寿的总量护栏在内容编排面**（出现频率、商店库存深度、定价），**规则层不设持有上限**——上方两道加载期校验管的是条目合法性，能囤多少交给编排。口径未定，见待决问题。
 
 > 本文件夹为「每类角色道具 / 每份道具设计一个 Markdown」预留结构；具体语义见 `common-properties.md` 与待决问题。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12c-identifier-singular-collapse.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12c-identifier-singular-collapse.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

@@ -196,7 +196,7 @@
 
 | 情形 | 呈现 | 判据 |
 |---|---|---|
-| **事件选项付不起 `selectCost`** | **不设灰态**；`selectCost` **只在寿元 Band 2（< 10%）如实展示**，常态档不显示 | 「明知是死路仍然走」是**有意义的玩法决策**，与「打不过也得打」同构——灰掉它等于替玩家做决定。而「明知」所需的信息只在寿元濒尽时才真正起作用，故精确值随红字倒数同时开启（权威见 `systems/adventure-event/common-properties.md`） |
+| **事件选项付不起 `selectCost`** | **不设灰态**；`selectCost` **恒精确展示**，寿元余量亦常驻可见 | 「明知是死路仍然走」是**有意义的玩法决策**，与「打不过也得打」同构——灰掉它等于替玩家做决定。余量与标价恒可见反而**强化**了这个决策的分量：玩家是**知情地**走进死路，而不是蒙着眼（权威见 `systems/adventure-event/common-properties.md`） |
 | **礼包购买入口的四条前置不满足** | **置灰 + 一行说明，不隐藏** | 玩家点下去只会撞上一个**必然失败的流程**，没有任何决策价值 |
 | **有一笔购买待兑现时的「开始新轮回」** | **置灰 + 一行说明，不隐藏** | 同上；且此刻的等待是有终点的（一直重试直到发放成功），说明文案须让玩家看见它在推进 |
 | **Exchange 刷新按钮的池前置不满足**（可产出 offer 数 < 1） | **置灰 + 一行说明，不隐藏** | 刷了也必然是空店，没有任何决策价值；且刷新要花灵石 ⇒ 不拦就把失败点留在付费之后。**只拦「必然空店」这一种**——刷出一个商品更少的店是正常方差，不提示、不置灰（判据见 `systems/adventure-event/exchange/_index.md`） |
@@ -348,7 +348,7 @@ public readonly record struct BlockingNoticeSpec(
 - **非模态提示与 toast 级提示不放**——那是高频呈现，加编号是噪音。
 - **纪律：它是诊断展示，不是玩法数据。** ViewModel 只读一次，不进任何玩法路径、不参与判断（与「同步版本 #N」同条纪律）。
 
-Source: `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
