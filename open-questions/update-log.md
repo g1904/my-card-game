@@ -2,6 +2,14 @@
 
 > 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身——条目在各分片。
 
+## 2026-08-30 — flags 缓存的报文侧对位 + blob 不承载二进制（跨库成对 · `/batch-analyze-new-ideas` 的对侧半）
+
+- `contracts/content-manifest.md` 的 Open questions **四条 → 两条**（余：多区域一致性 · flags 数据源与分桶的运营形态）。
+- 新增：`no-cache` 的**层次澄清**（回链 `envelope.md` §3，不在该侧复制）· **后端义务 = 零**的四行否定性义务表 · B 组第 7 条的依赖方登记为两项 · `## blob 通道不承载二进制资产`（含「这不是契约能力不足」的能力中立声明 + 三点条件化核对项）。
+- 连带：`decisions/ADR-0002` 后果末行去掉「以支撑离线开局」这一**错误前提**（客户端库明写缓存的收益只在「登录成功但 flags 拉取失败」时的降级值；该错误措辞此前有三份副本，草稿只点名了两份）· 「剧本文本」节「上述三条服务端保证」去计数化为「A 组的服务端保证」。
+- **报文零改动**：`flagsSchema` / `manifestSchema` 均不提升，A 组仍四条、B 组仍三条。
+- 客户端半同批落笔，两侧互相回链、无一处复述对方设计。answer log：`answer-logs/log-client-flag-cache-and-binary-overlay.md`（2 条）。
+
 ## 2026-08-28（`/write-adr backend` · 全量范围 · 一条候选固化 · 移出 0 条 · 新增 0 条）
 
 - **增量运行**：上次（08-26）已把 handoff 里的散落定案扫到 08-23，本次只需覆盖其后新增的两份 handoff。`open-questions.md`「下一阶段」仍不含 ADR 候选条目，`decisions/_index.md` 的「ADR 候选」表已于 08-19 整节删除，故候选仍全部来自 `status: distilled` 的 handoff。

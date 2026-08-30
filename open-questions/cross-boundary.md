@@ -18,6 +18,8 @@
 
 ## 对账基线（不是待办）
 
+- **`contracts/content-manifest.md` 的两条 Open question（blob 是否向二进制资产开放 · flags 是否落地客户端本地缓存）已于 2026-08-30 成对落笔关闭。** 本库落 `no-cache` 的层次澄清（回链 `envelope.md` §3，不复制）、后端对客户端缓存的**零义务**、B 组第 7 条的依赖方登记与「blob 通道不承载二进制资产」一节；对侧落 flags 落盘纪律与资产引用格的 overlay 收口，见 `game-design-documents/handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md`。**报文零改动**（`flagsSchema` / `manifestSchema` 均不提升）。**两侧无遗留欠账。** 移出记录见 `../answer-logs/log-client-flag-cache-and-binary-overlay.md`。
+
 - **Codex 顶层键的计数措辞已去计数化**（客户端 2026-08-25 图鉴族扩员 → 本库同批落笔）：`contracts/profile-sync.md` §5 排除清单由计数指代改为按 `*Codex` 顶层键后缀恒定覆盖全族，并回链客户端族清单权威（`game-design-documents/systems/player-profile/codex/_index.md`，**本库不复述**）。**契约报文形态一字未变，字段面零配合** —— 新顶层键落不透明段 ⇒ 不进白名单 ⇒ 按 §5c 适用面恒等式结构性地不受回声校验约束，且 §5c 无需加行。`schemaVersion` bump 的新值须进 `envelope.md` §7e 兼容矩阵，属**每次 bump 均有的既有机械义务**（矩阵落 `operations/`，栈未定故当前无可落之处），已记入 `handoffs/2026-08-25-codex-key-count-neutralization.md`，不进契约正文。**两侧无遗留欠账。**
 
 - **客户端 08-22 产生的三条球在本库，已于 2026-08-23 全部落笔，三处成对采纳均完成：**

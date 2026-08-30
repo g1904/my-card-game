@@ -5,7 +5,9 @@ question: 两条跨边界空档的后端半 —— ① flags 报文侧对「客�
 source: contracts/content-manifest.md → 「Open questions」第 3 / 4 条 · open-questions/04-content-delivery.md → 「已推给别处的」表末行
 targets: contracts/content-manifest.md（两条 Open question 的关闭与改写 + flags 通道一节补一段层次澄清 + A 组文件类别中立性的明写）· open-questions/04-content-delivery.md（「已推给别处的」表末行改为已答 + 条件化记录）· open-questions/cross-boundary.md（「对账基线」补一条留痕，不新增待承接项）
 counterpart: game-design-documents/inbox/solution-draft-client-flag-cache-and-binary-overlay.md
-status: decided
+status: distilled
+reviewed: 2026-08-28 批量评审取选项 A（blob 通道不向二进制资产开放）；2026-08-30 与客户端半成对提炼，零问题进 interview
+distilled-to: handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md
 ---
 
 # 方案草稿 — flags 缓存的报文侧对位 · blob 通道不承载二进制（后端半）

@@ -6,6 +6,7 @@
 
 | 草稿 | 对应 handoff | 日期 |
 |------|--------------|------|
+| `solution-draft-client-flag-cache-and-binary-overlay.md` | `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` | 2026-08-30 |
 | `solution-draft-out-of-combat-item-use.md` | `handoffs/2026-08-28-save-point-reason-inventory-changed.md` | 2026-08-28 |
 | `solution-draft-refresh-lifetime-cap.md` | `handoffs/2026-08-23-refresh-lifetime-cap.md` | 2026-08-23 |
 | `solution-draft-flags-version-monotonic.md` | `handoffs/2026-08-23b-flags-version-monotonic.md` | 2026-08-23 |

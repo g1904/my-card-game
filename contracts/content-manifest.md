@@ -2,7 +2,7 @@
 
 > 覆盖 `content-service` 边界的全部报文：overlay 的 **manifest**、内容文件 **blob**、以及 `ContentEnabled` 的 **flags** 通道。**剧本文本亦走本通道**（见下方「剧本文本」一节）。
 > 客户端侧门面见 `game-design-documents/systems/services/content-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md` · `handoffs/2026-08-23b-flags-version-monotonic.md`（服务端保证重构为两组 + flags 三条单调条款）。
+> Source: `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md` · `handoffs/2026-08-23b-flags-version-monotonic.md`（服务端保证重构为两组 + flags 三条单调条款）· `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md`。
 
 > 序列化与命名约定（lowerCamelCase · RFC 3339 UTC · 忽略未知字段）、端点风格与错误码分层归 `envelope.md`，本文件不另立一套、也不复述。
 
@@ -45,6 +45,8 @@ flags 不是内容寻址的静态对象，故 A 组的保证对它不成立，�
 7. **同一 `(flagsVersion, 账号)` 的解析结果恒定。** 对固定的账号，同一 `flagsVersion` 必须始终解析出相同的 `disabledIds`；**任何会改变解析结果的改动（规则增删、分桶比例调整、白名单增删、分桶盐值变更）都必须提升 `flagsVersion`**。分桶函数须是 `(accountId, 规则集版本)` 的**纯函数**，不得依赖实例本地随机、当前时间或请求属性。
 
 **第 7 条不可省，它不是第 6 条的重复。** 客户端「等值不拉」——这条纪律使**内容变了而版本没变**成为一个静默失效模式，其危害不亚于版本回退，且更难定位。A 组第 4 条不需要这半句，因为 manifest 是静态对象、内容寻址天然保证同版本同字节；flags 是**按账号计算的结果**，没有这层保护。
+
+**第 7 条的依赖方是两项，不是一项：** ① 客户端的「等值不拉」；② **客户端把已应用的那批 flags 持久化后作降级值使用，其可复用性**——盘上那批之所以能等同于服务端同版本的那批，靠的正是本条；客户端只比版本号，没有任何手段发现同版本内容漂移。形态与降级口径见 `game-design-documents/systems/services/content-service.md`「flags：`ContentEnabled` 的第三层」。**登记依赖方是为了让日后想放宽本条的人看得见代价，本条条款本体不变。**
 
 **两种破坏方式的线上症状相同：** 允许版本回退，会让已观测到更高版本的设备**在当前会话内此后不再拉取 flags**；允许同版本内容漂移，会让改动对已在线设备**永不生效**、只对新会话生效。两者都表现为「秒关不生效 / 误关的内容不恢复」，且只有客户端一条本地告警 + 一次上报作为线索。客户端侧的观测规则、降级与爆炸半径闸见 `game-design-documents/systems/services/content-service.md`「flags：`ContentEnabled` 的第三层」。
 
@@ -170,11 +172,22 @@ res://基线  <  user://overlay/  <  flags（仅覆盖 ContentEnabled，不改�
 
 **`enabledIds` 初期恒空。** 反向打开一个被基线关掉的条目，要求它的数值已随包发布且正确，风险与「关」不对称，不宜走同一条快通道。字段先立在 schema 里，避免日后启用时提升 `flagsSchema`。
 
+**`no-cache` 的适用面是 HTTP 缓存层，不是客户端的应用层持久化。** 它禁止的是中间层 / 代理 / CDN 复用一份**按账号计算**的应答（防灰度分桶串号，见 `envelope.md` §3 —— 那里说的是它**为什么**在 API 域，此处说的是它**约束到哪一层为止**）。它不约束、也无力约束客户端把**已应用**的那批结果自行持久化以作降级值：那发生在应用层，存的是这台设备这个账号自己的结果，与串号无关。其形态、失效语义与降级口径的权威在 `game-design-documents/systems/services/content-service.md`，**本契约不复述、不代为约束**。
+
+**后端对客户端缓存的义务 = 零，报文零改动。** 逐条写下这些**否定性义务**，是为了让「后端要不要为此做点什么」这个问题此后不再被问：
+
+| 项 | 结论 | 理由 |
+|---|---|---|
+| 下发 TTL / `max-age` 语义字段指挥客户端缓存寿命 | **不下发** | 客户端已定不设时间 TTL（判据在对侧，回链见上）；下发一个无人消费的字段是纯负债，且会诱导实现方去「遵守」它 |
+| 在应答体里回显 `accountId` 供客户端给缓存打标 | **不下发** | 客户端用自身会话身份打标即可；与 `ADR-0002` 的载荷边界同向——端点只给**结果**，不给推导过程与身份回声 |
+| 提升 `flagsSchema` | **不提升** | 零新增字段 |
+| 新增服务端保证 | **不新增** | B 组第 7 条已逐字覆盖客户端缓存的可复用性；新写一条 = 同一义务两处表述 |
+
 ## 剧本文本：一类普通内容文件
 
 > Source: `handoffs/2026-08-11-plot-service-retired.md` · `handoffs/2026-08-16d-plot-content-shape-adoption.md`（客户端侧决策见 `game-design-documents/handoffs/2026-08-11-plot-content-localization.md` 与 `.../2026-08-16i-plot-data-encoding.md`）。
 
-剧本内容自 2026-08-11 起是**客户端本地内容层的一员**，不再有云端剧本服务、不再有剧本端点。它以 `.tres` 内容文件的形态出现在 `files[]` 中，与卡牌 / 事件 / 敌人条目**在报文层完全同形**——服务端不区分内容类别，上述三条服务端保证原样覆盖它。**契约层为此无需任何新增字段。**
+剧本内容自 2026-08-11 起是**客户端本地内容层的一员**，不再有云端剧本服务、不再有剧本端点。它以 `.tres` 内容文件的形态出现在 `files[]` 中，与卡牌 / 事件 / 敌人条目**在报文层完全同形**——服务端不区分内容类别，A 组的服务端保证原样覆盖它。**契约层为此无需任何新增字段。**
 
 两条承重的推论：
 
@@ -185,6 +198,14 @@ res://基线  <  user://overlay/  <  flags（仅覆盖 ContentEnabled，不改�
   - **服务端不感知这一分野**：`disabledIds` 只是一串 `Id`，语义与准入由客户端裁决。归属与校验形态见 `game-design-documents/systems/services/plot-manager.md` 与 `.../content-service.md`。
 
 **运营后果需明写：** **撤回一整段已发布剧情**（让它连同文件一起消失）仍只能靠发布更大的 `contentVersion`，速度是 **overlay 的冷启动级**；flags 能做的是**停止新激活**，不是撤回。玩家若已在被撤回的剧本 arc 下存过 key point，客户端侧已定的降级规则（悬空 key point → `PushWarning` + 跳过该段叙事 + 轮回照常继续）承接这一情形，**后端无需为此提供任何补偿报文**。
+
+## blob 通道不承载二进制资产
+
+`files[]` 只承载 `.tres` 内容文件；贴图 / 音频等二进制资产**不经本通道下发**，换图 / 加图随客户端版本发布。这是对侧的裁决与合并纪律，判据见 `game-design-documents/systems/common-properties.md` 的 `Artwork` 一节。A 组四条保证、manifest schema 字段表、签名形态与 `manifestSchema` **一字不改**。
+
+**这不是契约能力不足。** 报文层对文件类别中立——上一节的剧本文本已经验证过一次同一件事：内容寻址（`<contentRoot>/blobs/<sha256>`）的寻址键是字节的 hash、稳定 URL 与字节不可变是它的直接推论、发布原子性只取决于发布顺序、完整性覆盖面是「一次验签 manifest 原始字节 + N 次 SHA-256」、`files[].path` 校验的是路径串——**这五项对非 `.tres` 文件逐字成立**。限制来自对侧的字段形态与其资源引用模型，不来自本契约。写清这一点，是为了让日后的复议从正确的位置起步，而不是去修一个并不存在的契约缺陷。
+
+**若日后开放，本库须核对三点**（条件化于「开放」这一假设，**不是待办**）：`files[].size` 的口径与磁盘预检在 MB 级下的运维含义 · A 组「字节级 Range 不写进契约」这条否定**须与对侧同批重估**（对侧那条否决带一个量级前提）· CDN 缓存与回源成本模型。展开见 `open-questions/04-content-delivery.md`。
 
 ## 与客户端 `OpError` 的映射
 
@@ -212,5 +233,3 @@ res://基线  <  user://overlay/  <  flags（仅覆盖 ContentEnabled，不改�
 
 - **多区域一致性**：若内容分发需按区域托管，`contentRoot` 按区域下发已留出自由度，但多区域间 `contentVersion` 是否必须同步推进未定（`02-account-compliance.md`）。
 - **flags 数据源与分桶规则的运营形态**（落 `operations/`）：规则存在哪（配置表 / 数据库 / 控制台）、由谁改、按账号计算是否需要缓存层。**审计留痕不在此列**——它的四项最低要求见 `operations/_index.md`；**缓存层若引入，缓存键必须含 `flagsVersion`**（「服务端保证」B 组）。
-- **blob 通道是否向二进制资产开放（承接项）：** A 组的内容寻址与 `files[]` 全量清单在报文层对文件类别无任何区分，但**当前实际被消费的只有 `.tres` 内容文件**——贴图 / 音频等二进制资产是否也经本通道下发（进而决定它们能否不发版更新），两库均未表述过，**本契约不代为裁决**。客户端侧的待答项（连同其字段侧的最小口径）见 `game-design-documents/open-questions/deferred-content.md` 与 `game-design-documents/art/visuals/_index.md`。若答为「开放」，须核对的是本文件的 `files[].path` 校验面与「manifest 与其列出文件发布原子」两条对非 `.tres` 文件是否仍逐字成立；若答为「不开放」，则是一条客户端侧的合并纪律，服务端义务清单不变。
-- **flags 是否落地客户端本地缓存以支撑离线开局** —— **归客户端侧裁决**，本库不代为决定。若不缓存，断网启动时抽取池会回到 overlay 的 `ContentEnabled` 值（被秒关的条目在离线时复活）。

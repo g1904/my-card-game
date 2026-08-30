@@ -36,4 +36,4 @@
 - 「撤回」与「停止新激活」是两件事：前者只能靠 ADR-0001 的前滚（冷启动级），flags 只能做后者。
 - 任何要求扩大 flags 载荷的提案，等于要求推翻本 ADR，须重新论证上述三条纪律如何继续成立。
 - flags 数据源、分桶规则的存放与审计留痕属运营形态，落 `operations/`（栈落定后），仍在 `open-questions/04-content-delivery.md` 待答。
-- 客户端侧对位（产出侧 / 读取侧不对称、是否本地缓存 flags 以支撑离线开局）归 `game-design-documents/systems/services/content-service.md`，本库不代为决定。
+- 客户端侧对位（产出侧 / 读取侧不对称、flags 的客户端持久化形态）已由对侧裁决，权威见 `game-design-documents/systems/services/content-service.md`。

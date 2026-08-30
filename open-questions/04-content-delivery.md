@@ -24,4 +24,4 @@
 | 字段名 / 端点风格 / 序列化形态 / 错误码分层 | `01-contracts.md`（契约表达形式） |
 | 信封携带 `flagsVersion`、`minAppVersion` 与强更闸门的分工 | `01-contracts.md` → `contracts/envelope.md` |
 | CDN 厂商与托管形态选型 | `06-platform-stack.md` |
-| **flags 是否落地客户端本地缓存以支撑离线开局** | **客户端侧**（`game-design-documents/`）——本定案唯一未闭合的语义缺口，归客户端裁决 |
+| **flags 的客户端持久化形态** | **已答**（2026-08-30 · 客户端裁决）：落 `user://cache/flags.json`，带 `schemaVersion`、写入时点唯一为「通过单调闸并被应用之后」、三条失效语义、不设 TTL。收益口径**不是**离线开局（强制在线下无权威档即不可玩），只有「登录成功但 flags 拉取失败」时的降级值。权威见 `game-design-documents/systems/services/content-service.md`。本库对该缓存的义务为零 |

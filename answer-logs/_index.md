@@ -23,6 +23,7 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-client-flag-cache-and-binary-overlay.md` | 2026-08-30 | `inbox/archive/solution-draft-client-flag-cache-and-binary-overlay.md` → `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` | 2（`contracts/content-manifest.md`「Open questions」四条 → 两条；跨库成对，客户端同批移出 2 条） |
 | `log-echo-validation-scope.md` | 2026-08-23 | `inbox/archive/solution-draft-echo-validation-scope.md` → `handoffs/2026-08-23c-echo-validation-scope.md` | 1（两小问一并答定） |
 | `log-flags-version-monotonic.md` | 2026-08-23 | `inbox/archive/solution-draft-flags-version-monotonic.md` → `handoffs/2026-08-23b-flags-version-monotonic.md` | 2（其一部分答结：运营形态其余部分留 `04`） |
 | `log-refresh-lifetime-cap.md` | 2026-08-23 | `inbox/archive/solution-draft-refresh-lifetime-cap.md` → `handoffs/2026-08-23-refresh-lifetime-cap.md` | 1 |
