@@ -56,7 +56,7 @@ D:\MyCardGame\
 - **只在两个 feature 文件夹中编辑。** 四个 testing/production 文件夹是并行快照，用于把一个稳定构建与进行中的工作交叉对比（在不切换分支的情况下映射 dev/test/prod 分支模型）。
 - `settings.json` 的 permission **deny 规则**会拦截对这四个快照目录的 Edit/Write（无需钩子、不依赖 python）。Bash 写入由 PreToolUse 钩子 `hooks/check-bash-readonly-dir.sh` 拦截（依赖 python）。
 - 后端目前**尚未开工**：`backend-feature-branch/` 只有一份 README，技术栈待定。客户端的边界服务先以离线 stub 实现。
-- **`.claude/` 自身也是一个 worktree**（分支 `claude-config`，分支根 = 本文件夹根）。它与其余九个目录一样受 `push-all.cmd` 覆盖。`.gitignore` 排除 `.idea/`、`blueprints/`、`plans/`、`session-tags.json`。
+- **`.claude/` 自身也是一个 worktree**（分支 `claude-config`，分支根 = 本文件夹根）。它与其余九个目录一样受 `push-all.cmd` 覆盖。`.gitignore` 排除 `.idea/`、`plans/`、`blueprints/`、`batch-runs/`、`session-tags.json`。
 
 ### 设计意图
 `game-design-documents/`（`game-design` 分支 —— 仅文档，孤儿历史）承载**客户端**的人工设计交接：游戏*应该*是什么样的事实来源。这里的 `knowledge/*` 是**指向它的薄引用层**（导航 + 代码现状 + 一句话承重纪律，不复述设计内容）。规划一个功能时，先阅读相关的设计文档。
