@@ -122,3 +122,6 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash
 ### Clean（已核对，无漂移）
 - <领域>
 ```
+
+### 7. 刷新保鲜基线
+全量对账（`all` 或空参数）完成后，执行 `powershell -NoProfile -ExecutionPolicy Bypass -File .claude\scripts\check-knowledge-staleness.ps1 -Update` 把基线钉到当前提交——此后 `/blueprint` 的鲜度检查以本次对账为新起点。只对账了单一领域时**不要刷新基线**（会掩盖其余领域未对账的漂移）。

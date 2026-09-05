@@ -34,6 +34,7 @@ argument-hint: <FR-<id> | content/<类型>/<id>.md | 功能描述>
 - 若逻辑上有问题，现在就向用户提出——不要继续。走到需要用户澄清**设计意图**的程度时，回退到 `/analyze-new-ideas`（它的第 4 步 interview 才是澄清设计意图的正确位置），不要在蓝图里替用户拍板。
 
 ### 2. 知识探查（搜代码之前先读）
+0. **鲜度检查**：`powershell -NoProfile -ExecutionPolicy Bypass -File .claude\scripts\check-knowledge-staleness.ps1`。报漂移 → 建议先 `/sync-knowledge` 对账；本次来不及对账时，在澄清摘要与蓝图中声明「知识层可能落后于 <目录> 的 N 个提交」，不要当它是新鲜的。
 1. 读 `.claude/knowledge/architecture.md` 了解宏观地图。
 2. 读 `.claude/knowledge/systems/_index.md`；打开相关的 `systems/<name>.md` 笔记（如果已存在）。
 3. 读相关的 `.claude/knowledge/data/_index.md` 架构，以及 `.claude/knowledge/autoloads/_index.md`（CycleState、EventBus、DataRegistry、SaveManager 等）。

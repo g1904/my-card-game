@@ -1,6 +1,6 @@
 # 数据资源规则
 
-游戏内容（卡牌、relic/joker、敌人、遭遇战、事件、blind/ante、平衡表）是**数据**，以序列化为 `.tres` 的自定义 `Resource` 类来定义。深入配套文档：`.claude/knowledge/data/_index.md`。
+游戏内容是**数据**，以序列化为 `.tres` 的自定义 `Resource` 类来定义。**内容类型的完整登记表**（有哪些类型、各自的类与类定义权威）见 `game-design-documents/content/_index.md`；共有字段见 `game-design-documents/systems/common-properties.md`。导航层：`.claude/knowledge/data/_index.md`。
 
 ## 定义
 - 每种内容类型都是一个 `[GlobalClass] partial class XxxData : Resource`，带 `[Export]` 字段。实例以 `.tres` 文件的形式在项目的数据文件夹下编写。
@@ -11,7 +11,9 @@
   形态与失败语义见 `game-design-documents/systems/common-properties.md`「内容文本的多语言形态」。
 
 ## 注册表 / 加载
-- 单一的 **DataRegistry** 自动加载在启动时加载每种类型的全部 `.tres` 并按 `Id` 建立索引。玩法代码通过注册表查找内容，而非到处散落 `ResourceLoader.Load` 调用。
+- 启动时把每种类型的全部 `.tres` 加载并按 `Id` 建立索引的是 **`ContentRegistry`**——它**不是 autoload**，而是 autoload `ContentService` 内部持有的 manager（服务是 autoload、manager 不是）。玩法代码通过它查找内容，而非到处散落 `ResourceLoader.Load` 调用。
+  写成 `DataRegistry` 或把它注册成 autoload，都与既定的服务 / manager 形态相抵。
+  → `game-design-documents/system-overview.md`「三、注册」、`game-design-documents/systems/services/content-service.md`
 - **从内容集合抽取一律经仓储的 `AllEnabled()` 取池**——仓储上没有中性名 `All()`（全量口径叫 `AllIncludingDisabled()`）。
   漏写过滤 = 线上放量开关失效，且**能上线、线上不可见**。
   `ContentEnabled` 的语义、读取侧不过滤的理由、校验与编译闸形态见
@@ -21,7 +23,9 @@
   校验口径见 `game-design-documents/systems/services/content-service.md`。
 
 ## 平衡与配置
-- 可调数值（花费、伤害、掉落权重、ante 缩放）存放在导出字段或专门的平衡资源中 —— **不**硬编码在系统逻辑里。系统从数据中读取数值。
+- 可调数值存放在导出字段或专门的平衡资源中 —— **不**硬编码在系统逻辑里。系统从数据中读取数值。
+  硬编码一个数值即绕过 overlay 热更，改一个平衡数字就得发一次版。
+  → `game-design-documents/systems/balance.md`
 - **平衡资源也经 ContentRegistry，用 `Content.Single<T>()` 取，调用方不写 `Id` 字面量。**
   直读 `res://content/balance/*.tres` 会绕过 overlay 覆盖层与合并后强校验——「平衡数值可热更而不发版」当场失效。
   `ISingletonContent` 标记接口、编译闸与加载期条数校验见

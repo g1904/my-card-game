@@ -55,7 +55,7 @@ Godot **4.7**，渲染器 **GL Compatibility**（`renderer/rendering_method = gl
 - **玩法系统** → `.claude/knowledge/systems/_index.md`，然后 `systems/<system>.md`
 - **数据定义**（卡牌、道具、敌人、修行事件、剧本、平衡）→ `.claude/knowledge/data/_index.md`（引用层；权威在 `game-design-documents/systems/`）
 - **内容条目（实例层）** → `game-design-documents/content/`（`content/<类型>/<id>.md` 一条内容一份文档；`content/<类型>/_index.md` 是类型档案，持有字段核对清单与条目台账）。流水线：`/scaffold-content-type <类型>` 开张 → `/author-content <类型> <草稿>` 写条目 → 签核 `draft → ready` → **直接 `/blueprint`（不经 FR）** → `/implement` → `.tres`；条目一多用 `/audit-content` 对账。**硬边界：`content/` 只写「填了什么值 + 权威回链」，绝不复述字段的类型 / 取值域 / 枚举 / 校验语义**——那会制造第二权威，两份表各自漂移而本库无机制发现。类型登记表、依赖链与 id 约定见 `game-design-documents/content/_index.md`。
-- **美术 / 音频方向与资产生成指导** → `game-design-documents/art/`（两个一级分区：`visuals/`（含子分区 `animations/`）· `soundtracks/`）。本库只存 vision 文本、参考登记与 art / audio guide（prompt）；**生成出的二进制资产归 `game-feature-branch/`**。硬约束：手机可读 · GL Compatibility · 竖屏。
+- **美术 / 音频方向与资产生成指导** → `game-design-documents/art/_index.md`。该库只存 vision 文本、参考登记与 art / audio guide（prompt）；**生成出的二进制资产归 `game-feature-branch/`**——写进设计库会让它变成二进制仓库。**二进制资产也不经 overlay 下发**（换图随版本发布）→ `game-design-documents/decisions/ADR-0125-no-binary-over-overlay.md`。
 - **场景目录** → `.claude/knowledge/scenes/_index.md`
 - **自动加载 / 单例** → `.claude/knowledge/autoloads/_index.md`
 - **深入约定**（C# 风格、场景约定、信号/事件总线、RNG、存档格式、移动端 UI）→ `.claude/knowledge/standards/`

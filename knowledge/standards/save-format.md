@@ -19,15 +19,17 @@
 5. **`PushAsync` 不接收 profile 参数**——profile 的内存权威在 profile-service，递一份进来等于把「谁是权威」重新打开。→ `systems/services/sync-service.md`
 6. **增量 push 按 `CharacterProfile` 粒度 diff**，不整体上行 `PlayerProfile`（它随账号年龄单调增长）。→ `systems/services/sync-service.md`
 7. **`revision` 由后端分配、只作传输层基线，绝不进存档 schema**；客户端只持 `baseRevision` 落 `user://cache/`。→ `systems/services/sync-service.md`
-8. **`pushId` 跨启动重试必须不变（幂等键），`X-Request-Id` 每次重试必须换（日志关联键）**——写反前者丢玩家进度，写反后者让日志无法定位单次尝试。→ `backend-design-documents/contracts/profile-sync.md`
+8. **`pushId` 与 `X-Request-Id` 的重试语义相反、绝不能混用**（一个是跨启动不变的幂等键，一个每次重试都换）——写反即丢玩家进度或丢日志定位能力。→ `backend-design-documents/contracts/profile-sync.md`
 9. **flush 失败不挡玩家**：`Immediate` 只声明「不等防抖窗口」，失败处置与 `Debounced` 完全一致。→ `systems/services/sync-service.md`
 10. **只有已知错误码能触发硬阻塞，未知 `code` 永远不得新增第三处硬阻塞。** → `ux/error-and-blocking-ux.md`
-11. **账号级字段分规则字段层与统计计数层，依赖单向（规则字段可被 UI 读，统计计数绝不可被规则读）；命名硬约定 `Ordinal` 后缀 ⇒ 规则层、`Total` 前缀 ⇒ 统计层。** → `systems/player-profile/_index.md`
+11. **账号级字段分规则字段层与统计计数层，依赖单向**（规则字段可被 UI 读，统计计数绝不可被规则读）。**命名硬约定共四个词缀，两族成员名空间在构造上不相交**：规则层用 `Ordinal`（位置 / 幂等键）与 `Used`（规则层的数量），统计层**必须**带 `Total` 前缀**或** `Count` 后缀；两族各自禁用对方的词缀。同一条投影也适用于 `CostKey`（规则层）↔ `StatKey`（统计层）。**只记一半就判不出来**，而这条约定的全部价值就是可机械检查。→ `systems/player-profile/_index.md`
 12. **恢复后先 pull 再 flush**；云端领先即丢弃本地缓冲并告知玩家，**不做静默合并、不做字段级三路合并**（那会实质削弱 ADR-0003）。→ `systems/services/sync-service.md`
 13. **存档带 `schemaVersion` 并有迁移路径**：更旧逐版迁移、更新 / 未知优雅拒绝，绝不崩溃；`MigrationManager` 骨架此刻就立起来。→ `systems/services/sync-service.md`
 14. **读档校验强制**：未知内容 `Id` / 版本不匹配 / 缺失字段一律清晰报错或迁移，不静默为 null。→ `.claude/rules/null-check-rules.md`
 15. **跨边界枚举值以字符串序列化、与 C# 枚举名逐字相同** ⇒ 重命名一个跨边界枚举值即是破坏性契约变更，须与后端同批改。→ `backend-design-documents/contracts/envelope.md`
-16. **集合字段名与类型名恒为单数**（边界 = 两层 Profile 及其子对象的存档字段名）——字段名机械映射为 JSON path，改名即破坏性契约变更。→ `systems/character-profile/_index.md`
+16. **向受约束顶层键内的对象「加一个字段」不是零配合的加法**：客户端强类型 record 反序列化再序列化会**静默丢掉**不认识的字段 ⇒ 下一次回声校验当场失败 ⇒ 整批被拒。故加字段也须两侧同批落笔。→ `systems/services/sync-service.md`、`decisions/ADR-0028-upstream-echo-validation-scope.md`
+17. **集合字段名与类型名恒为单数**（边界 = 两层 Profile 及其子对象的存档字段名）——字段名机械映射为 JSON path，改名即破坏性契约变更。→ `systems/character-profile/_index.md`
+18. **`SavePointReason` 另有批次层的储物袋通道**：战斗外道具使用 / 随售是**即时提交**（一次 `TryApply` + 一次本地原子写），**不是事件内决策点、不触发 `RefreshAfterEvent`、不计软阻塞闸门**，但**照跑终态判定**（否则会出现「资源触底而角色仍 `ongoing`」）。→ `decisions/ADR-0122-batch-layer-inventory-commit-and-trace.md`
 
 ## 存什么（判据，不是字段表）
 

@@ -43,7 +43,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 - **物化模型：** `AdventureEventData`（模板）→ future-event-service（**唯一物化点**）→ `EventOption`（**产出即定稿、不可变、落存档**）。同一通则也适用于 `EnemyData` → `EnemyInstance`。→ `systems/architecture.md`「总则 6」。
 - **核心循环一批只有一次操作：择一进入。** 跳过通道整体不存在，别为「跳过」写任何分支；选择约束只剩 `Priority` 一条轴，future-event-service 独占置位。→ `systems/game-progression.md`
 - **内容三层覆盖来源：** 基线 < overlay < flags → 合并后统一校验 → ContentRegistry 按 `Id` 索引。→ `data/_index.md`
-- **一切内容都在本地，没有云端内容通道**：跨进程边界收敛为**鉴权 · 进度同步 · 内容分发**三处，玩法回路全程零网络请求。→ `systems/services/plot-manager.md`
+- **一切内容都在本地，没有云端内容通道**：跨进程边界收敛为**鉴权 · 进度同步 · 内容分发**三处窄接口，玩法回路全程零网络请求。**已预告第四个 `IPurchaseBackend`（商业化落地时）；把支付方法挂进 `IProfileBackend` 已被明确否决。** → `systems/architecture.md`「总则 7」；「剧本纯本地」这一条 → `systems/services/plot-manager.md`
 - **启动契约：** `main` 场景 = `BootstrapScreen.tscn`，按序驱动**三个**边界服务的 `InitializeAsync`，并在登录之后插入一次 `RefreshFlagsAsync`。→ `autoloads/_index.md`。
 
 ## 承重纪律（写代码时会改变写法的那几条）
@@ -52,12 +52,13 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 
 1. **确定性的边界 = 同一 `contentVersion` 内。** 随机性一律经 SeedManager 的具名子流，**不用未加种子的 `GD.Randi()`**；已明确**放弃跨内容版本复现**（overlay 即时生效、不冻结版本）。→ `standards/rng-determinism.md`
 2. **抽取走 `AllEnabled()`；仓储上没有中性名 `All()`**（全量走 `AllIncludingDisabled()`，写下 `All()` 会编译失败）。读取侧 `Get(id)` **不**过滤（存档引用不能悬空）。→ `data/_index.md`
-3. **档案写入只经 `ProfileManager.TryApply(spec)`**（全量校验 → 全有或全无 → 单点提交），成本与产出在**同一次** `TryApply` 内。**modifier pipeline 对 `Elements` 是 opt-in 白名单、缺省豁免**——缺省若取「经 pipeline」，一条法则可静默改写幂等键 / 付费凭证。→ `systems/architecture.md`
+3. **档案写入只经 `ProfileManager.TryApply(spec)`**（全量校验 → 全有或全无 → 单点提交），成本与产出在**同一次** `TryApply` 内。**收口前若要依「更新后的」profile 重算，走只读投影 `Project(spec)` 先算后提交，不开第二个写入面**（投影不存字段、不跨 `await`）。→ `decisions/ADR-0108-profile-readonly-projection.md`**modifier pipeline 对 `Elements` 是 opt-in 白名单、缺省豁免**——缺省若取「经 pipeline」，一条法则可静默改写幂等键 / 付费凭证。→ `systems/architecture.md`
 4. **运行时绝不写 `XxxData : Resource`** ——它是注册表里的共享只读单例，写回会污染同一轮回的后续批次与其他角色。服务签名里**传实例，不传 `Resource`**。
 5. **方法形态看签名即知边界：** B（跨后端）/ C（跨多帧长流程）**带 `Async` 后缀并返回 `Task`**，A（纯内存 / 纯本地事务）**不带**。三者不许混用。
 6. **业务失败不抛异常**（付不起成本、网络不通、token 失效 → 返回 `OpResult` / `ApplyResult`）；只有「必需缺失 = 程序缺陷 / 坏数据」才 `GD.PushError` + `throw`。→ `.claude/rules/null-check-rules.md`
 7. **EventBus 用 C# 泛型 `event` + `readonly record struct` 负载**，不用 Godot `[Signal]`；负载**只带 `Id` + 值类型**；**`_Ready` 订阅 / `_ExitTree` 退订**。→ `standards/signal-eventbus.md`
 8. **服务间只经 `Xxx.Instance.Method(...)` 调用**，不读写对方字段、不伸手进对方 manager（跨服务方法调用本身是允许的）；manager 类型 `internal sealed`；服务不返回内部可变集合。
+9. **集合字段名与元素类型名恒为单数形态对应，且二者不得逐字相同**（`RealmArtworks : RealmArtwork[]`）——同名会让类内成员查找遮蔽同名类型，`new RealmArtwork()` 当场解析不了；且字段名机械映射为 JSON path，改名即破坏性契约变更。→ `decisions/ADR-0105-singular-collection-field-naming.md`
 
 ## 其余导航
 

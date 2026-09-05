@@ -99,6 +99,7 @@ D:\MyCardGame\
 ├── knowledge/
 │   ├── architecture.md          — scene tree, autoloads, render/resolution
 │   ├── dictionary.md            — game glossary
+│   ├── .staleness-baseline      — 保鲜基线（check-knowledge-staleness.ps1 -Update 维护）
 │   ├── systems/     (_index.md; per-system notes appear as systems land)
 │   ├── data/        (_index.md — 引用层；内容权威在设计库 systems/)
 │   ├── scenes/      (_index.md; per-scene notes appear as scenes land)
@@ -111,8 +112,12 @@ D:\MyCardGame\
 │   ├── session-manager-impl.ps1 — 实现；上面两个入口都转发到它
 │   ├── push-all-impl.ps1        — 批量 commit/push 全部工作区（经根级 push-all.cmd 调用）
 │   ├── promote-impl.ps1         — 沿提升线合并 + 推送（经根级 promote.cmd 调用）
-│   └── index-size-guard.ps1     — PostToolUse 钩子：台账超阈值告警（一般 20KB，
-│                                   open-questions/update-log.md 放宽到 48KB；只告警，绝不拦截）
+│   ├── index-size-guard.ps1     — PostToolUse 钩子：台账超阈值告警（一般 20KB，
+│   │                               open-questions/update-log.md 放宽到 48KB；只告警，绝不拦截）
+│   ├── verify-config.ps1        — .claude 配置确定性自检（frontmatter / rules 登记 / 引用完整性 /
+│   │                               薄引用纪律 / _index 台账）；/sync-knowledge 的机械底座
+│   └── check-knowledge-staleness.ps1 — 知识保鲜检查：对比事实来源相对基线的漂移，
+│                                   提示何时该跑 /sync-knowledge；-Update 刷新基线
 └── skills/
     ├── analyze-new-ideas/     — raw idea → consistency/compat review → interview → clean handoff → distill into design docs
     ├── provide-solution-draft/ — one open question → proposed solution → inbox/solution-draft-<slug>.md (human review)
@@ -129,6 +134,8 @@ D:\MyCardGame\
     ├── review-local-changes/  — review uncommitted changes
     ├── review-feature/   — review a feature's full chain
     ├── investigate/      — trace a bug to ranked root causes
+    ├── add-detail-log/   — 排障期临时高密度打点（只加日志、不改逻辑；提升前先精简）
+    ├── remove-detail-log/ — 把排障打点精简回常态基线（只删/留日志、不改逻辑）
     ├── sync-knowledge/   — reconcile knowledge/* + rules/* against code + design docs
     ├── update-readme/    — realign every README.md with what it describes
     ├── session-manager/  — session favorites/tags

@@ -16,7 +16,7 @@
   var card = _registry.GetCardOrNull(cardId);
   if (card == null)
   {
-      GD.PushError($"[DataRegistry-GetCard] card not found, id={cardId}");
+      GD.PushError($"[ContentRegistry-GetCard] card not found, id={cardId}");
       throw new InvalidOperationException($"Card not found: {cardId}");
   }
   ```

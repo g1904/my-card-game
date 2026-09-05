@@ -15,19 +15,22 @@
 | 异能 | `AbilityData` | `character-profile/deck/` |
 | 功法 | `CultivationTechniqueData` | `character-profile/deck/`——**卡组的构筑单位** |
 | 角色（模板） | `CharacterData` | `character-profile/`（≠ 轮回态 `CharacterProfile`） |
-| 法则 / 神通（Power） | `PlayerPowerData` / `PowerData` | `player-profile/player-power/`、`character-profile/power/` |
+| 法则 / 神通（Power） | **两层共用 `PowerData`**（层级由 `AbilityScope` 声明） | `player-profile/player-power/`、`character-profile/power/` |
+| 异能 / 效果原语 / 触发条件 | `AbilityData` / `EffectData` / `TriggerConditionData` / `StaticModifierData` | `character-profile/deck/common-properties.md`「效果原语与定义体」 |
 | Enemy（敌人） | `EnemyData` ↔ `EnemyInstance` | `enemies/`（与 adventure-event 平级） |
+| 敌人 AI 策略 | `EnemyAiProfileData` | `enemies/` |
+| 成就 | Achievement 条目 | `player-profile/achievement/` |
 | AdventureEvent（修行事件） | `AdventureEventData` | `adventure-event/`（五个子类型，ADR-0002） |
-| 可购道具 | `ItemData` / `PlayerItemData` | `player-profile/player-item/`、`character-profile/item/` |
+| 法宝 / 古宝（可购道具） | **两层共用 `ItemData`**（古宝另受 `Charges > 0` 硬约束） | `player-profile/player-item/`、`character-profile/item/` |
 | 效果关键字 | `KeywordData` | `character-profile/deck/`（首批清单为空、机制保留） |
 | Location（地域） | `LocationData` | `game-progression.md`（平坦集合，**无 C# 枚举**） |
 | `locationMap`（地域图） | `LocationMapData` | `game-progression.md`（**单份全局邻接表资源**，不由各 location 各持边；`ISingletonContent`） |
 | 隐藏属性档位 | `HiddenStatBandData` | `services/plot-manager.md` |
-| 遭遇参数 | `EncounterSpec`（`sealed record`，非 `Resource`） | `adventure-event/combat/` |
-| 平衡配置（单例） | `CombatRulesData` / `EnemyLevelingData`（`ISingletonContent`，逐份切、**无兜底大表**） | `balance.md`；注册形态 → `services/content-service.md` |
+| 遭遇参数 | `EncounterSpec`（`sealed record`，非 `Resource`） | **类定义在 `services/combat-service.md`**；`adventure-event/combat/` 是消费方 |
+| 平衡配置（单例） | `CombatRulesData` / `EnemyLevelingData` / `ChapterRetryLimitsData` 等（`ISingletonContent`，逐份切、**无兜底大表**） | `balance.md`；注册形态 → `services/content-service.md` |
 | 剧本线 / 剧本节点 | `PlotArcData` / `PlotNodeData` | `services/plot-manager.md`（**本地内容层**，随 overlay 分发） |
 
-**内容条目的共有字段**（`ContentEnabled` · `LocalizedText` · `Rarity` · `SourceCode` + `Source` · `ExclusiveSource`）**定义只在最小公共祖先一层**，权威见 `systems/common-properties.md`「内容共有字段」——各落点只写投影，此处不复制字段表。
+**内容条目有一组顶层共有字段**（含 `ContentEnabled` · `LocalizedText` · `Rarity` · `SourceCode` + `Source` · `ExclusiveSource` · **`Artwork`**），**定义只在最小公共祖先一层**，权威见 `systems/common-properties.md`「内容共有字段」——各落点只写投影，此处不复制字段表。
 
 ## 承重纪律（写代码时会改变写法的那几条）
 
@@ -41,7 +44,7 @@
 8. **可调数值存导出字段 / 单例平衡资源**，绝不硬编码在系统逻辑里；**不散落 `ResourceLoader.Load`**，一切内容经 ContentRegistry——**平衡表也走同一条路**（直读 `res://content/balance/*.tres` 即当场失去 overlay 热更与合并后强校验）。唯一例外是消费点早于 `LoadAll()` 的管线旋钮，写死为代码常量。→ `systems/services/content-service.md`
 9. **单例平衡资源用 `Content.Single<T>()` 取，调用方不碰 `Id`**；单例身份由标记接口 `ISingletonContent` 声明，`where T : ISingletonContent` 是编译闸（对 `CardData` 调 `Single<T>()` 编译不过），条数 `!= 1` 或 `ContentEnabled == false` 在加载期 `PushError` + 抛。写 `Id` 字面量去查单例即引回一个可拼错的字符串键。→ `systems/services/content-service.md`
 10. **敌人与玩家共用 `CardData` 体系但不共用卡池**：`Pool` 是必填、无默认值，漏填即坏数据；**卡组规模两侧皆不设硬限**（代价由疲劳承接）。→ `systems/enemies/_index.md`
-11. **敌人池归属的唯一权威是 `EnemyData.PoolScope`**（`LocationData` 不持敌人清单）；地域 / arc 专属条目是**叠加而非替代**——通用敌人恒可在任何地域出现。**篇章不住 `PoolScope`**：它是与 `EncounterScopes` 平级的顶层字段 `EnemyData.ChapterScope`，取池是叠在 `AllEnabled()` 之后的三层过滤；**空 = 不限**（与 `EncounterScopes` 空即 `PushError` 的不对称是有意的，别当漏写去「修正」）。→ `systems/enemies/_index.md`、`systems/enemies/common-properties.md`
+11. **敌人池归属的唯一权威是 `EnemyData` 上的作用域字段**（`LocationData` 不持敌人清单）；地域 / arc 专属条目是**叠加而非替代**——通用敌人恒可在任何地域出现。取池是叠在 `AllEnabled()` 之后的三层过滤，**各层「空」的语义不对称是有意的，别当漏写去「修正」**。→ `systems/enemies/_index.md`、`systems/enemies/common-properties.md`
 12. **本作不存在多敌人场景**——敌人实例单数，嵌在 `EventOption.Encounter` 内，不要预留 `List<EnemyInstance>`。→ `systems/adventure-event/combat/_index.md`
 
 ## 三层覆盖来源与热更边界
@@ -53,4 +56,6 @@
 - **结构性查表类恒启用**（`LocationData` / `LocationMapData` / `HiddenStatBandData`）：`ContentEnabled == false` 即加载期 `PushError`，flags 对它们不生效——线上关掉若干地域会让邻接集合为空、轮回死锁。→ `systems/services/content-service.md`
 - **不冻结轮回的 `contentVersion`**：overlay 更新对进行中的轮回立即生效，已放弃跨内容版本的 seed 可复现。→ `standards/rng-determinism.md`
 - **增量下载 = 文件级事务 + manifest 签名**，原子写 manifest 即提交点，**永不存在半套 overlay**。→ `systems/services/content-service.md`
+- **二进制资产不经 overlay / blob 通道下发**：overlay 只能把资产引用改指到**随包基线内已存在**的资产、或置空（→ ViewModel 占位回落）；换图 / 加图随版本发布。这正是「文件级事务、不做字节级断点续传」所依赖的前提。**纯加法窗口在第一批 `.tres` 写下时关闭。** → `decisions/ADR-0125-no-binary-over-overlay.md`
+- **`Artwork` 可空是常态、缺失不是坏数据**：告警形态是 `LoadAll()` 收口一行汇总，**逐条目不告警**。→ `decisions/ADR-0120-content-artwork-and-enemy-lines.md`
 - **一切内容都在本地，没有云端内容通道**（含剧本文本）：运行时内容零网络请求，网络只在启动期做 manifest 比对与增量下载。→ `systems/services/plot-manager.md`

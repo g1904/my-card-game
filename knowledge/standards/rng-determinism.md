@@ -17,8 +17,10 @@
 3. **经 `life-cycle-service.Stream(RngStream)` 取 `RandomNumberGenerator`**（而非返回 `int`）——它自带可序列化的 `Seed` / `State`，正是持久化形态的载体。→ `systems/services/life-cycle-service.md`
 4. **恢复用 `State`（O(1) 回填），诊断用 `DrawCount`（迁移保险）；读档时在任何抽取发生之前先恢复各状态。** → `systems/services/life-cycle-service.md`
 5. **战斗内随机直接用 `combat` 子流，不在其上再派生一层**——防 re-roll 已由决策点存档 + `State` 持久化封住；篇章重试整个换一套新随机流（`RetryChapter` 生成全新 seed）。→ `systems/services/life-cycle-service.md`
-6. **账号级掉落的掷骰绝不走 SeedManager 的子流**（否则玩家能靠篇章重试换一次掷骰结果）——残卷改用 `Hash64(AccountSeed, FinaleWinOrdinal)`，序号本身即幂等键。→ `systems/player-profile/player-power/_index.md`
+6. **账号级掉落的掷骰绝不走 SeedManager 的子流**（子流由 `CycleSeed` 派生，而篇章重试会换 `CycleSeed` ⇒ 玩家能靠重试换掷骰结果）——账号级走**具名域 + 单调序号的三参数派生** `AccountRng.For(stream, ordinal)`，随机源是**契约定义的纯函数 SplitMix64、不是 Godot `RandomNumberGenerator`**（跨语言逐位一致是后端可复算的前提）。**两参数派生已被明确否决**（不同域的同序号会撞出同一序列）。序号取本次的值、先算后写，本身即幂等键。→ `systems/common-properties.md`、`systems/player-profile/player-power/_index.md`
 7. **增删子流不 bump 存档 schema**：读档遇未知子流 `PushWarning` + 全新初始化，遇已删子流警告并丢弃。→ `systems/services/life-cycle-service.md`
+8. **凡消耗了子流随机的提交，该子流的 `State` / `DrawCount` 必须在同一次原子写内更新**——两侧不同步各自都是漏洞：`State` 落了结果没落 ⇒ 重做得不同结果（绕过决策点存档的重掷通道）；结果落了 `State` 没落 ⇒ 下次从同一 `State` 起掷、重复同一批结果。→ `systems/services/life-cycle-service.md`
+9. **批次层的储物袋操作不消耗任何 RNG 子流**，也不触发 `RefreshAfterEvent`——重算会消耗 `map` 子流，等于开出「用一颗丹刷新这一批事件」的通道。→ `systems/services/life-cycle-service.md`
 
 ## 验证小贴士
 
