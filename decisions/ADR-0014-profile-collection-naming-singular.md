@@ -33,5 +33,5 @@
 - `contracts/profile-sync.md` §3a 示例 · §5 白名单与排除清单 · §5b · §7 与 `contracts/envelope.md` §8 可见性表的路径示例**必须**用单数形态。
 - 契约侧任何后续的路径重命名仍是**破坏性变更**，须重新满足上述三个前提；一旦线上有真实账号数据，第一个前提即永久失效，届时改名必须另找机制。
 - `/playerPower[*]/sourceCode` 的**取值表示**（字符串枚举名 · 名与 code 双双冻结）属 `ADR-0012`，本 ADR 只定字段名形态。
-- 客户端侧对位权威在 `game-design-documents/systems/player-profile/_index.md`、`game-design-documents/systems/character-profile/_index.md`，bump 清单权威在 `game-design-documents/systems/services/sync-service.md`。
+- 客户端侧对位权威在 `game-design-documents/systems/player-profile/_index.md`、`game-design-documents/systems/character-profile/_index.md`，逐版形状与 bump 登记的权威在 `game-design-documents/systems/services/profile-schema-versions.md`。
 - 后续同族扩员（如客户端图鉴族增员）按**后缀判据**恒定覆盖、不列举也不计数，那是本通则的直接应用而非新决定 → `contracts/profile-sync.md` §5 排除清单。

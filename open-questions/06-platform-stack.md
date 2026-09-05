@@ -1,31 +1,19 @@
-# ⑥ 技术栈 · 托管 · 运维
+# ⑥ 技术栈 · 托管 · 运维（栈已落定 · 余下为外部依赖与成本）
 
-> 后端尚未开工（`backend-feature-branch/` 只有 README）。本分区跟踪**先于任何后端代码**必须落定的工程选型。
-
-- **技术栈与托管形态未定。** 语言 / 框架、部署形态（容器 / Serverless / 托管平台）、数据库选型。**不再与契约表达形式耦合**——后者已定为 OpenAPI 3.1 单点、明确否决共享 DTO 代码（依据是根约定的分支线独立性，非选型），见 `contracts/envelope.md` §1。本分片与 `01-contracts.md` 因此可并行推进。
-
-- **区域与合规托管。** 面向国内渠道意味着数据存放地与备案要求会反向约束托管选型，见 `02-account-compliance.md`。
-
-- **token 签名密钥的保管与轮换、会话存储形态（08-16b 采集 · 此前未进清单）。** `contracts/auth.md` 把这三项连同「限流的实现与实际阈值」一并归了 `06`、落 `operations/`，契约层只声明语义；但它们从未进过本清单。**注意与 `04` 那条区分**：`04` 说的是**内容签名**的 ES256 私钥，此处是**会话 token** 的签名密钥，两把钥匙、两套轮换窗口。→ `contracts/auth.md`、落 `operations/`。
+> 后端尚未开工（`backend-feature-branch/` 只有 README），但**技术栈与托管形态已落定**：C# / ASP.NET Core · 腾讯云托管容器 · 云数据库 PostgreSQL（单主）· 云 Redis · 云 KMS · CDN；两套云上环境 + 本地 docker-compose。
+>
+> **八条已于 2026-09-03 答结** → `systems/_index.md`（共用的存储与并发形态 · 明确不引入）· `systems/account.md`（会话表与并发语义 · `tokenId` 与 `sid` 的分工 · refresh token 的派生形态 · access token 签发）· `systems/profile-store.md`（`revision` CAS · 两类幂等记录 · 读己所写的落地）· `operations/environments.md`（区域与合规 · 拓扑与副本 · 两把密钥的保管与轮换）· `operations/deployment.md`（环境分层与发布线 · 迁移三步 · 网关纪律）· `operations/observability.md`（可观测性口径与四条探针）· `operations/version-matrix.md`。移出记录见 `answer-logs/log-backend-stack-and-hosting.md`。
+>
+> 余下各条的共同点是**它们不取决于栈**：外部服务商、监管口径的数据源、以及需要真实流量才能定的数值。
 
 - **可信服务端时钟（08-16c 采集）。** 未成年时段判定的时间源**不得**依赖设备时钟——`contracts/envelope.md` §4b 已定 `X-Server-Time` 仅供诊断，改一次系统时间即可绕过时段限制。时钟源的形态（NTP 层级、跨区域一致性、时区与法定节假日表的数据源）待定。→ `contracts/compliance.md` §6，落 `operations/`。
 
-- **合规域的存储与产物（08-16c 采集）。** 三项：`complianceTicket` 的存储与一次性消费保证 · 注销冷静期这条**跨天长时状态机**的调度形态（到期生效、撤销、幂等重入）· **数据导出产物的存储与下载链接签发**（产物含个人信息，保留期初值 7 天，链接不得可枚举）。→ `contracts/compliance.md` §2 §3 §9。
+- **合规域的存储与产物（08-16c 采集）。** 三项：`complianceTicket` 的存储与一次性消费保证（含兑付的 60 秒回放窗口）· 注销冷静期这条**跨天长时状态机**的调度形态（到期生效、撤销、幂等重入）· **数据导出产物的存储与下载链接签发**（产物含个人信息，保留期初值 7 天，链接不得可枚举）。→ `contracts/compliance.md` §2 §3 §9；承接对象已登记进 `operations/moderation.md` 末节。
 
-- **会话记录的存储与并发语义（08-16c 采集）。** `contracts/auth.md` §4a 只声明语义，实现归此处：会话表 `(accountId, deviceId)` 唯一约束的并发语义 · **「吊销其余会话」与「写入本设备会话」须在同一次事务内**（半吊销态会让玩家被踢却仍能刷新，或反之）· `signin` 幂等回放记录的存储与保留期（可与 `(accountId, pushId)` 幂等记录同处，那条已在本清单上）。**与上方「会话存储形态」那条是同一件事的两半**，落定时一并写。
+- **`receiptId` 幂等记录的冷存归档与对账阈值（部分答结）。** 存储选型（关系库 `receipt_idem`，`receipt_id` 全局唯一主键）· 与序号 / `cloudRevision` 的写入同一次事务 · 下单时预落未决态记录 · 永久保留不设 TTL 的落地形态**已定**（→ `systems/profile-store.md`；分区、索引、TTL 禁用断言与选型判据见 `operations/purchase-ops.md`）。**仍待落定**：体量增长后的**冷存归档形态**，以及对账信号「`bundleGrantOrdinal > bundleRedeemedOrdinal` 持续 N 天」的阈值——**只作人工 / 工单入口，不驱动任何自动写入**。两者都需要真实体量才能定。
 
-- **环境分层与发布线。** `backend-feature → backend-testing → backend-production` 三条分支已就位，但环境实体、配置分离与发布流程未定。
+- **三渠道验票凭据的托管形态（部分答结）。** 接入面**已落笔**：逐渠道 `receipt` 形态、`receiptId` 取值、平台错误码归一（五条 `purchase.*`）、退款 / 撤单对账通道、凭据形态与轮换特征见 `contracts/purchase.md` §3a §3b 与 `operations/purchase-ops.md`。**仍待落定的是托管形态**——三把钥匙（内容签名 ES256 私钥、会话 token 签名密钥、渠道验票凭据）中，前两把的保管已定（`operations/environments.md`），渠道凭据这把未定，且**三者不共用托管配置**。→ `operations/purchase-ops.md` §1。
 
-- **可观测性口径。** 日志 / 指标 / 追踪的最小集合，尤其是三项同步正确性的线上探针：**「本地领先」（`sync.revision_ahead`）**、**`pushId` 去重命中率**、**复算不一致率**（`contracts/profile-sync.md` §7a）。另需一条**透明路径缺失**的告警口径——白名单路径漂移时后端不拒绝上行，只记账，这条告警是它唯一的可见面（同 §5）。
+- **短信 / 邮件 / 实名核验的服务商选型与灾备（08-16b 采集）。** 身份模型已定「C 层原子能力一律外接、每类能力在后端内部有一个稳定接口使服务商可换」（`contracts/auth.md`）；具体服务商、多供应商灾备策略与切换形态归本分片。**服务商错误码不上契约面**——一律先归一到本库已有的 `code`（`rate.limited` / `auth.credential_invalid` / `auth.challenge_expired` / `server.unavailable`）。另有三项同归此处：**昵称改名频次阈值**与**第三方昵称审核服务商 / 评分阈值**（判定链已留出适配器位，见 `operations/moderation.md`）· **微信开放平台资质申请**——首版以 `unionid` 建 identity 是不可逆决定，**必须在首个玩家建号之前完成**，已列入 `operations/deployment.md` 的发布前置清单。
 
-- **同步侧语义的实现落地（契约已停在语义层，2026-08-14）。** `contracts/profile-sync.md` 明确把下列各项留给本分片，且**落定后进 `operations/`、不回头改契约**：`revision` CAS 的具体存储与并发控制（契约只要求账号级**线性化读改写**，且禁止「先写 profile 再改 revision」的两步非原子形态）· `(accountId, pushId)` 幂等记录的存储（须与 revision 写入**同一次事务**）与初值校准（200 条 / 30 天）· push 滥用阈值的实现（60 次 / 分钟 / 账号）· **跨区域拓扑**（契约已定单写入区 + 只读副本，账号级严格单调计数器在多主下无法维持）· 单账号 profile 体积软告警的实测校准（初值 512 KB，口径为整聚合，与客户端 `pastEvent` 那条不同）。
-
-- **读己所写要求对拓扑与读路径的约束（08-22 采集 · 承重）。** `contracts/purchase.md` §6 保证 3 已把「验票写入后立即读到」定为**对读路径的一致性要求**，`profile-sync.md` §8 随之写明**滞后的只读副本不能无条件承接 pull**。落定栈与拓扑时必须带上它：要么该账号的读走写入区，要么读路径附带会话粘滞 / `revision` 下界等待。**这是本库唯一一条对读路径提出的实现约束**，选型时不满足它的形态即出局（后果是玩家付款后静默拿不到货，且客户端不会重试）。→ `contracts/purchase.md` §6、`contracts/profile-sync.md` §8。
-
-- **`receiptId` 幂等记录的存储与冷存归档（08-22 采集）。** 语义已定且**不回头改契约**：全局唯一键、**永久保留不设 TTL**、与序号 / `cloudRevision` 的写入同一次事务（`contracts/purchase.md` §7）。归本分片的是**实现**：存储选型、分区策略、体量增长与冷存归档形态，以及它与 `(accountId, pushId)` 幂等记录（30 天窗口，两者**不同轴**）能否同处。另一项同归此处：对账信号「`bundleGrantOrdinal > bundleRedeemedOrdinal` 持续 N 天」的落点与阈值——**只作人工 / 工单入口，不驱动任何自动写入**。→ `operations/`。
-
-- **平台内购三渠道的接入形态（08-22 由「可推后」升为 MVP 内必答）。** 渠道本身**已定**：**Google Play Billing · App Store（StoreKit）· 微信支付**，三条全部纳入 MVP（范围权威在 `game-design-documents/vision/scope.md`），`contracts/purchase.md` §3 的 `receipt.platform` 取值域随之封闭为这三个具名渠道。**仍待落定的是逐渠道的接入面**：三家的收据 / 凭证结构与校验协议互不相同 ⇒ 验票端点须逐渠道定 `receipt` 内部形态与平台错误码映射（一律归一到本库已有的 `code`，渠道原始码只随日志上报）、各自的服务端验票凭据 / 密钥保管、以及退款与撤单通知的对账通道。**它与账号身份模型不同轴**：那里的「渠道」是登录渠道（`auth.md`），此处是支付渠道；账号侧已定案**不解锁**本条。→ `contracts/purchase.md`，落 `operations/`。
-
-- **短信 / 邮件 / 实名核验的服务商选型与灾备（08-16b 采集）。** 身份模型已定「C 层原子能力一律外接、每类能力在后端内部有一个稳定接口使服务商可换」（`contracts/auth.md`）；具体服务商、多供应商灾备策略与切换形态归本分片。**服务商错误码不上契约面**——一律先归一到本库已有的 `code`（`rate.limited` / `auth.credential_invalid` / `auth.challenge_expired` / `server.unavailable`）。另有两项旋钮同归此处：**昵称改名频次阈值**（词表与审核口径归 `02`）· **微信开放平台资质申请**——首版以 `unionid` 建 identity 是不可逆决定，**必须在首个玩家建号之前完成**，落发布前置清单。→ `operations/`。
-
-- **成本模型。** 强制在线意味着每次事件推进都有一次上行；QPS 预估与单账号成本未估算。
+- **成本模型。** 强制在线意味着每次事件推进都有一次上行；QPS 预估与单账号成本未估算。它是一批数值的共同前置：实例规格 · 灾备副本数与备份保留期（`operations/environments.md` 只写了能力要求）· CDN 成本模型。

@@ -14,7 +14,7 @@
 
 同批固化的连带条款：
 
-- **幂等键取平台收据 id（`receiptId`），不由客户端生成**；同一 `receiptId` 重复提交**绝不重复 `+1`**，直接回上次结果（`deduplicated = true`）。
+- **幂等键不由客户端生成**；两家商店渠道取平台发放的 id，微信渠道取后端在下单时分配的商户订单号。同一 `receiptId` 重复提交**绝不重复 `+1`**，直接回上次结果（`deduplicated = true`）。
 - `bundleGrantOrdinal += 1` 与 `cloudRevision += 1` **必须同一次事务**。
 - **verify 不接受 `baseRevision`、不做 CAS 判定**；应答只回序号 + `revision`，**不内联新 profile**（客户端另走一次 pull）。
 - `GET /v1/purchase/receipt/{receiptId}` 是**承重的补查通道**，不是可选便利。
@@ -39,5 +39,5 @@
 - `/entitlement/bundleGrantOrdinal` 因此进入 `contracts/profile-sync.md` §5 的**后端写入字段表（封闭）**，写入时机写死为「每次验票通过时 `+1`」；该表新增行是破坏性契约变更，须两侧同批评审。
 - **verify 不返回 `compliance.*`**：被合规拦住的账号拿不到 access token，根本走不到 verify；在此硬拒会让玩家已付款却拿不到发放。
 - 回调记账与补偿任务（「已付款但从未 verify」的兜底发现）落 `operations/`，待 `06-platform-stack.md`。
-- `receipt` 字段的内部形态与平台错误码映射待**支付渠道**选型（与 `auth.md` 的登录渠道**不同轴**），仍在 `open-questions/01-contracts.md` 待答；它不影响本 ADR 的四条服务端保证。
+- `receipt` 字段的逐渠道内部形态与平台错误码归一见 `contracts/purchase.md` §3a §3b（支付渠道与 `auth.md` 的登录渠道**不同轴**）；它不影响本 ADR 的四条服务端保证。
 - 客户端侧对位（购后强制一次 pull、待兑现态持久化 `receiptId`、阻塞在主菜单重试）权威在 `game-design-documents/systems/monetization.md`。

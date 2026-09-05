@@ -2,6 +2,53 @@
 
 > 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身——条目在各分片。
 
+## 2026-09-03b — `schemaVersion` 兼容矩阵的输入、登记流程与漏登告警（跨库成对 · 后端半）
+
+`/batch-analyze-new-ideas` 的一个分片（另一半在客户端库同批落笔）。**移出 1 条，新增 0 条。**
+
+- **答结**：「`profile-sync.md` 把 bump 清单的权威指回客户端，而那张清单已漏批 ⇒ 两侧都以为对方在记」。对侧同批把清单拆成逐版登记表 `game-design-documents/systems/services/profile-schema-versions.md`（核实后其漏登面远大于登记时所记：就地自称 24 处 + 5 份 ADR，v1 行补齐 27 条）；本库 `version-matrix.md` 的 `schemaVersion` 集合由一个标量展开为**一版一行的四列子表**，第四列是**回链不是摘要**——本库一个字段名都不写，判据即 `envelope.md` §8「不把 Profile 字段表抄进本库」。
+- **裁决两项**：① 未知 `schemaVersion` 告警取**按与已登记集合的大小关系二分**（> 最大值 ⇒ 工程告警叫人；< 最小值 ⇒ 信息级、只上看板）——旧客户端制造的越界与「透明路径缺失」那行的预期噪声同类，处理手法一致，**拒绝语义不变**；② 矩阵**本批即登 `schemaVersion = 1`**，不等首个客户端版本——客户端 v1 既已定案，按本库自己的「矩阵先加、客户端后发」纪律，等待就是无成本的反序，且不登会让第四列回链落笔当天即无处可指。
+- **登记流程进 `operations/_index.md`**，与错误码台账的登记流程并列：触发点 = 对侧登记表新增一行 · 承载 = `cross-boundary.md` 四段式条目 · 责任人两段（开条目归发起方 = 恒为客户端；落笔矩阵归后端）· 顺序 = 矩阵先加、客户端后发（补一版只需改旋钮不发版，反序的代价由玩家承担）。这与错误码的「先文档 → 后 spec → 后实现」是同一条纪律的第二个实例。
+- **漏登的机制发现面 = `observability.md` 第五条探针**（未知 `schemaVersion`，计数器 + 低基数双标签，阈值 0）。没有它，漏登的表现是一批玩家安静地上不去进度、客户端只出一条非模态提示，**后端侧零信号**。
+- **同批附带**：`envelope.md` §7e 补一句指路（**语义未改**——核实确认 §7e 本就是内容完整的指路条款，此前「§7e 全空」的说法不成立）；§8 统计层推论按跨库裁决**收窄**到「已有的不透明顶层键内的追加」，引入新顶层键与受回声约束键内追加各自不适用；`profile-sync.md` 补一句不对称声明（`reason` 的宽容不适用于 `schemaVersion`，判据 = 有无判定权），**`reason` 那条一字未改**。
+- **报文形态零改动**：不新增字段 / 端点 / 错误码 ⇒ 不 bump `openapi.yaml` 的 `info.version`，不触发 `contracts/_index.md` 的三条机检断言。
+- **新增 1 条待承接**（`cross-boundary.md`，来自客户端同批的另一分片）：`envelope.md` §6 台账中四条 `compliance.*` 拦截码的「客户端处置」列改为回链客户端库——语义不变，只消除措辞不一致。
+- 对应 answer log：`answer-logs/log-schema-bump-ledger-authority.md`。
+
+## 2026-09-03 — 五份草稿批量提炼：技术栈落定 · 合规域完全成文 · 三渠道接入面 · 内容分发与风控的运维形态（`/batch-analyze-new-ideas backend`）
+
+一次清空 `inbox/` 顶层的全部五份 solution-draft。Phase A 四个分片并行只读校验，合并去重后开一场 interview（🔴 9 · 🟠 4 → 去重与跨草稿核对后 **10 问**，用户逐项裁决、**全部采纳推荐项**）；Phase B 按写入面分区并行落笔。
+
+**移出 17 条 + 2 条部分答结，新增 0 条。** 逐分片：`01` 2 条（合规域端点自身的错误码 · `refresh` 的限流形态）· `02` 3 条主项 + 1 条从属项（敏感词词表与审核口径 · 未过审昵称的存量扫描 · 风控与滥用面 · 三档处置的可见粒度）· `04` 3 条（flags 数据源与变更通道 · 签名私钥保管与 CI 及 `keyId` 轮换 · 发布侧内容校验闸）· `06` 8 条整条（技术栈与托管 · 区域与合规托管 · token 签名密钥与会话存储 · 会话记录的并发语义 · 环境分层与发布线 · 可观测性口径 · 同步侧语义的实现落地 · 读己所写对拓扑的约束）+ 2 条部分（`receiptId` 幂等记录的存储已定、冷存归档与对账阈值仍留；三渠道接入面已定、验票凭据托管形态仍留）。
+
+**合并 interview 的十项裁决：**
+
+1. refresh token 载荷改为 `<tokenId>.<mac>`（`tokenId` 与 `sid` 分离、`generation` 不上报文）⇒ **`contracts/auth.md` 零改动**，且顺带补齐 `SessionSuperseded` 与 `TokenReuseDetected` 的分辨。
+2. access token 保持 EdDSA，**KMS 只保管被包裹的私钥、签名在进程内**——KMS 不在登录热路径，停机不影响登录；逐次签名审计降级为解包事件审计。
+3. flags 应答**逐账号签名**，按 `(flagsVersion, accountId)` 缓存 `sig`；内容签名私钥因此**在 flags 读路径上**，可用性档位与 flags 端点同档（草稿原写的「不在任何请求路径上、可低一档」当场不成立，连带修正其成本分析与轮换止血论证）。
+4. `ADR-0007` 连带条款首行改写为「幂等键**不由客户端生成**」——微信渠道的商户订单号由后端下单时分配，「由平台发放」只是另两家的事实描述；决策本体与其余五条逐字不变。
+5. 读路径拓扑**统一走写入区**，flags 的自由度只留档不启用（两个分片措辞逐字对齐，不写「读路径分档表」、不引入例外）。
+6. 首版即内置 active + standby **两把内容签名公钥**（兑现契约已写的「一组映射」，报文零改动），客户端承接项跨库对称落笔。
+7. 新增 `OpError.Purchase`；`purchase.payload_invalid` 仍映 `Validation`（bug 面 / 玩家面之分）。
+8. 爆炸半径闸退化为**纯计数 > 20 条**——后端不感知内容类别，契约「服务端不区分内容类别」保住。
+9. 新增第五条 `purchase.channel_disabled`，与 `receipt_invalid` 分列（未开通发生在下单、玩家尚未付款）。
+10. standby 私钥 = 同一密钥服务内的独立密钥（权限平时不授予任何身份）；灾备副本**不定数量、只写能力要求**。
+
+**结构性变化：** `operations/_index.md` 长到 30 KB，按两份草稿自己写的展开条件（「栈落定后展开」，条件本批已满足）拆为 `operations/content-delivery-ops.md` 与 `operations/moderation.md`，索引回归索引；`systems/account.md` 与 `systems/profile-store.md` 新建；`operations/` 另新增 `environments.md` · `deployment.md` · `observability.md` · `version-matrix.md` · `purchase-ops.md`。**全库再无结构性前置**，焦点下移到合规上线分级与外部依赖选型。
+
+**跨库：** 三条客户端承接义务（standby 公钥内置 · `OpError.Purchase` 成员 · 合规域三条新 `code` 的 `ERR_*`）在客户端库登记为提案形态承接项，**本库不代为裁决**；对侧 `ComplianceManager` 覆盖面切分的待承接项**不由本批关闭**。
+
+答案 log：`answer-logs/log-compliance-endpoint-payloads.md` · `log-nickname-moderation-and-risk-control.md` · `log-purchase-channel-integration.md` · `log-content-delivery-ops.md` · `log-backend-stack-and-hosting.md`。
+
+## 2026-09-02 — `contracts/auth.md` §4 加客户端下游依赖登记（跨库成对 · `/batch-analyze-new-ideas` 的对侧半）
+
+客户端本批答结「refresh token 平台密钥库的后置评估」，其明文存放取向的**全部辩护挂在本库 `contracts/auth.md` §4 §5b 的 rotation 与「窗口外重放即吊销全部会话」语义上**，而本库此前**零登记**——`auth.md` 文末反而宣称「两侧无遗留欠账」，属失真陈述。按跨库纪律「对称落笔、不允许只改一侧就宣称收口」，本次在对侧库落两处：
+
+- **§4 末新增一条只回链、不复述的下游依赖登记**：客户端凭据本地存放取向以本节语义为支点，语义的权威在 `game-design-documents/systems/services/account-service.md`（本库不复述）；**本节任一条被改写、削弱或取消 ⇒ 须同批触发客户端侧重评**。
+- **文末「跨库待办」尾句措辞调整**：由「两侧无遗留欠账」改为「无遗留的实现欠账，但有一条常驻的反向依赖」，并指向 §4 末的登记。
+
+它**不是待答项**（无人需要回答什么），而是一条已成立的下游依赖事实，故落契约正文而非 `open-questions/cross-boundary.md`。**本次移出 0 条、新增 0 条。**
+
 ## 2026-08-30 — flags 缓存的报文侧对位 + blob 不承载二进制（跨库成对 · `/batch-analyze-new-ideas` 的对侧半）
 
 - `contracts/content-manifest.md` 的 Open questions **四条 → 两条**（余：多区域一致性 · flags 数据源与分桶的运营形态）。

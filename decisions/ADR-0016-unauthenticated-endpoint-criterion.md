@@ -2,7 +2,7 @@
 
 - **状态：** Accepted
 - **日期：** 2026-08-16
-- **来源：** `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` · `handoffs/2026-08-13-auth-endpoint-contract.md` · `answer-logs/log-compliance-and-session-arbitration.md`
+- **来源：** `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` · `handoffs/2026-08-13-auth-endpoint-contract.md` · `answer-logs/log-compliance-and-session-arbitration.md` · `handoffs/2026-09-03-compliance-endpoint-payloads.md`（例外表中撤销端点的方法）
 
 ## 背景
 
@@ -17,7 +17,7 @@
 | 例外域 | 免鉴权的端点 | 玩家此刻为什么没有 token |
 |---|---|---|
 | auth | `challenge` · `signin` · `refresh` | 尚未登录；`refresh` 的存在前提就是 access token 已失效 |
-| compliance | `POST /v1/compliance/realname` · `DELETE /v1/compliance/deletion` | 被 `signin` 的合规拦截挡在门外，凭 `complianceTicket` 认账号 |
+| compliance | `POST /v1/compliance/realname` · `POST /v1/compliance/deletion/cancel` | 被 `signin` 的合规拦截挡在门外，凭 `complianceTicket` 认账号 |
 
 其余端点一律全带，**包括合规域自己的另外四个端点**。`X-Content-Version` 同样只在这两个域缺省；`X-Request-Id` 无例外。
 
@@ -41,5 +41,5 @@
 - 日后任何新端点要免鉴权，**必须先通过这条检验**并在 §4a 的例外表里说明「玩家此刻为什么没有 token」；说不出即不够格。
 - 例外表是判据的**当前解**而非定义——判据不变时表可增行，表变了不等于判据被推翻。
 - `complianceTicket` 的一次性 / 时效 / 单端点绑定是本判据的直接连带：既然它替代 `Authorization` 认账号，它就必须比 access token 更窄。
-- 合规域六端点自身的报文字段表与错误码仍未落笔（`open-questions.md`「最短解锁路径」第 1 条），本判据只定它们的鉴权面。
+- 本判据只定合规域六端点的鉴权面；它们的报文字段表与端点自身的错误码在 `contracts/compliance.md` §10 §11。**判据要求免鉴权端点的凭据在 body 里送达，这直接决定了撤销注销用 `POST .../cancel` 而非 `DELETE`**——`DELETE` 携带 body 在 HTTP 规范中语义未定义、中间层剥离是常见行为。
 - 会话裁决、拦截落在 `signin`、合规域独立成文属 `ADR-0011`；CDN 域三端点无鉴权是另一条独立事实（静态、内容寻址），权威在 `contracts/content-manifest.md`，不由本判据推出。

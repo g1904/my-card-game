@@ -18,11 +18,13 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md` · `handoffs/2026-08-16b
 **sync 域已成文：`profile-sync.md`（2026-08-14）** ——两端点封定（`GET pull` / `POST push`）、diff 的**顶层键浅合并**语义、CAS 三分支 + 幂等命中的应答、**后端可见字段子集的逐 JSON path 白名单**（含「路径本身是契约的一部分」这条承重纪律）、账号级掷骰改用**契约定义的纯函数 SplitMix64**、复算边界（**可复算 `roll`、不可复算阈值**；不一致仅记账不拒绝）、`revision` CAS 与 `pushId` 幂等窗口的服务端语义、`compliance.*` 不进同步通道。
 Source: `handoffs/2026-08-14-profile-sync-contract.md`。
 
-**purchase 域已成文：`purchase.md`（2026-08-16）** ——两端点（`POST verify` / `GET receipt/{receiptId}`）、验票由后端向平台校验、**写入只由 verify 承担**（渠道回调降为对账 / 补偿通道）、平台收据 id 作幂等键、序号与 `revision` 同事务自增、verify 不走 CAS 且应答不内联 profile、复算回链 §6 不新开随机源。它同时定下 `profile-sync.md` §2 §5 的**后端写入字段封闭表**——后端只读、除表内四项外，加行须两侧同批评审且须逐条通过「够格进表」的两条判据。
-Source: `handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`。
+**purchase 域已成文：`purchase.md`（2026-08-16）** ——三端点（`POST verify` / `GET receipt/{receiptId}` / `POST order`）、验票由后端向平台校验、**写入只由 verify 承担**（渠道回调降为对账 / 补偿通道，下单端点不参与权益写入）、幂等键不由客户端生成、序号与 `revision` 同事务自增、verify 不走 CAS 且应答不内联 profile、复算回链 §6 不新开随机源。**逐渠道 `receipt` 形态（判别式在请求根的三分支联合）与五条 `purchase.*` 错误码已落笔。** 它同时定下 `profile-sync.md` §2 §5 的**后端写入字段封闭表**——后端只读、除表内四项外，加行须两侧同批评审且须逐条通过「够格进表」的两条判据。
+Source: `handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-09-03-purchase-channel-integration.md`。
 
-**合规域已成文：`compliance.md`（2026-08-16 · 第六份）** ——六端点（实名提交 / 合规态查询 / 注销申请与撤销 / 导出申请与查询）、`complianceTicket` 解无 token 态的死锁、合规**拦截只在 `signin`**（`compliance.*` 四条码与各自 `reasonKey`）、防沉迷时段中途到点**复用 `auth.session_revoked`** 而不新增通道、时段口径落配置不进契约、数据导出取最简 JSON 形态。同批把 `auth.md` 三处 `reasonKey` 留白填满（形态 PascalCase · `session_revoked` 七值 · `nickname_rejected` 三值）、新增 `auth.md` §4a 会话裁决（`sid` claim · `(accountId, deviceId)` 唯一约束 · 活跃会话上限 1 · `signin` 的 60 秒幂等回放窗口），并把 `envelope.md` §4a 的无鉴权例外由**点名 auth** 改写为**一条判据**。
-Source: `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`。
+**合规域已成文：`compliance.md`（2026-08-16 · 第六份）** ——六端点（实名提交 / 合规态查询 / 注销申请与撤销 / 导出申请与查询）、`complianceTicket` 解无 token 态的死锁、合规**拦截只在 `signin`**（`compliance.*` 四条码与各自 `reasonKey`）、防沉迷时段中途到点**复用 `auth.session_revoked`** 而不新增通道、时段口径落配置不进契约、数据导出取最简 JSON 形态。同批把 `auth.md` 三处 `reasonKey` 留白填满（形态 PascalCase · `session_revoked` 八值 · `nickname_rejected` 三值）、新增 `auth.md` §4a 会话裁决（`sid` claim · `(accountId, deviceId)` 唯一约束 · 活跃会话上限 1 · `signin` 的 60 秒幂等回放窗口），并把 `envelope.md` §4a 的无鉴权例外由**点名 auth** 改写为**一条判据**。
+
+**报文本体已于同一域内补齐** ——六端点逐个的请求 / 应答字段表、共有枚举 `ComplianceRealnameStatus`、`taskId` 形态 `^[0-9a-f]{32}$`、导出任务状态机四值、导出产物的正列白名单，以及端点自身的三条错误码（`compliance.ticket_invalid` · `compliance.verification_failed` · `compliance.deletion_irrevocable`，全 `Fatal`、全映 `OpError.Compliance`）。撤销注销改用 `POST /v1/compliance/deletion/cancel`：免鉴权判据要求凭据在 body 里送达，而 `DELETE` 携带 body 的语义未定义、中间层剥离是已知行为——端点数量、鉴权形态与判据本身均不变。
+Source: `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`、`handoffs/2026-09-03-compliance-endpoint-payloads.md`。
 
 **`vectors/splitmix64.json` 已落笔（2026-08-14）** ——账号级随机源的 8 组测试向量已由独立参考实现预先算出并填入，**不等任一侧首次实现**；两侧各自实现后逐位对表，对不上以该文件为准（**不得单方面改表迁就实现**）。`profile-sync.md` §6a 是人类可读对照。它是 `contracts/` 下**第一个已落笔的机器可读产物**，早于 `openapi.yaml`——但它**不属 spec**（不是报文形态），三条机检断言不覆盖它。
 Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`。
@@ -38,8 +40,8 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 | `content-manifest.md` | manifest schema 与三版本号分工、blob 内容寻址、ES256 detached 签名与 `keyId` 轮换、`ContentEnabled` 的 flags 第三层、**剧本文本的承接** | `content-service` | **已成文** |
 | `auth.md` | 七端点报文、**account ↔ identity 一对多的身份模型**、双 token 生命周期（签发 / 刷新 rotation / 吊销）、渠道分形 `credential` 与第三方渠道换 openid 的后端义务、auth 域的鉴权例外、强更闸门的唯一落地点 | `account-service` | **已成文** |
 | `profile-sync.md` | 两端点报文，负载信封 `pushId` · `baseRevision` · `schemaVersion` · `reason`，**diff 的顶层键浅合并语义**，三分支 + 幂等命中的应答，**后端可见字段子集（逐 JSON path 白名单）+ 后端写入字段的封闭四行表与「够格进表」判据**，SplitMix64 随机源与掷骰复算协议，CAS / 幂等 / 限流的服务端语义 | `sync-service` | **已成文** |
-| `purchase.md` | 两端点报文（验票 + 收据幂等读），**写入只由 verify 承担**、渠道回调只作对账，平台收据 id 作幂等键，序号与 `revision` 同事务自增，四条服务端保证 | `sync-service`（后端主动写入的对位）· 商业化侧购买流程 | **已成文** |
-| `compliance.md` | 六端点（实名 / 合规态 / 注销申请与撤销 / 导出申请与查询）、`complianceTicket` 的无 token 态凭据机制、拦截只在 `signin` 与四条 `compliance.*` 的 `reasonKey`、防沉迷复用 `session_revoked`、时段口径落配置、导出的最简形态 | `account-service`（`ComplianceManager` 的对位） | **已成文**（报文字段表待落笔） |
+| `purchase.md` | 三端点报文（验票 + 收据幂等读 + 微信下单），**写入只由 verify 承担**、渠道回调只作对账，幂等键不由客户端生成，序号与 `revision` 同事务自增，七条服务端保证；逐渠道 `receipt` 形态与五条 `purchase.*` 错误码 | `sync-service`（后端主动写入的对位）· 商业化侧购买流程 | **已成文** |
+| `compliance.md` | 六端点（实名 / 合规态 / 注销申请与撤销 / 导出申请与查询）、`complianceTicket` 的无 token 态凭据机制、拦截只在 `signin` 与四条 `compliance.*` 的 `reasonKey`、防沉迷复用 `session_revoked`、时段口径落配置、导出的最简形态、六端点的报文字段表与端点自身的三条错误码 | `account-service`（`ComplianceManager` 的对位） | **已成文** |
 
 **契约面六份，且不作「就此封顶」的断言。** 判断该不该再开一份的判据是分域：**一个域的承重纪律若与既有任一份相反，就必须独立成文。** 已按此判据行使过两次：
 
@@ -67,7 +69,7 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 一次契约变更**未完成**，除非以下全部为真：
 
 1. markdown 的语义 / 理由 / 承重纪律已更新；
-2. `openapi.yaml`（及涉及的 `schemas/*.json`）的形态已在**同一次变更内**更新；
+2. `openapi.yaml`（及涉及的 `schemas/*.json`）的形态已在**同一次变更内**更新——**仅在 spec 已存在、或本次变更即触发首落时适用**。落笔字段表本身不构成「端点进入实现」（触发点见 `envelope.md` §1），spec 尚不存在时本条无对象；
 3. 若涉及新增 / 变更 `code`：`envelope.md` §6 台账已登记 `class` · `OpError` · 客户端处置 · `detail` 形状 · `message` 必含项五列；
 4. **三条机检断言**通过；
 5. **人工清单四项**已过；
@@ -82,7 +84,7 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 | ③ | markdown 中出现的每个 `METHOD 路径` ⇔ spec 的 `paths` 键，**双向**（含 CDN 域三端点） | 正则 vs `paths` | 端点集与契约不符 |
 
 - ②的投入产出比最高：错误码台账是全库最容易漏项的表，而其漂移形态是**静默**的（客户端对未知 `code` 有兜底，漏登记不报错，只让某条错误一直走降级路径）。
-- **②的基准是台账当前登记的条目。** 合规域端点自身的错误码尚未进台账（随 `compliance.md` 的报文本体落笔），不构成「spec 漏项」——断言校验两处**已有内容**的双向覆盖，不是对未定内容的完备性要求。
+- **②的基准是台账当前登记的条目。** 合规域端点自身的三条错误码已进台账（`envelope.md` §6），与六端点的报文本体同批落笔；断言校验两处**已有内容**的双向覆盖，不是对未定内容的完备性要求。**`downloadUrl` 指向的是外部对象 URL、不是本 API 的端点**，故它出现在 `compliance.md` 中不构成 spec 的 `paths` 漏项（断言③）。
 - **②不下探到 `reasonKey`。** 它是 `detail` 内的取值集合、其权威在 `auth.md` §10 与 `compliance.md` §5，而 spec 只表达 `detail` 是个对象。`reasonKey` 取值的正确性由**人工清单第 1 项**（`detail` 形状与 `message` 必含项）承担；契约的兜底纪律本就要求客户端容忍未知取值，故这里的漏项不是静默走错分支，而是回落一级文案。
 - 工具不点名（工程选型，与「栈未定前不指定语言 / 框架 / 库」同向），只立能力要求：**能校验 OpenAPI 3.1 / JSON Schema 2020-12，且能在设计库侧运行**。
 
@@ -103,7 +105,7 @@ contracts/
   envelope.md            语义 · 承重纪律 · 错误码台账（含 detail 形状与 message 必含项）
   auth.md                语义 · 端点用途 · 示例报文
   profile-sync.md        语义 · CAS/幂等/复算协议 · 白名单 path 的理由 · 后端写入字段封闭表
-  purchase.md            语义 · 验票与权威写入 · 收据幂等 · 服务端保证四条
+  purchase.md            语义 · 验票与权威写入 · 收据幂等 · 逐渠道形态 · 服务端保证七条
   compliance.md          语义 · 端点集与 ticket 机制 · 拦截落地点 · reasonKey 取值 · 旋钮
   content-manifest.md    语义 · 三版本号分工 · 签名与 flags
   openapi.yaml           ← 形态单点：paths（API 域 + CDN 域两个 server）· parameters · headers · 内联 schema

@@ -4,59 +4,52 @@
 
 ## 现状
 
-**尚未建立。** 技术栈与托管形态未定（`open-questions/06-platform-stack.md`）。
+技术栈与托管形态已落定：**C# / ASP.NET Core · 腾讯云托管容器 · 云数据库 PostgreSQL（单主）· 云 Redis · 云 KMS · CDN**；环境实体为**两套云上（testing + production）+ 本地 docker-compose 承担 feature**，分支线 `backend-feature → backend-testing → backend-production` 各有落点（本地文件夹映射见 `main/README.md`）。
 
-已就位的只有分支线：`backend-feature → backend-testing → backend-production`（本地文件夹映射见 `main/README.md`），但对应的**环境实体尚不存在**。
+本文件夹的文档已基本铺开，只剩 `compliance-ops.md` 待合规侧的存储与产物形态落定（`open-questions/06-platform-stack.md`）。**本索引不再承载运维面的正文**——各面展开在下表的对应文档里。
 
-## 计划中的文档
+## 文档
 
 | 文档 | 覆盖 |
 |---|---|
-| `environments.md` | 环境分层与配置分离、三条分支对应的实体环境 |
-| `deployment.md` | 构建与发布流程、回滚 |
-| `content-delivery-ops.md` | **内容分发的运营面**（首批有具体对象，见下）：CDN 缓存策略、内容发布与回滚流程、flags 数据源与灰度分桶、签名私钥保管与轮换 |
-| `observability.md` | 日志 / 指标 / 追踪的最小集合；同步正确性的**三条**线上探针（「本地领先」`sync.revision_ahead`、`pushId` 去重命中率、**复算不一致率**）+ 一条**透明路径缺失**告警（白名单路径漂移时后端只记账不拒绝，这条告警是它唯一的可见面）；`X-Request-Id` ↔ `requestId` 的两侧日志贯通 |
-| `compliance-ops.md` | 数据存放地、留存与删除、账号注销与导出的运维侧流程 |
-| `version-matrix.md` | **版本兼容矩阵**（见下）：强更闸门判定的输入，与判定逻辑同处 |
+| `environments.md` | **已建立**：两套云上 + 本地环境实体 · 配置三层与十项旋钮清单 · 限流实现分层 · 区域与合规（境内主区、个人信息不出境、分表分权限）· 拓扑与副本（玩家读路径全走写入区、灾备只写能力要求）· 容量形状 · 会话 token 与内容签名两把密钥的保管与轮换对照 |
+| `deployment.md` | **已建立**：构建与制品 · expand → deploy → contract 迁移三步与「只前滚」· **网关两条纪律（refresh 不限流 / push 走应用层账号维度）作为逐次上线核对项** · 首个真实账号建号前的四项不可逆闸 · 内容发布侧的基线快照可达性要求 · 契约完成判据的 CI 承接 · 共享 DTO 护栏 |
+| `observability.md` | **已建立**：结构化日志 + OpenTelemetry 基座与 `X-Request-Id` ↔ `requestId` ↔ `trace_id` 贯通 · 五条契约语义探针（本地领先 / `pushId` 去重命中率 / **按三条校验拆分的**复算不一致率 / **带前提的**透明路径缺失 / **按大小关系二分的**未知 `schemaVersion`）· RED 与按 `code` 的时间序列 · CAS 冲突率与回声拒绝率分开计数 · 会话面与孤儿取值告警 · 数据面 · 日志脱敏中间件 |
+| `version-matrix.md` | **已建立**：矩阵四项形态、其数据即旋钮表的一员、客户端不持副本；运维流程（闸门只在签发时判定、提升 `appVersion` 下界的覆盖上限 = refresh 绝对寿命）· **`schemaVersion` 集合已展开为一版一行的四列子表并登入 `1`**（第四列是客户端登记回链，本库不写字段名）。`appVersion` 下界与 `manifestSchema` 集合仍待在架版本产生后填值 |
+| `content-delivery-ops.md` | **已建立**：CDN 两类对象两种 TTL · 内容发布流水线七步与编码归一 · 发布侧内容校验闸 C1–C6 与留痕八字段 · flags 规则集的存储形态与变更通道 A1–A6 · 内容签名私钥的五条保管判据与 standby · `keyId` 轮换的三类触发 / 四阶段 / 覆盖率口径 · flags 读路径的拓扑自由度 · 数值初值 · 对存储 / 权限 / 密钥服务的栈中立能力要求 |
+| `moderation.md` | **已建立**：昵称词表的不可变版本化发布与两档分级 · 未过审昵称的存量扫描 T1/T2/T3 与处置阶梯 · 风控事件流字段表 / `kind` 八值 / 阈值分档 / 全局熔断 / 自动化止于工单 · 数值初值 · 合规域的运维承接对象登记 |
+| `purchase-ops.md` | **已建立**：渠道验票凭据与轮换 · 三条退款对账通道 · 收据幂等记录的选型判据 / 分区 / 索引 / TTL 禁用断言 · 冷存归档触发条件 · 两条对账信号 |
+| `compliance-ops.md` | **待落笔**：数据存放地、留存与删除、账号注销与导出的运维侧流程。承接对象已在 `moderation.md` 末尾登记，形态归 `open-questions/06-platform-stack.md` |
 
-## 已有具体对象的运维面：内容分发
+## 已有具体对象的运维面：购买与验票
 
-> 语义权威在 `contracts/content-manifest.md`；此处只记它对运维形态的**要求**。栈落定后展开为 `content-delivery-ops.md`。
-> Source: `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md` · `handoffs/2026-08-23b-flags-version-monotonic.md`（flags 发布 / 回滚流程与留痕四项）。
+> 语义权威在 `contracts/purchase.md`；运维形态已展开为 `purchase-ops.md`，此处只记它与其余运维面的交叉点。
+> Source: `handoffs/2026-09-03-purchase-channel-integration.md`。
 
-- **CDN 缓存：两类对象两种 TTL。** `/blobs/<hash>` 内容寻址 → `public, max-age=31536000, immutable`（可永久缓存）；manifest / flags 端点 → `no-cache` 或秒级 TTL——**秒关与回滚的实际生效速度由后者决定**。
-- **发布流程（顺序即正确性）：** ① 计算全部 overlay 文件 SHA-256，推送缺失 blob（幂等：已存在的 hash 跳过）；② 生成 manifest（`contentVersion` = 上一版 +1），用当前 `keyId` 的私钥对**原始字节**做 ES256 签名；③ **确认全部 blob 可读后**再发布 `.sig` 与 manifest（`.sig` 先于或与 manifest 同一次原子切换，避免读到无签名的 manifest）；④ **回滚 = 重跑 ①–③，manifest 指回旧 blob，`contentVersion` 继续 +1**（不允许版本号回退）；⑤ **秒关 / 灰度不触碰 blob 与 manifest，不走 ①–④**，但它**有自己的一条发布流程**（见下），同样产出一个更大的 `flagsVersion` 并留痕。
-- **flags 的发布 / 回滚流程（与上一条并列，不是它的例外）。** 语义权威在 `contracts/content-manifest.md`「服务端保证」B 组；此处只记运维形态须满足的性质：
-
-  | # | 要求 |
-  |---|---|
-  | O1 | **规则集不可变、版本化**：每次发布产出一个新版本，既有版本只读，**不存在原地编辑路径**。「随手改一下数据源」正是「同版本内容漂移」这个静默失效模式的来源 |
-  | O2 | 版本号由**单一全局分配点**分配，**只在发布动作时分配**（草稿态编辑不占号），并持久化一条单调高水位 |
-  | O3 | 备份恢复后取 `max(恢复值, 高水位)` 并**强制跳号**（留一段安全余量）；「版本号未倒退」列为恢复演练的必检项 |
-  | O4 | **回滚 = 一次以历史版本内容发起的发布**：`rollback(to: v_k)` ≡ 创建 `v_new = 当前最大版本 + 1`，其规则内容逐字等于 `v_k`。若实现上存在「当前生效版本」指针，它**只能单向前移** |
-  | O5 | 每版留痕四项，缺一不可：**操作者** · **时间**（RFC 3339 UTC）· **来源版本 `derivedFrom`**（回滚时即被回指的版本，正常发布时为上一版）· **变更摘要与生效范围**（全量 / 分桶） |
-  | O6 | **历史规则集永久保留**，期内任一版本可直接作为回滚的输入。规则集体积极小（一批 `Id` 集合 + 分桶规则），永久保留成本近似为零，与收据幂等窗口的同形取舍一致（`contracts/purchase.md` §7） |
-  | O7 | 可选加固：规则集内容指纹与版本号绑定，服务端自检到「同版本不同指纹」即告警。**指纹不下发给客户端** |
-
-  **为什么留痕是最低要求而非「有更好」：** flags 是**唯一一条能绕过发版直接改变玩家可见内容**的通道；而 `derivedFrom` 是「回滚 = 以历史规则内容发布更大版本」这条能被**机读核对**的唯一凭据，脱离它，「这一版是不是一次回滚、回指的是哪一版」就只能靠备注措辞去猜。
-  **只留变更日志、不留历史规则集快照是明确否决的**——回滚时须由人工按日志重建规则，而手工编辑正是 O1 要堵的那条路径。
-- **签名私钥保管进入运维范围：** 私钥存放（KMS / 密钥托管）与 CI 中的签名步骤，**反向约束 `open-questions/06-platform-stack.md` 的托管选型**。`keyId` 轮换是「先发内置新旧两把公钥的客户端版本 → 覆盖率足够后切私钥」，因此轮换窗口跨越一个客户端发版周期。
-- **对 CDN 的能力要求**（不算苛刻，主流 CDN 均满足）：按路径设置差异化 `Cache-Control`、支持 immutable 长缓存、支持 `contentRoot` 域名切换（`contentRoot` 不在被签名的 manifest 内，故切换无需重签历史 manifest）。
+- **三把钥匙、三套轮换窗口，不共用托管配置**：内容签名 ES256 私钥 · 会话 token 签名密钥 · **渠道验票凭据**。三者轮换节奏互不相同（一个跨客户端发版周期、一个只在服务端、一个由渠道方日程驱动），共用一份托管配置会让最慢的那条绑架其余两条。
+- **收据幂等表须显式关闭任何 TTL / 过期清理，并在配置层留一条断言**（部署时读取该表的过期策略，非「永不过期」即拒绝启动）。误配置 = 重复发放漏洞，且**线上不可发现**——第二次提交查不到记录即当作新票，没有任何报错。与 O6「历史规则集永久保留」同形取舍。
+- **渠道对账任务日频**，落在平台退款 / 客诉窗口（以月计）之内；只产出工单，不驱动任何自动写入。
 
 ## 已有具体对象的运维面：版本兼容矩阵与错误码台账
 
-> 语义权威在 `contracts/envelope.md`；此处只记它对运维形态的**要求**。栈落定后展开为 `version-matrix.md` 与 `observability.md`。
-> Source: `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md`。
+> 语义权威在 `contracts/envelope.md`；此处只记它对运维形态的**要求**，展开见 `version-matrix.md` 与 `observability.md`。
 
 - **版本兼容矩阵由后端单点维护，客户端不持有任何副本。** 它是强更闸门服务端判定的**输入**，必须与判定逻辑同处。至少含：支持的 `appVersion` 下界 · 并存的 URL 主版本（`/v1/` …）· 并存的 `manifestSchema` / `schemaVersion` 集合 · 各自的**下线计划**。
 - **闸门在签发 token 时判定一次**（`envelope.md` §7b）——运营提升 `appVersion` 下界这个动作，其生效点是玩家**下一次登录**，永远不会打断进行中的轮回。运维流程需据此说明「提升下界后多久覆盖存量会话」，而不是假定即时生效。
 - **错误码台账的登记流程。** `code` 是**永不复用、永不改写含义**的稳定标识，`class` 是契约的一部分（同一 `code` 不得因请求而变）。因此新增 / 变更 `code` 是**契约变更**，流程为**先文档 → 后 spec → 后实现**：先改 `contracts/envelope.md` §6 的台账、**同一次变更内**把该 `code` 补进 `contracts/openapi.yaml` 的错误码枚举、再改服务端实现——不允许服务端先发一个未登记的 `code`（客户端会按 `class` 降级，而未知 `class` 会被当作 `Fatal` 上报）。
-- **台账 ⇔ spec 枚举的一致性是一条机检断言**（`contracts/_index.md`「契约变更的完成判据」断言②）：台账每个 `code` 与 spec 错误码枚举**双向一一对应**。这条之所以值得机检，是因为它的漂移形态是**静默**的——客户端对未知 `code` 有兜底，漏登记不会报错，只会让某条错误一直走降级路径，线上表现为「处置分支不对」而非「报错」。承载位置（有无自动化流水线、跑在哪里）随 `open-questions/06-platform-stack.md` 落定；在此之前以人工清单执行。
-  Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
+- **台账 ⇔ spec 枚举的一致性是一条机检断言**（`contracts/_index.md`「契约变更的完成判据」断言②）：台账每个 `code` 与 spec 错误码枚举**双向一一对应**。这条之所以值得机检，是因为它的漂移形态是**静默**的——客户端对未知 `code` 有兜底，漏登记不会报错，只会让某条错误一直走降级路径，线上表现为「处置分支不对」而非「报错」。承载位置（有无自动化流水线、跑在哪里）仍是一条待答项（`open-questions/01-contracts.md`）——**部署形态已具备承接能力**（断言校验的是 markdown 与 YAML / JSON，可作为普通检查步骤挂在同一条流水线上，见 `deployment.md`）；在此之前以人工清单执行。
+- **`schemaVersion` 集合的登记流程。** 与错误码台账的登记流程并列，是同一条纪律的第二个实例。
+  - **触发点** = 对侧 `schemaVersion` 登记表新增一行（= 一次 bump 定案）。逐版形状的权威在 `game-design-documents/systems/services/profile-schema-versions.md`，**本库不复述任何字段名**。
+  - **承载** = `open-questions/cross-boundary.md`「待承接」的一条标准四段式条目。**零新增机制**——该分片存在的全部理由就是承接这类「答案在对侧库里已经写好、本库尚未落笔」的事。
+  - **责任人分两段**：**开条目**归发起该次变更的那一侧（`contracts/_index.md`「责任人 = 发起方」），而 schema bump 的发起方**恒为客户端**（Profile 是客户端定义的类模型）；**落笔矩阵**归后端——矩阵是本库单点维护的对象。
+  - **顺序 = 矩阵先加、客户端后发。** 后端补一个 `schemaVersion` 只需改一次旋钮值、不发版；而客户端发出一个后端不认识的 `schemaVersion`，代价是那批玩家的进度暂时上不去（不硬阻塞，但暂停重试直到玩家更新并重新登录）。两边成本极不对称，反序的代价由玩家承担。与下线纪律（先提下界、再删分支）方向一致——**加与减都是先动矩阵**。
+  - **漏登的机制发现面**是 `observability.md` 的未知 `schemaVersion` 探针（阈值 0，按与已登记集合的大小关系二分）。
 - **`message` 的落日志纪律进运维范围**：`message` 必填且必须写到能定位问题，同时**不得含 token / 完整凭据 / 密钥**，账号与 `pushId` 一类标识按前缀截断。日志脱敏规则与这条同批落地。
 - **统计计数层的运维禁令**：后端不复算、不校验统计计数，**且不得用统计数据驱动任何发放**（活动奖励 / 解锁）。一旦某个统计字段被用于发放，它就必须整体升为规则字段并进 `profile-sync.md` 的「后端可见字段子集」。这是一条**运营侧也要遵守**的约束，不只是实现约束。
 
+Source: `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md` · `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md` · `handoffs/2026-09-03-schema-bump-ledger-authority.md`。
+
 ## 约定
 
-- **可观测性口径与协议同批定案。** 探针指标（见上表）由契约的语义决定，不能等服务上线后补。
+- **可观测性口径与协议同批定案。** 探针指标由契约的语义决定，不能等服务上线后补。
 - 只保留最新设计；历史归 git。

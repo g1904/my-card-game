@@ -2,7 +2,7 @@
 
 > 覆盖 `/v1/profile/…` 两个端点的报文本体。**边界层不在此重复**：序列化与命名约定、`/v1/` 主版本、传输信封、错误体形状、错误码台账、版本协商、Profile 三段可见性的分界——全部见 `envelope.md`，本文件只写 sync 域**相对它的差异与细化**。
 > 客户端侧门面见 `game-design-documents/systems/services/sync-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）、`handoffs/2026-08-23c-echo-validation-scope.md`（§5c 适用面恒等式 + 比较口径 + 追加字段刚性）、`handoffs/2026-08-25-codex-key-count-neutralization.md`（§5 排除清单去计数化）。
+> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）、`handoffs/2026-08-23c-echo-validation-scope.md`（§5c 适用面恒等式 + 比较口径 + 追加字段刚性）、`handoffs/2026-08-25-codex-key-count-neutralization.md`（§5 排除清单去计数化）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§4 `reason` 宽容不适用于 `schemaVersion` 的不对称声明 · §5b 登记表回链）。
 
 ## 1. 端点集：两个，封定
 
@@ -103,6 +103,7 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
   | CAS | 基线不符 / 本地领先 | `sync.conflict` · `sync.revision_ahead` | 否 |
   | 所有权 | 后端写入路径的回声校验不通过（§5c） | `sync.conflict` | 否 |
 
+- **§3 对未知 `reason` 的宽容语义不适用于 `schemaVersion`（承重 · 明写以防就近类推）。** 两者在报文里是负载信封相邻的两个字段，但判据不同：`reason` 对后端**零判定权**（只作日志与聚合维度），宽容的后果只是聚合维度里多一个孤儿取值；`schemaVersion` **是版本闸门本身的输入**，宽容接受等于把一份后端不保证能正确解读的负载写进云端，下一次 pull 还会把它发给可能更旧的另一台设备，且透明路径的位置不再有保证。⇒ **未知 `schemaVersion` 照常拒绝**，本节上表第一行的语义不放松。
 - **判定顺序：`schemaVersion` 闸门 → 信封形状 → CAS → 回声校验 → 写入。** 回声校验必须发生在 `cloudRevision += 1` **之前**——被拒绝的一次不得消耗一次 revision，与版本闸门那条同一理由；且 CAS 已失败时整批已被拒绝，再做字段比较是白做。
 - **`compliance.*` 不出现在这两个端点的错误清单里**，见 §11。
 
@@ -139,6 +140,8 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
   > **已否决的替代**：把它移出 profile 聚合、单独存在后端的购买域（客户端只读取、不落存档）。代价更高——它会让兑现段的掷骰 `ordinal` 来自一个不在 profile 里的字段，破坏「整次授予由 `(域, 序号)` 完全确定且随授予事务同一次持久化」这条客户端承重纪律，且 `AccountRng` 的两个域会有两套来源。
   >
   > **如实记下的代价**：一条**无例外**的「后端只读」规则本来最省心，读者不必记例外。有了四条例外之后，每一条「能不能让后端也写这个」的提议都会引用它们作先例——这正是上面那条判据存在的理由：**它把「引先例」变成一次必须逐条通过的检验。**
+
+  **后端对 profile 的任何写入均推进 `revision`。** 建号骨架写入（`revision = 1`）· `bind` / `unbind` 的 `identities` 更新 · 验票的 `bundleGrantOrdinal += 1`，三处一律 `+1`；`revision` 是「profile 的写入计数器」这一不变式，是读己所写下界、CAS 三分支与副本一致性判据的共同地基。
 - **⚠ 承重：透明字段的 JSON path 是契约的一部分。** 客户端把 `playerPowerFragment` 挪个位置、或把 `sourceCode` 改个名，在客户端侧是纯重构（老档靠迁移无损通过），但**在后端侧会静默变成「这个字段消失了」**——复算退化为空操作，且两侧都不会报错。因此：**移动或重命名任一透明字段的路径 = 破坏性契约变更，必须 bump `schemaVersion` 并与后端同批改**，与「重命名跨边界枚举值即破坏性变更」（`sync-service.md`）同一条纪律。后端对**缺失的透明路径**一律记一条告警级台账（**不拒绝上行**），使这类漂移在线上可见。
 
 | JSON path（相对 `profile` / `playerDiff` 根） | 类型 | 后端用途 |
@@ -184,7 +187,7 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 
 - 三者同时成立时才允许把重命名做成一次性切换：改名与 `schemaVersion` 的一次 bump 同批，两侧同时切到新名，无迁移、无双读分支。
 - **兼容期在这里不是安全网。** §7a 的处置语义是「仅记账、不拒绝、不改写」⇒ 双读期内没有任何信号能告诉任一侧「对方还没改」，不一致的症状不是报错而是风控噪声，且会随双读分支长期存活而变得永久不可见。硬信号只能来自一次性切换 + bump。
-- **本次改名合并进客户端两层 Profile 字段面收口的同一次 `schemaVersion` bump**（bump 清单的权威在 `game-design-documents/systems/services/sync-service.md`；本库只声明「须与之同批」）。
+- **本次改名合并进客户端两层 Profile 字段面收口的同一次 `schemaVersion` bump**（逐版形状与 bump 登记的权威在 `game-design-documents/systems/services/profile-schema-versions.md`；本库只声明「须与之同批」）。
 
 ### 5c. 后端写入路径的回声校验：封闭表的执行点（承重）
 

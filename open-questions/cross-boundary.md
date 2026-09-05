@@ -8,19 +8,21 @@
 > **每条的固定形态：** `客户端权威文档路径#小节 | 客户端定案日期 | 本库需改的文档 | 一句话摘要`。
 > **只回链、不复述**——复述即制造第二权威。
 >
+> **一类常规触发源：** 对侧 `game-design-documents/systems/services/profile-schema-versions.md` 的 `schemaVersion` 登记表**新增一行**（= 一次 bump 定案）——本库须把该版本号登进 `operations/version-matrix.md` 的 `schemaVersion` 子表，条目照上述四段式。登记流程与责任人分段见 `../operations/_index.md`。
+>
 > **关闭条件：** 本库落笔完成（对应 handoff `distilled`）后从本分片移除，记进 `../answer-logs/`。两侧条目各自独立关闭。
 >
 > 机制的完整设计、病因诊断与维护者分工见客户端库同名分片 `game-design-documents/open-questions/cross-boundary.md`（两份不重复写）。
 
 ## 待承接
 
-*（空）*
+- `game-design-documents/ux/error-and-blocking-ux.md` · `game-design-documents/systems/services/account-service.md` | 2026-09-03 | 本库需改：`contracts/envelope.md` §6 | **四条 `compliance.*` 拦截码的「客户端处置」列改为回链客户端库。** 该列现写作「阻塞屏 + XX 动作」，而对侧已定四条拦截码一律在**登录屏就地呈现**、一条也不进阻塞屏变体表（呈现形态的裁决权在客户端库，本库不代为决定）。**语义不变，只消除措辞不一致**——照现列实现会造出第三处由 `code` 触发的硬阻塞。改法：该列写「呈现形态见 `game-design-documents/ux/error-and-blocking-ux.md`」。对侧 handoff：`game-design-documents/handoffs/2026-09-03-compliance-client-surface.md`。
 
 ## 对账基线（不是待办）
 
 - **`contracts/content-manifest.md` 的两条 Open question（blob 是否向二进制资产开放 · flags 是否落地客户端本地缓存）已于 2026-08-30 成对落笔关闭。** 本库落 `no-cache` 的层次澄清（回链 `envelope.md` §3，不复制）、后端对客户端缓存的**零义务**、B 组第 7 条的依赖方登记与「blob 通道不承载二进制资产」一节；对侧落 flags 落盘纪律与资产引用格的 overlay 收口，见 `game-design-documents/handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md`。**报文零改动**（`flagsSchema` / `manifestSchema` 均不提升）。**两侧无遗留欠账。** 移出记录见 `../answer-logs/log-client-flag-cache-and-binary-overlay.md`。
 
-- **Codex 顶层键的计数措辞已去计数化**（客户端 2026-08-25 图鉴族扩员 → 本库同批落笔）：`contracts/profile-sync.md` §5 排除清单由计数指代改为按 `*Codex` 顶层键后缀恒定覆盖全族，并回链客户端族清单权威（`game-design-documents/systems/player-profile/codex/_index.md`，**本库不复述**）。**契约报文形态一字未变，字段面零配合** —— 新顶层键落不透明段 ⇒ 不进白名单 ⇒ 按 §5c 适用面恒等式结构性地不受回声校验约束，且 §5c 无需加行。`schemaVersion` bump 的新值须进 `envelope.md` §7e 兼容矩阵，属**每次 bump 均有的既有机械义务**（矩阵落 `operations/`，栈未定故当前无可落之处），已记入 `handoffs/2026-08-25-codex-key-count-neutralization.md`，不进契约正文。**两侧无遗留欠账。**
+- **Codex 顶层键的计数措辞已去计数化**（客户端 2026-08-25 图鉴族扩员 → 本库同批落笔）：`contracts/profile-sync.md` §5 排除清单由计数指代改为按 `*Codex` 顶层键后缀恒定覆盖全族，并回链客户端族清单权威（`game-design-documents/systems/player-profile/codex/_index.md`，**本库不复述**）。**契约报文形态一字未变，字段面零配合** —— 新顶层键落不透明段 ⇒ 不进白名单 ⇒ 按 §5c 适用面恒等式结构性地不受回声校验约束，且 §5c 无需加行。`schemaVersion` bump 的新值须进 `envelope.md` §7e 兼容矩阵，属**每次 bump 均有的既有机械义务**（矩阵已建立于 `operations/version-matrix.md`，登记流程见 `operations/_index.md`），已记入 `handoffs/2026-08-25-codex-key-count-neutralization.md`，不进契约正文。**两侧无遗留欠账。**
 
 - **客户端 08-22 产生的三条球在本库，已于 2026-08-23 全部落笔，三处成对采纳均完成：**
   ① **回声校验通则的后端半** → `contracts/profile-sync.md` §5c（适用面恒等式 · 类型感知比较口径 · 追加字段刚性）+ `contracts/envelope.md` §8 指路。客户端半 08-22 已落，本库半落笔即完成成对采纳。

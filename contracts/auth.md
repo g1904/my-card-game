@@ -2,7 +2,7 @@
 
 > 覆盖 `/v1/auth/…` 七个端点的报文本体。**边界层不在此重复**：序列化与命名约定、`/v1/` 主版本、传输信封、错误体形状、错误码台账、版本协商——全部见 `envelope.md`，本文件只写 auth 域**相对它的差异与例外**。
 > 客户端侧门面见 `game-design-documents/systems/services/account-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-13-auth-endpoint-contract.md` · `handoffs/2026-08-16b-account-identity-model.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` · `handoffs/2026-08-23-refresh-lifetime-cap.md`。
+> Source: `handoffs/2026-08-13-auth-endpoint-contract.md` · `handoffs/2026-08-16b-account-identity-model.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` · `handoffs/2026-08-23-refresh-lifetime-cap.md` · `handoffs/2026-09-03-nickname-moderation-and-risk-control.md`（§8 的判定链与两条承重口径）。
 
 ## 1. 端点集：七个
 
@@ -138,6 +138,8 @@ refresh 请求到达
 ```
 
 **先判到期、再判宽限回放**，顺序不可颠倒——反过来会让一条已到期的链靠重放多活 60 秒，而那 60 秒没有任何玩家价值。
+
+**下游依赖登记（客户端侧）：** 客户端 refresh token 的本地存放取向以本节的 rotation 与「窗口外重放即吊销全部会话」为支点，其语义与理由的权威在 `game-design-documents/systems/services/account-service.md`（**本库不复述**）。**本节任一条被改写、削弱或取消 ⇒ 须同批触发客户端侧重评**，不得只改本节即视为收口。
 
 ## 4a. 会话裁决：单账号一条活跃会话（承重）
 
@@ -386,9 +388,16 @@ QQ      → { "authCode": "<同上>" }
 
 > **为什么不由后端写。** 「够格进 `profile-sync.md` §5 后端写入表」的判据是**真值只可能在服务端产生**且**客户端无任何其他通道能取到它**——昵称两条都不满足，把它塞进那张表会用一个不满足判据的先例把护栏撑开。
 >
-> **代价如实记下：** 改包客户端可以跳过本端点、直接把未过审昵称 push 上去。本作是单人游戏、昵称**没有任何玩家间可见性**，因此残留风险面只剩合规抽查一项——由后端侧对 `/accountInfo/nickname`（透明只读路径）的**存量扫描**承接，触发频率与处置归 `02`。若日后出现玩家间可见性（排行榜、分享），这条判断需要重新做。
+> **代价如实记下：** 改包客户端可以跳过本端点、直接把未过审昵称 push 上去。本作是单人游戏、昵称**没有任何玩家间可见性**，因此残留风险面只剩合规抽查一项——由后端侧对 `/accountInfo/nickname`（透明只读路径）的**存量扫描**承接。扫描比对本次 push 的 `nickname` 与该账号最近一次经本端点接受的值，不等即确定性检出绕过写入；它**只记账与判定，绝不拒绝上行、绝不改写**（`profile-sync.md` §7a）。触发源、扫描台账与处置阶梯见 `operations/moderation.md`。若日后出现玩家间可见性（排行榜、分享），这条判断需要重新做。
 >
 > **客户端只做长度与空白这类无争议的输入约束**，敏感词与频次一律由本端点判定——客户端自带一份词表就是第二权威，且改词表要发版。
+
+**判定是四级短路：形态 → 频次 → 词表 → 第三方审核适配器 → 接受，第一个失败级决定 `reasonKey`。** 顺序不可颠倒：它使「既超长又含敏感词」这类输入的应答唯一（`Malformed`），验收断言因此无歧义；同时把唯一有外部成本的一级放在最后，被频次闸挡住的刷子不产生外部调用。词表命中「复核级」与适配器判「待复核」一律**先接受**（`204`）并入复核队列——端点不返回「待审」态，那会把长时状态机塞回 auth 域，与 `compliance.md` §1 的分域判据直接相抵。词表的两档分级、不可变版本化发布、复核与存量扫描通道见 `operations/moderation.md`；改名频次阈值与第三方服务商归 `06`。
+
+**两条承重口径：**
+
+- **频次计数只对「被接受的一次改名」`+1`。** 拒绝不计数——若拒绝也计数，玩家试错三次就把自己锁死在 `TooFrequent` 上，而他一次都没有改成。这与「重复提交同一昵称回 `204`」（§7）配套：**重放不消耗配额**。
+- **词表判定的输入是归一化串，`Malformed` 判定用原串。** 匹配前对提交串做 NFKC 规范化、剥离零宽 / 控制 / 变体选择符、大小写折叠、繁简折叠；而长度与字符集判定必须在原串上做，否则玩家看到的字数与服务端判定的字数不一致。不做归一化即等于把词表变成摆设——插一个零宽空格就绕过。
 
 ### 数值初值（可调旋钮，非硬编码）
 
@@ -547,16 +556,16 @@ QQ      → { "authCode": "<同上>" }
 
 ## Open questions
 
-- **敏感词词表与审核口径**（`SensitiveWord` 的判定输入）归 `02`；**改名频次阈值**归 `06`（后端配置，与 §8 的旋钮同处）。取值表本身已封定（§10）。
-- **未过审昵称的存量扫描**——本契约的改名端点只判定「这一次提交」，profile 里仍可能存在绕过判定写入的昵称（§8）。扫描触发频率与处置（改写 / 置空 / 标 `restricted`）归 `02`。
-- **风控三档处置向玩家的可见粒度**——`OperatorRevoked` 与 `compliance.account_restricted` 的两个取值当前够用；若风控要区分「哪一类异常」，取值表需再扩。归 `02`，**不阻塞**（新增 `reasonKey` 不要求客户端同批发版，§10）。
+- **改名频次阈值与第三方审核服务商**归 `06`（后端配置，与 §8 的旋钮同处）。判定链与词表口径已在 §8 定下，取值表已封定（§10）。
 - **`refresh` 的滥用面与限流形态**——本文件把 `refresh` 的错误清单收紧为两条（§8），刻意不给 `rate.limited`，以保客户端两条路径在报文层面互斥。若 `06-platform-stack.md` 认定该端点必须限流，需回头松动这一条并同时给出客户端的第三条路径，**不能只在网关侧悄悄加**。
 - **token 签名密钥的保管与轮换**、会话存储形态、限流的实现与实际阈值——均归 `06`，落 `operations/`。契约层只声明语义。
 
 ## 跨库待办（客户端侧，本库不代为决定）
 
-**本契约的客户端对位已于 2026-08-16 同批落笔**（`account-service` 的四个新方法与 `SignInAsync` 扩参、`AccountInfo` 的 `Identities` / `Nickname` / `CreatedAtUtc`、绑定管理的 UX、三个新 `code` 的 `ERR_*`），权威在 `game-design-documents/systems/services/account-service.md` 与 `systems/player-profile/account-info.md`。
+**本契约的客户端对位已同批落笔**（`account-service` 的四个新方法与 `SignInAsync` 扩参、`AccountInfo` 的 `Identities` / `Nickname` / `CreatedAtUtc`、绑定管理的 UX、三个新 `code` 的 `ERR_*`），权威在 `game-design-documents/systems/services/account-service.md` 与 `systems/player-profile/account-info.md`。
 
 `deviceId` 的生成与持久化落点、refresh token 的客户端持有形态**均已由客户端侧落定**，权威见 `game-design-documents/systems/services/account-service.md`（本库不复述）。
 
-**§5b 的客户端对位已同批落笔**：`SessionExpired` 的二级文案键与措辞基调、`reauthRecommended` 的反应形态（内存态 · 不做任何本地时钟比较 · 启动期续期成功即呈现可跳过的登录屏 · 失败即忽略），权威在 `game-design-documents/ux/error-and-blocking-ux.md` 与 `systems/services/account-service.md`。**两侧无遗留欠账。**
+**§5b 的客户端对位已同批落笔**：`SessionExpired` 的二级文案键与措辞基调、`reauthRecommended` 的反应形态（内存态 · 不做任何本地时钟比较 · 启动期续期成功即呈现可跳过的登录屏 · 失败即忽略），权威在 `game-design-documents/ux/error-and-blocking-ux.md` 与 `systems/services/account-service.md`。
+
+**本域无遗留的实现欠账，但有一条常驻的反向依赖**：客户端的凭据本地存放取向挂在 §4 的 rotation / 吊销语义上，登记见 §4 末的「下游依赖登记」。它不是待答项，而是改写 §4 时必须一并处理的约束。

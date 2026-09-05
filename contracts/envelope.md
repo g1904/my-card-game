@@ -3,7 +3,7 @@
 > 覆盖**全部端点共有**的那一层：契约用什么表达、报文怎么序列化、信封带什么、错误长什么样、版本怎么协商。
 > 各端点的报文本体在 `auth.md` / `profile-sync.md` / `content-manifest.md`；它们**不另立一套**错误码或版本机制。
 > 客户端侧门面见 `game-design-documents/systems/services/`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md`、`handoffs/2026-08-13-auth-endpoint-contract.md`（§4a 的 auth 例外域 · 台账两条新 `code` 与 `session_revoked.detail`）、`handoffs/2026-08-14-profile-sync-contract.md`（§2 的超 2⁵³ 整数判据 · §8 可见字段子集回链）、`handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`（§1 的落笔规则 · 形态收 spec 单点 · `info.version`）、`handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 端点清单 · §4a 无鉴权例外判据 · §6 台账四条 `compliance.*`）。
+> Source: `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md`、`handoffs/2026-08-13-auth-endpoint-contract.md`（§4a 的 auth 例外域 · 台账两条新 `code` 与 `session_revoked.detail`）、`handoffs/2026-08-14-profile-sync-contract.md`（§2 的超 2⁵³ 整数判据 · §8 可见字段子集回链）、`handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`（§1 的落笔规则 · 形态收 spec 单点 · `info.version`）、`handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 端点清单 · §4a 无鉴权例外判据 · §6 台账四条 `compliance.*`）、`handoffs/2026-09-03-compliance-endpoint-payloads.md`（§4a 撤销端点方法 · §6 台账三条合规域端点错误码）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§7e 登记流程指路 · §8 统计层推论的两条限定）。
 
 ## 1. 表达形式与文档分工
 
@@ -47,7 +47,7 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 /v1/compliance/…      实名 / 合规态 / 注销 / 数据导出                    → compliance.md（六端点）
 /v1/profile/pull      整聚合下行                   → profile-sync.md
 /v1/profile/push      diff 上行（CAS + 幂等）      → profile-sync.md
-/v1/purchase/…        验票 / 收据幂等读             → purchase.md
+/v1/purchase/…        验票 / 收据幂等读 / 下单（仅需商户侧下单的渠道）  → purchase.md（三端点）
 /v1/content/flags     按账号解析后的开关结果        → content-manifest.md
 
 <contentRoot>/manifest        静态、无鉴权、CDN
@@ -83,7 +83,7 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 | 例外域 | 免鉴权的端点 | 玩家此刻为什么没有 token |
 |---|---|---|
 | auth | `challenge` · `signin` · `refresh` | 尚未登录；`refresh` 的存在前提就是 access token 已失效 |
-| compliance | `POST /v1/compliance/realname` · `DELETE /v1/compliance/deletion` | 被 `signin` 的合规拦截挡在门外，凭 `complianceTicket` 认账号（`compliance.md` §3） |
+| compliance | `POST /v1/compliance/realname` · `POST /v1/compliance/deletion/cancel` | 被 `signin` 的合规拦截挡在门外，凭 `complianceTicket` 认账号（`compliance.md` §3） |
 
 **其余端点一律照上表全带**，包括合规域自己的另外四个端点。`X-Content-Version` 在登录前无生效 overlay 可报，同样只在这两个域缺省。逐端点的例外表见 `auth.md` §6。`X-Request-Id` **无例外**——全部端点都带。
 
@@ -168,10 +168,18 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 | `compliance.playtime_blocked` | `Fatal` | `Compliance` | 阻塞屏 + 展示 `resumeAtUtc`，**无重试动作** | `{ reasonKey, resumeAtUtc }` | 触发的时段规则与解除时间 |
 | `compliance.account_restricted` | `Fatal` | `Compliance` | 阻塞屏 + 申诉入口（申诉走站外，不占端点） | `{ reasonKey }` | `status` 值与置入时间 |
 | `compliance.account_deleting` | `Fatal` | `Compliance` | 阻塞屏 + 「撤销注销」动作，凭 ticket | `{ reasonKey, deletionEffectiveAtUtc, complianceTicket, ticketExpiresAtUtc }` | 冷静期起止时间 |
+| `compliance.ticket_invalid` | `Fatal` | `Compliance` | 回登录屏重新 `signin` 以取得新 ticket；`reasonKey` 驱动二级措辞（取值表见 `compliance.md` §11） | `{ reasonKey }` | ticket 的**前缀截断**、签发与过期时间、被判定的情形（**不含** ticket 原值全串） |
+| `compliance.verification_failed` | `Fatal` | `Compliance` | 呈现失败原因并允许重填表单（受 `rate.limited` 约束）；`reasonKey` 驱动二级措辞 | `{ reasonKey }` | 失败的校验项标识（**不含**姓名 / 证件号任何片段，同 `compliance.realname_required` 那行的脱敏纪律） |
+| `compliance.deletion_irrevocable` | `Fatal` | `Compliance` | 呈现「注销已生效 / 已不可撤销」，**无重试动作** | `{ deletionEffectiveAtUtc }` | `deletionEffectiveAtUtc` 与服务端当前时刻两值、账号前缀 |
 | `sync.conflict` | `Fatal` | `Conflict` | 以云端为准丢弃本地缓冲 + 明确告知玩家（CAS 第二分支；**后端写入路径的回声校验不通过复用本码**，客户端处置逐字相同、不新增分支） | `{ cloudRevision }`；回声不通过时 `{ cloudRevision, field }`（`field` = 第一条不匹配的 JSON path，`profile-sync.md` §5c） | `baseRevision` 与 `cloudRevision` 两值、账号与 `pushId` 前缀；回声不通过时另含违规 path |
 | `sync.revision_ahead` | `Fatal` | `Conflict` | 同上 **+ 上报一次**；不试图自愈（CAS 第三分支 / 不可能态） | `{ cloudRevision }` | 同上 |
 | `sync.payload_schema_unsupported` | `Upgrade` | `Validation` | 见 §7c：**不硬阻塞**，保留待发队列 + 非阻塞升级提示 | `{ supportedSchemaVersions }` | 收到的 `schemaVersion` 与当前兼容集合 |
 | `sync.payload_invalid` | `Fatal` | `Validation` | 报文结构 / 必填字段不合法——**这是 bug 面，不是玩家面**，上报 | `{ field }` | 违规字段路径与期望形态 |
+| `purchase.receipt_invalid` | `Fatal` | `Purchase` | Store 屏终态失败 + 客服入口；解除待兑现态（该票永不会通过）。呈现形态权威在 `game-design-documents/systems/monetization.md` | `{ platform, channelCode? }`（`channelCode` 渠道原始码原样透传，**客户端不解析、只随日志上报**） | 平台名 · 渠道原始码 · `receiptId` 前缀截断 · 判定失败的那一项（签名 / 环境 / SKU / 金额 / 归属） |
+| `purchase.receipt_claimed` | `Fatal` | `Purchase` | 呈现「该收据已在另一账号上核销」+ 客服入口；解除待兑现态 | `{ platform }` | `receiptId` 前缀截断 + 当前账号前缀。**绝不含另一账号的任何标识** |
+| `purchase.receipt_pending` | `Retryable` | `Purchase` | **保持待兑现态**、退避重试（交易尚未终态，钱未确认扣）。长等待的呈现措辞归客户端 | `{ platform, channelState }`（渠道原始状态串，只作日志） | 渠道返回的状态值与查询时刻 |
+| `purchase.channel_disabled` | `Fatal` | `Purchase` | 呈现「该支付方式暂未开放」；**不进待兑现态**（玩家尚未付款），无客服入口 | `{ platform }` | 渠道名与部署环境 |
+| `purchase.payload_invalid` | `Fatal` | `Validation` | 报文结构 / 必填字段不合法——**这是 bug 面，不是玩家面**，上报 | `{ field }` | 违规字段路径与期望形态 |
 | `rate.limited` | `Retryable` | `Network` | 进待发队列 + 退避；**须尊重 `Retry-After`** | `{ retryAfterSeconds }` | 触发的限流窗口与当前计数 |
 | `server.unavailable` | `Retryable` | `Network` | 同既定断线降级 | — | 下游组件与失败阶段 |
 | `client.version_unsupported` | `Upgrade` | `Auth` | 强更闸门（**只在登录 / 启动点触发**，见 §7） | `{ minAppVersion }` | 收到的 `appVersion` 与当前下界 |
@@ -181,9 +189,11 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 
 - **「刷新失败」按判据拆成两条路径，判据是「有没有收到明确应答」而非「失败了」。** 网络失败（请求发不出 / 应答收不到 / `server.unavailable`）→ 视同断线走 sync 缓冲通道 + 指数退避，**不硬阻塞**；收到 `auth.session_revoked` → **硬阻塞重登 + 暂停退避**（重试必然成功不了）。收不到应答一律算网络失败——弱网下二者不可区分，且误判成硬阻塞的代价远大于多退避几次。`POST /v1/auth/refresh` 的错误清单因此**只有两条**（`auth.session_revoked` · `server.unavailable`），使这个判据在报文层面无歧义（见 `auth.md` §8 §10）。
 - **`auth.session_revoked` 的触发源必须进 `detail.reasonKey`，不能只写在 `message` 里。** §5a 已定客户端不得解析 `message`，而「另一设备登录」与「账号被运营吊销」对玩家是两句完全不同的话却共用同一个 `code`——触发源必须对代码可见。三处 `reasonKey` 的形态（PascalCase）、二级文案键的机械变换与兜底纪律统一在 `auth.md` §10，**台账不复述取值表**。
-- **四条 `compliance.*` 只在 `signin` 出现。** 它们全为 `Fatal`（重试同一次 `signin` 不改变结果）、全映 `OpError.Compliance`；业务端点与 `/v1/profile/*` 一律不返回（`auth.md` §5a · `profile-sync.md` §11）。`restricted` 与 `banned` **共用 `compliance.account_restricted`**，靠 `reasonKey` 分辨——玩家处置相同、只有措辞不同，拆两个 `code` 会让处置表多一行却走同一条路径。
+- **四条 `compliance.*` 拦截码只在 `signin` 出现。** 指 `realname_required` / `playtime_blocked` / `account_restricted` / `account_deleting`。它们全为 `Fatal`（重试同一次 `signin` 不改变结果）、全映 `OpError.Compliance`；业务端点与 `/v1/profile/*` 一律不返回（`auth.md` §5a · `profile-sync.md` §11）。**合规域端点自身的操作错误另有三条码**（`ticket_invalid` / `verification_failed` / `deletion_irrevocable`），它们只在合规域端点上出现、不受本纪律约束——本纪律约束的是「拦截」，不是 `compliance.` 这个前缀（`compliance.md` §4 §11）。`restricted` 与 `banned` **共用 `compliance.account_restricted`**，靠 `reasonKey` 分辨——玩家处置相同、只有措辞不同，拆两个 `code` 会让处置表多一行却走同一条路径。
 - **`auth.token_expired` 与 `auth.session_revoked` 必须是两个 `code`。** 二者的客户端处置**完全不同**（一个静默刷新、绝不打断轮回；一个硬阻塞重登）。若后端只给一个「401 未授权」，客户端无从区分，只能二选一——选错哪一边都直接违反一条客户端语义。
 - **限流是 `Retryable`，不是 `Conflict`。** 限流不改变 `cloudRevision`，客户端原样重试即可（`pushId` 保证幂等）；映成 `Conflict` 会丢弃本地缓冲，等于把一次限流变成一次进度丢失。
+- **`purchase.*` 四条映 `OpError.Purchase`，只有 `purchase.payload_invalid` 映 `Validation`。** 判据是玩家面 / bug 面之分：`receipt_invalid` / `receipt_claimed` / `receipt_pending` / `channel_disabled` 是玩家可见的终态或等待，须出客服入口或专属文案；`payload_invalid` 是报文不合法，走上报路径。把玩家面挤进 `Validation` 会让客户端上报而不出客服入口，挤进 `Conflict` 更会把一次验票失败变成一次进度丢失。
+- **`purchase.receipt_pending` 与 `server.unavailable` 分列。** 二者 `class` 与退避形态相同、含义相反（一个是我方查不到平台，一个是平台明说钱没到位），合并会让线上探针无法区分「我方故障」与「玩家用了慢速支付」——这两条曲线一个叫人、一个不叫人。同理 `channel_disabled` 与 `receipt_invalid` 分列：前者发生在下单、玩家尚未付款，后者是已付款后的终态失败。
 - **`Cancelled` 与 `Migration` 不得有任何后端 `code` 映射到它们。** 前者是客户端 `CancellationToken` 的本地语义；后者是**客户端本地**存档迁移失败（`MigrationManager`）。后端拒绝一个它不认识的 `schemaVersion` 是**上行校验失败**（`Validation`），不是迁移——映到 `Migration` 会让客户端去跑一条本地迁移路径，而问题根本不在本地。
 
 **客户端侧的映射落地形态**（供跨库 handoff 参考，不在本库定稿）：映射应是**数据**而非 switch 语句——一张 `code → (OpError, 处置)` 的表，未知 `code` 落到按 `class` 的四条默认路径。这与客户端「新增内容 = 新增数据，不编辑 switch」的可加性纪律一致。
@@ -227,6 +237,8 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 
 它是服务端判定的输入，必须与判定逻辑同处。落点 `operations/`（栈落定后），至少含：支持的 `appVersion` 下界 · 并存的 URL 主版本 · 并存的 `manifestSchema` / `schemaVersion` 集合 · 各自的下线计划。**客户端不持有这张表的任何副本。**
 
+矩阵本体与它的**登记流程 / 触发点 / 责任人 / 发布顺序**见 `operations/version-matrix.md` 与 `operations/_index.md`。
+
 ## 8. Profile 负载的三段可见性
 
 **`schemaVersion` 是上行负载的版本，其结构权威在客户端**（Profile 是客户端定义的类模型），迁移路径也在客户端（`MigrationManager`）。契约**不把 Profile 的字段表抄进本库**——那会当场制造两份真值，并违反「不复述另一侧的设计」。
@@ -239,8 +251,10 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 | **后端可见字段子集**（复算所需：`accountSeed`、`PlayerPowerFragment.*`、`playerPower[*]` 的 `powerId` 与 `sourceCode`） | **透明**，**逐 JSON path 的白名单见 `profile-sync.md` §5**（补集即不透明段；透明 ≠ 可改写；**路径本身是契约的一部分**） | 「后端可复算校验」已定；复算边界见 `profile-sync.md` §7 |
 | Profile / diff 的其余部分 | **不透明**：按不透明 JSON 存储并**原样回传** | pillar #1「后端不重跑玩法」 |
 
-- **不透明段的纪律：** 后端**不得**对不透明段做结构校验、不得改写、不得因其内部字段变化而拒绝上行。**推论：客户端加一个纯统计字段或纯展示字段，不需要后端配合、不需要提升 `schemaVersion`**——这是「统计层新增字段成本近乎为零」在契约侧的兑现。
-  - **这条推论只覆盖不透明段。** 受回声校验约束的顶层键内，向对象**追加**字段需要两侧同批落笔（客户端的强类型往返会静默丢掉未知字段 ⇒ 回声当场失败），判据与形态见 `profile-sync.md` §5c。
+- **不透明段的纪律：** 后端**不得**对不透明段做结构校验、不得改写、不得因其内部字段变化而拒绝上行。**推论：客户端在一个已有的不透明顶层键内加一个纯统计字段或纯展示字段，不需要后端配合、不需要提升 `schemaVersion`**——这是「统计层新增字段成本近乎为零」在契约侧的兑现。
+  - **这条推论只覆盖「不透明段内、已有顶层键内的追加」，两个限定缺一不可。**
+    - **受回声校验约束的顶层键内**，向对象**追加**字段需要两侧同批落笔（客户端的强类型往返会静默丢掉未知字段 ⇒ 回声当场失败），判据与形态见 `profile-sync.md` §5c。
+    - **引入一个新的顶层键**同样不适用：顶层键是 §3a 浅合并的最小替换单位，形状上多出一格结构，客户端须为它提升 `schemaVersion`。逐版形状的权威在 `game-design-documents/systems/services/profile-schema-versions.md`，**本库不复述**。
 - 后端**只在 `schemaVersion` 越出兼容集合时拒绝**（`sync.payload_schema_unsupported`）。兼容集合进 §7e 的兼容矩阵。
 - **统计计数层：后端不复算、不校验，且不得用统计数据驱动任何发放**（活动奖励 / 解锁）。一旦这么用，该字段就必须整体升为规则字段。运维侧的对应约束见 `operations/_index.md`。
 
@@ -266,7 +280,6 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 
 ## Open questions
 
-- **合规域端点自身的错误码**（ticket 过期 / 已消费、核验服务拒绝、冷静期已过、导出任务不存在或未就绪）——随 `compliance.md` 六端点的报文本体一并落笔并登记进 §6 台账。**与四条 `compliance.*` 拦截码无关**，后者已封定。
 - **`openapi.yaml` / `schemas/*.json` 的实际落笔**——**规则已定**（§1 的触发点 / 范围 / 形态迁移，`_index.md` 的完成判据与三条机检断言），只待触发点到来，属待落笔项而非设计未决。唯一仍开放的是三条机检断言的**承载位置**（设计库侧有无自动化流水线），待 `06-platform-stack.md`；在此之前以人工清单执行。
 
 ## 跨库待办（客户端侧，本库不代为决定）

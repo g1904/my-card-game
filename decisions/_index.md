@@ -5,7 +5,7 @@
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
 | `ADR-0017` | 零判定权字段的取值清单不是校验闸：未知取值宽容接收，清单增量不 bump 契约版本 | Accepted | 2026-08-28 | `contracts/profile-sync.md` |
-| `ADR-0009` | flags 规则集不可变版本化：`flagsVersion` 严格单调 + 同版本结果恒定 | Accepted | 2026-08-23 | `contracts/content-manifest.md`, `operations/_index.md` |
+| `ADR-0009` | flags 规则集不可变版本化：`flagsVersion` 严格单调 + 同版本结果恒定 | Accepted | 2026-08-23 | `contracts/content-manifest.md`, `operations/content-delivery-ops.md` |
 | `ADR-0008` | 后端写入路径在上行侧只接受回声，不等即整批拒绝 | Accepted | 2026-08-22 · 08-23 | `contracts/profile-sync.md`, `contracts/envelope.md` |
 | `ADR-0013` | `receiptId` 全局唯一 · 永久保留，且写入后的读路径必须读己所写 | Accepted | 2026-08-22 | `contracts/purchase.md`, `contracts/profile-sync.md` |
 | `ADR-0014` | 透明路径的集合字段名恒为单数，改名做一次性切换不设兼容期 | Accepted | 2026-08-17 | `contracts/profile-sync.md`, `contracts/envelope.md` |

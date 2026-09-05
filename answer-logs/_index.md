@@ -23,6 +23,12 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-schema-bump-ledger-authority.md` | 2026-09-03 | `inbox/archive/solution-draft-schema-bump-ledger-authority.md` → `handoffs/2026-09-03-schema-bump-ledger-authority.md` | 1（`schemaVersion` 集合的输入与登记流程；跨库成对关闭。同批裁决两项：告警按大小关系二分 · 矩阵本批即登 `1`。未新增待答项） |
+| `log-backend-stack-and-hosting.md` | 2026-09-03 | `inbox/archive/solution-draft-backend-stack-and-hosting.md` → `handoffs/2026-09-03-backend-stack-and-hosting.md` | 10（9 条整条：`06` 八条 + `01` 一条；另 1 条部分答结——`receiptId` 幂等记录的存储已定，冷存归档与对账阈值仍留 `06`） |
+| `log-nickname-moderation-and-risk-control.md` | 2026-09-03 | `inbox/archive/solution-draft-nickname-moderation-and-risk-control.md` → `handoffs/2026-09-03-nickname-moderation-and-risk-control.md` | 4（`02` 三条主项 + 一条从属项；「合规能力的上线分级」仍留） |
+| `log-content-delivery-ops.md` | 2026-09-03 | `inbox/archive/solution-draft-content-delivery-ops.md` → `handoffs/2026-09-03-content-delivery-ops.md` | 3（`04` 三条运维形态全部答结） |
+| `log-purchase-channel-integration.md` | 2026-09-03 | `inbox/archive/solution-draft-purchase-channel-integration.md` → `handoffs/2026-09-03-purchase-channel-integration.md` | 2（**均为部分移出**：收据记录的冷存归档与对账阈值、渠道验票凭据的托管形态仍留 `06`） |
+| `log-compliance-endpoint-payloads.md` | 2026-09-03 | `inbox/archive/solution-draft-compliance-endpoint-payloads.md` → `handoffs/2026-09-03-compliance-endpoint-payloads.md` | 1（`01` 合规域端点自身的错误码；六份契约自此全部完全成文） |
 | `log-client-flag-cache-and-binary-overlay.md` | 2026-08-30 | `inbox/archive/solution-draft-client-flag-cache-and-binary-overlay.md` → `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` | 2（`contracts/content-manifest.md`「Open questions」四条 → 两条；跨库成对，客户端同批移出 2 条） |
 | `log-echo-validation-scope.md` | 2026-08-23 | `inbox/archive/solution-draft-echo-validation-scope.md` → `handoffs/2026-08-23c-echo-validation-scope.md` | 1（两小问一并答定） |
 | `log-flags-version-monotonic.md` | 2026-08-23 | `inbox/archive/solution-draft-flags-version-monotonic.md` → `handoffs/2026-08-23b-flags-version-monotonic.md` | 2（其一部分答结：运营形态其余部分留 `04`） |

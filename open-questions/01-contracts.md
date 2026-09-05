@@ -1,4 +1,4 @@
-# ① 协议契约（六份已成文 · 余下四条待答项）
+# ① 协议契约（六份已成文 · 余下一条待答项）
 
 > 客户端 ↔ 后端边界的**唯一**耦合点。两侧都读它，因此必须单点定义。权威落点：`contracts/`。
 > 跨越这条边界的客户端成分有**三个**：`account-service`、`content-service`、`sync-service`——全部是服务本身，没有任何 manager 跨边界（剧本内容已本地化，2026-08-11）。
@@ -14,10 +14,8 @@
 > **spec 的落笔与一致性核对规则已于 2026-08-14 答结** → `contracts/_index.md`「契约变更的完成判据」+ `contracts/envelope.md` §1（触发点 = 任一侧首个端点 · 形态收 spec 单点 · 三条机检断言 + 人工清单 · 变更内原子；移出记录见 `answer-logs/log-openapi-spec-timing-and-consistency.md`）。**`contracts/` 的最后一项结构性欠账就此结清。**
 > **回声校验的适用面与比较口径已于 2026-08-23 答结** → `contracts/profile-sync.md` §5c（适用面恒等式 · 类型感知的比较口径 · 追加字段刚性；移出记录见 `answer-logs/log-echo-validation-scope.md`）。与客户端半的**成对采纳就此完成**。
 > **`auth.md` §5 静默续期的闸门收口已于 2026-08-23 答结** → `contracts/auth.md` §5b（refresh 链绝对寿命上限 · 新 `reasonKey` `SessionExpired` · 软信号 `reauthRecommended`；移出记录见 `answer-logs/log-refresh-lifetime-cap.md`）。
-> 本分片余下的全部是**横切待答项**，不挡任何一份契约成文。
+> **合规域的报文本体与端点自身的错误码已于 2026-09-03 答结** → `contracts/compliance.md` §10 §11（六端点字段表 · `ComplianceRealnameStatus` · `taskId` 形态 · 导出任务四状态 · 三条新 `code` 与各自 `reasonKey`）+ `contracts/envelope.md` §6 台账三行、§4a 例外表（撤销注销改 `POST .../cancel`）。移出记录见 `answer-logs/log-compliance-endpoint-payloads.md`。**六份契约自此全部完全成文。**
+> **`refresh` 的限流形态已于 2026-09-03 答结** → 网关不得对 refresh 施加限流，只记账 + 告警，落 `operations/deployment.md` 的两条网关纪律与逐次上线核对项；契约侧「刻意不给 `rate.limited`」因此不必松动。移出记录见 `answer-logs/log-backend-stack-and-hosting.md`。
+> 本分片余下的是一条**横切待答项**，不挡任何一份契约成文。
 
-- **`refresh` 的滥用面与限流形态（待 `06`）。** 契约侧刻意不给 `rate.limited`（为保客户端两条失败路径在报文层面互斥），若 `06` 认定必须限流，需回头松动并同时给出客户端的第三条路径，**不能只在网关侧悄悄加**。→ `contracts/auth.md` §8 §10。
-
-- **合规域端点自身的错误码（随报文本体落笔，非设计未决）。** `contracts/compliance.md` 的六端点只落了端点集与语义，字段表与它们各自的错误码（ticket 过期 / 核验拒绝 / 冷静期已过 / 导出任务不存在）应由一次正式的契约变更承担。**四条 `compliance.*` 拦截码已进台账**，本条与它们无关。
-
-- **三条机检断言的承载位置未定（待 `06`）。** 落笔规则与一致性核对方式已于 2026-08-14 全部答结（→ `contracts/_index.md`「契约变更的完成判据」+ `envelope.md` §1；移出记录见 `answer-logs/log-openapi-spec-timing-and-consistency.md`）。**唯一仍开放的是工程承载**：设计库侧是否存在自动化流水线、跑在哪里——随 `06-platform-stack.md` 落定。断言本身与后端栈无关（校验的是 markdown 与 YAML / JSON），**不等 `06`**：在此之前三条以人工清单的前三项形式执行，其余条款不受影响。具体校验工具刻意不点名，只立能力要求：能校验 OpenAPI 3.1 / JSON Schema 2020-12，且能在设计库侧运行。
+- **三条机检断言的承载位置未定（待 `06`）。** 落笔规则与一致性核对方式已于 2026-08-14 全部答结（→ `contracts/_index.md`「契约变更的完成判据」+ `envelope.md` §1；移出记录见 `answer-logs/log-openapi-spec-timing-and-consistency.md`）。**唯一仍开放的是工程承载**：设计库侧是否存在自动化流水线、跑在哪里。部署形态**已具备承接能力**（断言校验的是 markdown 与 YAML / JSON，可作为普通检查步骤挂在同一条流水线上，见 `operations/deployment.md`），欠的只是「挂不挂、挂在哪」这个决定。断言本身与后端栈无关（校验的是 markdown 与 YAML / JSON），**不等 `06`**：在此之前三条以人工清单的前三项形式执行，其余条款不受影响。具体校验工具刻意不点名，只立能力要求：能校验 OpenAPI 3.1 / JSON Schema 2020-12，且能在设计库侧运行。

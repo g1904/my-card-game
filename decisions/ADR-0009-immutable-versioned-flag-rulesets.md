@@ -16,7 +16,7 @@
 2. **严格单调递增，回滚 = 以被回指批次的规则内容发布一个更大的 `flagsVersion`**；flags 是全量快照，故前滚与首次发布走同一条路径，成本为零。
 3. **同一 `(flagsVersion, 账号)` 的解析结果恒定**——任何影响解析结果的改动（规则增删、分桶比例、白名单、分桶盐值）都必须提升版本；分桶函数须是 `(accountId, 规则集版本)` 的**纯函数**。
 
-配套：**规则集不可变**（无原地编辑路径）；多区域差异降格为传播时延 + 运维 SLO「新批次须在窗口 T 内全区域可见」；**若引入按账号的解析结果缓存，缓存键必须含 `flagsVersion`**、不得跨版本复用。三个失效来源的逐条堵法与栈中立表述 → `contracts/content-manifest.md`「服务端保证」B 组；发布 / 回滚流程与留痕四项 → `operations/_index.md`。**报文层零成本**：不新增字段、`flagsSchema` 不提升、客户端零改动。
+配套：**规则集不可变**（无原地编辑路径）；多区域差异降格为传播时延 + 运维 SLO「新批次须在窗口 T 内全区域可见」；**若引入按账号的解析结果缓存，缓存键必须含 `flagsVersion`**、不得跨版本复用。三个失效来源的逐条堵法与栈中立表述 → `contracts/content-manifest.md`「服务端保证」B 组；发布 / 回滚流程与留痕四项 → `operations/content-delivery-ops.md`。**报文层零成本**：不新增字段、`flagsSchema` 不提升、客户端零改动。
 
 ## 理由
 
@@ -39,7 +39,7 @@
 ## 后果
 
 - `contracts/content-manifest.md` 的「服务端保证」因此**分两组**（A 组 overlay 分发 · B 组 flags 通道），两组各自封闭、不互相溢出。
-- `operations/_index.md` 承接 flags 发布 / 回滚流程与**留痕四项**（操作者 · RFC 3339 UTC 时刻 · `derivedFrom` 来源版本 · 变更摘要与生效范围）；`derivedFrom` 是「回滚 = 前滚」可被机读核对的唯一凭据。「版本号未倒退」列为数据库恢复演练的必检项。
+- `operations/content-delivery-ops.md` 承接 flags 发布 / 回滚流程与**留痕四项**（操作者 · RFC 3339 UTC 时刻 · `derivedFrom` 来源版本 · 变更摘要与生效范围）；`derivedFrom` 是「回滚 = 前滚」可被机读核对的唯一凭据。「版本号未倒退」列为数据库恢复演练的必检项。
 - 传播窗口 T 的数值待 `open-questions/04-content-delivery.md` 的多区域一致性答定；分配点、高水位、留痕与保留期的**实现形态**待 `open-questions/06-platform-stack.md`。
 - **是否引入缓存层不在此裁决**（`04`），但一旦引入即受缓存键含版本这条约束。
 - 客户端侧对位（「增大即拉」的单调闸、降级与爆炸半径闸）权威在 `game-design-documents/systems/services/content-service.md`；应答体 `flagsVersion` 是否同过单调闸的客户端缺口见 `game-design-documents/handoffs/2026-08-23-flags-version-client-gate.md`。本库不代为改客户端规则。

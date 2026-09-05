@@ -6,6 +6,12 @@
 
 | 草稿 | 对应 handoff | 日期 |
 |------|--------------|------|
+| `solution-draft-schema-bump-ledger-authority.md` | `handoffs/2026-09-03-schema-bump-ledger-authority.md` | 2026-09-03 |
+| `solution-draft-backend-stack-and-hosting.md` | `handoffs/2026-09-03-backend-stack-and-hosting.md` | 2026-09-03 |
+| `solution-draft-compliance-endpoint-payloads.md` | `handoffs/2026-09-03-compliance-endpoint-payloads.md` | 2026-09-03 |
+| `solution-draft-nickname-moderation-and-risk-control.md` | `handoffs/2026-09-03-nickname-moderation-and-risk-control.md` | 2026-09-03 |
+| `solution-draft-purchase-channel-integration.md` | `handoffs/2026-09-03-purchase-channel-integration.md` | 2026-09-03 |
+| `solution-draft-content-delivery-ops.md` | `handoffs/2026-09-03-content-delivery-ops.md` | 2026-09-03 |
 | `solution-draft-client-flag-cache-and-binary-overlay.md` | `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` | 2026-08-30 |
 | `solution-draft-out-of-combat-item-use.md` | `handoffs/2026-08-28-save-point-reason-inventory-changed.md` | 2026-08-28 |
 | `solution-draft-refresh-lifetime-cap.md` | `handoffs/2026-08-23-refresh-lifetime-cap.md` | 2026-08-23 |
