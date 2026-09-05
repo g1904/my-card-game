@@ -2,7 +2,7 @@
 
 - **状态：** Accepted
 - **日期：** 2026-08-01
-- **来源：** handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md · handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md · handoffs/2026-08-06d-combat-open-questions-mass-closure.md
+- **来源：** handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md · handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md · handoffs/2026-08-06d-combat-open-questions-mass-closure.md · handoffs/2026-09-02-architecture-services-reconcile.md
 
 ## 背景
 
@@ -17,13 +17,14 @@
 | 第一级 | **service** | 边界单元，autoload；三判据命中其一 |
 | 第二级 | **manager** | 服务内部的职能组件 |
 | 第三级 | **module** | manager 内部的可复用部件 |
-| 第四级 | **processor** | 无状态的处理阶段（预留，无实例） |
-| 第五级 | **handler** | 按 kind 分派的叶子（预留，无实例） |
+| 第四级 | **processor** | 无状态的处理阶段（现有实例：`EffectProcessor`） |
+| 第五级 | **handler** | 按 kind 分派的叶子（现有实例：效果 kind handler，一个 kind 一个） |
 
 - **service 的三判据（命中其一）：** ① 有自己的状态机或跨多帧的长流程；② 需事务性地跨多字段一致写入；③ 坐在外部 I/O 边界上。据此定为**七个服务**。
 - **拆分轴 = 生命周期层 + 行为边界，不是数据类型。**
 - **纪律不随层数放宽：** 服务之间不读写对方字段、不伸手进对方 manager；不得跨层直呼——外部只看得见宿主服务的 API 面。
-- **module 以下的下沉判据把轴从「职责」换成「形态」**，且带三条反判据（只是文件太长 / 只被调用一次且无变体 / 为了让层级看起来完整——一律不拆）。**先有判据、后有实例；第四 / 五级保持空是健康的。**
+- **module 以下的下沉判据把轴从「职责」换成「形态」**，且带三条反判据（只是文件太长 / 只被调用一次且无变体 / 为了让层级看起来完整——一律不拆）。**先有判据、后有实例。**
+- **下沉判据的宿主口径 = 宿主恰一个（manager 或 module）**：判据管的是「调用入口是否唯一」，不是「宿主住在第几层」。**层级链允许跳过中间级**——要求 processor 的宿主必须是 module，会为凑层数逼出一个只被调用一次、无变体的中间 module，正撞三条反判据的 ②③。
 
 七服务清单、manager 归属、下沉判据的三条与门与校准样本见 `systems/architecture.md`「服务层」；层级词表与服务清单另见 `systems/services/_index.md`。
 
@@ -45,5 +46,5 @@
 
 - 约束了每一次「这块代码放哪」的裁决，且新增组件的命名必须显式声明层级。
 - 七个服务的边界、内含 manager 与 autoload 注册顺序因此可以逐一钉死（见 `systems/architecture.md`）。
-- 第四 / 第五级长期无实例是预期状态，不构成缺口。
+- **层数不封顶也不封底**：五级各有现有实例，但一条链不必走满五级——第四级 `EffectProcessor` 的宿主是第二级 `StackManager`，中间不插 module。层级词表约束的是「叫什么名字就意味着在第几层」，不是「每一层都必须被填满」。
 - 影响文档：`systems/architecture.md`（权威）· `systems/services/_index.md` · `systems/services/combat-service.md`（`DeckModule` 的层级归属）· `program-overview.md`。

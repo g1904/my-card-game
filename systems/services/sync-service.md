@@ -52,7 +52,8 @@
 
   - **第 5 条是防滑坡的关键纪律：** 宽松口径成立的**全部前提**是「被篡改无玩法后果」。任何一处用统计去驱动发放都会当场击穿这个前提——**一旦这么用，它就变成了规则字段，必须整体升层**。这条须同时写进 `backend-design-documents/`。
   - **推论：统计层新增字段的成本近乎为零**——宽松同步 + 老档缺字段以默认值补齐（无损）+ 不参与任何判定 ⇒ 加一项统计既不需要迁移路径也不需要后端配合。这正是「首批清单最小化」的依据。
-- **能力禁用表与统计层带来的存档 schema 影响：bump 一次，空迁移。** `CharacterProfile.disabledAbility`（老档缺字段 → 空列表）· `PlayerProfile.statistics`（→ 全 0）· `ProfileChangeSpec` 由单列表扩为按施加语义分列的多个列表（已落存档于 `PastEventEntry.SelectCost` / `AppliedChange`；老档单列表 → 读为 `Elements`，其余各列为空）。当前无线上存档 ⇒ **空迁移**，走既有 MigrationManager 骨架。**diff 粒度与体积估算不受影响**（禁用表条目 ≤ 数条，统计是两个 int）。
+  - **这条推论的分界是「顶层键内追加」，不含「引入顶层键」（承重）。** 在已登记的 `statistics` 顶层键内加一项计数确实零成本、不进 `schemaVersion` 登记表；而**首次引入 `statistics` 这个顶层键本身**是浅合并的最小替换单位上多出一格结构，须进登记表。不写明这条分界，同一句话会被两侧读成两个真值——契约侧的对位推论见 `backend-design-documents/contracts/envelope.md` §8。
+- **能力禁用表与统计层的存档形状影响：`CharacterProfile.disabledAbility` 与 `PlayerProfile.statistics` 两个顶层键、以及 `ProfileChangeSpec` 由单列表扩为按施加语义分列的多个列表**（已落存档于 `PastEventEntry.SelectCost` / `AppliedChange`）。**版本归属登记见 `systems/services/profile-schema-versions.md`。** **diff 粒度与体积估算不受影响**（禁用表条目 ≤ 数条，统计是两个 int）。
 - **`pastEvent` 只追加，不修改既有条目（不变式）。** 一次事件只新增一条尾部 `PastEventEntry`，因此它对 diff 尤其友好：**只要 diff 能表达「列表尾部追加」，增量就是这一条本身，与列表已有长度无关**。这条不变式是下面体积估算成立的前提，也给 diff 实现一条可依赖的性质。
 - **单事件 `pastEvent` 增量 ≈ 770 B（JSON 明文），落在 ~2 KB 预算内 ⇒ push 粒度不变。**
 
@@ -102,7 +103,7 @@
 - **三条不变式（新增失败态时先拿它们核对）：**
   1. **阻塞点是穷举的四处**：**登录点**的版本闸门（协议维度的 `client.version_unsupported` 只在 `signin` 判定，pull 侧不判——权威见 `backend-design-documents/contracts/profile-sync.md` §2）、被后端明确挤下线、启动 pull 失败本身（存档 schema 维度的迁移失败落在它之内），以及购后 pull 的主菜单内重试。**没有第五处。**
   2. **「回退存档点」在任何降级路径上零次出现。** 云端权威只在**冲突**与**迁移失败**处生效，两者都不把玩家已打完的进度倒回去。
-  3. **降级只有三种形状**：进队列 + 退避（push 侧）· 用上一个已知好值（内容 / flags 侧）· 硬阻塞并给出唯一动作（身份 / 权威档侧）。**新的失败态必须归入这三种之一，不得发明第四种。**
+  3. **降级只有三种形状**：进队列 + 退避（push 侧）· 用上一个已知好值（内容 / flags 侧）· 硬阻塞并给出唯一动作（身份 / 权威档侧）。**新的失败态必须归入这三种之一，不得发明第四种。** 第二形状里的「已知好值」**含缺省值**——没有上一次可用值的呈现性读取（如合规态查询，缺省 = 无附加合规面），失败即用缺省继续，仍属这一形状。
 - **token 失效 / 被挤下线：** `RefreshToken()` 静默刷新；**刷新的失败按判据分流**——**网络失败**（发不出 / 收不到 / `server.unavailable`）**视同断线**走同一缓冲通道（不另开一套），**收到 `auth.session_revoked` 应答**则走下一条的硬阻塞、并**暂停退避重试**（重试必然失败）；被后端**明确挤下线** → **硬阻塞**要求重登，重登后同样**先 pull 后 flush**。判据与理由见 `account-service.md`，本文不复述。
 
 ### `revision` 语义与幂等键
@@ -220,7 +221,7 @@
 - **为什么它比普通重构危险：** 把某个字段挪个位置、改个名，在客户端侧是纯重构（老档靠迁移无损通过），但**在后端侧会静默变成「这个字段消失了」**——复算退化为空操作，**且两侧都不会报错**。后端对缺失的透明路径记告警级台账、不拒绝上行，使这类漂移在线上可见，但那是事后发现，不是防线。
 - **先按人工清单执行，暂不机械化。** 落在「纪律的可执行化」阶梯的低档是有意的——不为一条**尚无实例**的纪律先行造工具。**留一条触发条件：首次真的发生透明路径漂移（后端告警台账记到第一条）时，回头把它升级为机械检查**，而不是等它攒够教训。
 - **diff 的序列化形态须与契约的顶层键浅合并逐字对齐**：`PlayerProfileDiff` 中出现的顶层键即整键替换、未出现的保持不变、空对象 = 无变化、**不表达删除**（`PlayerProfile` 只增不删，无需删除语义）。`CharacterProfileDiff` 同理，整体替换该 `characterId` 下的值。键值以下的结构对后端完全不透明——**本服务因此不得依赖后端做任何逐元素合并**。
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-echo-validation-scope-client-half.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-echo-validation-scope-client-half.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-03-schema-bump-ledger-authority.md`
 
 ## 管理器
 
@@ -317,24 +318,10 @@ public sealed record ProfileSnapshot(PlayerProfile Profile, long Revision, int S
 
 ### 存档 schema 版本
 
-- **`PlayerProfile.entitlement`（`PlayerEntitlement`，2 字段）⇒ bump 一次、空迁移**（老档缺字段 → 两个序号皆 `0` = 未购买 · 从未兑现，无损）。它是规则字段层：**严格上行、后端可复算**，两条透明路径 `/entitlement/bundleGrantOrdinal` 与 `/entitlement/bundleRedeemedOrdinal`；前者是**后端唯一会写入的第二个字段**（验票通过时 `+1`），后者由客户端写、后端只读并校验不变式。白名单与后端侧语义见 `backend-design-documents/contracts/profile-sync.md` §5。
-- **`PlayerPowerFragment` 增 `LastRoll` / `LastEffectiveChance` 两个 `int`** ⇒ 同批 bump、老档补默认值（无损）。两者进透明段，供后端复算比对，见 `systems/player-profile/_index.md`。
-- 本次新增 `rng`（见 `systems/character-profile/_index.md`）、`StartContentVersion`、`LastContentVersion`、**`activeCombat`（战斗中间态，可空；schema 见 `combat-service.md`）**、**`pastEvent` 的条目结构 `PastEventEntry`（schema 见 `systems/adventure-event/common-properties.md`）** → **bump schema 版本**。当前无线上存档 ⇒ 空迁移。
+- **逐版登记表的权威落点是 `systems/services/profile-schema-versions.md`**——每一版在那里各占一行，某次结构改动属于哪一版以该表为准，**别处一律回链、不得就地宣布 bump**。本服务只持有它的执行面：`MigrationManager` 的版本校验与逐版迁移路径。
+- **老档补默认值口径：** 集合 → 空列表；`DefeatReason?` → `null`；`ChapterRetry` → 全 0；`eventOption` / `activeEvent` → `null`；`gameSetting` 缺字段 → 取 `SettingFields` 的默认列。当前无线上存档 ⇒ 实际为空迁移。
+- **集合字段改单数是破坏性契约变更**（Profile 透明段字段名经序列化策略机械映射为 JSON path），故它与后端白名单同批改；成立的三个前提是「线上无真实账号数据 · 两侧同批落笔 · 一次性不设兼容期」。通则与边界见 `systems/player-profile/_index.md`。
 - **战斗随机的 `attemptIndex` 派生层不落存档**，故它的有无不影响 schema 版本。
-- **两层 Profile 的字段面收口 ⇒ bump 一次、一段迁移说明。** 下列改动**合并为同一次 bump**——它们同批落笔、彼此的默认值互不依赖，拆成多次只会让迁移器多几级空跳。**后续同批新增的字段追加进本清单，不另起一次 bump。**
-
-  | 对象 | 本次改动 |
-  |---|---|
-  | `ProfileChangeSpec` | 增列 `PlotElements` / `EventStateChanges` / `RngElements` / `TraceElements` / `CodexElements` / `SettingChanges`（元素类型 `RngStateAssignment` / `PastEventEntry` / `CodexUnlock` / `SettingAssignment`）；`ChangeElement` 增第三字段 `Op`；`ElementSpec` 增第六列 `AllowedOps`；`DeckChangeOp` 增 `AddLooseCard` ⇒ **`PastEventEntry.AppliedChange` 的形状随之变** |
-  | `CharacterProfile` | 增 `id` / `characterDataId` / `defeatReason` / `technique` / `looseCard`；增 `eventOption` / `activeEvent`；`Status` 移除 `currentMana`（移入 `activeCombat`）；`startContentVersion` / `lastContentVersion` 由 `string` 改 `int`；`rng` 片段键名对齐 camelCase（`cycleSeed` / `stream`） |
-  | `PlayerProfile` | 增全部 Codex 字段（元素 `CodexEntry`）；增 `gameSetting`（子对象 `GameSetting`）；四类持有条目定形，条目键名取 `powerId` / `itemId`；集合字段名一律改单数 |
-  | `EventOption` | 增 `OutcomeSpec` 与 `Encounter` 两格 |
-  | `PastEventEntry` | 增 `EnemyTraceRef` 一格 |
-
-  - **`ProfileChangeSpec` 的四个新增列（`RngElements` / `TraceElements` / `CodexElements` / `SettingChanges`）与两个新增子对象 schema（`CodexEntry` / `GameSetting`）同属上表这一次 bump，不另起第二次。** 它们同批落笔、默认值互不依赖（缺列 / 缺字段一律补空列表或配表默认），拆成多次只会让迁移器多几级空跳。**bump 清单只有上表一份**——列面与字段面的每一项都登记在这里；别处提到「增列 ⇒ bump」指的都是**这同一次**，不构成第二次。
-  - **老档补默认值口径：** 集合 → 空列表；`DefeatReason?` → `null`；`ChapterRetry` → 全 0；`eventOption` / `activeEvent` → `null`；`gameSetting` 缺字段 → 取 `SettingFields` 的默认列。当前无线上存档 ⇒ 实际为空迁移。
-  - **集合字段改单数是破坏性契约变更**（Profile 透明段字段名经序列化策略机械映射为 JSON path），故它与后端白名单同批改；成立的三个前提是「线上无真实账号数据 · 两侧同批落笔 · 一次性不设兼容期」。通则与边界见 `systems/player-profile/_index.md`。
-
 - 当前无线上存档，故迁移为**空迁移**——**就在此刻**把 MigrationManager 的逐版迁移骨架立起来，这是最便宜的时机（等有了线上存档再补，成本高一个量级）。
 - **增删 RNG 子流不 bump schema 版本**（子流清单是 `SeedManager` 内的常量，读档时按缺失 / 多余分别 warn + 初始化 / warn + 丢弃）。
 

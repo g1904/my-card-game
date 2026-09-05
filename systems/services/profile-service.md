@@ -131,7 +131,7 @@ if (!result.Success)
   - **`AddLooseCard` 的目标已在卡组 → 正常追加一张，既不是失败也不是空操作。** 散牌是多重集，同一张业障可在卡组里出现多张；套用 `LearnTechnique` 的「已在卡组 → `PushWarning` + 空操作」会**静默吞掉第二张**，故它不进失败语义表。
   - **恒不经 modifier pipeline。** 一条法则若能把「层数 +1」放大成 +2，「进化 = 整组替换、每层一整套卡牌定义」当场失效——不存在「1.5 层」的卡牌定义可供展开。
   - **`DeckElements` 在 `SelectCost` 内恒为空**，与 `AbilityElements` 同一条不变式、同样落为物化组装后的断言 + 内容模板加载期校验。理由同构：成本侧只放**可如实计价的量**，而「一门功法值多少寿元」无法回答。
-  - **增列 ⇒ bump 存档 schema 版本**（当前无线上存档 ⇒ 空迁移，走既有 MigrationManager 骨架）。`PastEventEntry.AppliedChange` 随 `ProfileChangeSpec` 自动获得卡组变更的账，**不新增字段**。
+  - **本列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`。`PastEventEntry.AppliedChange` 随 `ProfileChangeSpec` 自动获得卡组变更的账，**不新增字段**。
 - **剧本推进经 `PlotElements` 写入，语义是按 `ArcId` 的整条 upsert（承重）。** `CharacterProfile.plotKeyPoint` 不提供 setter，**唯一写入路径是 `PlotElements` 列表经 `TryApply`**，与资源 / 能力 / 统计 / Status / 卡组**同批、同事务**提交；条目类型 `PlotKeyPointAssignment` 是 `PlotKeyPoint` 本体的镜像。
   - **提交的是已算好的绝对状态，本 manager 不认识剧本图。** PlotManager 先按剧本图算出「这条 arc 该在哪个节点、什么态」，`ProfileManager` 只按 `ArcId` upsert，**不做任何推进逻辑**——推进规则、单步节制、出边求值、`ExclusiveGroup`、队列出队全部留在 PlotManager。与 `StatusChanges`「提交已算好的绝对值」同一条纪律，也使 `AppliedChange` 可直接重放（重放结果不依赖当时在哪个节点）。`ChooseBranch` 亦经本入口写入，它组装出的同样是一条 `PlotKeyPointAssignment`。
   - **零 `Op`，因为永不删除。** 「保留惰性条目而非删除」+ 四态 `Queued | Active | Completed | Abandoned` 全部由 `State` 表达（`Abandoned` 是一个态，不是删除）⇒ 不需要 `Remove` 向；`Queued → Active` 的出队也只是一次 upsert。
@@ -140,7 +140,7 @@ if (!result.Success)
   - **施加侧写严、读档侧读宽，不对称是有意的。** 施加侧的悬空来自代码 / 内容组装缺陷，此刻拒绝还救得回来；读档侧的悬空来自 overlay 热更 / 版本回退，此时拒绝等于让一次内容更新废掉玩家的轮回，故降级为该条惰性并保留条目（见 `systems/services/plot-manager.md`）。先例是 `(CarrierKind, Scope, Source)` 合法子集表的同款读写不对称。
   - **拓扑校验不在本入口。** 「新 `NodeId` 必须是当前节点的一条出边或等于当前节点」由 PlotManager 在推进时 `#if DEBUG` 断言；本 manager 只校验 `Id` 可解析 / 不串线 / 同批不重复。唯一组装方的内部不变式落在纪律阶梯第 3 级即可，升到入口强校验换来的是分层污染。
   - **可追溯性日志（非告警）：** upsert 时打一行 `[ProfileManager-TryApply] plot arc=<ArcId> node=<NodeId> state=<State>`。与能力得失同理——剧本推进是玩家会来问「我这条线怎么突然变了」的一类变更。
-  - **增列 ⇒ bump 存档 schema 版本**（当前无线上存档 ⇒ 空迁移）。`PastEventEntry.AppliedChange` 随 `ProfileChangeSpec` 自动获得剧本推进的账，**不新增字段**。
+  - **本列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`。`PastEventEntry.AppliedChange` 随 `ProfileChangeSpec` 自动获得剧本推进的账，**不新增字段**。
 - **事件态经 `EventStateChanges` 写入，语义是整块绝对置值（承重）。** `CharacterProfile.eventOption`（当前批快照）与 `CharacterProfile.activeEvent`（结算期间的权威副本）不提供 setter，**唯一写入路径是 `EventStateChanges` 列表经 `TryApply`**，与资源 / 能力 / 统计 / Status / 卡组 / 剧本**同批、同事务**提交。条目类型 `EventStateAssignment` 按 `Key` 分成两个具名可空载荷格，**不用裸 `object`**——贯穿链路的类型一致性不做隐式装箱，且「哪一格该有效」因此是可机械校验的一列（与 `StatusAssignment` 的双字段单列表同构）。
   - **提交的是已算好的整块，本 manager 不做合并 / 增量。** 组装方（life-cycle-service）先算出完整的 `EventOptionSave` / `ActiveEventState` 再置入；两处派生（Explore 揭示 · Exchange 刷新）各是一次对 `activeEvent` 的整体置值。与 `StatusChanges` / `PlotElements`「提交已算好的绝对值」同一条纪律，也使 `AppliedChange` 可直接重放。
   - **它是 Exchange 刷新那一笔原子性的承载。** `ChangeElement(SpiritStone, -刷新价)` 与新库存 + `RerolledCount` 必须落在**同一次** `TryApply`：只落 `-spiritStone` 则同一笔钱可再刷一次（正是防重掷纪律封死的那个窗口），只落库存则免费刷新。分列而非塞进既有列，是因为 `Elements` 只装带符号的量、`StatusChanges` 的值是标量或 id，都装不下一个结构块。
@@ -149,7 +149,7 @@ if (!result.Success)
   - **`activeCombat` 与它们共用本列，由 combat-service 组装。** 战斗内每个决策点各提交一次 `EventStateChanges[ActiveCombat = 当前局面]`（与 `RngElements[combat 子流]` 同批），`eventEnd` 收口时置空。它在六面上与 `activeEvent` 全部对齐 ⇒ 判据明文要求不分列；**两个中间态字段仍不合并**，共用的只是写入通道。这使「一切写入经 `TryApply`」不再有例外。
   - **入口做 `ActiveCombat.EventInstanceId` 一致性校验，代价明写。** 它与「`PlotElements` 的拓扑校验不在本入口」略有张力；取入口的理由是**读档侧对同一条已是 `PushError` 级**，两侧口径一致比分层纯度更值钱，且比对的两样东西都在同一次施加的可见范围内——本 manager 不需要认识任何战斗规则。
   - **可追溯性日志（非告警）：** 置值时打一行 `[ProfileManager-TryApply] eventState key=<Key> instance=<EventInstanceId | batch=<BatchId>>`。它是「退出重进后看到的库存 / 揭示态对不对」这类问询的第一手证据。
-  - **增列 ⇒ bump 存档 schema 版本**（当前无线上存档 ⇒ 空迁移）。
+  - **本列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`。
 - **RNG 子流状态经 `RngElements` 写入，语义是按子流键的绝对置值 upsert（承重）。** `CharacterProfile.rng.stream[]` 的 `State` / `DrawCount` 不提供 setter，**唯一写入路径是 `RngElements` 列表经 `TryApply`**，与其余各列**同批、同事务**提交。它买到的是一条既有不变式的机械保证：**凡消耗了子流随机的提交，该子流的 `State` / `DrawCount` 必须在同一次原子写内更新**——在此之前这条不变式没有任何结构能让「忘了带」被检出。
   - **`AppliedChange` 照常含 `RngElements`。** 痕迹里的账因此天然带上 RNG 终态，「一条可直接重放的账」这条定性完整成立；每条至多几条 `(Stream, State, DrawCount)` 三元组，体积可忽略。
   - **`CycleSeed` 与子流初始化不走本列。** 轮回开始时生成 `CycleSeed`、派生四条子流是 `StartCycle` 的附带写入，篇章重试则整个换一套新的随机流；本列只承载轮回进行中的 upsert。**单调不减校验因此不需要任何例外口子**——把归零也塞进本列，就得给一条承重校验开「整流重置例外」，而例外口子正是本列要消掉的东西。
@@ -158,7 +158,7 @@ if (!result.Success)
   - **不为它配一张逐 key 的表。** 四条子流在取值域、终态、修正准入上完全相同，配一张四行全同的表只会长出一处必须与 `RngStream` 同步增删的枚举镜像。
   - **本 manager 不向 SeedManager 索取状态。** 组装方把子流终态放进 spec 再交来；反向索取要求 profile-service 读 life-cycle-service，与「服务之间不读写对方字段」相反，且会让 spec 里没有 RNG 条目的那条账重放不出同一份 `State`。
   - **可追溯性日志（非告警）：** upsert 时打一行 `[ProfileManager-TryApply] rng stream=<Stream> state=<State> draw=<DrawCount>`。
-  - **增列 ⇒ bump 存档 schema 版本**（当前无线上存档 ⇒ 空迁移）；`rng` 块的字段一格未改，改的只是「谁把值写进去」。
+  - **本列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`；`rng` 块的字段一格未改，改的只是「谁把值写进去」。
 - **修行历程的追加经 `TraceElements` 写入，语义是序列尾部只追加（承重）。** `CharacterProfile.pastEvent` 不提供 setter，**唯一写入路径是 `TraceElements` 列表经 `TryApply`**，与其余各列**同批、同事务**提交。**直接后果：「记入 `pastEvent`」并入收口那一次 `TryApply`**，「一个事件的收口是一次事务、一个存档点」由结构兑现。
   - **载荷直接是 `PastEventEntry`，不建镜像类型。** 它字段众多且随快照判据继续增长，镜像一份等于制造两张必须同步增删的字段表；`PlotKeyPointAssignment` 用镜像的理由是五个标量的镜像成本近零，此处不成立。
   - **一次事件恰一条**，同批两条即组装缺陷。
@@ -167,7 +167,7 @@ if (!result.Success)
   - **恒不经 modifier pipeline。** 一条法则若能改写履历，它改写的是「到底发生过什么」这条账。
   - **施加侧写严、读档侧读宽。** 三个内容 `Id` 在施加侧解析不到即整批拒绝，读档侧仍取 `PushWarning` + 降级；两侧的悬空来源不同（组装缺陷 vs overlay 热更）。
   - **可追溯性日志（非告警）：** 追加时打一行 `[ProfileManager-TryApply] trace seq=<Seq> instance=<InstanceId> outcome=<Outcome>`。
-  - **增列 ⇒ bump 存档 schema 版本**（当前无线上存档 ⇒ 空迁移）；`pastEvent` 的 schema 一字未改。
+  - **本列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`；`pastEvent` 的 schema 一字未改。
 - **账号级设置经 `SettingChanges` 写入，语义是按 key 的绝对置值（承重）。** `PlayerProfile.gameSetting` 的字段不提供 setter，**唯一写入路径是 `SettingChanges` 列表经 `TryApply`**。施加语义是**绝对置值 · 无量纲 · 按 key 配表钳制 · 绝不走 modifier pipeline**——与 `StatusChanges` 逐条相同，但作用对象不同（后者绑定 `CharacterProfile.Status` 上的规则字段），故按「施加语义根本不同就分列」独立成列，而**不塞进 `StatusChanges`**：混住之后 `StatusFields` 的 key 会同时指向两个对象，「这个 key 写哪个对象」从此要读上下文，与「可机械检查是这条通则的全部价值」相抵。
   - **`SettingAssignment` 的两个载荷格皆可空**（`int? IntValue` / `bool? BoolValue`），由 `Kind` 决定哪一格有效、另一格为 `null`。**可空是「哪一格有效」可机械校验的前提**：`bool` 的缺省 `false` 与合法值 `false` 同形，`int` 的缺省 `0` 与合法值 `0`（音量 0 = 静音，是承重的合法取值）同形——非可空下「另一格是否填了」在运行时无法与「填了一个恰好等于缺省的合法值」区分，上表那条 `Kind` 不匹配的校验会变成一条判不出来的纪律。`StatusAssignment` 能用非可空是因为它的另一格是 `string`（`null` 即缺省）；同库先例是 `EventStateAssignment` 的可空载荷格。
   - **逐行查 `SettingFields` 表，与 `ResourceElements` / `StatusFields` 同款判据。** 每个 key 占一行 `(Kind, Min, Max, 默认)`：
@@ -203,7 +203,7 @@ if (!result.Success)
   - **连锁收录的展开也归 `CodexManager`，同一条纪律的第二个实例。** 收录一个敌人时同时收录该敌人套牌所含的全部功法，落成 **1 条 `(Enemy, enemyId)` + N 条 `(Technique, techniqueId)`**，由 `CodexManager` 展开并去重后随批交来；`ProfileManager` 只按 `(Kind, Id)` 逐条幂等收录，**不认识敌人与功法之间的引用关系**。展开产生的重复（多个敌人共用一门功法、玩家已持有该功法）由既有的幂等语义免费兜住——同批同 `(Kind, Id)` 去重、已存在即空操作，两者都不告警，故连锁收录**不新增任何失败语义行**。
   - **各本的触发口径与组装方**见 `systems/player-profile/codex/common-properties.md`；每一行都搭在一次已经存在的提交上，**不新增存档点、不新增 push、不新增决策点**。战斗事件的那一次是**该事件的收口提交**，判负短路那一路则是失败流程的收尾提交（见 `systems/services/life-cycle-service.md`）——遭遇的判据是接触而非胜利，两条路径都必须带上收录。
   - **可追溯性日志（非告警）：** 收录时打一行 `[ProfileManager-TryApply] codex kind=<Kind> id=<Id>`。
-  - **增列 ⇒ bump 存档 schema 版本**（当前无线上存档 ⇒ 空迁移）。
+  - **本列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`。
 - **道具使用次数经 `ItemElements` 写入，语义是按 `(Scope, ItemId)` 选定一份实例后施加带符号增量（承重）。** 两层持有条目上的 `Charges`（轮回级 `CharacterProfile.magicPack` / 账号级 `PlayerProfile.playerItem`）不提供 setter，**唯一写入路径是 `ItemElements` 列表经 `TryApply`**，与其余各列**同批、同事务**提交。它买到的是一条既有纪律的可落地形态：「道具使用次数的扣减即时经 `ProfileManager.TryApply` 写档」在此之前没有任何 element 装得下它。
 
   ```csharp
@@ -221,7 +221,7 @@ if (!result.Success)
   - **`ItemElements` 在 `SelectCost` 内恒为空**，与其余各列同款不变式、独立成行（见上表）。
   - **可追溯性日志（非告警）：** 施加时打一行 `[ProfileManager-TryApply] itemCharge scope=<Scope> id=<ItemId> delta=<Delta> after=<剩余次数>`。「我这颗丹到底扣没扣」是玩家会来问的一类变更，且 `after` 是诊断侧唯一的剩余次数证据——存档不为它留派生字段。
   - **连带（零改动）：战斗内使用的次数扣减自此也有了 element 形态**，战斗侧流程一字不改（它本就是一次即时提交）。
-  - **增列 ⇒ bump 存档 schema 版本**（当前无线上存档 ⇒ 空迁移）；持有条目的字段一格未改。
+  - **本列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`；持有条目的字段一格未改。
 - **战斗外使用痕迹经 `ItemUseElements` 写入，语义是序列尾部只追加（承重）。** `CharacterProfile.pastItemUse` 不提供 setter，**唯一写入路径是 `ItemUseElements` 列表经 `TryApply`**，与其余各列**同批、同事务**提交。**直接后果：痕迹与它记录的那一次变更落在同一次原子写内**，不存在「扣了次数但痕迹没落下」的中间态。
   - **与 `TraceElements` 分列，不合并（承重）。** 两列的施加语义同形（序列尾部只追加），但 `TraceElements` 的两条入口校验（**一次事件恰一条**、**`AppliedChange` 恒不含本列**）与「载荷直接是 `PastEventEntry`、不建镜像类型」**都绑定在载荷类型上**；合并需要把载荷改成一个二成员 sum type，并把两条校验改成按载荷类型分支——那正是分列要消掉的东西。**代价明写：** 这是本模型里第一次出现「施加语义同形但仍分列」的两列，分列判据因此多一句「载荷类型不同且入口校验绑定在载荷上时同样分列」。
   - **载荷 `ItemUseEntry` 的字段面与读档校验归 `systems/character-profile/_index.md`**，本处不复述。
@@ -230,7 +230,7 @@ if (!result.Success)
   - **施加侧写严、读档侧读宽**，与 `TraceElements` 逐字同款（施加侧的悬空来自组装缺陷，读档侧的来自 overlay 热更）。
   - **`ItemUseElements` 在 `SelectCost` 内恒为空**，与其余各列同款不变式、独立成行（见上表）。
   - **可追溯性日志（非告警）：** 追加时打一行 `[ProfileManager-TryApply] itemUse seq=<Seq> afterEvent=<AfterEventSeq> id=<ItemId> scope=<Scope>`。
-  - **增列 ⇒ bump 存档 schema 版本**（与 `ItemElements`、`pastItemUse` 三处合并为**一次** bump；当前无线上存档 ⇒ 空迁移）。
+  - **本列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`。
 - **只读投影 `Project(spec)`：先算后提交，不新增写入面（承重）。** 收口时新一批 eventOptions 必须依**更新后的** profile 重算（`pastEvent` 是 future-event-service 的一等输入），而收口又必须是**一次**事务、一个存档点——两条承重纪律都不放松，故本服务提供一个**施加 spec 后返回未提交只读视图**的方法：life-cycle-service 用它算出新一批，再把批一并放进同一次 `TryApply`。
   - **它不是第二个写入点。** 投影不改任何字段、不触发 `CapabilitiesChanged`、不产生存档点；「一切写入经 `TryApply`」原样成立。
   - **本模型内已有两处同形的先例**：`AppliedChange` 是可直接重放的账（重放即一次纯施加）；`CanAfford` 与 `TryApply` 共用 `Evaluate(spec)`（先算、只有后者提交）。
@@ -264,7 +264,7 @@ if (!result.Success)
 
   **本表已覆盖 `CostKey` 的全部成员，与两层 Profile 字段表中写入通道标为 `Elements` 的格子双向满射**——轮回层 `spiritStone` + `immortalJade` + `Status` 前五格，账号层 `playerPowerFragment` 的 7 个字段与 `entitlement.BundleRedeemedOrdinal`。含 `Set` 的各行两个修正列一律 `null`，故自动满足下方那条启动期断言。
 
-  - **`Elements` 列明确允许同键多条（例外 · 必须写下来）。** 其余各列（`EventStateChanges` / `PlotElements` / `RngElements`）均明令「同批两条同键 = 组装缺陷」，`Elements` **不适用该口径**：一次战斗事件的收口 spec 必然带两条 `Key == LifeSpan` 的 `Add`（事件成本一条、战斗失败扣减一条），它们来自两个合法且独立的组装方。**语义 = 同键各条先求和，再按该行的取值域一次钳制**（不是逐条钳制——逐条会让「先扣 8 到 0、再扣 3」丢掉第二笔）。**不要按惯例给 `Elements` 补一条同键去重校验**，那会当场打断每一次战斗失败的收口组装，且失败发生在轮回中途而非启动期。
+  - **`Elements` 列明确允许同键多条（例外 · 必须写下来）。** 其余各列（`EventStateChanges` / `PlotElements` / `RngElements`）均明令「同批两条同键 = 组装缺陷」，`Elements` **不适用该口径**：一次战斗事件的收口 spec 必然带两条 `Key == LifeSpan` 的 `Add`（事件成本一条、战斗失败扣减一条），它们来自两个合法且独立的组装方。**语义 = 同键各条先求和，再按该行的取值域一次钳制**（不是逐条钳制——逐条会让「先扣 80 到 0、再扣 30」丢掉第二笔）。**不要按惯例给 `Elements` 补一条同键去重校验**，那会当场打断每一次战斗失败的收口组装，且失败发生在轮回中途而非启动期。
   - **`Op == Set` 恒不经 modifier pipeline。** `BaseValue` 在 `Set` 下是一个已算好的绝对值，**符号不表达方向**，「按符号分向」无从判断该取 `CostModifier` 还是 `GainModifier`；更重的理由与 `StatusChanges` 同源——让一条法则改写一个已算定的权威值（付费凭证序号、万分比累计），等于让内容改写权威值。
   - **`AllowedOps` 含 `Set` 的行，两个修正列必须恒为 `null`** —— 落为**启动期断言**（与「表覆盖 `CostKey` 全部成员」同档），使上一条不靠人记。**代价明写**：这条断言把「允许 `Set`」与「两个修正列为 `null`」焊在同一个 key 上，结构上排除「同一 key 既走修正的 `Add`、又有不走修正的 `Set`」这一形态；全表 15 行零摩擦。
   - **每一行的 `AllowedOps != 0`** —— 同样落为启动期断言：空集意味着该 element 没有任何合法写法。
@@ -299,7 +299,7 @@ if (!result.Success)
     **`CanAfford` 与 `TryApply` 共用的 `Evaluate(spec)` 读同一张表**，故「两者必须走同一条 pipeline」自动保持。**`Set` 不参与可负担性**——它不是消耗，`CanAfford` 只看 `Op == Add` 且 `BaseValue < 0` 的那些。**截断不构成 `ApplyResult.Fail`**——「全有或全无」约束的是各列表是否一起落，不是每个 element 是否落满。
   - **spec 与快照记未截断值。** `ChangeElement.BaseValue` 与 `PastEventEntry.SelectCost` / `AppliedChange` 一律保留原值，理由见 `systems/architecture.md` 同一处。
   - **`ApplyResult` 不带「触底 element」字段。** 终态判定读 `Snapshot.Status`，判据即「该字段 == 对应 `ElementSpec.Min` 且 `DepletionDefeat != null`」；「本来就是 0 还在推进」在规则层不可达（归 0 当场终结），故触底与既有值无须区分。加一个 `IReadOnlyList<CostKey> Depleted` 的收益仅限诊断，代价是每次 `TryApply` 一次堆分配，与 `ApplyResult` 是 `readonly record struct` 的零分配纪律相抵；确需触底诊断时正确的加法是在本 manager 内部打一行 `[ProfileManager-TryApply] depleted key=LifeSpan` 的可追溯性日志。
-- **可加性，落成恰好五步、不多不少。** ① Profile 上加字段（只读、无 setter）并更新该库字段表的写入通道列 → ② `CostKey` 加一个成员（名 ⟸ 标的字段路径）→ ③ `ResourceElements` 加一行六列 → ④ bump 存档 schema 版本（老档补默认值）→ ⑤ 若该行含 `Set`，两个修正列必须留空（启动期断言兜底）。**不新增服务、不改任何调用方。**这正是**不为 power / item / card / resource 各开一个 collection 服务**的替代品（见 `_index.md` 的拆分轴）。
+- **可加性，落成恰好五步、不多不少。** ① Profile 上加字段（只读、无 setter）并更新该库字段表的写入通道列 → ② `CostKey` 加一个成员（名 ⟸ 标的字段路径）→ ③ `ResourceElements` 加一行六列 → ④ 在 `schemaVersion` 登记表新增 / 追加一行（老档补默认值；登记表见 `systems/services/profile-schema-versions.md`）→ ⑤ 若该行含 `Set`，两个修正列必须留空（启动期断言兜底）。**不新增服务、不改任何调用方。**这正是**不为 power / item / card / resource 各开一个 collection 服务**的替代品（见 `_index.md` 的拆分轴）。
 
 ### CapabilityManager：能力标记聚合面
 
@@ -345,7 +345,7 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-se
 | **CapabilityManager** | capability flag 聚合 + 具名 modifier 表；`CapabilitiesChanged` 广播 |
 | **AchievementManager** | 成就进度累计（组内加权）、60% / 90% 两档一次性奖励发放 |
 | **CodexManager** | 图鉴族的收录触发采集、连锁展开与同批去重；写入仍组装 `CodexElements` 交 ProfileManager 单点提交 |
-| **GrantPoolPicker**（`internal`） | 账号级 / 轮回级能力条目的**唯一抽取处**：取池（`AllEnabled()` → `(CarrierKind, Scope)` → 去成就限定 → 排除已持有 → 可选锚定 `Rarity`）+ 按 `RarityTier` 加权 seeded 抽取。残卷 · 礼包 · 置换三条渠道共用；见 `systems/player-profile/player-power/_index.md`。**置换经具名方法 `TryPickReplacement` 进入，而不是给既有方法加一个可空 `anchorRarity` 形参**——可空默认值会让「忘了锚定稀有度」成为最短路径，而忘了锚定的置换会把 Tier1 换成 Tier5，**能上线、线上不可见**；名字里带 `Replacement` 则调用方必须显式选择语义。这与「删掉中性诱饵名 `All()`」是同一条纪律 |
+| **GrantPoolManager**（`internal`） | 账号级 / 轮回级能力条目的**唯一抽取处**：取池（`AllEnabled()` → `(CarrierKind, Scope)` → 去成就限定 → 排除已持有 → 可选锚定 `Rarity`）+ 按 `RarityTier` 加权 seeded 抽取。残卷 · 礼包 · 置换三条渠道共用；见 `systems/player-profile/player-power/_index.md`。**置换经具名方法 `TryPickReplacement` 进入，而不是给既有方法加一个可空 `anchorRarity` 形参**——可空默认值会让「忘了锚定稀有度」成为最短路径，而忘了锚定的置换会把 Tier1 换成 Tier5，**能上线、线上不可见**；名字里带 `Replacement` 则调用方必须显式选择语义。这与「删掉中性诱饵名 `All()`」是同一条纪律 |
 
 ## API 面（契约）
 
@@ -415,13 +415,12 @@ Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hie
 
 ## 待决问题
 
-- **`status` 与「拥有 / 失去」两态的存档表达。** 两个正交维度如何编码进 schema 未定。
 - **AchievementManager 的触发采集面。** 成就进度靠订阅 EventBus **被动采集**（解耦但易漏），还是由各服务**主动上报**（可靠但反向依赖）？
 - **成就两档奖励内容。** 阈值 60% / 90%、一次性、目录 80% 可见已定；**各档发放何种奖励**待定。→ `ux/screen-flow.md`。
-- **元进程字段结构。** `Achievement` 条目 schema 未定；各账号级条目的解锁 / 获取 / 失去的具体触发未定。（`PlayerPower` / `PlayerItem` 的持有条目形态、`AccountInfo` 与 `GameSetting` 的字段面已定，见 `systems/player-profile/_index.md`。）→ `systems/player-profile/`。
+- **元进程字段结构。** `Achievement` 条目 schema 未定；各账号级条目的解锁 / 获取 / 失去的具体触发未定。（`PlayerPower` / `PlayerItem` 的持有条目形态——含 `status` 与「拥有 / 失去」两个正交维度的存档编码——以及 `AccountInfo` 与 `GameSetting` 的字段面均已成文，见 `systems/player-profile/_index.md`。）→ `systems/player-profile/`。
 - **PlayerPower 的平衡边界。** 方向已定为「轻度提升、PvE-only 可容忍」；是否影响 cycle seed / 计分公平仍待定。
 
-Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md`
+Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-09-02-architecture-services-reconcile.md`
 
 ## 对应
 提炼至：`.claude/knowledge/systems/profile-service.md`（引用层，待建）。

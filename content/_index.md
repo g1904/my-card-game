@@ -35,7 +35,7 @@ content/
 |---|---|---|---|:--:|:--:|
 | `card/` | 卡牌 | `CardData` | `systems/character-profile/deck/` | 🟠 字段清单与效果语法已定，阻于 starter deck 内容 | ✗ |
 | `cultivation-technique/` | 功法 | `CultivationTechniqueData` | `systems/character-profile/deck/` | 🟠 header 形态已定（含 `RequiredAffinities` / `MaxCharacterAffinityCount` 两格），阻于卡牌条目 | ✗ |
-| `character/` | 角色（可玩模板） | `CharacterData` | `systems/character-profile/` | 🟠 字段表已成文（`Affinities` 与稀疏境界覆写 `RealmArtworks` 在内），仍阻于功法与神通条目 + 绑定功法初始层数待定 | ✗ |
+| `character/` | 角色（可玩模板） | `CharacterData` | `systems/character-profile/` | 🟠 字段表已成文（`Affinities` 与稀疏境界覆写 `RealmArtworks` 在内），仍阻于功法与神通条目 | ✗ |
 | `character-power/` | 神通 | `PowerData`（Character 域） | `systems/character-profile/power/` | 🟢 字段清单与效果语法均已定 | ✗ |
 | `character-item/` | 法宝 | `ItemData`（Character 域） | `systems/character-profile/item/` | 🟢 字段清单齐备（含两格使用效果面与配额格）+ 加载期校验 | ✗ |
 | `player-power/` | 法则 | `PowerData`（Player 域） | `systems/player-profile/player-power/` | 🟢 两层共用 `PowerData`，字段清单齐备 + 三条加载期校验 | ✗ |

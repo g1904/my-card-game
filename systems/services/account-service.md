@@ -81,7 +81,46 @@ refresh token **不进 `Session`**，由本服务落 `user://cache/`（契约对
 - **不存过期时刻。** 客户端没有任何一处可以合法地据它分支：设备时钟不可信是既定纪律，一台时钟快了一个月的设备会拒绝去尝试一个其实完全有效的刷新 ⇒ 凭空一次强制重登；而「refresh token 是否仍有效」的唯一权威是后端的 `auth.session_revoked` 应答，试一次的代价只是一次请求。**存一个不允许被读的字段，只会等着被人读。** 连带：**`signin` 应答里的 `refreshExpiresAtUtc` 客户端读取即丢弃**——这一句必须明写，否则读者会以为是漏了。
 - **不存 access token**（15 分钟即过期、`Session` 已在内存持有，落盘只是把一份短寿凭据写进磁盘，扩大泄漏面而零收益）；**不存渠道 / 手机号 / 昵称等便利字段**（那是 UI 便利、不是鉴权材料，若确有需求落 `device-settings.json`，不与凭据同处）。
 - **带 `schemaVersion`，与 `device-id.json` 的处置刻意不同。** 判据是**这份文件的结构会不会增长到需要逐版迁移**（见 `systems/architecture.md`），不是字段数：本文件是多字段信封、与 `sync-envelope.json` 同形；且配套口径「版本不认识就整份丢弃」在这里是安全的——**丢弃一份 refresh token = 玩家多登录一次，丢弃一份 `device-id.json` = 一次假换设备 + 一次假挤下线**。两者不在同一量级。**这条对照须写在此处**，否则读者会按「都是 `user://cache/` 小文件」照抄错误的一侧。
-- **明文存放，不上平台密钥库。** 理由是**依托各平台的应用沙箱 + 后端 rotation 与「窗口外重放即吊销全部会话」兜底**（`auth.md` §4）；同时不改变任何契约，日后换实现无需两侧配合。**这条不挂靠「不承诺防作弊」那条威胁模型**——那条的成立前提是「作弊者只损害自己」，而凭据泄漏的受害者是账号所有者本人以外的人，两者不同类。**已知残余风险照录**：root / 越狱设备、系统备份提取、共享设备上的他人访问——沙箱在这三种情形下不成立。平台密钥库（Android Keystore / iOS Keychain）是**后置评估项而非否决项**。
+- **明文存放，不上平台密钥库。** 理由是**依托各平台的应用沙箱 + 后端 rotation 与「窗口外重放即吊销全部会话」兜底**（`auth.md` §4）；同时不改变任何契约，日后换实现无需两侧配合。**这条不挂靠「不承诺防作弊」那条威胁模型**——那条的成立前提是「作弊者只损害自己」，而凭据泄漏的受害者是账号所有者本人以外的人，两者不同类。**已知残余风险照录**：root / 越狱设备、系统备份提取、共享设备上的他人访问——沙箱在这三种情形下不成立。平台密钥库（Android Keystore / iOS Keychain）是**后置评估项而非否决项**；「后置」的兑现物是下方的能力矩阵与五条触发条件——**只写「日后评估」而不给可判定的触发条件，等于没有评估**：那种留口不会在某天被想起来，只会在下一次「看看还有什么没做」时被再次记为后置。
+
+  **四端能力矩阵。** 带 `[待核实]` 标注的格子是**尚未验证的事实、不是断言**，核实前不得据以推理；三项核实（Godot 4.7 有无内置安全存储绑定 · Web 导出 `user://` 的持久化后端 · Android Keystore 密钥失效的具体异常与触发面）并入 `game-feature-branch/` 首次生成 `.csproj` 后的那一次实测批次，不单独排一次验证。
+
+  | | **Android** | **iOS** | **桌面（Win / macOS / Linux）** | **Web** |
+  |---|---|---|---|---|
+  | **是否存在 OS 级密钥 / 凭据机制** | 有 —— Android Keystore（系统持有密钥、应用不接触密钥材料） | 有 —— Keychain Services（`kSecClassGenericPassword`） | 有，但**三套互不相同**：Windows DPAPI / 凭据管理器 · macOS Keychain · Linux Secret Service（**不保证存在**，取决于桌面环境） | **无等价机制** |
+  | **Godot 4.7 是否内置绑定** | 否——需自建 Android 插件（Java/Kotlin 侧）`[待核实：Godot 4.7 是否有内置安全存储 API]` | 否——需自建 iOS 插件（Obj-C/Swift 侧）`[同上待核实]` | 否——需 GDExtension，且三套 OS 各写一份 | 不适用 |
+  | **`user://` 的实际落点** | 应用私有目录（沙箱内） | 应用沙箱内 | **用户可读写的普通目录**——同用户下任意进程可直接读取 | 浏览器持久化存储（Web 导出经 Emscripten 落到浏览器端存储）`[待核实：具体后端与持久化保证]` |
+  | **消掉哪几条已登记残余风险** | 备份提取 ✅（密钥不随备份迁移）· 共享设备 ⚠ 部分（取决于是否挂生物识别 / 锁屏门）· **root ❌**（root 下的保护取决于是否硬件后备，且应用自身可被注入） | 备份提取 ✅（须显式选 `ThisDeviceOnly` 类可访问性，否则随 iCloud Keychain / 备份走）· 共享设备 ⚠ 部分 · **越狱 ❌** | **一条也消不掉**——桌面威胁模型下，能读 OS 凭据库的正是「以该用户身份运行的进程」，与能读 `user://` 的是同一批 | **一条也消不掉**——同源的任意脚本可读，且不存在「OS 拒绝应用读取」这一层 |
+  | **升级后新增的坏路径** | 锁屏 / 生物识别凭据变更可使密钥永久失效；换机恢复后旧条目不可解密 `[待核实：具体异常与触发面]` | **Keychain 条目在应用卸载后仍存活**——重装即读到一份旧 token（后端已吊销 ⇒ 走 `auth.session_revoked` → 登录屏，可自愈，但**必须明写**，否则读者会以为「重装 = 干净态」） | 三套 OS 各自的可用性问题；Linux 上服务可能根本不存在 → 必须有明文回退 | 浏览器在存储压力 / 用户清理下可整体清空 → 表现为一次强制重登（既有的可自愈路径） |
+  | **升级的边际成本** | 一个自建插件工程 + 导出配置 | 一个自建插件工程 + 导出配置 + 上架复验 | 三份 GDExtension，**收益为零** | 不适用 |
+
+  矩阵读出的两条结论：**收益集中在移动双端，且只覆盖三条残余风险中的「备份提取」一条半**——root / 越狱这条恰是三条里唯一被主动攻击者利用的，密钥库消不掉；这使升级的定性从「补上安全短板」降为「关掉备份提取这一条被动泄漏面」。**桌面与 Web 的升级收益是零、不是「小」**：桌面是威胁模型使然，Web 是机制缺失。
+
+  **升级触发条件穷举五条。** 判据取两条轴——「明文的依据是否仍成立」与「升级的边际成本是否已被别的事付掉」；每条都是**可机械判定的事件**，不是「等有空」。命中任一条 ⇒ 该评估从后置项转为**必须在当次同批裁决的工作项**：**裁决可以是「仍不升级」，但必须给出结论，不得再记为后置。**
+
+  | # | 触发事件 | 轴 | 为什么它是分界线 |
+  |---|---|---|---|
+  | **T1** | `backend-design-documents/contracts/auth.md` §4 的 **rotation** 或 **「窗口外重放即吊销全部会话」**任一条被改写、削弱或取消 | 依据失效 | 明文的全部辩护建立在这两条之上；它们一动，明文当场没有依据——这不是「再评估」，是**必须重做决定** |
+  | **T2** | 客户端出现**第二份落盘的鉴权 / 支付材料**（不含 `deviceId`、不含可降级缓存），判据同本条的「泄漏后的受害者是账号所有者以外的人」 | 依据失效 | 一份文件可以逐份论证；两份就需要一条通则 |
+  | **T3** | 首次为 Android **或** iOS 引入**任何自有原生插件**（第一候选 = 商业化落地时的平台内购 SDK） | 成本已被付掉 | 当前成本的大头是「为这一件事单独建一个插件工程」；插件工程若因别的原因已存在，边际成本降到「加一个方法」，成本侧的否决理由随之消失 |
+  | **T4** | 出现**一例**经确认的凭据泄漏 / 盗号工单，其路径落在三条已登记残余风险内 | 依据失效 | **不设阈值，>0 即触发**——「已登记的残余风险实际发生了」本身就证伪了「风险被接受」这一判断 |
+  | **T5** | 上架渠道 / 合规审核**以条款形式**要求凭据受 OS 级保护 | 外部硬约束 | 与本库的取舍无关，是准入条件 |
+
+  **明确不构成触发条件**（写下来是为了防日后被「补全」）：「有空了」· root 设备占比的统计数字（无阈值可依，且五条已覆盖真正的分界线）· 竞品做了 · 「安全总是好的」。
+
+  **升级不引入平台分支**，三条理由：① **能力差异不落在 API 面上，落在一处实现内**——落盘点已收敛为 `AuthManager` 私有的一处且无公开取值方法，升级 = 换掉这一处的读写实现，服务 API 面、`Session`、六条失效路径、三条读写失败处置一格不动；② **Web / 桌面不是「降级分支」，而是同一个默认实现**——明文实现不被移除，它是四端共同的缺省，Android / iOS 在**插件可用时**替换，判据是「**这一端有没有可用的凭据存储实现**」（运行期一次探测，探测不到即用缺省），而不是「我在哪个平台」；这与 `BackendSelector` 的「唯一选择点 + 换实现而非插 `if`」是同一条纪律的第二次应用；③ **因此也不碰条件编译清单**——平台实现的有无是**构建产物**层面的事（某端的导出里没有那个插件），不是 `#if` 分支。推论：`.claude/rules/ui-input-rules.md` 的「仅在某项能力确有本质差异处分支」这一口子在此用不上，因为根本没有分支。
+
+  **现在不预留 `ICredentialStore` 之类的抽象。** 落盘点只有一处、只有一个实现、API 面已隔离，此刻抽接口只满足 `systems/architecture.md` 的抽象反判据（只被调用一次且无变体 / 为了让结构看起来更完整）。**替换成本已经是最低的**，预留抽象换不来任何东西；真要落第二个实现时再抽，那时它自动满足「≥ 2 个同形态的实现」这条判据。
+
+  **升级真发生时的落地形态**（备好以便触发时不必从零想，**不构成现在就做的建议**）：
+
+  - **存的还是同一份 JSON 串**（`{ schemaVersion, accountId, refreshToken }`），只是载体从文件换成密钥库条目 ⇒ `schemaVersion` 与「版本不认识就整份丢弃」原样保留，**存档 schema 零影响**。
+  - **迁移 = 一次性搬迁**：升级版本首次启动时，密钥库为空且明文文件存在 → 读明文 → 写密钥库 → 删明文；搬迁失败即删明文走登录屏（代价上界 = 一次重登，上一条已论证该上界可接受）。
+  - **失败语义落回既有那一格**：密钥库不可用 / 写入失败 → `PushWarning` + 本次进程内存持有、不阻塞登录，**不新增阻塞点**。
+  - **iOS 侧必须显式选「不随备份 / 不随 iCloud 同步」的可访问性**，否则「消掉备份提取」这条唯一收益当场归零；且**必须明写「Keychain 条目在卸载后存活」**及其自愈路径。
+  - **原子写纪律不适用于密钥库条目**（它不是 `user://` 文件）⇒ `AtomicJsonFile` 的调用方名单相应少一处，`systems/architecture.md` 那份写入方清单须在搬迁同批复核。
+
+  两条已被考虑并否决的替代取向，理由承重故写下：**在客户端自行加密后落明文文件**——密钥必须与密文同处一个可读位置，安全性提升为零，代价是一层假保障，比明文更糟，因为它会让人以为已经处理过了；**Web 端禁止持久化凭据、每次启动重登**——为它单开一条登录流即制造平台分支，且把一条可自愈的存储清空路径升级成常态摩擦。
 - **失效路径穷举六条，处置只有「删除文件 + 清内存」与「覆写」两种：**
 
   | # | 时刻 | 处置 |
@@ -133,14 +172,62 @@ refresh token **不进 `Session`**，由本服务落 `user://cache/`（契约对
   **API 面零改动**：软信号的读写全在 `AuthManager` 内，不新增方法、不改 `Session`、不改任何签名——与 `deviceId` / refresh token 同款，一个公开取值口就把「挂个本地判断」变成一行代码的距离。
 - **API 面零改动**：不新增方法、不改 `Session`、不改任何签名；`RefreshTokenAsync()` / `SignInAsync()` / `SignOutAsync()` 的现有形态原样承载全部六条失效路径。**存档 schema 零影响、零迁移；后端零改动、零新增义务。**
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-22-refresh-token-client-storage.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `decisions/ADR-0003-online-cloud-authority.md`
+### 合规域的客户端覆盖面
+
+合规四域（实名 / 防沉迷 / 账号注销 / 数据导出）在客户端的切分判据一句话：**凡需要「一段流程」（多于一次请求、或需要持有一个流程内凭据）的，归 `ComplianceManager`；凡只是「把一次失败说清楚」的，归发起它的那一屏。**
+
+| 域 | 环节 | 归属 | 落屏 |
+|---|---|---|---|
+| **实名** | `signin` 被 `compliance.realname_required` 拦 | 登录屏（呈现） | 登录屏 |
+| | 表单填写 + 提交 + 失败分流 + 成功后重走 `signin` | **ComplianceManager**（编排 + 持 ticket） | 实名屏（登录流程内） |
+| **防沉迷** | 拦截呈现 + `resumeAtUtc` | 登录屏 | 登录屏 |
+| | 会话中途到点 | **`AuthManager`**（既有 `auth.session_revoked` 路径） | 阻塞屏（既有「被挤下线」变体） |
+| | 剩余时长的呈现 | 数据由 `ComplianceManager` 的 status 单点提供 | 呈现形态另定 |
+| **注销** | 申请 / 撤销（已登录态） | **ComplianceManager** | PlayerProfile 屏 |
+| | 冷静期内被拦 + 撤销（未登录态，凭 ticket） | 呈现归登录屏，调用归 **ComplianceManager** | 登录屏 |
+| **数据导出** | 申请 + 轮询 + 打开下载链接 | **ComplianceManager** | PlayerProfile 屏 |
+| **昵称须改名** | `nicknameChangeRequired` 的读取 | `ComplianceManager` 的 status 单点 | 呈现形态另定 |
+| | 改名提交本身 | **`AuthManager`**（既有 `SetNicknameAsync`） | 既有改名入口 |
+
+**四件明确不归它的事**（写下来是为了防日后被「补全」）：
+
+1. **任何判定**——不读年龄、不比时钟、不算时段、不判是否未成年。`isMinor` / `playtimeRemainingSeconds` 只作**呈现的输入**，永不用于决定能否继续游玩（`decisions/ADR-0024` 与 `systems/monetization.md`：客户端不做任何本地合规拦截，强制力在后端）。
+2. **会话中途下线**——`AuthManager` 的既有路径，本节一个字都不改它。
+3. **昵称合法性判定与提交**——既有 `SetNicknameAsync`。
+4. **拦截错误的措辞选择**——那是 UI 层 `ErrorText` 的事，manager 不碰文案（`ux/error-and-blocking-ux.md`）。
+
+**客户端侧的「强制改名」不是硬阻塞（边界必须明写）。** 它的兑现依赖 `GET /v1/compliance/status` 这一次**可降级**的请求：请求取不到即本次会话不呈现须改名面，下次会话再拦。**后端侧的兜底是存量扫描与复核通道**（语义见 `backend-design-documents/contracts/compliance.md` 与 `backend-design-documents/operations/moderation.md`）。这与「合规的强制力在后端、客户端只呈现」逐条一致——把它升级成启动阻塞就会新增一处阻塞点，而阻塞点是穷举的（`sync-service.md`「三条不变式」①）。
+
+#### `complianceTicket` 只在内存里，绝不落盘、绝不出 API 面
+
+ticket 一次性、单端点、寿命由后端定（语义权威在 `backend-design-documents/contracts/compliance.md`）。
+
+- **只在 `ComplianceManager` 内存持有**，随进程消亡。落盘就造出一个「过期了还在生效」的本地状态——与 `reauthRecommended` 的「只在内存里持有、绝不落盘」是同一条论证；且它会给 `user://cache/` 添一份需要自己失效口径的小文件，而那个口径恰恰是客户端不该自己判的（设备时钟不可信）⇒ 落盘后唯一正确的读法仍是「拿去试一次，失败就回登录屏」，与不落盘完全等价。
+- **不出任何服务的 API 面**——不提供 `TryGetComplianceTicket()` 这类公开取值方法，与 `deviceId` / refresh token 同款手法。实名屏与登录屏都**看不见 ticket**：它由 manager 从拦截错误的 `detail` 里取出、在下一次请求时自己填上，故它也不进任何方法签名。
+- **`detail` 里随 ticket 一同下发的 `ticketExpiresAtUtc`，客户端读取即丢弃。** 这一句必须明写，否则读者会以为是漏了、进而拿它做一次本地时钟比较——与 `refreshExpiresAtUtc` 同一条处置。
+- **过期 / 已消费的唯一发现方式是拿去用一次**，收到 `compliance.ticket_invalid` 即按下方失败映射处置。**客户端不做任何过期预判。**
+
+#### `GET /v1/compliance/status`：单点调用与可降级
+
+- **调用点唯一：`ComplianceManager`。** 合规态没有任何下行通道（不随 `AccountInfo` 下行，理由见对侧契约）⇒ 必须有这一次请求。**排在会话到手之后、`SyncService.InitializeAsync` 之前**，与 `ContentService.RefreshFlagsAsync` 同一落点判据（需鉴权 + 失败不阻塞，见 `systems/architecture.md` 总则 4）。**不写作「`signin` 成功之后」**——静默续期那条路径根本不走 `signin`，照那个措辞写会让续期玩家永不取 status。
+- **PlayerProfile 屏进入时可再取一次**（冷静期状态会变化）。**这不是第二个真值源**——两次都是同一个 manager 的同一个方法，取回即用即弃，**不缓存、不落盘、不进 `PlayerProfile`**。它是会话中途会变的呈现输入，进主档即制造第二真值。
+- **失败按「可选缺失」降级：** 退避重试一次 → 仍失败则 `GD.PushWarning("[Compliance-Status] fetch failed; continuing without compliance surface")` + **照常进主菜单**，本次会话不呈现须改名 / 剩余时长等附加合规面。**不阻塞启动链**——合规的强制力在 `signin` 的拦截，status 只驱动呈现；让一次呈现性请求卡住启动，等于把一个可降级失败升级成登不上游戏。
+- **它归入三条不变式③ 的第二形状**（「用上一个已知好值 / 缺省值」）：此处的缺省 = 无附加合规面。**不是第四种降级形状**（口径见 `sync-service.md`「三条不变式」③）。
+- **合规端点上的 `server.unavailable` 不走 sync 的缓冲通道。** 那条「进待发队列 + 退避」是 push 通道的形状；合规端点是玩家主动发起的请求 ⇒ 就地呈现 + 允许再点一次，与登录屏对 `signin` 失败的处置同族。不新增任何机制。
+
+#### 实名表单的两条输入侧纪律
+
+- **输入约束只做长度与字符集**，与昵称同构；**不做证件号校验位、不做地区码判定**——判定权在后端。
+- **核验被拒时保留玩家已输入的内容、不自动清空**（被拒的通常只有一项）。这与实名材料的脱敏纪律不冲突：那条禁的是**服务端回显 / 进应答 / 进日志**，客户端进程内输入框里的内容不在其列。
+
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-22-refresh-token-client-storage.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `decisions/ADR-0003-online-cloud-authority.md`
 
 ## 管理器
 
 | manager | 职责 |
 |---------|------|
 | **AuthManager** | 渠道登录、token 获取 / 刷新 / 失效处理、会话保持；产出 `accountId` |
-| **ComplianceManager** | 实名认证、防沉迷时长校验、账号注销 / 数据导出的客户端侧流程 |
+| **ComplianceManager** | 实名 / 注销 / 数据导出的客户端侧流程编排；合规态的呈现驱动。**不做任何判定**——不读年龄、不比时钟、不算时段（覆盖面见「意图」的「合规域的客户端覆盖面」） |
 
 ## API 面（契约）
 
@@ -156,13 +243,49 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 | 解绑渠道 | B | `Task<OpResult> UnbindChannelAsync(LoginChannel channel, CancellationToken ct)` | 同上 |
 | 改昵称 | B | `Task<OpResult> SetNicknameAsync(string nickname, CancellationToken ct)` | 同上 |
 | 取会话 | A | `bool TryGetSession(out Session session)` | **可选缺失**——未登录是登录屏的正常态，不是错误 |
+| 查合规态 | B | `Task<OpResult<ComplianceStatus>> GetComplianceStatusAsync(CancellationToken ct)` | **可降级**，见「合规域的客户端覆盖面」 |
+| 提交实名 | B | `Task<OpResult<RealnameResult>> SubmitRealnameAsync(string realName, string idNumber, CancellationToken ct)` | 业务失败 → `OpResult`；**ticket 不进签名** |
+| 申请注销 | B | `Task<OpResult<DeletionInfo>> RequestAccountDeletionAsync(CancellationToken ct)` | 业务失败 → `OpResult` |
+| 撤销注销 | B | `Task<OpResult> CancelAccountDeletionAsync(CancellationToken ct)` | 同上；**鉴权态 / ticket 态由 manager 内部择一，调用方不分辨** |
+| 申请导出 | B | `Task<OpResult<ExportTaskInfo>> RequestDataExportAsync(CancellationToken ct)` | 同上 |
+| 查导出任务 | B | `Task<OpResult<ExportTaskInfo>> GetDataExportTaskAsync(string taskId, CancellationToken ct)` | 同上 |
 
 ```csharp
 public readonly record struct Session(string AccountId, string Token, DateTime ExpiresAtUtc);
 public readonly record struct ChallengeInfo(DateTime ExpiresAtUtc, int ResendAfterSeconds);
 public enum LoginChannel { Phone, Email, WeChat, QQ }   // 优先级序见 ADR-0003；无 Guest
 public enum ChallengePurpose { SignIn, Rebind }
+
+public enum ComplianceRealnameStatus { NotSubmitted, Pending, Verified, Failed }
+public enum ExportTaskStatus        { Pending, Ready, Failed, Expired }
+
+public readonly record struct ComplianceStatus(
+    ComplianceRealnameStatus RealnameStatus,
+    bool                     IsMinor,
+    int?                     PlaytimeRemainingSeconds,
+    DateTime?                PlaytimeResumeAtUtc,
+    DateTime?                DeletionEffectiveAtUtc,
+    bool                     NicknameChangeRequired);
+
+public readonly record struct RealnameResult(ComplianceRealnameStatus Status, bool IsMinor);
+public readonly record struct DeletionInfo(DateTime DeletionEffectiveAtUtc, bool Deduplicated);
+
+public readonly record struct ExportTaskInfo(
+    string           TaskId,
+    ExportTaskStatus Status,
+    bool             Deduplicated,
+    DateTime?        RequestedAtUtc,
+    int?             PollAfterSeconds,
+    string           DownloadUrl,            // 仅 Ready；否则 string.Empty
+    DateTime?        DownloadExpiresAtUtc,
+    long?            SizeBytes);
 ```
+
+- **字段语义的权威在 `backend-design-documents/contracts/compliance.md`，本表只定 C# 侧的调用形状与可空性。**
+- **枚举成员名与对侧的字符串取值逐字相同**（跨边界的枚举即成员名），故两侧不需要任何映射表。
+- **可选值类型用可空类型；可选字符串用 `string.Empty`，不用 `string?`**——对侧「不下发 `null`，可选字段缺席即省略」，而把 `null` 往下游传撞 `.claude/rules/null-check-rules.md`。`bool` 型可选字段缺席即 `false`。
+- **`ExportTaskInfo` 一型承载「申请」与「查任务」两个应答**：申请的应答不带 `requestedAtUtc`，故该格可空——**客户端绝不本地填 `DateTime.UtcNow` 补齐它**（设备时钟不可信）。`Deduplicated` 的语义与 `DeletionInfo` 同格：命中既有未过期任务时为真。
+- **`DeletionEffectiveAtUtc` 在 `DeletionInfo` 与 `ComplianceStatus` 上同名同义**，不因来源不同而取两个名字。
 
 - **`RequestChallengeAsync` 是 `SignInAsync` 的前置一步，不是它的内部实现。** 手机 / 邮箱登录是「先下发验证码、再提交验证码」的两步握手，UI 需要在两步之间停留（输入框 + 倒计时）；把它藏进 `SignInAsync` 内部，倒计时与重发按钮就无从驱动，两步握手在 UI 上退化成一次不可见的等待。
 - **`SignInAsync` 带凭据。** `LoginCredential` 是一个判别式 record（对位后端 `credential` 的分形）：自建渠道交 `identifier + code`，第三方渠道传 `LoginCredential.None`，由本服务内部走 SDK 取 authCode。
@@ -171,7 +294,17 @@ public enum ChallengePurpose { SignIn, Rebind }
 - **绑定 / 解绑成功后各强制一次 pull**，据此刷新 `AccountInfo.Identities` 这份只读投影。**该次 pull 失败不阻塞**——列表暂不刷新，下次 pull 自然一致；绑定列表是只读投影，展示滞后无实际损失。这与购买段「购后 pull 失败阻塞在主菜单重试」**刻意不同**：那里阻塞是因为付费权益必须落地。**改昵称不需要这一步**（客户端自己是写入方）。
 - **不为绑定新开一个 service**——它用同一套渠道 SDK、同一套会话，本服务的门面定位已覆盖。
 
-**失败映射：** 网络不通 → `OpError.Network`；渠道拒绝 / token 失效 / 绑定冲突 / 昵称被拒 → `OpError.Auth`；实名 / 防沉迷拦截 → `OpError.Compliance`；**限流（`rate.limited`）→ `OpError.Network`** —— 它与网络类失败共享同一条处置（可重试 + 退避），而 `Auth` 档的语义是「凭据失效」，混进去会让处置分支走错。**文案不受影响**：文案按 `code` 取，限流仍可精确措辞。
+**失败映射：** 网络不通 → `OpError.Network`；渠道拒绝 / token 失效 / 绑定冲突 / 昵称被拒 → `OpError.Auth`；**`signin` 上的四条合规拦截**（实名 / 防沉迷 / 账号受限 / 冷静期内）**与合规域六端点自身的操作失败一律 → `OpError.Compliance`**（逐条处置见下表）；**限流（`rate.limited`）→ `OpError.Network`** —— 它与网络类失败共享同一条处置（可重试 + 退避），而 `Auth` 档的语义是「凭据失效」，混进去会让处置分支走错。**文案不受影响**：文案按 `code` 取，限流仍可精确措辞——实名提交被限流走的正是这一格。
+
+**合规域三条端点码的客户端处置**（`OpError` 只是兜底档，处置以 `code` 为键；本表写的是本服务的处置取向，逐 `code` 的跨边界台账权威在 `backend-design-documents/contracts/envelope.md`，**本库不复述**）：
+
+| `code` | 客户端处置 |
+|---|---|
+| `compliance.ticket_invalid` | **结束当前合规流程 → 回登录屏**（重新 `signin` 取新 ticket）。`detail.reasonKey` 只驱动措辞，处置同一条 |
+| `compliance.verification_failed` | **留在实名表单屏、允许重填**（受 `rate.limited` 约束）；**保留玩家已输入的内容、不自动清空** |
+| `compliance.deletion_irrevocable` | 呈现终态、**无重试动作**；出口回发起点（登录屏 / PlayerProfile 屏），此后不再呈现撤销入口 |
+
+**三条均不新增阻塞点、不进阻塞屏变体表**——它们是玩家主动操作的失败，落在发起它的那一屏（判据与呈现见 `ux/error-and-blocking-ux.md`）。**`OpError` 枚举一格不动。**
 
 > **`Detail` 是诊断串，不是玩家文案。** 合规拦截的具体原因（实名未完成 / 时长受限 / 账号受限）**按 `code` 走 UI 层的 `ErrorText`**，与其他错误一致——合规文案恰是最需要精确措辞、也最需要按渠道调整的一类，正是「按 `code` 分辨」的典型受益者。语义见 `systems/architecture.md` 总则 7，呈现见 `ux/error-and-blocking-ux.md`。
 
@@ -179,7 +312,7 @@ public enum ChallengePurpose { SignIn, Rebind }
 
 **事件面：** `SessionChanged(bool SignedIn, OpError Reason)` 经 EventBus 广播（登录成功 / 失败、token 失效、合规拦截共用此负载）。
 
-Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md`
+Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-09-03-compliance-client-surface.md`
 
 ## 与其他服务的关系
 
@@ -192,7 +325,6 @@ Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-
 
 ## 待决问题
 
-- **ComplianceManager 的客户端侧覆盖面。** 实名 / 防沉迷 / 注销 / 数据导出中，哪些环节由客户端呈现与拦截、哪些纯后端裁决，切分未定。→ `decisions/ADR-0003`。后端 / 账号系统的具体选型与合规实现归**后端库**：`backend-design-documents/open-questions.md`。
 - **多设备并发登录的云端裁决规则。** 后登录挤下线？拒绝？归**后端库**。客户端侧的表现已定（被挤下线 → 硬阻塞重登 → 先 pull 后 flush，见「意图」），仅剩裁决策略本身待后端定。
 
 ## 对应

@@ -23,6 +23,20 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-lifespan-cost-chapter-tiers.md` | 2026-09-03 | `inbox/archive/solution-draft-lifespan-cost-chapter-tiers.md` → `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` | 2 全条 + 1 部分（另有三项同批裁决不在清单上：21 格按 λ 层重算 · `lossPerMomentum` ch1 由 1 改为 10 并改写两份 ADR · ch1 经验阈值曲线 79 → 55） |
+| `log-character-power-mechanics.md` | 2026-09-03 | `inbox/archive/solution-draft-character-power-mechanics.md` → `handoffs/2026-09-03-character-power-mechanics.md` | 1（五子项全部答定。**不含**「`status` 与拥有 / 失去两个正交维度的 schema 编码」，该条仍在待答清单） |
+| `log-plot-eventbus-broadcast.md` | 2026-09-03 | `inbox/archive/solution-draft-plot-eventbus-broadcast.md` → `handoffs/2026-09-03-plot-eventbus-broadcast.md` | 1（未新增待答项） |
+| `log-combat-snapshot-facedown.md` | 2026-09-03 | `inbox/archive/solution-draft-combat-snapshot-facedown.md` → `handoffs/2026-09-03-combat-snapshot-facedown.md` | 1（另有两项同批裁决不在清单上：`PendingTarget` 的按视角填充纪律 · `CombatFeedEntry` 增 `SourceCardId`。未新增待答项） |
+| `log-schema-bump-ledger-authority.md` | 2026-09-03 | `inbox/archive/solution-draft-schema-bump-ledger-authority.md` → `handoffs/2026-09-03-schema-bump-ledger-authority.md` | 1（11 处自称改回链；实际改动面 24 处 + 5 份 ADR。同批裁决三项：统计层顶层键分界 · 删除类不进 v1 行 · 护栏取 golden 快照。未新增待答项） |
+| `log-compliance-client-surface.md` | 2026-09-03 | `inbox/archive/solution-draft-compliance-client-surface.md` → `handoffs/2026-09-03-compliance-client-surface.md` | 4（`ComplianceManager` 覆盖面切分 · 三条新 `code` 的 `ERR_*` 键与呈现 · 强制改名的 fail-open 边界 · `GET status` 失败的降级归属。未新增待答项） |
+| `log-architecture-services-reconcile.md` | 2026-09-02 | `inbox/archive/solution-draft-architecture-services-reconcile.md` → `handoffs/2026-09-02-architecture-services-reconcile.md` | 2（⑤-5 对账本体 + 第四 / 第五级层级词是否过早；同批新增待答 3 条） |
+| `log-platform-keystore-upgrade.md` | 2026-09-02 | `inbox/archive/solution-draft-platform-keystore-upgrade.md` → `handoffs/2026-09-02-platform-keystore-upgrade-triggers.md` | 1（三项平台能力事实未答定，追加进 ⑤ 的 `.csproj` 后实测批次；未新增独立待答项） |
+| `log-enchantment-activated-ability-host.md` | 2026-09-02 | `inbox/archive/solution-draft-enchantment-activated-ability-host.md` → `handoffs/2026-09-02-enchantment-activated-ability-host.md` | 1（另有一条同批裁决本不在清单上：弹层三态禁用、只读不豁免；同批新增待答 1 条） |
+| `log-plot-branch-choice-ui.md` | 2026-09-02 | `inbox/archive/solution-draft-plot-branch-choice-ui.md` → `handoffs/2026-09-02-plot-branch-choice-ui.md` | 1（纯叙事节点的落屏一并定下，不单独计数） |
+| `log-cycle-end-screen.md` | 2026-09-02 | `inbox/archive/solution-draft-cycle-end-screen.md` → `handoffs/2026-09-02-cycle-end-screen.md` | 1（同批新增待答 2 条：主动弃置的发起入口 · 篇章通关那一刻的呈现） |
+| `log-codex-entry-and-browse.md` | 2026-09-02 | `inbox/archive/solution-draft-codex-entry-and-browse.md` → `handoffs/2026-09-02-codex-entry-and-browse.md` | 1（另收窄 1 条：`LocationCodex` 只剩词条深度那半仍待答） |
+| `log-move-card-effect-side.md` | 2026-09-02 | `inbox/archive/solution-draft-move-card-effect-side.md` → `handoffs/2026-09-02-move-card-effect-side.md` | 1（另有三条同批裁决本不在清单上：`Selection` 枚举不指名 · 不加 `Any` 哨兵 / 告警 · `balance.md` 表述不改；未新增待答项） |
+| `log-bound-technique-initial-tier.md` | 2026-09-02 | `inbox/archive/solution-draft-bound-technique-initial-tier.md` → `handoffs/2026-09-02-bound-technique-initial-tier.md` | 1（另有两条同批裁决本不在清单上：字段表 ⟨待定⟩ 行删除不留占位 · 「待决问题」小节重复登记一并删；未新增待答项） |
 | `log-0830.md` | 2026-08-30 | `/summarize-open-questions game`（全量整理，无草稿来源） | 1 |
 | `log-fatigue-in-encounter-tighten.md` | 2026-08-30 | `inbox/archive/solution-draft-fatigue-in-encounter-tighten.md` → `handoffs/2026-08-30-fatigue-not-in-encounter-override.md` | 1（另有两条同批裁决本不在清单上：三处 ADR 措辞不动 · `FatigueAmount` 保持双向；同批新增待答 1 条） |
 | `log-stack-entry-kind-for-item-use.md` | 2026-08-30 | `inbox/archive/solution-draft-stack-entry-kind-for-item-use.md` → `handoffs/2026-08-30-stack-entry-kind-for-item-use.md` | 1（`TimingIds.ItemUsed` 不开为同批确认，本不在清单上，不单独计数；未新增待答项） |

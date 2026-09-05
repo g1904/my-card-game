@@ -35,6 +35,6 @@
 
 ## 后果
 
-- 明文落盘 + 平台密钥库后置评估——代价正面写下。
+- 明文落盘 + 平台密钥库后置评估——代价正面写下。「后置」的兑现物（四端能力矩阵 · 升级触发条件穷举五条 + 四条非触发 · 不引入平台分支）见 `systems/services/account-service.md`「refresh token 的持有与失效」。
 - 启动期静默续期使 `Account.Init` 上提到登录屏之前。
 - refresh 失败拆两条路径：网络失败 → 缓冲通道；`auth.session_revoked` → 硬阻塞重登 + 暂停退避。

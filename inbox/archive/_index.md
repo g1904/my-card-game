@@ -6,6 +6,20 @@
 
 | 草稿 | 类型 | 日期 | 去向 handoff | answer log |
 |------|------|------|--------------|------------|
+| `solution-draft-lifespan-cost-chapter-tiers.md` | solution-draft | 2026-09-03 | `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` | `answer-logs/log-lifespan-cost-chapter-tiers.md`（移出 2 全条 + 1 部分 · 新增 0 条） |
+| `solution-draft-character-power-mechanics.md` | solution-draft | 2026-09-03 | `handoffs/2026-09-03-character-power-mechanics.md` | `answer-logs/log-character-power-mechanics.md`（移出 1 条 · 新增 0 条） |
+| `solution-draft-plot-eventbus-broadcast.md` | solution-draft | 2026-09-03 | `handoffs/2026-09-03-plot-eventbus-broadcast.md` | `answer-logs/log-plot-eventbus-broadcast.md`（移出 1 条 · 新增 0 条） |
+| `solution-draft-combat-snapshot-facedown.md` | solution-draft | 2026-09-03 | `handoffs/2026-09-03-combat-snapshot-facedown.md` | `answer-logs/log-combat-snapshot-facedown.md`（移出 1 条 · 新增 0 条） |
+| `solution-draft-schema-bump-ledger-authority.md` | solution-draft | 2026-09-03 | `handoffs/2026-09-03-schema-bump-ledger-authority.md` | `answer-logs/log-schema-bump-ledger-authority.md` |
+| `solution-draft-compliance-client-surface.md` | solution-draft | 2026-09-03 | `handoffs/2026-09-03-compliance-client-surface.md` | `answer-logs/log-compliance-client-surface.md` |
+| `solution-draft-architecture-services-reconcile.md` | solution-draft | 2026-09-01 | `handoffs/2026-09-02-architecture-services-reconcile.md` | `answer-logs/log-architecture-services-reconcile.md`（移出 2 条 · 新增 3 条） |
+| `solution-draft-platform-keystore-upgrade.md` | solution-draft | 2026-09-01 | `handoffs/2026-09-02-platform-keystore-upgrade-triggers.md` | `answer-logs/log-platform-keystore-upgrade.md`（移出 1 条 · 新增 0 条 · 跨库成对） |
+| `solution-draft-enchantment-activated-ability-host.md` | solution-draft | 2026-09-01 | `handoffs/2026-09-02-enchantment-activated-ability-host.md` | `answer-logs/log-enchantment-activated-ability-host.md`（移出 1 条 · 新增 1 条） |
+| `solution-draft-plot-branch-choice-ui.md` | solution-draft | 2026-09-01 | `handoffs/2026-09-02-plot-branch-choice-ui.md` | `answer-logs/log-plot-branch-choice-ui.md`（移出 1 条 · 新增 0 条） |
+| `solution-draft-cycle-end-screen.md` | solution-draft | 2026-09-01 | `handoffs/2026-09-02-cycle-end-screen.md` | `answer-logs/log-cycle-end-screen.md`（移出 1 条 · 新增 2 条） |
+| `solution-draft-codex-entry-and-browse.md` | solution-draft | 2026-09-01 | `handoffs/2026-09-02-codex-entry-and-browse.md` | `answer-logs/log-codex-entry-and-browse.md`（移出 1 条 · 收窄 1 条 · 新增 0 条） |
+| `solution-draft-move-card-effect-side.md` | solution-draft | 2026-09-01 | `handoffs/2026-09-02-move-card-effect-side.md` | `answer-logs/log-move-card-effect-side.md`（移出 1 条 · 新增 0 条） |
+| `solution-draft-bound-technique-initial-tier.md` | solution-draft | 2026-09-01 | `handoffs/2026-09-02-bound-technique-initial-tier.md` | `answer-logs/log-bound-technique-initial-tier.md`（移出 1 条 · 新增 0 条） |
 | `solution-draft-fatigue-in-encounter-tighten.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-30-fatigue-not-in-encounter-override.md` | `answer-logs/log-fatigue-in-encounter-tighten.md`（移出 1 条 · 新增 1 条） |
 | `solution-draft-stack-entry-kind-for-item-use.md` | solution-draft | 2026-08-28 | `handoffs/2026-08-30-stack-entry-kind-for-item-use.md` | `answer-logs/log-stack-entry-kind-for-item-use.md`（移出 1 条 · 未新增） |
 | `solution-draft-life-lifespan-merge.md` | solution-draft | 2026-08-29 | `handoffs/2026-08-30-life-lifespan-merge.md` | `answer-logs/log-life-lifespan-merge.md`（移出 2 条 · 新增 4 条 · 另登记 4 份旧 log 的结论被取代） |

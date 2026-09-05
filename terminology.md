@@ -86,7 +86,7 @@
 | 仙玉 | immortalJade | **轮回级高阶货币**：同样随轮回存在、随轮回清理，归 CharacterProfile。获取 = **稀有 AdventureEvent 产出**；花销 = **高阶 Exchange 商品**。「高阶」由稀有度与价格量级表达，不由新机制表达；与灵石**不可兑换**。 |
 | 道心 | faith | **隐藏数值属性**，取值域 `[0, 100]`、轮回起始 50、双向推拉；与 煞气 同属驱动 AdventurePlot 的两个隐藏属性。 |
 | 煞气（点数） | Bloodlust | **隐藏属性**：积累到阈值触发「煞气反噬」剧情线。 |
-| 寿元 | lifeSpan | **角色唯一的资源命线**：既是寿命预算也是失败惩罚承受量——炼气起始 100、抵达筑基 +100、抵达金丹 +300、抵达元婴 +500（元婴为终点，该增量无玩法影响）；**剩余寿元跨篇章结转**。**两个扣减来源**：每完成一个 AdventureEvent 按其 `lifeSpanCost` 扣、战斗 / 修炼失败按道念差 × `lossPerMomentum` 扣；**战斗过程中不被读写**，只在收口时刻被扣。回复只走 outcome 侧三通道。**明文常驻、恒精确展示**；**递减到 0 → 「大限将至」→ 角色 defeated**。**单值：没有上限字段、没有上限截断**（也不写成 `currentLifeSpan / lifeSpanLimit`）。归 `systems/character-profile/life-span.md`。 |
+| 寿元 | lifeSpan | **角色唯一的资源命线**：既是寿命预算也是失败惩罚承受量——炼气起始 1000、抵达筑基 +1000、抵达金丹 +3000、抵达元婴 +5000（元婴为终点，该增量无玩法影响）；**剩余寿元跨篇章结转**。**两个扣减来源**：每完成一个 AdventureEvent 按其 `lifeSpanCost` 扣、战斗 / 修炼失败按道念差 × `lossPerMomentum` 扣；**战斗过程中不被读写**，只在收口时刻被扣。回复只走 outcome 侧三通道。**明文常驻、恒精确展示**；**递减到 0 → 「大限将至」→ 角色 defeated**。**单值：没有上限字段、没有上限截断**（也不写成 `currentLifeSpan / lifeSpanLimit`）。归 `systems/character-profile/life-span.md`。 |
 | 寿元消耗 | lifeSpanCost | **成本类型 `selectCost` 的一个 element**：完成该事件对角色寿元的扣减。**内容侧以正数量值书写**（「耗 3 点」写 `3`），由 future-event-service 在**物化组装 spec 时取负**填入带符号的 `ChangeElement.BaseValue`。它是**控制篇章时长的主旋钮**（目标：**30–40 / 35–45 / 45–55 分钟**，熟练玩家口径），分档表待定。 |
 | 事件类型 | eventType | AdventureEvent 的共有字段（**五值**）：该事件归属 Combat / Exchange / Research / Explore / Travel 中的哪一类。 |
 | 选择成本 | selectCost | AdventureEvent 的共有字段，且是一个**定制的复合成本类型**：由若干成本 element 组成（`lifeSpanCost` 为其中之一），表示选中该事件以推进轮回所需付出的代价。**代码形态 = `ProfileChangeSpec`，在物化时组装。** **支付它是无条件的可推进行为**——不因「付不起」被拒绝，支付后做状态判定，判负则进失败流程。 |

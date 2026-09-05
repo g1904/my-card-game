@@ -164,7 +164,7 @@ public enum ModifierTarget { MomentumProduced = 0, MomentumReduced = 1, CardMana
 | 4 | `ModifyManaEffect` | `Side` · `Amount` | 改 `sides[].currentMana`，**不改 `manaLimit`**；下限 0 截断 |
 | 5 | `ApplyStateEffect` | `Template : BattlefieldEntryTemplate` · `Side` | 产出一条非永久战场条目（`kind = Transient`）；`keywordId` / `amount` 两格由引用侧 `KeywordRef` 填 |
 | 6 | `RemoveEntryEffect` | （无独有参数，目标经 `TargetSlots`） | 受目标类别 + `IsProtected` + `TargetSlot.IgnoresProtection` 约束 |
-| 7 | `MoveCardEffect` | `From : CardZone` · `To : CardZone` · `Insert : InsertPosition { Top, Bottom }` · `Count : int` · `Selection` | **闭集内的流转，不新造牌**（`ADR-0041`）。`CardZone { DrawPile, Hand, DiscardPile, Battlefield }`——六处位置里**栈不作为流转端点**（栈是结算队列不是区）。`Insert` **仅 `To == DrawPile` 有意义**：顶 / 底是同一个区的两个插入位、不是两个区，存档仍只记一条 `Id` 序列。载体消耗性纪律见 `_index.md` 与 `ADR-0052` |
+| 7 | `MoveCardEffect` | `Side` · `From : CardZone` · `To : CardZone` · `Insert : InsertPosition { Top, Bottom }` · `Count : int` · `Selection` | **闭集内的流转，不新造牌**（`ADR-0041`）。`CardZone { DrawPile, Hand, DiscardPile, Battlefield }`——六处位置里**栈不作为流转端点**（栈是结算队列不是区）。`Insert` **仅 `To == DrawPile` 有意义**：顶 / 底是同一个区的两个插入位、不是两个区，存档仍只记一条 `Id` 序列。**`Side` 相对 `controllerSide` 解析，`From` 与 `To` 恒落在同一侧**：`Side = Opponent` + `From = DrawPile` + `To = DiscardPile` 即「削减对手抽牌堆」；**跨方转移不可表达**（闭集不变式按侧成立，见「存档面」与 `ADR-0041`），日后要开是加一格 `ToSide` 的纯加法。载体消耗性纪律见 `_index.md` 与 `ADR-0052` |
 | 8 | `BumpCounterEffect` | `CounterName : string`（空 = 默认计数器）· `Delta : int` · `Space : CounterSpace { Entry, CardInstance }` | 写 `counters`。**子计数器的写入面只能是效果侧**（`CounterNames` 的悬空校验由它闭环）。键由**宿主 `AbilityData.Id` + `#` + `CounterName`** 在结算期拼出，**内容作者不写完整键**。`Space` 受既定归属判据约束：有过期时刻 → `Entry`，随牌本体整场存活 → `CardInstance` |
 
 - **闭合性核对：** 疲劳**不是原语**（疲劳栈条目结算时执行一条内建的 `ModifyMomentum(Self, −N)`，`N` 经求值管线，故「削减疲劳量」类静止式修正天然可写）· 持续状态 → ⑤ · 驱散 / 拆永久物 → ⑥ · 牌序便利类 → ⑦ · counters → ⑧。起始卡组所需的全部动词落在 ① ② ⑤ 的组合内。
@@ -274,6 +274,7 @@ public abstract partial class EffectCondition : Resource { }
 | 18 | `CardData`：`CardType == Sorcery` 且 `OnPlay` 为空 | `PushWarning`（什么也不做的法术。`Sorcery` 的 `Abilities` 恒空，故只判 `OnPlay` 一格——法术的一次性效果本就走 `OnPlay`） |
 | 19 | 某个 `EffectData` 子类从未被任何内容条目使用 | `PushWarning`（与「关键字未被任何 `KeywordRef` 引用」同构） |
 | 20 | `TimingId == card.played` 且该触发的 `TriggerFilter.CardTypes` 仅含 `Item` | `PushWarning`（该异能永不触发：道具在战斗内以 `CardType.Item` 呈现，但用道具不广播 `card.played`——形态见 `systems/services/combat-service.md` 的 `UseItem` 段。清单式软检查，与上方 `> 4` 一条同构） |
+| 21 | `MoveCardEffect`：`Selection == Chosen` **且** `Side != Self` | `PushError`，带宿主 `Id` 与 `.tres` 路径。对手的区玩家看不见（对手手牌 `HandCardInstanceIds` 恒空），点选无从发起；跨方一律走 `Random`。**按最严收口**——日后若定案弃牌堆双方可见，放宽成 `Side != Self` 且 `From ∈ {DrawPile, Hand}` 是纯加法 |
 
 > 「需要选目标的触发式异能 ≤ 10%」那条统计式 `PushWarning` **已存在**，落点在 `systems/services/combat-service.md`（决策点清单一节），不在本表重复登记。
 
@@ -281,7 +282,7 @@ public abstract partial class EffectCondition : Resource { }
 
 **零新增字段、空迁移。** `EffectData` / `StaticModifierData` / `TriggerConditionData` / `EffectCondition` 全部是**内容侧静态定义**，经 `CardId` / `abilityId` 解析而来，不落 `ActiveCombat`（与 `CardType` / `Subtypes` 不落存档同款判据）。`BumpCounterEffect` 写的是既有的 `counters` / `Counters`。代码侧落点 = `combat-service > StackManager > EffectProcessor > handler`（一原语一 handler），与「开放 `kind` ⇒ 一 kind 一 handler」的既定判据对齐。
 
-Source: `handoffs/2026-08-27-ability-primitive-grammar.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-08-30-stack-entry-kind-for-item-use.md`
+Source: `handoffs/2026-09-02-move-card-effect-side.md` · `handoffs/2026-08-27-ability-primitive-grammar.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-08-30-stack-entry-kind-for-item-use.md`
 
 ## 目标（target）与作用域（scope）
 
@@ -311,7 +312,7 @@ public sealed record EntryFilter(
     BattlefieldEntryKind[] AllowedEntryKinds,  // 空 = 不限
     string[]               RequiredSubtypes,   // 次类型 id；组合语义恒为 AND
     string[]               RequiredKeywords,   // 关键字 id；组合语义恒为 AND
-    bool                   IncludeFaceDown);   // 默认 false；内容侧纪律 = 当前不使用
+    bool                   IncludeFaceDown);   // 默认 false；目标面取对侧由加载期闸拦下，EffectScope / TriggerFilter 两处为内容侧纪律
 
 public sealed record TargetSlot(               // 一槽位 = 恰好一个目标，无 TargetCount 字段
     TargetKind     Kind,                       // 既定枚举，不扩
@@ -337,7 +338,11 @@ public sealed record EffectScope(              // 静止式修正用；无 Targe
 
 **`EntryFilter` 的多条件组合语义恒为 AND，不支持 OR / NOT。** 可机械校验、卡面文案好写（「带『甲』且『乙』的条目」）。筛选条件一旦支持 OR / NOT 就从一张表变成一棵树，卡面文案立刻变长——与竖屏可读性相反。**OR 的需求由内容侧绕过**（把两个关键字都挂上），不进结构。
 
-**`IncludeFaceDown` 保留字段、默认 `false`，内容侧当前不使用。** 保留成本为零，日后真有「揭示一张埋伏」这类效果时不必改 schema；机制在、纪律管住它，与 `CountdownSide.Either` 的处理同构。
+**`IncludeFaceDown` 保留字段、默认 `false`。** 保留成本为零，日后真有「揭示一张埋伏」这类效果时不必改 schema；机制在、纪律管住它，与 `CountdownSide.Either` 的处理同构。它的管住方式**分两半**：
+
+- **`EffectScope` / `TriggerFilter` 两处仍是散文纪律，内容侧当前不使用。** 它们纯服务端求值、不经视图，不构成信息泄漏面。
+- **目标面（`TargetSlot`）已升为机械闸**：取对侧的面朝下条目是坏数据，加载期即失败（见下方校验表）——目标面上它**收窄为「只能取己方」**。它同时是 `CombatSnapshot.Battlefield` 按视角填充纪律的前提（对侧面朝下条目永不进 `LegalTargets`，否则 UI 会拿到一个自己列表里没有的 `entryId` 去高亮），**放开前须回看那条纪律**（见 `systems/services/combat-service.md`）——放开等于要求对侧条目重新入视图，那条纪律须整条重议。
+- **这不封死「揭示 / 清除对手一张埋伏」**——那走 `EffectScope`（随机 / 全部，无 `TargetRef`），与「弃掉对手一张手牌」逐字同构，也是隐藏信息上唯一诚实的形态：玩家指不了他看不见的东西。
 
 **`HandCard` 槽位强制 `Self`，且只吃 `RequiredSubtypes`。** `SideSnapshot.HandCardInstanceIds` 敌方恒为空、`HandCount` 只给计数 ⇒ 玩家看不见对手手牌的任何条目 ⇒ UI 无从高亮 ⇒「指定对手某张手牌」不可能成为合法目标；这同时封住对手手牌可见性这条信息泄漏面（埋伏之外的第二条）。该 `Kind` 下 `AllowedEntryKinds` / `RequiredKeywords` / `IncludeFaceDown` 须为空——手牌是 `CardInstance` 不是战场条目，前者无对象、后者无意义，且**关键字是效果的命名层而非卡牌的标签**，让它同时成为卡牌标记会给关键字第二重语义。
 **这不封死「弃掉对手一张手牌」这类效果**——那走 `EffectScope`（随机 / 全部，无 `TargetRef`），`Discard` 原子操作本就在清单里。**这正是目标 / 作用域切分的第一个实用价值。**
@@ -353,12 +358,13 @@ public sealed record EffectScope(              // 静止式修正用；无 Targe
 | `HasAmount == false` 但 `KeywordRef.Amount != -1` | `PushError` |
 | `TargetSlot.Kind == HandCard` 且 `Side != Self` | `PushError` |
 | `TargetSlot.Kind == HandCard` 且 `AllowedEntryKinds` / `RequiredKeywords` / `IncludeFaceDown` 非空 | `PushError` |
+| `TargetSlot.Kind == BattlefieldEntry` 且 `Filter.IncludeFaceDown == true` 且 `Side != Self` | `PushError`，报出引用它的 `CardData.Id` / `AbilityData.Id` 与槽位序号 —— 隐藏信息不进目标面，与上一行同判据。`SideConstraint` 取值域为 `Any / Self / Opponent`，故 `!= Self` **同时拦下 `Any`**，是有意的按最严收口；日后若定案「可点选对手的一张埋伏」，放宽是纯加法（但须连带重议快照的按视角填充纪律） |
 | `TargetSlot.Kind ∈ { None, Side }` 且 `Filter` 非空 | `PushError` —— 方位类目标没有可筛选的条目 |
 | `EntryFilter.RequiredSubtypes` / `RequiredKeywords` 中的 id 悬空 | `PushError`，报出悬空 id |
 | `TargetSlot.IgnoresProtection == true` | `PushWarning` —— 清单式软检查，与既有的 `IgnoresProtection` 清单警告同一处，使配额始终可人工审阅（口径见 `systems/balance.md`） |
 | 关键字未被任何 `KeywordRef` 引用 | `PushWarning` —— 与「次类型 X 未被任何筛选条件引用」同构 |
 
-Source: `handoffs/2026-08-16c-effect-keywords-and-targeting.md`
+Source: `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-09-03-combat-snapshot-facedown.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -366,7 +372,7 @@ Source: `handoffs/2026-08-16c-effect-keywords-and-targeting.md`
 - **`EffectData` = 抽象基类 + 一原语一 `[GlobalClass]` 子类（按 `Type` 分派，无判别枚举）；`StaticModifierData` 是并列的第二种定义体、`AbilityData` 按 `Kind` 分两格 + XOR 校验；首批八个原语与十个 `TimingId`；`EffectCondition` 三个谓词、AND 语义、条件不满足 ≠ fizzle；`CardData` 字段清单收口为 `ManaCost` + `OnPlay`、不设独立触发器格；存档零新增字段。**
 - **关键字 = 内容层注册表条目 `KeywordData`（两种 `KeywordKind`，不新增第四类效果载体）；单 `Amount` 参数；展开在结算时做；清单归零、机制保留 + 两条准入判据。**
 - **目标 target 与作用域 scope 分开建模，共用同一个 `EntryFilter`；「效果须显式声明目标类别」只约束 `TargetSlots`。**
-- **一槽位 = 恰好一个目标；`SideConstraint` 相对施放者解析；`EntryFilter` 组合语义恒为 AND；`HandCard` 槽位强制 `Self` 且只吃 `RequiredSubtypes`。**
+- **一槽位 = 恰好一个目标；`SideConstraint` 相对施放者解析；`EntryFilter` 组合语义恒为 AND；`HandCard` 槽位强制 `Self` 且只吃 `RequiredSubtypes`；`IncludeFaceDown` 在目标面收窄为「只能取己方」（加载期闸，`Side != Self` 连 `Any` 一并拦下），`EffectScope` / `TriggerFilter` 两处仍为散文纪律。**
 - **`AbilityData` 增 `CounterNames`（子计数器名登记，加载期三条校验，不落存档）；`KeywordRef.Amount` 落战场条目的 `amount` 一格；叠加层数由同 `keywordId` + 同 `ownerSide` 的条目计数重算，不设独立计数器。**
 - **`AbilityData` 的启动代价面 = `ManaCost`（`int`，独立整数格、不进 `ProfileChangeSpec`）+ `MaxActivationsPerCombat`（`int`，`-1` = 不限、`0` 非法），首版不设 Profile 侧代价列；两格均非必填（无限组合是被接受的设计面，终止性由 `TurnLimit` 承接）；配额哨兵两条校验保留；配额语义为每载体条目每场、运行期落既有 `counters`。**
 

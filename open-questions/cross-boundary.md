@@ -12,13 +12,19 @@
 > **关闭条件：** 本库落笔完成（对应 handoff `distilled`）后从本分片移除，记进 `../answer-logs/`。
 > 两侧的条目**各自独立关闭**，不要求同时。
 >
+> **一类常规触发源：** 本库 `systems/services/profile-schema-versions.md` 的 `schemaVersion` 登记表**新增一行**（= 一次 bump 定案）——对侧须把该版本号登进兼容矩阵，条目照上述四段式。
+>
 > **谁维护：** `/analyze-new-ideas` 跨库落笔时同批写两侧（主库写决策、对侧库立承接项）·
 > `/summarize-open-questions` 对账时发现「一侧已定案、另一侧零承载」即补登 ·
 > `/assess-derive-readiness` 只报告缺口、不写对侧。
 
 ## 待承接
 
-- `backend-design-documents/contracts/compliance.md` | 2026-08-16 | 本库需改：`systems/services/account-service.md` | **合规拦截的落地点与四条码已定**，`ComplianceManager` 的覆盖面切分（哪些拦截由它呈现、哪些落在登录屏本身）可裁决。切分本身仍是本库自己的取向，对侧不代为决定。
+- `backend-design-documents/operations/content-delivery-ops.md`#内容签名私钥的保管 · #`keyId` 轮换 | 2026-09-03 | 本库需改：`systems/services/content-service.md`（或发版纪律所在文档） | **首个客户端版本即内置 active + standby 两把内容签名公钥**。对侧的紧急轮换形态以此为前提；契约面本就写的是「一组 `keyId → publicKey` 映射」，**报文零改动**。另两项同源承接（产包证明的字段形态 · 基线内容快照的归档形态）已收在 `inbox/solution-draft-backend-batch-client-obligations.md`，**三项须成对采纳**——单侧采纳则发布侧校验闸与轮换机制各留一个洞。形态与取舍权在本库。
+
+- `backend-design-documents/contracts/envelope.md`#6 · `contracts/purchase.md`#3a #3b | 2026-09-03 | 本库需改：`systems/services/sync-service.md`（`OpError` 枚举）· `systems/monetization.md`（购买流程呈现） | **新增五条 `purchase.*` 错误码**，其中四条需要一个 `OpError` 现有八个成员都不承载的处置轴，对侧台账按 **`OpError.Purchase`** 登记；`purchase.payload_invalid` 仍映 `Validation`。本库需裁决：是否新增该成员、五条码各自的呈现与处置（含「渠道未开通」这类玩家尚未付款的分支）。`code → (OpError, 处置)` 在本库是数据表，加成员是纯追加。
+
+- `backend-design-documents/contracts/compliance.md`#10 #11 · `contracts/envelope.md`#6 | 2026-09-03 | 本库需改：`ux/screen-flow.md` · `systems/services/account-service.md` | **合规域六端点的报文字段表与端点自身的三条错误码已落笔**（`compliance.ticket_invalid` / `verification_failed` / `deletion_irrevocable`）。三条码的 `ERR_*` 键、处置与呈现已于 2026-09-03 承接完毕（见 `../handoffs/2026-09-03-compliance-client-surface.md`）；**仍欠两项**：`playtimeRemainingSeconds` 的剩余时长呈现 · `nicknameChangeRequired` 为真时的改名流程落屏——二者归 `../inbox/solution-draft-backend-batch-client-obligations.md` 的 A / B 项，数据源与调用点已由本次的 `GET status` 单点提供。
 
 ## 对账基线（不是待办）
 

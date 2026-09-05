@@ -42,5 +42,5 @@
 - **`Aborted` 是跳过通道移除后的直接产物**：支付 `selectCost` 后立即判负会短路，但这一步仍然发生过，必须留痕且与正常结算可区分。
 - **`LocationId` 记「这一步发生在哪」，故 Travel 记出发地**，目的地由下一条痕迹自然给出。
 - **`pastEvent` 与 AdventurePlot key points 零结构耦合**（互不引用），故两者的 schema 各自定稿、互不阻塞。
-- 本次落定 `pastEvent` 结构 → **bump 存档 schema 版本**；当前无线上存档 = 空迁移。
+- `pastEvent` 的条目结构属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`。
 - 影响文档：`systems/adventure-event/common-properties.md`（权威）· `systems/services/life-cycle-service.md`（组装方）· `systems/services/profile-service.md`（`TraceElements` 的施加与入口校验）· `systems/services/plot-manager.md`（只读输入）· `systems/services/sync-service.md`（只追加不变式与体积护栏）· `systems/architecture.md`（`TraceElements` 列）。

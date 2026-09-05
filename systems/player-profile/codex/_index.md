@@ -62,13 +62,14 @@
   - **已解锁敌人的词条在战斗前确认页呈现**（→ `ux/screen-flow.md`）：那是图鉴解锁的**回报时刻**——上一次输给它，这一次进场前就能看到它的路数。
 - **连锁解锁：收录一个敌人即收录他所用的全部功法。** 敌人的构筑面就是功法引用，故「见过这个敌人」与「见过这几门功法」是同一次接触。展开规则见 `common-properties.md`，功法本的词条形态见 `technique-codex.md`。
 - **词条深度按本分野。** EnemyCodex 是五项结构化文案，**五本能力 / 道具 / 功法类**只用内容条目自身已有的字段 + 一段可选的 `CodexFlavor` 风味文案；七本一律不分档解锁。
+- **浏览形态是一个「图鉴」一等入口下的三层结构**（索引页 → 单本页 → 词条），七本共用同一套排布，**词条载体随上述词条深度分野**。落点与全部排布细节归 `ux/screen-flow.md`「图鉴族的三层浏览结构」，本文件不复述。
 
 ### 为何是一族而不是一个
 
 - 七个图鉴形状相同、语义相同、存档形态相同——**差别只在收录对象**。把它们做成一族（共有属性一份、各自一份文档）避免七套并行的解锁 / 计数逻辑。**LocationCodex 与 TechniqueCodex 的加入是这条设计的两次验证**：LocationCodex 只需在清单里加一行；TechniqueCodex 也只需加一行 + 让 `CodexFlavor` 多一个挂载面，两者都没有引入任何新机制、新提交点或新存档形态。
 - **它也给「收集」这条动机一个统一的落点：** 玩得越多，七本图鉴越厚；这与成就的「完成度」是两种不同的满足感（成就衡量做到了什么，图鉴衡量见过什么）。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-09-02-codex-entry-and-browse.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -81,8 +82,7 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **LocationCodex 的其余词条深度。** 除连边外还写什么（风物文案？该地域的事件类型倾向？敌人清单？`eventCountLimit`？）未定。**连带：它的呈现形态与其余各本不同**（一张逐步显影的图 vs 列表 / 网格），归 `ux/screen-flow.md`。
-- **入口与浏览形态。** 图鉴族在主菜单如何组织（一个「图鉴」入口下逐本分页？逐本入口？）、列表与词条页的竖屏排布。→ `ux/screen-flow.md`。
+- **LocationCodex 的其余词条深度。** 除连边外还写什么（风物文案？该地域的事件类型倾向？敌人清单？`eventCountLimit`？）未定。**连带：它的单本页内容区如何画那张图（缩放 / 平移 / 顶点布局）与词条载体随之待定**——它在入口 / 索引格 / 完成度口径 / 文案分区 / 触控纪律五层已与其余六本同形，归 `ux/screen-flow.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/codex/_index.md`（待建）。

@@ -157,8 +157,10 @@
   | **文案正文含属性名 / 阿拉伯数字 / 档位序号** | `PushWarning` + 逐条列出——「不给数字」纪律的可机械检查形态，同 `IgnoresProtection` 的清单式软检查 |
   | `HiddenStatBandData.ContentEnabled == false` | `PushError` |
 
-- **「渡劫身死」的定性文案落在本 manager 的叙事层。** Finale 失败即角色终结（见 `systems/adventure-event/combat/_index.md`），这是本作叙事上最重的一刻，值得一句专属的定性文案，而不是与「寿元耗尽」共用一句通用死亡文案。**落点是本处而非 `ux/screen-flow.md`**：它与上方「跨档给定性叙事」是同一类东西——**一句由状态转换触发的定性文案**，走同一条落点（`ResolveOutcome` → `eventEnd` 阶段），**不新增结构**。
+- **「渡劫身死」的定性文案落在本 manager 的叙事层。** Finale 失败即角色终结（见 `systems/adventure-event/combat/_index.md`），这是本作叙事上最重的一刻，值得一句专属的定性文案，而不是与「寿元耗尽」共用一句通用死亡文案。**文案的规则与写作口径归本处**：它与上方「跨档给定性叙事」是同一类东西——**一句由状态转换触发的定性文案**，挂状态转换、与触发它的事件无关，**不新增结构**。
 
+  - **定位键 = `DefeatReason`，呈现面 = 轮回结束屏**（形态见 `ux/screen-flow.md`）。`ResolveOutcome` 这条通道覆盖不到三因中的两因：`Discarded` 根本不经事件收口，没有 `ResolveOutcome`；`LifeSpanExhausted` 可能在终态判定 ①（支付 `selectCost` 后短路）命中，那一路事件未结算、没有 `eventEnd`、没有结算面板。**一个覆盖不到三分之二情形的落点不是一个成立的落点**——挂上去，三因里只有一因有文案，呈现分量当场不等。
+  - **换的只是定位键，不是通道。** `ResolveOutcome` 上的跨档叙事字段 `BandNarrativeIds` **原样保留**；下方 `Practice` 档战斗失败的定性文案同样照旧走 `ResolveOutcome` → `eventEnd`。只有死亡文案按 `DefeatReason` 查表，文案仍是同一族内容层定性文案条目，**结构增量为零**。
   - **一条文案，不做随机二选一**，也不按篇章 / 隐藏属性分化——终结只发生一次，分化没有可感知的收益。
   - **文案属内容层** —— 走 `res://content/` 基线 + overlay，可热更。**剧本正文同属内容层**，故本 manager 内部没有「云端 / 本地」两类文本之分：两者同经 ContentRegistry 读取，差别只在 **overlay 对剧本条目可新增 `Id`、对定性文案条目照旧只改不增**（见 `content-service.md`）。
   - **承重的边界：它讲的是「劫下身死」，绝不能暗示道统残卷。** 残卷在失败侧**不给任何文案 / 暗示 / 进度条 / 百分比**——而失败恰恰是残卷累积发生的那一刻，这条边界因此比在别处更吃紧。
@@ -394,6 +396,10 @@
 
   - **出边求值顺序 = 数组顺序，取第一条满足的。** 显式顺序优于「按优先级字段排序」——后者会立刻引出「同优先级怎么办」。
   - **`BranchChosen` 边与自动边不得混在同一节点**（要么这个节点让玩家选，要么它自己走）→ 加载期 `PushError`。
+  - **`BranchLabel` 非空 ⟺ `Condition.Kind == BranchChosen`（充要关系，加载期焊死）。** 二者本就各自表达「这条边对玩家可见」与「这条边等玩家选」，把它们焊成充要条件后，**可见 / 不可见的边界不再依赖内容作者的自觉**：异或成立即加载期 `PushError`（见下方校验表）。两种违规各自都是坏状态——有标签而由后台条件推进 = 一条摆给玩家看、点了却不生效的边；等玩家选而没有标签可呈现 = 该 arc 死锁。
+    **连带：`HiddenStatBand` 条件的边在结构上不可能带标签**，隐藏属性因此没有经由分支标签泄露档位的通道。
+  - **内容编排判据：三条同时成立才写成可见分支，其余一律写成自动边。** ① 它是一次**当下可理解的承诺**（答应 / 拒绝某人的条件、走哪条路、收不收下某物），玩家不需要任何隐藏信息就能判断自己在选什么；② 两条分支**在调制上真的分岔**（不同的 `EventWhitelist` / `EnemyPoolScope` / 后续节点），而不是两句措辞不同、汇回同一节点的文案；③ **不依赖玩家读出隐藏量**才能做出选择。由 `HiddenStatBand` / `EventResolved` / `EventCount` / `ChapterAdvanced` 驱动的推进本就是「玩家的行为累计决定走向」——那正是隐藏属性显影纪律要求静默的部分：**玩家学到方向与因果，学不到精确数值。**
+  - **频次是内容编排目标值，不入结构。** 每条 Story / Chapter arc 每篇章 **0–2 个**分支节点、一次轮回合计**个位数**，单节点 **2–3 条**分支——与跨档叙事「合计 ≈ 2–4 条 / 轮回」同量级、同「稀缺才有分量」。多数边是后台自动推进的单出边，分支节点是里程碑而非常态。改的只是写几个分支节点，schema / 字段 / 校验一格不动。
   - **`ChooseBranch(branchId)` 的 `branchId` = 该边的 `ToNodeId`。** 边不另设 `Id`：同一节点内两条分支边指向同一目标是无意义的编排（玩家的两个选择通向同一处 = 一个选择），故 `ToNodeId` 在节点内唯一即可充当分支键 → 加载期对同节点的 `BranchChosen` 边校验 `ToNodeId` 互不相同。
 
 - **key points 粒度 = 每条已激活 arc 一条**，不是每节点一条、也不是全局一个指针。
@@ -432,7 +438,8 @@
   - **判定并入隐藏属性 band 写入的同一次 `TryApply`** ⇒「一个事件的收口是一次事务、一个存档点」原样成立，**不新增存档点、不新增结算阶段**。
   - **载体 = `ProfileChangeSpec.PlotElements` 的 `PlotKeyPointAssignment`**（`PlotKeyPoint` 的镜像），语义是按 `ArcId` 的整条 upsert：本 manager 先按剧本图算出「这条 arc 该在哪个节点、什么态」，交给 `ProfileManager` 的是**已算好的绝对状态**；`ChooseBranch` 组装出的同样是一条 `PlotKeyPointAssignment`。施加与失败语义见 `systems/services/profile-service.md`。
   - **「单步推进」的拓扑校验落在本 manager**：新 `NodeId` 必须是当前节点的一条出边或等于当前节点，由推进时的 `#if DEBUG` 断言把关。`ProfileManager` 不持有剧本图的拓扑知识——它只校验 `Id` 可解析 / 不串线 / 同批不重复。越级推进只能由本 manager 自身的缺陷产生，而本 manager 是唯一组装方，故纪律阶梯第 3 级足够；升到入口强校验换来的是分层污染与每次 upsert 一次多余的图查询。
-  - **一次 `eventEnd`，每条 arc 至多前进一个节点。** 允许链式推进会让一次结算跑完半条剧本线（若干出边条件恰好同时满足），玩家在一个事件后突然发现候选池换了三轮。单步推进使「剧本推进速度 ≤ 事件推进速度」成为结构性事实。
+  - **一次 `eventEnd` 之内，每条 arc 至多前进一个节点。** 允许链式推进会让一次结算跑完半条剧本线（若干出边条件恰好同时满足），玩家在一个事件后突然发现候选池换了三轮。单步推进使「剧本推进速度 ≤ 事件推进速度」成为结构性事实。
+    **作用域写明是必要的**：玩家在收口之后选定的那一次 `ChooseBranch` 是**独立于 `eventEnd`** 的写入（玩家输入不可能塞进一次原子事务里等），故「进入分支节点 + 选定」这两步分属两次提交。承重理由未被削弱——两步之间**没有任何 eventOptions 重算**（重算只在下一次 `eventEnd`），且第二步是玩家亲手做的而非自动连跳；逐 `TryApply` 的拓扑断言对两步各自照常成立。
   - **推进是 key point 的唯一变更方式**；`ChooseBranch` 亦经 `ProfileManager` 写入，不另开写入口。
 
 - **同时激活的 side arc 上限 = `MaxConcurrentSideArcs`（平衡数值，初值 2），超出排队不丢弃。**
@@ -460,6 +467,9 @@
   | `Tier == Chapter` 而 `ParentArcId` 为空 / 指向非 `Story` | `PushError` |
   | `PlotArcData.PlotTriggerId` 与任一 `HiddenStatBandData.PlotTriggerId` 对不上 | `PushError` + 悬空 `PlotTriggerId`（**双向校验**：档位表侧配了触发 id 却无 arc 承接同样报错） |
   | 同一节点混有 `BranchChosen` 边与自动边，或同节点两条 `BranchChosen` 边 `ToNodeId` 相同 | `PushError` |
+  | **`BranchLabel` 非空 ⊕ `Condition.Kind == BranchChosen`**（异或成立即违规） | `PushError` + arc `Id` + 节点 `Id` + `ToNodeId` |
+  | 单节点 `BranchChosen` 边 **> 3 条** | `PushWarning`（同 `LevelBias` 越界那行——竖屏一屏内读不完，属编排失误） |
+  | **`BranchLabel` 正文含属性名 / 阿拉伯数字 / 档位序号** | `PushWarning` 逐条列出——`BranchLabel` 是玩家能读到、由剧本节点触发的文案，故它是隐藏属性泄露的一条通道；严厉度与档位文案那条软检查一致 |
   | `PlotNodeData.ContentEnabled == false` | `PushError` |
   | `Body` 与 `Modulation` 同时为空 | `PushWarning`（既不叙事也不调制的节点是编排失误，不阻塞） |
   | `EventWhitelist` / `EventWeights` 指向不存在的 `EventId` | `PushError` + arc `Id` + 节点 `Id` + 悬空值（overlay 侧另加「必须来自基线」，见 `content-service.md`） |
@@ -480,7 +490,7 @@
   - **煞气 / Bloodlust** —— 跨入 Band 3（75+）→ 触发 **「煞气反噬」** 剧情线（经 `PlotTriggerId`）。
   - **道心 / faith** —— 跨入 Band `−2`（0–19）→ 触发 **「心魔滋生」** 剧情线（经 `PlotTriggerId`）。**该档无叙事文案**，剧情线与调制是它唯一的显影通道。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-02-cycle-end-screen.md`
 
 ## 管理器角色 / API 面（契约）
 > _总则与共享类型见 `systems/architecture.md`「API 契约总则」。**本 manager 纯本地，永不跨进程边界，故全部方法为形态 A**（剧本内容属本地内容层）。_
@@ -510,14 +520,28 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adv
   ```
 
   - **`TryResolvePlot` 的 `bool` 语义：** 任一 key point 惰性 → 该条不产 segment；**全部 arc 都惰性 / 无 `Active` arc → 返回 `false`**，调用方跳过叙事与调制、轮回继续。
+  - **产出是单数：多条 `Active` arc 同时停在可呈现节点时，取固定优先序的第一条。** 序 = `Tier`（`Story → Chapter → SideChapter → SideStory`），同 `Tier` 按 `ArcId` **字典序**。其余 arc 停在各自节点，下一次收口再取——与「一次 `eventEnd` 之内每条 arc 至多前进一个节点」「一次 `eventEnd` 至多出队一条」同款节制。
+    **确定性是硬要求**：同一存档恢复后必须解析出同一条，否则「恢复即读结果」不成立；字典序是零成本的确定性来源，取「主线优先」与跨档叙事「离终局最近的先说」同向。
+  - **产出的呈现时点 = `eventEnd` 那一次 `TryApply` 提交之后，落在事件结算面板内。** 这不是取舍而是被既定纪律逼出的唯一位置：落进五步组装之内会在⑤提交前引入一个可退出点 ⇒ 需持久化中间态，与「中间态永不需要持久化」「取消点与存档点永远重合」正面冲突；另设时机（例如每 N 个事件一次）等于给剧本层开第二个出口。**分支呈现在 arc 抵达该节点的同一次结算面板上，不延后一次收口**——延后只会让分支正文与产生它的那个事件脱节。排布与交互细节见 `ux/screen-flow.md`「事件结算面板的剧本段」。
+  - **`ChooseBranch` 那一次写入 = 批次层的一次独立即时提交**，与储物袋道具使用同族，**不新增存档点清单条目**（该写入本就既定：经 `ProfileManager` 写入一条 `PlotKeyPointAssignment`）。三条连带纪律逐条核过、不开例外：**不触发 `RefreshAfterEvent`**（成立且必须——重算会消耗 `map` 子流，并开出「用一次分支选择刷新这一批事件」的通道）· **照跑终态判定**（**恒为 no-op**：`PlotKeyPointAssignment` 不动任何资源 element，不可能把任何资源打到 `Min`——与储物袋道具的差别正在于此）· **不计软阻塞闸门**（闸门只数事件级存档点）。push policy 取 `Debounced`（它不是篇章边界 / 轮回结束 / 进入战斗前那三类 `Immediate` 时刻）。
+  - **玩家未选完即退出 = arc 停在该节点**，key point 已在 `eventEnd` 那一笔提交，下次收口的结算面板照常再呈现；该等待时刻**不是新的存档点**。
   - **`ModulateEventOptions` 的输入 = 全部 `Active` arc 的 `PlotModulation` 之并**，逐字段按上方「多条 `Active` arc 的合并算子」表合并（权重相乘 · 白名单非空者取并 · `LevelBias` 相加 · `Tighten` 五格逐格取极值）。
   - **无 `PlotRequest`**（无远端请求，key points 直接来自传入的 `CharacterProfile`）。
 
-**只有 `ChooseBranch` 投影到服务门面上。** 前三个方法是宿主服务 `ComputeEventOptions` 物化链条**内部**的一环，不被跨服务调用（manager 纪律）；`ChooseBranch` 因需要玩家输入，故由 future-event-service 以同名方法转发。
+**四个方法中的两个投影到服务门面上。** `ModulateEventOptions` / `OnHiddenStatThreshold` 是宿主服务 `ComputeEventOptions` 物化链条**内部**的一环，不被跨服务调用（manager 纪律）；`ChooseBranch` 因需要玩家输入，由 future-event-service 以同名方法转发；`TryResolvePlot` 因呈现侧要拿剧本段渲染结算面板，由 future-event-service 以只读的 `TryGetPlotSegment` 转发（见「事件面」与 `future-event-service.md` API 面）。**投影的是方法、不是类型**：本 manager 仍 `internal sealed`，仍不被跨服务直接调用。
 
 **没有后端接口。** 总则 7 的三个窄后端接口全部落在服务身上，**本 manager 不持有任何后端接口**（不设 `IPlotBackend` 一类）；条件编译清单共 5 处，本 manager 不占其一（见 `system-overview.md`）。它只经宿主服务读 ContentRegistry。
 
-**事件面：** 剧情线触发经宿主服务广播 `PlotThresholdReached(string CharacterId, HiddenStat Stat, int BandIndex)`；分支揭示 / 选择、key point 推进同样由**宿主服务**代为广播（manager 不直接持有 EventBus 通道）。
+**事件面：** 剧情线触发经宿主服务广播 `PlotThresholdReached(string CharacterId, HiddenStat Stat, int BandIndex)`（manager 不直接持有 EventBus 通道），时点在 `eventEnd` 五步组装 ⑤ 提交之后那一批、与 `EventResolved` 同批 —— **提交前跨档还不是既成事实**（`TryApply` 全有或全无，中途广播会在回滚时留下一条已发出的假事实）。**剧本层只有这一条 EventBus 事件。**
+- **分支揭示不走 EventBus。** `PlotSegment` 含 `LocalizedText` 与 `Resource`，**完整实例进不了负载**；退化成只传 `(ArcId, NodeId)` 后订阅者无从回查（唯一能回查的实现体是本 manager，`internal sealed`，跨服务写不出类型名）⇒ 这条事件对任何订阅者都不可消费。且它的目的是**等玩家输入**，属「询问」，而 EventBus 不承载询问。**先建一条不可消费的事件、再补一条查询方法，是把一件事做两遍。** 送达通道是宿主服务门面的只读查询 `TryGetPlotSegment`。
+- **分支选择与 key point 推进不广播。** `ChooseBranch` 同步返 `OpResult`；key point 变化随 `CharacterProfile` 进 sync 的 diff；不触发 `RefreshAfterEvent`、终态判定恒 no-op、不新增存档点 ⇒ 零跨系统消费方。**订阅者列表为空的事件不是解耦，是一处必然漂移的死契约**（没有任何消费点会在它被改坏时报错）。
+- **日后确需广播时，形状已定、结构不预留。** 唯一可预见的消费方是 AchievementManager；仅当它的进度采集面定为「EventBus 被动订阅」**且**确有剧本相关成就条件时，才补一条：
+
+  ```
+  PlotArcAdvanced | (string CharacterId, string ArcId, string NodeId, PlotArcState State) | future-event（代 PlotManager）
+  ```
+
+  全部是 `Id` + 值类型（`PlotArcState` 是共享核心类型里的既有枚举），广播时点同上（`ChooseBranch` 那一次独立提交后同样发一条）。**它当前不进 `systems/architecture.md` 的负载契约表** —— 表里只登记真的会被 `Emit` 的事件；条件成立时把这一行搬进表内，届时零形状讨论。
 - **负载末位是 `BandIndex` 而非 `Threshold`**：它传的不是阈值数值，而是「跨进了第几档」；`OnHiddenStatThreshold` 的方法名不随之改动。
 - **数据契约：** CharacterProfile 存 key points（轻量锚点，**必须可独立解析、缺失时可安全跳过**）；剧本内容是本地内容条目（不落存档，经 ContentRegistry 读）；**档位表是内容条目 `HiddenStatBandData`，当前所处档持久化在 `CharacterProfile.Status` 的两个 band 字段上**（见「意图」与 `systems/character-profile/_index.md`）。
 
@@ -534,7 +558,6 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 
 ## 待决问题
 
-- **DnD 式选分支：** 触发点、UI、以及玩家可见 / 不可见分支的边界未定。
 - **隐藏属性清单与推拉触发：** 现为 **道心 / 煞气** 两项且均隐藏，取值域、档位表、阈值与回滞见「意图」；仍待定：是否还有其他隐藏属性、**增减触发（哪些 AdventureEvent 推拉、各推哪一档 `HiddenStatGrade`）**、每条剧情线的具体内容与 key points。**Combat 三档已有默认口径**（`Practice` 推道心不推煞气 · `Finale` 胜负同推道心，见 `systems/adventure-event/combat/_index.md`），它是这条待答项的一个子集，其余四类与逐条目编排仍欠。（寿元不在本清单内，它已不是隐藏属性，见 `systems/character-profile/life-span.md`。）→ 亦见 `life-cycle-service.md`、`systems/balance.md`。
 - **`HiddenStatGrade` 的三个映射值留待内容扩充后的统计校准。** 初值 `Minor 2 / Standard 5 / Major 10` 与「每属性每篇章跨档 2–4 次」是**反推验收项，不是死数字**，其校验依赖上一条的「增减触发」。**档位结构、阈值形态、文案形态、呈现形态均不被它阻塞**——它约束的是标定，不是结构。→ `systems/balance.md`。
 

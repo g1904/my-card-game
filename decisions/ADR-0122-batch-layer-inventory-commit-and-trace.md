@@ -20,7 +20,7 @@
 
 **不新增任何 `Source` 成员。** **无限次可用的战斗外道具由一条加载期校验关掉**（`Charges == -1` 且 `UsableScene` 含 `OutOfCombat` → `PushError`）。
 
-**一次 schema bump，空迁移。** 列语义与入口校验 → `systems/services/profile-service.md`；序列本体 → `systems/character-profile/_index.md`。
+**本次落定的字段与列属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`。** 列语义与入口校验 → `systems/services/profile-service.md`；序列本体 → `systems/character-profile/_index.md`。
 
 ## 理由
 

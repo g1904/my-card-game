@@ -28,10 +28,10 @@
 | 第一级 | **service** | 边界单元，autoload；三判据（见下） | 七个服务 |
 | 第二级 | **manager** | 服务内部的职能组件 | TurnManager、ProfileManager…… |
 | 第三级 | **module** | manager 内部的组件 | **`DeckModule`**（CharacterManager / EnemyManager 各持一份） |
-| 第四级 | **processor** | 预留 | — |
-| 第五级 | **handler** | 预留 | — |
+| 第四级 | **processor** | 无状态的处理阶段 | **`EffectProcessor`**（StackManager 内） |
+| 第五级 | **handler** | 按 kind 分派的叶子 | 效果 kind handler（一个 kind 一个，由 `EffectProcessor` 分派） |
 
-> **纪律不随层数放宽：** 边界仍是「服务之间不读写对方字段、不伸手进对方 manager」；同理**不得跨层直呼**——外部只看得见宿主服务的 API 面，module 及以下一律是宿主 manager 的内部实现。**第四 / 第五级目前没有实例，且暂不落实例——保持空是健康的。**
+> **纪律不随层数放宽：** 边界仍是「服务之间不读写对方字段、不伸手进对方 manager」；同理**不得跨层直呼**——外部只看得见宿主服务的 API 面，module 及以下一律是宿主 manager 的内部实现。**层级链允许跳过中间级**：`EffectProcessor` 的宿主是 `StackManager`（第二级），中间不插一层 module——为凑齐层数而造一个只被调用一次、无变体的 module，正是下方三条反判据里的第 ②③ 条。
 
 **module 以下的下沉判据：判据的轴从「职责」换成「形态」。** 前三级各有其轴——service = **边界**（三判据）、manager = **职能**（服务内的一块职责）、module = **可复用的部件**（`DeckModule` 每个参战方各持一份，其成立依据正是「同一形状被实例化多次」）。顺着这条轴：
 
@@ -40,14 +40,15 @@
 - **拆出 processor 需三条判据全中（与门）：**
   1. **它是一个可独立命名的处理阶段**，输入 / 输出明确，**不持有跨调用的状态**（或只持一次调用内的临时状态）。——**这是与 module 的分界**：module 持有状态（`DeckModule` 拥有三个区），processor 不持有。它也是「拆分轴 = 生命周期层 + 行为边界」这条既定轴在第四级的延续（无状态 = 无独立生命周期）。
   2. **它有 ≥ 2 个同形态的实现，或有明确的可替换性**（规则变体、按数据选实现）。单一实现且永不变体的一段代码，拆出去只是换个文件名。**本库已经在实践这条判据**——五类事件只有 2 个 `IEventResolver`，正是同构的先例。
-  3. **拆出后调用入口仍只有宿主 module 一个**——不产生第二个调用方、不越层被 manager 直呼。
+  3. **拆出后调用入口仍只有宿主一个（manager 或 module）**——不产生第二个调用方、不越层被更上层直呼。**宿主可以是 manager**：判据管的是「入口是否唯一」，不是「宿主住在第几层」；要求宿主必须是 module 会逼出一层只为占位的中间 module，与反判据 ②③ 正面相抵。
 - **下沉到 handler（第五级）的判据：存在一个开放的 `kind` 枚举，且每个 kind 的处理互不共享状态** → 一个 kind 一个 handler，由 processor 按 kind 分派。**「开放」是关键词**：kind 集合封闭且稳定时（如 `TurnStep` 三值），一个 `switch` 比五个 handler 类清晰得多。**handler 的价值在可加性**——新增一个 kind = 新增一个 handler 文件，与「新增一张卡 = 新增一个 `.tres`」是同一条可加性纪律在代码侧的投影。
 - **三条反判据（明确不拆）：** ① 只是「这个文件太长了」；② 只被调用一次且无变体；③ 为了让层级看起来更完整。**层数不是成熟度指标**——「抽象层次不封顶在两级」这句话同时也意味着**不封底**。
-- **校准样本（列出但不构成排期）：** 目标合法性筛选（`StackManager` 内）**最强候选**（无状态 ✅ / 按目标类别与次类型筛选有天然变体 ✅ / 只被结算流程调用 ✅）· 效果施加（`StackManager` 内）**强候选**，其下**可能**是 handler 的第一处用武之地（一个效果 kind 一个 handler）· seeded 洗牌（`DeckModule` 内）**不拆**（只有一种洗法）。
+- **已落地样本：效果施加 = `EffectProcessor`（`StackManager` 内，第四级），其下一个效果 kind 一个 handler（第五级）。** 效果 kind 是一个开放枚举、各 kind 的处理互不共享状态，恰是第五级判据要的形状；原语与 handler 的一一对应关系见 `systems/character-profile/deck/common-properties.md`，五阶段流水线与三级链见 `systems/character-profile/item/_index.md`、`systems/services/combat-service.md`。
+- **其余校准样本（列出但不构成排期）：** 目标合法性筛选（`StackManager` 内）**强候选**（无状态 ✅ / 按目标类别与次类型筛选有天然变体 ✅ / 只被结算流程调用 ✅）· seeded 洗牌（`DeckModule` 内）**不拆**（只有一种洗法）。
 - **「先有判据、后有实例」为定案**，比先造实例再补判据安全。**已知代价**：判据偏严可能出现「该拆没拆」的巨型 module——**接受**，巨型 module 是**局部**问题（宿主 manager 之外看不见它），而层级滥用是**全局**问题（词表失去意义、每个人自造层），两害相权取局部。
 - **连带：`BattlefieldManager` 不提级。** 提级的三条否决理由见下方「战场与两个参战方 manager 的划线判据」。
 
-- **service（服务）= 边界单元。** 值得成为服务当且仅当命中**三条判据之一**：① 拥有**自己的状态机或跨多帧的长流程**；② 需要**事务性地跨多个字段一致写入**（全有或全无）；③ 坐在**外部 I/O 边界**上（网络、存档、平台 SDK）。服务以 autoload 形式存在，**不持有独立数据**，只操作核心「类」。**边界纪律（已定案的准确措辞）：服务之间不读写对方字段、不伸手进对方 manager；跨服务的方法调用（经对方的服务门面 `Xxx.Instance.Method(...)`）允许。** 编排顶点 game-progression 负责「谁在什么时机调谁」的屏幕流程串联，但**不是**一切跨服务调用的必经中转；既成事实经 EventBus 广播。
+- **service（服务）= 边界单元。** 值得成为服务当且仅当命中**三条判据之一**：① 拥有**自己的状态机或跨多帧的长流程**；② 需要**事务性地跨多个字段一致写入**（全有或全无）；③ 坐在**外部 I/O 边界**上（网络、存档、平台 SDK）。服务以 autoload 形式存在，**不持有独立数据**，只操作核心「类」。**边界纪律的准确措辞：服务之间不读写对方字段、不伸手进对方 manager；跨服务的方法调用（经对方的服务门面 `Xxx.Instance.Method(...)`）允许。** 编排顶点 game-progression 负责「谁在什么时机调谁」的屏幕流程串联，但**不是**一切跨服务调用的必经中转；既成事实经 EventBus 广播。
 - **manager（管理器）= 服务内部的职能组件。** 多个 manager 生活在同一服务里，**共享宿主服务的事务边界与生命周期**；**不被跨服务直接调用**——外部只看得见宿主服务的 API 面。
 
 | 服务 | 判据 | 内含 manager |
@@ -55,7 +56,7 @@
 | **account-service** | ③ | AuthManager、ComplianceManager |
 | **content-service** | ③ | ContentRegistry、ContentUpdateManager |
 | **sync-service** | ②③ | ProfileSyncManager、LocalCacheManager、MigrationManager |
-| **profile-service** | ② | ProfileManager、CapabilityManager、AchievementManager |
+| **profile-service** | ② | ProfileManager、CapabilityManager、AchievementManager、CodexManager、GrantPoolManager |
 | **life-cycle-service** | ① | CycleStateManager、ChapterManager、SeedManager |
 | **future-event-service** | ① | EventOptionManager、PlotManager |
 | **combat-service** | ① | TurnManager、CharacterManager、EnemyManager、BattlefieldManager、StackManager |
@@ -83,9 +84,12 @@
 ```
 res://content/**.tres     基线内容，随包发布，只读（保证首启可用 / 离线可读）
 user://overlay/**.tres    云端下发的增量，可热更，按 Id 覆盖基线
-      ↓ 合并（overlay 优先，res:// 兜底）→ 合并后统一校验（重复 / 悬空 Id → PushError 早失败）
+flags（远端开关）          需鉴权的第三层覆盖来源，只作用于 ContentEnabled
+      ↓ 合并序 flags > overlay > res://  → 合并后统一校验（重复 / 悬空 Id → PushError 早失败）
 ContentRegistry（内存）    按 Id 索引，唯一内容读取入口
 ```
+
+> 三层覆盖来源的语义、各层各自能改什么、flags 的刷新时机与失败降级见 `systems/services/content-service.md`「存储形态：三层覆盖来源」——本图只给落点与合并序，不复述语义。
 
 - **本地内容层**（`res://` + overlay）承载**有稳定 `Id`、被存档引用、需启动期校验**的一切：`AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表，**含静态展示文案**。因此 **AdventureEvent 的定义本身属本地** —— 启动期强校验模型成立。
 - **没有云端内容通道。** AdventurePlot 的剧本节点 / 分支 / 文本**同属本地内容层**，经 ContentRegistry 读取；PlotManager 按 key points 在本地定位剧本节点，**运行时内容零网络请求**。剧本正文**不落存档**（`CharacterProfile` 只存 key points），这一点只决定一件事：**overlay 对剧本内容可新增 `Id`**（「只改不增」的唯一例外，见 `services/content-service.md`）。悬空 key point → `PushWarning` + 叙事降级、不阻塞轮回。
@@ -395,24 +399,7 @@ internal readonly record struct ElementSpec(      // 资源 element 的取值域
 
 // 封闭表；新增一行 = 新增一个资源 element 的完整语义，须与 CostKey 同批评审
 internal static readonly IReadOnlyDictionary<CostKey, ElementSpec> ResourceElements = ...
-// 轮回层 · CharacterProfile
-// LifeSpan        → (0, null,  DefeatReason.LifeSpanExhausted,  ModifierKey.LifeSpanCost, null, Add)
-// SpiritStone     → (0, null,  null,                            null, null,               Add)
-// ImmortalJade    → (0, null,  null,                            null, null,               Add)   与灵石逐列同形；两者语义分野见 systems/character-profile/currency.md
-// ManaLimit       → (0, null,  null,                            null, null,               Add)   两个修正列留空是硬要求，Set 恒不开，见下
-// ExperiencePoint → (0, null,  null,                            null, null,               Add)
-// Faith           → (0, 100,   null,                            null, null,               Add)
-// Bloodlust       → (0, 100,   null,                            null, null,               Add)
-// 账号层 · PlayerProfile.playerPowerFragment（7 字段 ↔ 7 成员）
-// PowerFragmentAccumulated         → (0, 10000, null, null, null, Add | Set)
-// PowerFragmentFinaleWinOrdinal    → (0, null,  null, null, null, Add)
-// PowerFragmentCh1FirstWinDone     → (0, 1,     null, null, null, Set)
-// PowerFragmentCh2FirstWinDone     → (0, 1,     null, null, null, Set)
-// PowerFragmentCh3FirstWinDone     → (0, 1,     null, null, null, Set)
-// PowerFragmentLastRoll            → (0, 9999,  null, null, null, Set)
-// PowerFragmentLastEffectiveChance → (0, 10000, null, null, null, Set)
-// 账号层 · PlayerProfile.entitlement
-// BundleRedeemedOrdinal            → (0, null,  null, null, null, Set)
+// 逐行取值（全表 15 行 × 8 列，含每行的依据）见 systems/services/profile-service.md
 
 internal readonly record struct StatusFieldSpec(StatusValueKind Kind, int Min, int? Max);
 
@@ -422,17 +409,15 @@ internal static readonly IReadOnlyDictionary<StatusKey, StatusFieldSpec> StatusF
 // LocationEventCount → (Int,  0, null)
 // FaithBand          → (Int, -2, 2)
 // BloodlustBand      → (Int,  0, 3)
-// ⟨其余 Status 规则字段随各自专场逐条补⟩
+// ⟨其余 Status 规则字段随各自专场逐条补⟩——这是一个真留口；
+// 当前四行与 character-profile/_index.md 的 Status 子表逐行对齐，新增须同批
 
-internal readonly record struct SettingFieldSpec(       // 值类型 + 取值域 + 默认值（默认值的唯一一处）
+internal readonly record struct SettingFieldSpec(       // 值类型 + 取值域 + 默认值
     SettingValueKind Kind, int Min, int Max, int IntDefault, bool BoolDefault);
 
 // 封闭表；与 StatusFields 同款判据。默认值列不是平衡数值，是 UI 初值 / 缺省
 internal static readonly IReadOnlyDictionary<SettingKey, SettingFieldSpec> SettingFields = ...
-// MasterVolume        → (Int,  0, 100, 100, -)
-// MusicVolume         → (Int,  0, 100,  80, -)
-// SfxVolume           → (Int,  0, 100, 100, -)
-// FastCombatAnimation → (Bool, -,   -,   -, false)
+// 逐行取值（含默认值的唯一一处）见 systems/services/profile-service.md
 
 public enum CostKey         {                                             // 资源族 element 键；15 值，逐一在 ResourceElements 表中占一行
                               // 轮回层 · CharacterProfile
@@ -453,7 +438,7 @@ public enum PlotArcState    { Queued, Active, Completed, Abandoned }      // 一
 public enum EventStateKey   { ActiveEvent, EventOption, ActiveCombat }    // 事件态字段；载荷格名与成员名一一对应
 public enum StatusKey       { CurrentLocationId, LocationEventCount,
                               FaithBand, BloodlustBand,
-                              /* ⟨随各专场逐条补⟩ */ }
+                              /* ⟨随各专场逐条补——真留口；当前四成员与 StatusFields 四行一一对齐⟩ */ }
 public enum StatusValueKind { Int, Id }
 public enum SettingKey      { MasterVolume, MusicVolume, SfxVolume, FastCombatAnimation }
                                                               // 账号级设置键；逐一在 SettingFields 表中占一行
@@ -472,7 +457,8 @@ public enum CycleStatus     { Ongoing, Defeated, Completed }
 public enum Realm           { QiRefining, FoundationEstablishment, GoldenCore, NascentSoul }
                                                               // 四境；全局等级序 = (Realm, Level) 的纯函数，不落存档
 public enum DefeatReason    { Discarded, LifeSpanExhausted, FinaleFailed }
-// 前三项 = 资源触底，由 ResourceElements 表驱动判定；FinaleFailed = 篇章闸门，走终态判定上的一条显式旁路。
+// LifeSpanExhausted = 资源触底，由 ResourceElements 表驱动判定（全表唯一带非 null DepletionDefeat 的行）；
+// Discarded（玩家主动弃置）与 FinaleFailed（篇章闸门）在表里没有行，各走终态判定上的一条显式旁路。
 // Practice / Standard 战斗失败本身不终结角色，只扣寿元；Finale 失败即终结。
 public enum CapabilityFlag  { RevealHiddenStats, ShowExploreType }
 // 成员名 = 动词 + 宾语，动词取自封闭三词表 {Reveal, Show, Unlock}；禁 Hide* / No* / Disable* / Suppress* / Prevent*
@@ -511,9 +497,9 @@ public readonly record struct HiddenStatGrant(
 
 **`AbilityCarrierKind` / `AbilityScope` 是「族 / 层」的二维，命名须读得出这一点。** `{ Power, Item }` 说的是这条能力**挂在哪一族载体上**，而异能三分 `{ Static, Activated, Triggered }`（见 `systems/character-profile/deck/common-properties.md`）说的是这条异能**怎么生效**——后者才是 `Kind` 一词的自然所指，两者同名会在同一程序集内直接撞车。`(CarrierKind, Scope)` 这个二元组是全库的分类键（置换同池判据、授予来源的分域校验表、授予池过滤都用它），改名后这些措辞是纯机械替换，语义一字未动。
 
-**`CostKey` 的成员集合由两层 Profile 的字段表穷举而来，不是一个开放的设计选择（承重）。** `Elements` 的唯一职责是写 Profile 上的资源型字段，故成员数 **=** 两张字段表中写入通道标为 `Elements` 的格子数，闭合判据是这个映射**双向满射**（每个成员有一个标的字段，每个标为 `Elements` 的字段有一个成员）。**日后新增一个资源 element 恰好五步**：① Profile 加字段（只读、无 setter）并更新该库字段表的写入通道列 → ② `CostKey` 加一个成员（名 ⟸ 字段路径）→ ③ `ResourceElements` 加一行六列 → ④ bump 存档 schema 版本（老档补默认值）→ ⑤ 若该行含 `Set`，两个修正列必须留空（启动期断言兜底）。不新增服务、不改任何调用方。
+**`CostKey` 的成员集合由两层 Profile 的字段表穷举而来，不是一个开放的设计选择（承重）。** `Elements` 的唯一职责是写 Profile 上的资源型字段，故成员数 **=** 两张字段表中写入通道标为 `Elements` 的格子数，闭合判据是这个映射**双向满射**（每个成员有一个标的字段，每个标为 `Elements` 的字段有一个成员）。**日后新增一个资源 element 恰好五步**：① Profile 加字段（只读、无 setter）并更新该库字段表的写入通道列 → ② `CostKey` 加一个成员（名 ⟸ 字段路径）→ ③ `ResourceElements` 加一行六列 → ④ **在 `schemaVersion` 登记表新增 / 追加一行**（老档补默认值；登记表见 `systems/services/profile-schema-versions.md`）→ ⑤ 若该行含 `Set`，两个修正列必须留空（启动期断言兜底）。不新增服务、不改任何调用方。
 
-**删除一个资源 element 同样恰好五步，且必须逐条走完（承重）：** ① Profile 删字段并更新字段表 → ② `CostKey` 删该成员 → ③ `ResourceElements` 删该行 → ④ 若该 key 是某个 `DefeatReason` 的触底来源，`DefeatReason` 同步删成员，并复核终态判定的旁路是否仍闭合 → ⑤ bump 存档 schema 版本（老档丢弃该格）。**收缩方向必须与增长方向同样成文**：只登记增长会让删除变成一次没有清单的手工作业，而漏掉第 ④ 步会留下一个永远不可达的 `DefeatReason` 成员。同批还要复核散在各处的**计数式表述**（「全表 N 行」「`Status` 前 N 格」一类），它们不会因为删了一行而自动改。字段表见 `systems/character-profile/_index.md` 与 `systems/player-profile/_index.md`，逐行取值与两族的书写分野见 `systems/services/profile-service.md` 与 `systems/player-profile/_index.md`。
+**删除一个资源 element 同样恰好五步，且必须逐条走完（承重）：** ① Profile 删字段并更新字段表 → ② `CostKey` 删该成员 → ③ `ResourceElements` 删该行 → ④ 若该 key 是某个 `DefeatReason` 的触底来源，`DefeatReason` 同步删成员，并复核终态判定的旁路是否仍闭合 → ⑤ **在 `schemaVersion` 登记表新增 / 追加一行**，并在该行的「老档处置口径」列写明「老档中该格原样丢弃，不迁移、不告警」——**删字段没有「字段所在处」可以承载处置口径，登记表是它的唯一落点**（登记表与该项形态纪律见 `systems/services/profile-schema-versions.md`）。**收缩方向必须与增长方向同样成文**：只登记增长会让删除变成一次没有清单的手工作业，而漏掉第 ④ 步会留下一个永远不可达的 `DefeatReason` 成员。同批还要复核散在各处的**计数式表述**（「全表 N 行」「`Status` 前 N 格」一类），它们不会因为删了一行而自动改。字段表见 `systems/character-profile/_index.md` 与 `systems/player-profile/_index.md`，逐行取值与两族的书写分野见 `systems/services/profile-service.md` 与 `systems/player-profile/_index.md`。
 
 **三个首胜标记以 `int 0/1` 进 `Elements`，不另开一列 `FlagChanges`。** 它们在存档上是 `bool`，在 `ChangeElement.BaseValue`（`int`）上以 `0 / 1` 承载，`Min = 0` / `Max = 1` 由钳制兜住。按三级判据的六个面核对，它与 `Elements` 在**五个面上全对齐**（要钳制 · `Set` 下不走 pipeline · 失败阻断整批 · `Set` 幂等 · 键与载荷是标量），只在「有无量纲」一面不同——而判据要求的是**六面全对齐才不分列**的反面：**只差一面不足以分列**，否则每个 `Set` 型标量都要一列。
 
@@ -541,7 +527,7 @@ public readonly record struct HiddenStatGrant(
 
 **为什么逐条按施加语义分列，而不是给 `ChangeElement` 加可空字段（承重判据）。** **施加语义根本不同就分列**——列表数不是这条判据的一部分，它随字段族增长，故此处不把数字写进承重表述。当前各列的语义：资源是**标量值**（可钳制、`Add` 时可加且带符号分向、`Set` 时是已算好的绝对值、**按 `ResourceElements` 表逐行决定是否走 modifier pipeline**），能力是集合成员操作（幂等增删、无量纲、**绝不走 modifier pipeline**），统计是纯计数（不钳制、失败不阻断、**绝不走 modifier pipeline**），Status 规则字段是**绝对置值**（赋一个已算好的值、不累加、按 key 的声明类型可为 id、**绝不走 modifier pipeline**），卡组是**带层数的构筑变更与多重集增删**（层数不可加、散牌可同名多张、无 `Source`、**绝不走 modifier pipeline**），剧本是**按 `ArcId` 的带载荷键值 upsert**（整条替换、无量纲、不钳制、**恒不走 modifier pipeline**），事件态是**整块绝对置值**（赋一份已算好的结构块或置空、无量纲、不钳制、**恒不走 modifier pipeline**），RNG 子流是**按子流枚举键的双标量 upsert**（幂等置值、无量纲、不钳制、**恒不走 modifier pipeline**），履历是**序列尾部追加一个大结构块**（**不幂等**、无量纲、不钳制、**恒不走 modifier pipeline**），账号级设置是**按固定枚举键的绝对置值**（要钳制、无量纲、双可空标量载荷格、**恒不走 modifier pipeline**）。把它们压进一个带符号 `int` 是**让类型说谎**；分开还使 `ApplyResult.MissingElement: CostKey` 的语义保持完好（它只对资源列表有意义）。**事务性不受影响**——各列表在同一次 `TryApply` 内提交，「全有或全无、单点提交」不变。否决的两个替代：`ChangeElement` 加可空 `TargetId` / 把 `Duration` 塞进 `BaseValue`（破坏带符号约定）；多态 element（`abstract record` + 子类，破坏 `readonly record struct` 的零分配与 diff / 序列化的简单形态）。
 
-**`StatusChanges` 的取值域同样是逐行一张封闭表（`StatusFields`），与 `ResourceElements` 同款判据。** 每行给出该 key 的**值类型**（`Int` / `Id`）与取值域：band 的 `[-2, 2]` / `[0, 3]` 来自档位表，`LocationEventCount` 的 `[0, ∞)` 来自计数语义——没有通则能给出这些区间，也没有通则能判断某个 key 该填哪一格。**`Id` 型的值须能经 `ContentRegistry` 解析**，解析不到即坏档。`StatusChanges` 恒不走 modifier pipeline，理由与统计层同源且更重：`CurrentLocationId` 若可被一条法则改写，等于让内容改写玩家的地图位置；band 若可被改写，等于让法则伪造隐藏属性档位。逐行取值与施加 / 失败语义见 `systems/services/profile-service.md`。
+**`StatusChanges` 的取值域同样是逐行一张封闭表（`StatusFields`），与 `ResourceElements` 同款判据。** 每行给出该 key 的**值类型**（`Int` / `Id`）与取值域（逐行取值见上方 `StatusFields` 表）：band 的区间来自档位表，`LocationEventCount` 的区间来自计数语义——没有通则能给出这些区间，也没有通则能判断某个 key 该填哪一格。**`Id` 型的值须能经 `ContentRegistry` 解析**，解析不到即坏档。`StatusChanges` 恒不走 modifier pipeline，理由与统计层同源且更重：`CurrentLocationId` 若可被一条法则改写，等于让内容改写玩家的地图位置；band 若可被改写，等于让法则伪造隐藏属性档位。逐行取值与施加 / 失败语义见 `systems/services/profile-service.md`。
 
 **`DeckElements` 承载卡组变更，`Tier` 写目标层数而非增量。** 卡组的施加语义与其余各列都不同：功法带**层数**，`UpgradeTechnique` 既不是集合意义上的 `Grant` 也不是 `Remove`；游离散牌是**多重集**（同一张业障可在卡组里出现多张），而集合成员操作的「已持有 → 空操作」会静默吞掉第二张；卡组条目也没有 `SourceCode` 挂载面，`AbilityChangeElement` 强制携带的 `Source` 对它无落点。**`Tier` 取目标层数**的理由与「element 只承载已定稿的 `Id`」同源：`AppliedChange` 要可直接重放，写增量会让重放结果依赖当时的层数。**恒不走 modifier pipeline**——一条法则若能把「层数 +1」放大成 +2，「进化 = 整组替换、每层一整套卡牌定义」直接失去意义（不存在「1.5 层」的定义）。逐条校验与失败语义见 `systems/services/profile-service.md`，卡组侧语义见 `systems/character-profile/deck/_index.md`。
 
@@ -551,13 +537,13 @@ public readonly record struct HiddenStatGrant(
 
 **`TraceElements` 承载 `pastEvent` 的追加，语义是序列尾部只追加。** 它按三级判据的 ① 分列，**第四、第六两面均不对齐**：追加**不幂等**（同一条提交两次得两条，而 `EventStateChanges` / `PlotElements` 都是幂等置值），且它无键——位置由序列尾部给出，载荷是一整个 `PastEventEntry`（`DeckElements.AddLooseCard` 的多重集追加形状同类，但载荷是三个标量且须解析内容注册表）。**直接复用 `PastEventEntry`、不建镜像类型**：`PlotKeyPointAssignment` 用镜像的成本近零（五个标量），而 `PastEventEntry` 字段众多且随快照判据继续增长，镜像一份等于制造两张必须同步增删的字段表。**分列的直接收益是「记入 `pastEvent`」并入收口那一次 `TryApply`**——「一个事件的收口是一次事务、一个存档点」由结构兑现，而不再由约定兑现。施加与失败语义见 `systems/services/profile-service.md`，条目形态见 `systems/adventure-event/common-properties.md`。
 
-**资源 element 的语义是逐行一张封闭表，不是若干条全局通则（承重）。** `ResourceElements` 把「取值域」「触底是否构成终态」「两向修正接入」并成同一张表的五列，因为它们逐 element 各不相同：寿元归 0 构成终态，灵石与仙玉归 0 只是变穷；`PowerFragmentAccumulated` 的上界 `10000` 来自它自己的万分比语义，道心 / 煞气的 `[0, 100]` 来自档位表——**没有任何通则能给出这些区间**。修正列同理：「这个 element 能不能被法则改写」由它自己的语义决定（`LifeSpan` 是可被法则修正的成本量，`BundleRedeemedOrdinal` 是付费礼包的兑现水位），同样推不出通则。查表还使终态判定不必硬编码检查若干字段：「新增一个终态资源 = 表里加一行 + `DefeatReason` 加一个成员」，与「新增一张卡 = 新增一个 `.tres`」的可加性同向。**这张表只覆盖「资源触底」型终结，不覆盖全部终结（明写）：** `DefeatReason.FinaleFailed` 没有对应的 `CostKey`，表里没有它的一行，它由终态判定上的一条**显式旁路**触发——**查表不是终结判定的全部**，实现侧不能以为照表走就够（旁路形态见 `systems/services/life-cycle-service.md`）。**五列合成一张表而非拆成几张按同一个键索引的表**：分表必然出现「加了行 A 忘了行 B」，合表时漏填只是同一行里的空格。
+**资源 element 的语义是逐行一张封闭表，不是若干条全局通则（承重）。** `ResourceElements` 把「取值域」「触底是否构成终态」「两向修正接入」「允许的施加方式」并成同一张表的六列，因为它们逐 element 各不相同：寿元归 0 构成终态，灵石与仙玉归 0 只是变穷；`PowerFragmentAccumulated` 的上界 `10000` 来自它自己的万分比语义，道心 / 煞气的 `[0, 100]` 来自档位表——**没有任何通则能给出这些区间**。修正列同理：「这个 element 能不能被法则改写」由它自己的语义决定（`LifeSpan` 是可被法则修正的成本量，`BundleRedeemedOrdinal` 是付费礼包的兑现水位），同样推不出通则。查表还使终态判定不必硬编码检查若干字段：「新增一个终态资源 = 表里加一行 + `DefeatReason` 加一个成员」，与「新增一张卡 = 新增一个 `.tres`」的可加性同向。**这张表只覆盖「资源触底」型终结，不覆盖全部终结（明写）：** `DefeatReason.FinaleFailed` 没有对应的 `CostKey`，表里没有它的一行，它由终态判定上的一条**显式旁路**触发——**查表不是终结判定的全部**，实现侧不能以为照表走就够（旁路形态见 `systems/services/life-cycle-service.md`）。**六列合成一张表而非拆成几张按同一个键索引的表**：分表必然出现「加了行 A 忘了行 B」，合表时漏填只是同一行里的空格。
 
 **modifier pipeline 对 `Elements` 是 opt-in 白名单，缺省豁免（承重）。** 只有在表中显式登记了 `ModifierKey` 的那一行才经 pipeline，`AbilityElements` / `Stats` 永不经。**缺省方向必须取豁免侧**：漏填时若缺省豁免，最坏是某条法则本该修正它却没修正——数值不对、可见可复现、改一行修好；若缺省经 pipeline，最坏是某条法则**静默地**改写了幂等键 / 付费凭证 / 元进程计数，无人察觉，且在云端权威 + 后端复算下表现为两侧算不一致。两侧代价不对称。**按符号分向是必需的**：同一个资源 element 的消耗向与产出向共用一个 `CostKey`，一条「寿元消耗 −20%」的法则若不分向，会把寿元回复也削 20%。**`Op == Set` 恒不经 pipeline，与该行的两个修正列是否为空无关**：`BaseValue` 在 `Set` 下是一个已算好的绝对值，符号不表达方向，「按符号分向」无从判断该取哪一格；且让一条法则改写一个已算定的权威值（付费凭证序号、万分比累计）等于让内容改写权威值。配套的启动期断言把「允许 `Set` 的行两个修正列必须为 `null`」固定下来，使这条不靠人记。逐行取值、`ModifierKey` 的「只施加一次」判据与施加算法见 `systems/services/profile-service.md`。
 
 **`ModifierKey` 的成员集合大于本表出现的 key 集合，这是有意的。** 「只施加一次」的判据是**该修正后的值是否需要在施加之前呈现给玩家**：需要 → 施加点在物化 / 展示侧，此时它**不得**再进本表。`ShopPrice` 正是这一档——商店价格必须先算才能标价，`ListPrice` 在物化时就已定稿，`Elements` 路径拿到的 `BaseValue` 已是修正后的数，再登记一次即打两次折。故它在 `ModifierKey` 里、两条货币行（`SpiritStone` / `ImmortalJade`）的两个修正列却恒为 `null`。**`ApplyModifier` 仍是通用查询**——非 element 路径的数值（商店价格、掉落权重、战斗内数值）照常各自调用它，本表只约束 element 施加路径。
 
-**它落代码常量，不落 `.tres`。** 五列没有一列是平衡旋钮——`Min` 是取值域、`DepletionDefeat` 是终态语义、两个修正列是「谁有权改写它」的准入，改任一列改变的是规则而非难度；与 `(CarrierKind, Scope, Source)` 合法子集表、`RngStream` 子流清单同类。落 `.tres` 会让一次 overlay 热更即可改写终态判据（把 `LifeSpan` 的 `Min` 调成 -50 等于取消寿元死亡）或给付费凭证挂上一个修正 key，而这类改动须走版本发布。
+**它落代码常量，不落 `.tres`。** 六列没有一列是平衡旋钮——`Min` / `Max` 是取值域、`DepletionDefeat` 是终态语义、两个修正列是「谁有权改写它」的准入、`AllowedOps` 是施加方式准入，改任一列改变的是规则而非难度；与 `(CarrierKind, Scope, Source)` 合法子集表、`RngStream` 子流清单同类。落 `.tres` 会让一次 overlay 热更即可改写终态判据（把 `LifeSpan` 的 `Min` 调成 -50 等于取消寿元死亡）或给付费凭证挂上一个修正 key，而这类改动须走版本发布。
 
 **截断只发生在「施加到 Profile 字段」那一刻；spec 与快照保留未截断的原值。** `ChangeElement.BaseValue` 与落进 `PastEventEntry.SelectCost` / `AppliedChange` 的快照一律记未截断值——截断进 spec 等于让账本记的不是实际发生的事，而 `AppliedChange` 的定位正是「可直接重放的账」。副产品：「超支了多少」这一信息不丢（由 `LifeSpanAfter == 0` 与 `AppliedChange` 中的原值相减得出）。这与「内容侧写正数量值、物化时取负、`TryApply` 按带符号施加」是同一条分层纪律：**每一层只做自己那一次变换，不把下游的语义提前**。**截断不构成 `ApplyResult.Fail`**——「全有或全无」约束的是「各列表是否一起落」，不是「每个 element 是否落满」。
 
@@ -591,11 +577,11 @@ public static class AtomicJsonFile          // 无状态；不持有任何服务
 | `ChapterCompleted` | `(string CharacterId, int Chapter, Realm ReachedRealm)` | life-cycle |
 | `CharacterDefeated` | `(string CharacterId, DefeatReason Reason, int RetriesLeft)` | life-cycle |
 | `EventOptionsChanged` | `(string BatchId, int Revision)` | future-event |
-| `PlotThresholdReached` | `(string CharacterId, HiddenStat Stat, int Threshold)` | future-event（代 PlotManager） |
+| `PlotThresholdReached` | `(string CharacterId, HiddenStat Stat, int BandIndex)` | future-event（代 PlotManager） |
 | `CapabilitiesChanged` | **空负载** | profile |
 | `AchievementTierReached` | `(string GroupId, int TierPercent)` | profile |
 | `CombatTurnStarted` / `CombatTurnEnded` | `(int TurnIndex)` | combat |
-| `CombatFeedEntry` | `(CombatFeedKind Kind, Side Side, string EntryId, string CauseEntryId, string SourceId, string SourceInstanceId, int FizzledSlots, MomentumDelta CharacterMomentum, MomentumDelta EnemyMomentum)` | combat |
+| `CombatFeedEntry` | `(CombatFeedKind Kind, Side Side, string EntryId, string CauseEntryId, string SourceId, string SourceInstanceId, string SourceCardId, int FizzledSlots, MomentumDelta CharacterMomentum, MomentumDelta EnemyMomentum)` | combat |
 | `CombatFinished` | `(CombatOutcome Outcome, int CharacterMomentum, int EnemyMomentum, int RemainingLifeSpan)` | combat |
 | `SyncStateChanged` | `(SyncState State, OpError LastError)` | sync |
 | `ContentUpdateFinished` | `(ContentUpdateInfo Info, bool Success)` | content |
@@ -604,6 +590,8 @@ public static class AtomicJsonFile          // 无状态；不持有任何服务
 1. **负载只带 `Id` + 值类型，绝不带 `CharacterProfile` / `Resource` / `EventOption` 引用。** 传引用等于给每个订阅者开一条绕过唯一写入入口的旁路，也让定稿实例有被下游改写的可能。需要完整实例的订阅者按 `InstanceId` 向 future-event-service 取。
 2. **`CapabilitiesChanged` 空负载。** 订阅者收到后自行 `ProfileService.Instance.Has(flag)` 重查——这正是既定的「一个 flag ↔ 一处消费点 · 单点查询」；把生效集塞进负载反而制造第二份真值。
 3. **广播 = 既成事实，不可否决。** EventBus 不承载「请求 / 询问」；需要返回值的一律是直接方法调用。
+
+**剧本层只广播 `PlotThresholdReached` 一条。** 分支揭示走宿主服务门面的只读查询 `TryGetPlotSegment`（`PlotSegment` 是完整实例、进不了负载；且揭示的目的是等玩家输入 = 纪律 3 的「询问」）；分支选择与 key point 推进零跨系统消费方，不广播。日后成就采集面若定为 EventBus 被动订阅且确有剧本条件，按 `PlotArcAdvanced`（广播者 future-event 代 PlotManager）补一行 —— **它当前不在本表内**，形状与触发条件见 `systems/services/plot-manager.md`「事件面」。
 
 #### API 书写规范
 
@@ -632,8 +620,9 @@ public static class AtomicJsonFile          // 无状态；不持有任何服务
 - **成立的前提是校验内嵌在打包工具本身**（产包的唯一路径），而非一个「记得跑一下」的独立步骤——后者退化为第 4 级。
 - **客户端启动期的 `PushError` 保留为兜底**，它处理的是手工塞进 `user://overlay/` 这类非发布路径。
 - **写成通用补注而非逐条例外**：`.tres` 的引用图不止剧本一处，逐条写例外只会把同一条论证重复五遍。
+- **第二个实例：`ProfileShapeCheck`（两层 Profile 的序列化形状 ⟷ `schemaVersion` 登记表）。** 检查对象同样不在 C# 类型系统作用域内（它是 JSON path + 类型的集合，不是一个类型），而「结构改了、版本号没改」**能上线且线上不可见**——两侧都以为是同一个 schema，没有任何一侧会报错。落法与本补注逐字同构：同一份校验放进打包 / 发布管线（不通过即不产包）+ `#if DEBUG` 启动期兜底，**与内容包的发布侧校验闸共用同一条管线，不新增管线**。形态与 golden 快照见 `systems/services/profile-schema-versions.md`。
 
-**四处应用：**
+**五处应用：**
 
 | 纪律 | 判据落点 | 落到第几级 | 形态 |
 |------|----------|-----------|------|
@@ -641,6 +630,7 @@ public static class AtomicJsonFile          // 无状态；不持有任何服务
 | 抽取必走 `AllEnabled()` | 上线且不可见 | **1 / 2** | **删除中性名 `All()`**，只留 `AllEnabled()` + `AllIncludingDisabled()`；过渡期 `[Obsolete(error: true)] All()` 占位（第 2 级）。第二阶段前把 `AllEnabled()` 返回类型升为 `DrawPool<T>`、seeded 抽取只定义在其上（第 1 级）。见 `services/content-service.md` |
 | EventBus 订阅必退订 | 只在开发期显形 | **3** | `#if DEBUG` 订阅审计，切屏后触发（总则 5） |
 | overlay 新增剧本条目不得引用新的非剧本 `Id` | 上线且不可见 | **3 + 发布侧等价 2** | 合并期 `newIds` 双闸（全量 `PushError`，非 `#if DEBUG`）+ 打包工具跑同一份 `LoadAll()`、不通过不产包。见 `services/content-service.md` |
+| 改了 Profile 结构必须登记进 `schemaVersion` 登记表 | 上线且不可见 | **3 + 发布侧等价 2** | `ProfileShapeCheck`：序列化形状与该版 golden 快照逐字比对，打包管线不通过不产包 + `#if DEBUG` 启动期跑同一份。见 `services/profile-schema-versions.md` |
 
 **「不插 `if`，也不插 `#if`」——条件编译的使用清单是穷举的，不得扩张：** `src/Core/BackendSelector.cs`、三个 `src/Services/*/Offline*Backend.cs`、`src/Autoload/EventBus.cs` 的审计块，**共 5 处**。服务与 manager 内部一律不得出现 `#if`。
 
@@ -676,26 +666,37 @@ Input (touch, 横向滑动选择)
                                    (SeedManager 的具名子流驱动全部随机性)
 ```
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-02-architecture-services-reconcile.md` · `handoffs/2026-09-03-plot-eventbus-broadcast.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
-- **修行事件分类（含 Explore / Travel）** → `decisions/ADR-0002-adventure-event-taxonomy.md`（Accepted；待补订 Explore / Travel）。
+- **修行事件分类（含 Explore / Travel）** → `decisions/ADR-0002-adventure-event-taxonomy.md`（Accepted）。
 - **境界存档 · 篇章重试模型** → `decisions/ADR-0004-realm-checkpoint-retry-model.md`（Accepted）。
 - **强制在线 · 云端权威** → `decisions/ADR-0003-online-cloud-authority.md`（Accepted）。
 - **`.claude/knowledge` 降为引用层（本库成为内容 + 技术结构双重事实来源）；引用层形态 = 薄引用（副本判据：设计库里已是代码形态的东西只留链接）** → `decisions/ADR-0005-knowledge-thin-reference-layer.md`（Accepted）。
 - **展示层三层切分（Data / 运行时·存档 / ViewModel）** → `decisions/ADR-0010-presentation-three-layer-split.md`（Accepted；**主落点是 `systems/viewmodel.md`**，本文件保留三层定义段）。
 - **五级层次 service ⊃ manager ⊃ module ⊃ processor ⊃ handler；拆分轴 = 生命周期层 + 行为边界（非数据类型）** → `decisions/ADR-0008-service-hierarchy-vocabulary.md`（Accepted）。
 - **单一 profile-service 拥有两层 profile（ProfileManager 唯一写入面）；ContentRegistry 唯一内容读取入口；game-progression 为编排顶点** → `decisions/ADR-0009-single-entry-points-and-orchestrator.md`（Accepted）。
-- **内容载体形态（随包基线 + `user://overlay/` 热更 + 云端版本校验）与本地 / 云端内容分界** → `decisions/ADR-0007-local-content-layer-and-overlay.md`（Accepted）。
+- **内容载体形态（随包基线 + `user://overlay/` 热更 + 云端版本校验）与本地 / 云端内容分界；`ContentEnabled` 的 flags 三层覆盖** → `decisions/ADR-0007-local-content-layer-and-overlay.md`（Accepted）。
 - **PlotManager 隶属 future-event-service，eventOptions 唯一出口** → `decisions/ADR-0014-plot-manager-inside-future-event-service.md`（Accepted）。
 - **API 契约总则（三种方法形态 / 三分失败语义 + `OpResult` / 服务门面骨架 / Bootstrap 启动契约 / EventBus 用 C# 泛型事件 / 后端接口化 / 结算阶段名）** → `decisions/ADR-0011-api-contract-principles.md`（Accepted）。
 - **物化模型：`AdventureEventData` 为模板、future-event-service 为唯一物化点、`EventOption` 产出即定稿且落存档** → `decisions/ADR-0012-materialization-model.md`（Accepted）。
 - **`CostSpec` / `RewardSpec` 合并为单一 `ProfileChangeSpec`（element 带符号）**；收口前的重算走只读投影 `Project(spec)`、不新增第二个写入面 → `decisions/ADR-0108-profile-readonly-projection.md`（Accepted）。
 - **纪律的可执行化四级阶梯 + 两条选级判据 + 内容侧等价第 2 级（发布管线跑同一份校验）** → `decisions/ADR-0013-discipline-enforceability-ladder.md`（Accepted）。
+- **剧本树的数据形态：纯调制、两个内容类型、key points 每 arc 一条** → `decisions/ADR-0015-plot-tree-data-shape.md`（Accepted）。
+- **全局设定类效果 = capability flag（布尔）+ modifier pipeline（数值）两条通道** → `decisions/ADR-0017-capability-flag-and-modifier-pipeline.md`（Accepted）；**两条通道的落地形态**（扁平枚举 + 正向三词表命名 · 万分比整数 · 同层求和 → 只乘一次 → 只取整一次）→ `decisions/ADR-0116-capability-flag-and-modifier-shape.md`（Accepted）。
+- **资源的钳制 / 终态 / modifier 准入统一查逐 element 的封闭表 `ResourceElements`** → `decisions/ADR-0063-resource-elements-table.md`（Accepted）。
+- **新施加语义按三级问法落点：新增一列 → 同列加 `Op` → 配表加一列** → `decisions/ADR-0067-element-carrier-three-tier-criterion.md`（Accepted）。
+- **`revision` = 后端分配的账号级单调整数；上行走 CAS 三分支 + 幂等键 `pushId`** → `decisions/ADR-0103-sync-revision-cas-and-push-idempotency.md`（Accepted）。
+- **`ItemData` 使用效果面按世界分两格，移除 `Abilities`，新增 `MaxUsesPerCombat`** → `decisions/ADR-0121-item-use-effect-face-by-world.md`（Accepted）。
+- **批次层储物袋操作不是决策点而是一次即时提交；补 `ItemElements` / `ItemUseElements` 两列与 `pastItemUse` 序列** → `decisions/ADR-0122-batch-layer-inventory-commit-and-trace.md`（Accepted）。
+- **`ProfileChangeSpec` 增 `StatusChanges` 列：Status 规则字段的绝对置值** → `decisions/ADR-0128-status-changes-assignment-column.md`（Accepted）。
+- **隐藏属性推拉的方向落在 `HiddenStatGrant` 第三格，沿数值轴命名、无哨兵** → `decisions/ADR-0129-hidden-stat-direction-slot.md`（Accepted）。
+- **`ContentEnabled` 增第三层覆盖来源 flags；overlay 不再是唯一热更层** → `decisions/ADR-0130-flags-third-override-layer.md`（Accepted）。
+- **`Upgrade` 类错误只在两处硬阻塞；缓冲闸门口径不变、只换文案与选项** → `decisions/ADR-0131-upgrade-error-non-blocking.md`（Accepted）。
 
-Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-09e-discipline-enforceability.md`
+Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-09-02-architecture-services-reconcile.md`
 
 ## 闭环缺口（架构体检）
 
@@ -712,14 +713,14 @@ Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hie
 | 7 | 编排顶点缺失 | **已闭合** → game-progression |
 | 8 | UI 与服务间无契约层 | **已闭合** → ViewModel 层 |
 
-**API 契约**见上方「API 契约总则」。**剩余的结构性未决项**已下沉为各服务文档的待决问题（`EventOption` 完整物化字段清单、内容分桶粒度、协议报文字段），见下节与 `services/*`。
+**API 契约**见上方「API 契约总则」。各服务自身的残留待决项见 `services/*` 各自的「待决问题」小节。
 
 Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md`
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **待做一次 `architecture.md ↔ services/*` 的待决问题与投影表对账（台账事项 · 不阻塞 derive）。** 已有两个实例证明上游会留下过期登记：本文件三条结构残留里有两条的答案早已写死在下游服务文档、只是从没回头划掉；`ResourceElements` 表在本文件与 `profile-service.md` 之间也出现过投影漂移。需要一次**系统性对账**而非逐次顺手修。**它是一项维护动作，不是设计缺口**——本文件的设计面无未决项，对账不产出新的 FR，也不构成任何 derive 的前置。
+- 当前无未决项。
 
 ## 对应
 提炼至：`.claude/knowledge/architecture.md`（**薄引用层**，ADR-0005：导航 + 代码现状 + 承重一句话，代码形态内容只回链本文件，不留副本）。

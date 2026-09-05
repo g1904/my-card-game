@@ -7,7 +7,7 @@
 
 - **为何 Combat 需要独立服务，而其余四类不需要。** 五类 AdventureEvent 中**只有 Combat 真正拥有自己的状态机**——回合循环跨多帧推进、有独立的中间态（手牌、场上效果、栈）。Exchange / Research / Explore / Travel 共享同一形状（呈现 → 择一进入 → 扣成本 → 应用产出 → 推拉隐藏属性 → 收口），差异在**数据**而非**代码**，由通用结算器 + 数据驱动的 outcome / effect 定义承担。见 `_index.md` 的拆分轴。
 - **Finale 复用本服务的状态机。** 境界突破是 Combat 的一个变体（独立的结算规则与胜负条件，但同一套回合循环），不另建服务。**本服务不负责角色终结**：Finale 失败照常返回一份 `CombatResult`（`Outcome == Defeat`），是否因此终结角色由 life-cycle-service 的终态判定裁定——**判定归生命周期、计算归战斗**这条既有分工在这里无例外。
-- **战斗模型 = mana（出牌）+ 道念（计分与胜负）。** 本服务维护**双方各自的道念（momentum）**作为胜负标尺：**道念高者胜**；`currentMana / manaLimit` 为出牌资源，mana **无曲线**、**每回合开始自动恢复至 `manaLimit`**。**寿元 `lifeSpan`（单值，无上限字段）在战斗过程中不被读写**——失败时才在收口时刻按「角色道念 − 敌人道念」的差值乘该篇章的 `lossPerMomentum` 扣减。炼气基线寿元 100、mana 5/5。见 `systems/scoring.md`、`systems/character-profile/life-span.md`、`mana.md`、`systems/adventure-event/combat/`。
+- **战斗模型 = mana（出牌）+ 道念（计分与胜负）。** 本服务维护**双方各自的道念（momentum）**作为胜负标尺：**道念高者胜**；`currentMana / manaLimit` 为出牌资源，mana **无曲线**、**每回合开始自动恢复至 `manaLimit`**。**寿元 `lifeSpan`（单值，无上限字段）在战斗过程中不被读写**——失败时才在收口时刻按「角色道念 − 敌人道念」的差值乘该篇章的 `lossPerMomentum` 扣减。炼气基线寿元 1000、mana 5/5。见 `systems/scoring.md`、`systems/character-profile/life-span.md`、`mana.md`、`systems/adventure-event/combat/`。
 - **战斗是定长的：固定 10 个回合。** 一场战斗**打满 10 个回合**，**双方各 5 个**（「回合」= 单方的一次行动轮，交替进行），随后比道念、高者胜。**不设提前终止**（无道念阈值胜利、不以卡组耗尽终止）。**推论：TurnManager 是一个固定长度的循环**（`for turn in 1..10`）而非动态终止判定——状态机形状因此确定，且每场战斗的时间开销可预测。
 - **平局 = 只发基础奖励（`Standard` 档）。** `Standard` 档打满 10 回合后道念相等时：**不判负、不扣寿元**，玩家**只获得该事件的基础奖励**（道念差为 0，故无任何厚度加成）。因此 `CombatOutcome` 需要第三个胜负态 `Draw`，且它在收口上落在「胜利侧的最薄一档」——与「道念差是双向刻度」自洽：差值为 0 就是两侧都不加码的那个原点。**`Draw` 只在 `Standard` 一档可达**：另两档 `WinMargin` 为 0，相等即判胜（`Practice` 点到为止 / `Finale` 不落后即通过），`Draw` 分支在那里恒不成立。
 - **道念的运行态骨架。** 战斗开始时本服务为双方各置一个**起始道念 = `baseMomentum`（按各自全局等级，表见 `systems/balance.md`）**；此后道念**由打出的卡牌产出**，且卡牌**可削减对方道念**，**削减在 0 处截断**（无负道念）。**推论：等级差在开局即转化为道念差**，越级挑战的压力有了确切量纲。
@@ -123,7 +123,7 @@
   - **目标选择复用同一个评分函数**：在既定的 `LegalTargets` 结果内取使该动作试算分数最高者，平手取序列首项；`LegalTargets` 为空的槽位使该候选整个不进候选集。不为目标另写第二套启发式——两套会各自漂移而无机制发现。
   - **`ActivateAbility` 的两个准入闸一个都不能漏**（mana 可付 **且** 本场配额未用尽；`MaxActivationsPerCombat == -1` 即不限、该闸恒过）：契约权威在下方「API 面」，AI 侧只是引用方。
   - 打法风格的十项 term 语义、强弱差的三条结构性上界见 `systems/enemies/_index.md`。
-- **AI 决策是「当前局面 + `combat` 子流」的纯函数（承重）。** 不得依赖真实时间、帧序或未持久化的隐藏记忆；**随机只取 `combat` 子流，不再派生新流**——而**兜底与定制策略均零随机消耗**（平手按确定性字典序打破：`−score` → 动作种类序 → 主体 id 的组装序），故这条约束当前为空，保留它是为日后可能引入的随机化权重项。理由：敌人回合内部不落决策点，**D5 一个点即覆盖整个敌人回合，它是一段可确定性重放的区间**——玩家在敌人回合中途退出时整段被重放，任何不在存档里的私有记忆都会让重放分叉。**输入面限对称可见信息**：战场全部条目（含 `OwnerSide`）· 双方道念与回合数 · 对手埋伏**计数** · 对手手牌**张数** · 自己的手牌 / 卡组 / 本场可用道具；**不读玩家手牌内容与抽牌堆顺序**——这一条做到 `ADR-0013` 第 1 级：AI 读的是 `viewerSide` 为敌方的 `CombatSnapshot`，而 `SideSnapshot.HandCardInstanceIds` 恒只有 viewer 己方非空、抽牌堆只给张数，玩家手牌内容与牌序**在类型层根本没有承载它们的字段**。**AI 的目标选择照旧不产生决策点**，定制策略不改变这一条。
+- **AI 决策是「当前局面 + `combat` 子流」的纯函数（承重）。** 不得依赖真实时间、帧序或未持久化的隐藏记忆；**随机只取 `combat` 子流，不再派生新流**——而**兜底与定制策略均零随机消耗**（平手按确定性字典序打破：`−score` → 动作种类序 → 主体 id 的组装序），故这条约束当前为空，保留它是为日后可能引入的随机化权重项。理由：敌人回合内部不落决策点，**D5 一个点即覆盖整个敌人回合，它是一段可确定性重放的区间**——玩家在敌人回合中途退出时整段被重放，任何不在存档里的私有记忆都会让重放分叉。**输入面限对称可见信息**：战场上双方全部**面朝上**条目（含 `OwnerSide`）+ 己方面朝下条目 · 双方道念与回合数 · 对手埋伏**计数** · 对手手牌**张数** · 自己的手牌 / 卡组 / 本场可用道具；**不读玩家手牌内容与抽牌堆顺序**——这一条做到 `ADR-0013` 第 1 级：AI 读的是 `viewerSide` 为敌方的 `CombatSnapshot`，而 `SideSnapshot.HandCardInstanceIds` 恒只有 viewer 己方非空、抽牌堆只给张数，玩家手牌内容与牌序**在类型层根本没有承载它们的字段**。**AI 的目标选择照旧不产生决策点**，定制策略不改变这一条。
 - **CharacterManager 与 EnemyManager 平级、共享接口、驱动方式相反。** 两者管理战斗的两侧参战方，**共有大量接口定义**（生命 / mana、卡组、状态、出牌）；差异只在**谁驱动决策**——EnemyManager 含**代理操作**（AI 行为选择），CharacterManager **监听玩家操作**。
 - **每个参战方各有一个 `DeckModule`。** 卡组不是全局单件：**每个 character、每个 enemy 各持有一个**，由 CharacterManager / EnemyManager 各自持有。**敌人也出牌**，且可带定制卡组：`EnemyData` 的样本卡组由**功法列表展开而来（外加游离散牌）**，天劫等条目的定制性由**敌方专用功法**承担。`DeckModule` 是**第三级抽象（module）**，不列入本服务的 manager 清单——层级词表见 `systems/architecture.md`。
 - **`combatTier` 三档共用本服务的参战方结构。** `Practice` / `Standard` / `Finale` 都用 EnemyManager + CharacterManager 与同一套回合循环，差异只在遭遇参数（回合数 / 胜负门槛 / 奖惩）。见 `systems/adventure-event/combat/`。
@@ -174,12 +174,12 @@
     - **疲劳栈条目的 `sourceInstanceId` / `sourceEntryId` / `abilityId` 三格恒空**（它没有卡牌实例、没有载体条目、没有异能主体），`chosenTargets` 为空、`targetState` 恒为 `Resolved`（疲劳的承受方 = 抽牌方，无需求解）。读档校验 ② 只校验非空值，故三格恒空不触发它。**存档 schema 一格不加**：`stack` 数组本就在 `ActiveCombat` 内，多的只是 `kind` 枚举的一个取值。
   - **推论 ②：下限 0 逐次截断照常适用**——道念为 0 时继续疲劳不产生负值、溢出量不结转（`systems/scoring.md` 的既有规则原样成立，`momentum` 仍是 `>= 0` 的 Integer）。
   - **推论 ③：不以卡组耗尽终止仍然成立**——卡组耗尽不终止战斗，只是从此每回合稳定失血；定长循环的形状不变。
-  - **推论 ④：`DeckModule` 没有「弃牌堆整堆回流重洗」这条代码路径**，seeded 洗牌只发生在参战方组装时的一次初洗。**卡牌效果可经 `MoveCard` 把有限张牌置于抽牌堆顶 / 底，插入位置不掷随机**（随机位入堆未开放）；`Selection = Random` 的**源牌**选择照常走 `combat` 子流，那是选哪张的随机、不是插进哪里的随机，两者互不干涉。**抽牌本身因此仍零随机消耗**，「两侧牌序互不打乱」原样成立（见上方「确定性」）。
+  - **推论 ④：`DeckModule` 没有「弃牌堆整堆回流重洗」这条代码路径**，seeded 洗牌只发生在参战方组装时的一次初洗。**卡牌效果可经 `MoveCard` 把有限张牌置于所声明一侧的抽牌堆顶 / 底**（方位由 `MoveCardEffect.Side` 一格声明，两端同侧，见 `systems/character-profile/deck/common-properties.md`）**，插入位置不掷随机**（随机位入堆未开放）；`Selection = Random` 的**源牌**选择照常走 `combat` 子流，那是选哪张的随机、不是插进哪里的随机，两者互不干涉。**抽牌本身因此仍零随机消耗**，「两侧牌序互不打乱」原样成立（见上方「确定性」）。
     - **随机位入堆未开放，界线写在这里：** 「把一张牌随机洗回抽牌堆 / 随机置入抽牌堆第 N 张」才使抽牌堆重新成为战斗中途的随机消耗点。若日后开放，**仍不拆分子流**（消耗照常记在 `combat` 上、`State` 照常随决策点同批持久化）。确定性的顶 / 底入堆不触及这条界线。
   - **推论 ⑤：满手抽不进与疲劳的叠加已定**——两条判定按流程顺序：抽牌堆为空 → 先扣道念（无牌可抽）；抽牌堆非空但满手 → 牌留在抽牌堆、无事发生、**不触发疲劳**（疲劳的触发条件是「牌堆空」，不是「没拿到牌」）。
 - **卡牌侧数值。** **起始手牌 4**（双方同值）· **每回合抽 2** · **手牌上限 7** · **卡组规模：两侧皆不设硬限**（储物袋同样不设硬上限）。**推论：卡组规模成为可编排维度**（敌人侧由 `EnemyData` 逐条编排、玩家侧由构筑决定），**其代价由疲劳承接**——小卡组在后期真实失血。敌我对称仍是硬纪律（起手 / 抽牌 / 手牌上限三项完全同值）。取值与推导见 `systems/balance.md`。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-card-counters-api-and-key-space.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-08-26b-combat-substream-arbitration.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-27-card-pool-and-reshuffle.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md`
+Source: `handoffs/2026-09-02-move-card-effect-side.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-card-counters-api-and-key-space.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-08-26b-combat-substream-arbitration.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-27-card-pool-and-reshuffle.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-09-03-combat-snapshot-facedown.md`
 
 ## 战斗存档：`ActiveCombat`
 
@@ -301,7 +301,7 @@ public sealed record CardInstanceSave(
 >
 > **`itemId` 按落点分档：栈条目的走 ②，`CombatItemSave.ItemId` 走 ⑥。** 同一个 id 在两处的失败语义不同——栈上那条是**正在结算的事实**，解析不到即内容被删或键被写错；`items` 里那条只是**本场计数**，其道具本场不再可用是预期内的状态变化。故一条 `UsedItem` 栈条目在它对应的 `CombatItemSave` 被 ⑥ 丢弃时**照常结算**：被丢弃的是计数，不是内容。
 
-**版本化**：本块是新增字段 → 随下一次 schema bump 一起走（当前无线上存档 = 空迁移）。
+**版本化**：本块属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`。
 
 **本块新增的字段共两格：战场条目的 `amount` 与栈条目的 `itemId`** —— 计数器与道具运行态全部落在既有的 `counters` / `Counters` / `items` 上。量级都可忽略：`amount` 为 **≤ 4 字节 / `Transient` 条目**，`itemId` 只在 `kind == UsedItem` 的栈条目上有值（一场至多几条），相对单次决策点 2–4 KB 的既有量级不成比例；当前无线上存档 ⇒ **空迁移**，故下述量级与迁移面不受影响。**两格都是在内容清单为空时先行铺下的**，取舍同一条：加它的成本此刻恒为零，不加的成本在第一条用得上它的内容落地时可能已不为零（届时 schema 或已上线，加格不再是空迁移）。`kind` 枚举增员本身不加字段——多的只是一个取值。
 
@@ -473,9 +473,9 @@ public sealed record CombatSnapshot(              // 只读视图，供 ViewMode
     TurnStep     Step,                            // Start | Action | End
     SideSnapshot Character,
     SideSnapshot Enemy,
-    IReadOnlyList<BattlefieldEntryView> Battlefield,  // 单一记录，条目自带 OwnerSide，呈现层分区渲染
+    IReadOnlyList<BattlefieldEntryView> Battlefield,  // 单一记录，条目自带 OwnerSide，呈现层分区渲染；对侧 faceDown 条目整条不入列
     IReadOnlyList<StackEntryView>       Stack,        // 栈顶在前
-    PendingTargetRequest? PendingTarget);         // 结算挂起中的「请选目标」；无挂起时 null
+    PendingTargetRequest? PendingTarget);         // 结算挂起中的「请选目标」；仅 pending.controllerSide == ViewerSide 时填充，否则恒 null
 
 public sealed record SideSnapshot(
     string ActorId,                               // CharacterId / 敌人实例 Id
@@ -486,7 +486,7 @@ public sealed record SideSnapshot(
     int    HandCount,                             // 双方都给计数
     IReadOnlyList<string> HandCardInstanceIds,    // 仅 viewer 己方非空；对侧恒为空
     int    DrawPileCount, int DiscardPileCount,
-    int    AmbushCount,                           // 双向对称：只给计数不给内容
+    int    AmbushCount,                           // 该侧 faceDown == true 的战场条目计数；双向对称：只给计数不给内容
     IReadOnlyList<string> UsableItemIds);         // 本场可用道具；仅 viewer 己方非空
 
 public readonly record struct AbilityAvailability(   // BattlefieldEntryView 上一格：IReadOnlyList<AbilityAvailability> ActivatableAbilities
@@ -563,6 +563,17 @@ public readonly record struct MomentumDelta(
 - **`CombatSnapshot` 是双视角的单一投影，AI 与呈现共用一个类型（承重）。** 「读侧统一、写侧分权」这条划线推论覆盖 AI：EnemyManager 规划意图时读的就是本类型，只是 `ViewerSide` 取该敌人的 `OwnerSide`；UI 组装与决策点存档取 `Character`。**不为 AI 另立第二个投影类型**——两个投影会各自漂移，而本库没有机制发现它们不一致。
   - **双视角不改动任何字段语义**：「仅 viewer 己方非空」这条填充纪律原样成立，只是「己方」随 `ViewerSide` 解释。这正是「不读玩家手牌内容」能停在第 1 级的原因——敌方视角下那份内容结构上不存在，而不是靠约定不去读它。
   - **缓存与按变更广播按 `ViewerSide` 分别持有**（两份缓存、同一次组装），**不跨视角复用一份**：一份缓存被两个视角轮流覆写，等于把「我这次读到的是谁的视角」变成时序问题。
+- **对侧的面朝下条目整条不入 `Battlefield`（第四条填充纪律）。** 组装时按视角过滤：`entry.faceDown == true && entry.ownerSide != ViewerSide` 的条目**不进列表**，而不是保留壳条目再把内容格置空。置空 / 哨兵值的形态把泄漏防线从结构降为约定——内容格在类型上仍然存在，AI 与 ViewModel 读 `sourceId` / `keywordId` / `amount` 前都要先判 `faceDown`，漏判无人发现，且列表也能数出对侧埋伏数、与 `AmbushCount` 形成两个口径。整条剔除使这一项与手牌内容同档：对侧那份内容**在类型层根本不存在**。另立一个对侧专用条目视图同样不取——与「`SideSnapshot` 单类型，不拆己方 / 对方」「不为 AI 另立第二个投影类型」两条形状相抵，ViewModel 与 AI 各多一条会各自漂移的路径。
+  - **不变式（组装期可断言）：** `Battlefield` 中不存在 `FaceDown == true && OwnerSide != ViewerSide` 的条目 ⇒ **视图内 `FaceDown == true` 恒指观察方己方的埋伏**。
+  - **`BattlefieldEntryView` 保留 `FaceDown` 一格**：己方埋伏要靠它决定折叠 / 逐条渲染与埋伏标记的呈现，删掉它己方那一半就没形状了。
+  - **被剔除的条数由 `SideSnapshot.AmbushCount` 承载，公开面零损失**——对手本就只该知道「有几张」。`AmbushCount` 的定义按 `faceDown == true` 收口（而非按次类型 `enchantment.ambush` 计数），与过滤判据**逐字同源**：两处口径各写各的，一旦出现一个非埋伏的面朝下条目，列表少一条而计数不变，且没有任何机制发现。**不改名为 `FaceDownCount`**：「埋伏计数」已是 `ux/combat-ux.md` 的必做项、也已进 `terminology.md`，收益只是命名精确，代价是三处措辞连锁改动 + 玩家可见词汇分叉。
+  - **`Battlefield.Count` 不等于场上条目总数。** 想按列表长度算「场上有几个条目」的消费者须补上对侧的 `AmbushCount`；**当前无此消费者**（AI 的十项 term 与 UX 战场区都按 `OwnerSide` 分区读）。这一点必须写下来，否则日后有人把列表长度当总数用。
+  - **视图内的 `entryId` 引用不得假定可解析。** 栈条目的 `sourceEntryId` 与 `CombatFeedEntry.CauseEntryId` 链上的坐标都可能指向不在本视图 `Battlefield` 列表中的条目——被视角过滤剔除，或已离场进弃牌堆（埋伏触发后即进弃牌堆）。呈现层解析不到时按「该条目已不可见」处置，不报错。「引用恒可解析」这条假设本就不成立，视角过滤只是让它更早发生。
+  - **前提：对侧 `faceDown` 条目永不进 `LegalTargets`。** 否则 UI 会拿到一个自己列表里没有的 `entryId` 去高亮。该前提由 `TargetSlot` 侧的一条加载期闸机械化（见 `systems/character-profile/deck/common-properties.md`），不靠散文纪律——纪律的失效方式只会在内容侧真用了 `IncludeFaceDown` 的那一天暴露。
+- **`PendingTarget` 同样条件填充：仅当 `pending.controllerSide == ViewerSide` 时填充，否则恒 `null`。** 与 `HandCardInstanceIds` / `UsableItemIds` / `ActivatableAbilities` 三条齐平，凑成四条同型的填充纪律。`PendingTargetRequest` 的 `SourceCardId`（呈现用，「埋伏·XX 需要一个目标」）与 `LegalTargets` 承载的都是**挂起方**的内容；`CombatSnapshot` 是双视角的单一投影，`ViewerSide` 取敌方时这两格上承载的正是玩家侧的牌。**不以「AI 只在自己回合读快照、彼时栈空」这条性质代替**——那是时序保证而非结构保证，且它依赖一条从未成文的时序前提。
+- **`StackEntryView` 须含 `SourceCardId`，这是该视图上第一格成文的字段。** 该类型此前只在 `CombatSnapshot.Stack` 一格被引用，**字段面整体尚未成文**；本条只定这一格，其余格待该视图（连同 `BattlefieldEntryView`）一次性成文时补齐，届时须与本格合并而非另立。存档侧的栈条目字段面是另一件事，不可混用。
+  - **用途 = 揭示时刻的承接面。** 对手的埋伏被触发时玩家从哪里看到它是哪张——**不给战场条目加「已翻面 / 已揭示」态、不加任何战场条目字段**。埋伏触发即压栈，其可观测面由该次触发的栈条目与 `CombatFeedEntry(Kind = AbilityTrigger)` 承担，与「敌方启动的可观测性由飘字与战报承担」同一条纪律。而把 `SourceInstanceId` 解析成「哪张牌」在对侧视角下没有解析通道，故须直接给出 `CardId`。
+  - **这一格不条件填充**：栈是完全公开面（栈上的东西正在结算，逐步演出是硬要求），对有卡牌来源的栈条目恒非空。
 - **`TargetKind` 必须有 `None`**：`PlayCard` 每次都要传一个 `TargetRef` 而大量牌无目标，`None` 使「无目标」成为**已表达的取值**而非 null 约定。**`StackEntry` 不保留**——本作不做「反制栈上条目」这一形态的效果，枚举里不留永无消费者的取值；栈条目只被 `pending` 与结算流程用 `stackEntryId` 引用，**从不作为效果的目标**。
 - **`CombatTier` 是三值枚举而非 bool**：回合数与胜负判据已显式化，**战斗规则不从它派生**；但它是**战斗之外**三处的判据（篇章边界闸门 · ADR-0004 篇章重试 · 道统残卷的累积与兑现），故用三值枚举而非 bool——枚举同时让 `Practice` 有了位置。见 `decisions/ADR-0002-adventure-event-taxonomy.md`。
 - **胜负判据参数化为两个数就够，不做「可替换的判定对象」**：`(1, false)` / `(0, false)` / `(N, false)` 已覆盖全部已陈述需求，无需策略枚举与分发。
@@ -610,6 +621,7 @@ public readonly record struct CombatFeedEntry(
     string         CauseEntryId,     // 因果父的 EntryId；无父 = string.Empty
     string         SourceId,         // CardId（CardPlay）/ AbilityId（AbilityActivation | AbilityTrigger）/ ItemId（ItemUse）/ string.Empty（Fatigue）
     string         SourceInstanceId, // CardInstanceId；无实例来源 = string.Empty
+    string         SourceCardId,     // CardPlay / AbilityActivation / AbilityTrigger 有卡牌来源时非空；ItemUse / Fatigue = string.Empty
     int            FizzledSlots,     // 落空槽位的位掩码，0 = 未落空
     MomentumDelta  CharacterMomentum,// 本次结算的增量（逐次结算粒度）
     MomentumDelta  EnemyMomentum);
@@ -621,6 +633,7 @@ public enum CombatFeedKind { CardPlay, AbilityActivation, AbilityTrigger, ItemUs
 
 - **用道具自成一类 `ItemUse`，同样不与上述任何一类合流。** 判据与上一条逐字同款：因果树要读得出「他喝了一瓶药」与「他启动了阵法上的异能」之别，而两者的道念增量在快照上可以完全相同。条目取值：`EntryId = stackEntryId` · `CauseEntryId = string.Empty`（主动动作是因果树的根）· `SourceId = itemId` · `SourceInstanceId = string.Empty`（道具不是 `CardInstance`）· `Side` = 使用方 · `FizzledSlots` 照常。**敌人用道具同样广播本条**（它没有 `ActionResult`，战报是它唯一的可观测面）。
 
+- **`SourceCardId` 与 `StackEntryView.SourceCardId` 逐字同构，理由同款。** 另外两个来源格都点不出「那张牌是哪张」：`SourceId` 在 `AbilityTrigger` 时是 `abilityId`，而 `AbilityData` 是独立可复用资源、由多个 `CardData` / `PowerData` 共同引用 ⇒ `abilityId → CardData` 的反查在设计上就是多义的；`SourceInstanceId` 的解析通道（对侧实例表）不在视图里。而**栈条目在结算完即消失、战报保留本场全部条目** ⇒ 缺这一格，战报展开态就永久失去「刚才触发的那张埋伏是哪张」，而「第 3 回合我的道念为什么少了 3」正是战报存在的理由。填法：`CardPlay` / `AbilityActivation` / `AbilityTrigger` 有卡牌来源时非空，`ItemUse` / `Fatigue` 为 `string.Empty`。**不由呈现层在栈条目消失前自行缓存**——那是同一事实的第二份持有，与「三个消费者读同一条流，各自去别处捞迟早不一致」相抵。本流不落存档 ⇒ **零 schema 影响**；负载仍只带 `Id` 与值类型，多的是一个 `string` 引用、无分配对象，热路径纪律不破。
 - **`EntryId` 恒有值，因果树的两端都不缺。** 各类结算全部经栈（启动式压栈、疲劳同样入栈），故 `EntryId` 直接取 `stackEntryId`，不为任何一类特设发号路径。`CauseEntryId` 指向**引发本条的那条 feed 条目**——一次出牌与它连锁引发的全部触发因此归为一棵树，「谁引发了谁」读得出来。**它与栈条目的 `sourceEntryId` 不是同一件事**：后者是**载体所在的战场条目**（这个异能挂在谁身上），前者是**因果父**（这次结算是被谁引发的），两格并存不构成重复。无父时 `CauseEntryId = string.Empty`，沿 `TargetRef.EntryId` 在 `Kind == None` 时写 `string.Empty` 的既定约定。
 - **fizzle 是条目上的一格，不是第四个类别。** 「部分槽位非法 → 该槽位不产生效果、其余槽位照常结算」这条规则要求呈现层写明**是哪一半没生效**；把 fizzle 拆成与卡牌结算平行的独立条目，一次「打出 X 且其中一个槽位落空」就得拆成两条，那句话就写不出来。`FizzledSlots` 是位掩码（槽位数极小，位掩码避免热路径上分配集合）；全条落空 = 全部有目标的槽位置位且 `Declared == 0`。
 - **负载只带 `Id` 与值类型，不带 `CardInstance` / `Resource` 引用。** 本流在战斗内逐次结算都广播，是热路径——Godot `[Signal]` 传自定义负载会**每次广播都分配一个引用对象并经 `Variant` 装箱**（EventBus 走 C# 泛型事件而非 `[Signal]` 的直接动因，见总则 5），且**传引用等于给每个订阅者开一条绕过唯一写入入口的旁路**。需要完整实例的订阅者按 `Id` 向 `ContentRegistry` / `CombatSnapshot` 取。
@@ -628,7 +641,7 @@ public enum CombatFeedKind { CardPlay, AbilityActivation, AbilityTrigger, ItemUs
 - **本流不落存档，退出重进战报从空开始。** 这**不是**「可重算所以不存」——feed 是历史，局面重算不出来；它的理由是**明写接受丢失**：`ActiveCombat` 因此一格不加，而「选目标态必须自解释」这条硬要求的承担者是指令条、本就不依赖战报。
 - **本流是 Combat 专属，不外延为跨事件类型的日志。** 见 `systems/adventure-event/common-properties.md`。
 
-Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-08-30-stack-entry-kind-for-item-use.md`
+Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-08-30-stack-entry-kind-for-item-use.md` · `handoffs/2026-09-03-combat-snapshot-facedown.md`
 
 ## 与其他服务的关系
 
@@ -669,7 +682,7 @@ life-cycle-service.AdvanceEventAsync(eventOption, mode, ct)
 - **`counters` 键空间只有 `<abilityId>[#<子名>]` 一种形态（非异能计数不进 `counters`）；子名有正则且须登记在 `AbilityData.CounterNames`；实例侧计数由参战方的 `GetCardCounter` / `BumpCardCounter` 承担、与配额计数同时机；战场条目新增 `amount` 承载 `KeywordRef.Amount`**。
 - **用道具在三个枚举上对齐为一等来源**：`StackEntryKind` 增 `UsedItem`（不复用 `ActivatedAbility`）、`CombatFeedKind` 增 `ItemUse`（不与启动 / 触发合流）；**栈条目新增 `itemId` 一格**（与 `kind == UsedItem` 互为双向不变式，三个来源格对道具恒空）；读档校验 ② 的强解析清单扩入栈条目的 `itemId`（`CombatItemSave.ItemId` 仍走 ⑥）；`UseItem` 的 mana 扣费与 `InsufficientMana` 与 `ActivateAbility` 同款；**「使用道具时」不开为触发时点**——时点随广播点一同增长，当前无内容需要它。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-22-card-counters-api-and-key-space.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-30-stack-entry-kind-for-item-use.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-22-card-counters-api-and-key-space.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-30-stack-entry-kind-for-item-use.md` · `handoffs/2026-09-03-combat-snapshot-facedown.md`
 
 ## 待决问题
 

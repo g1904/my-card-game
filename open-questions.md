@@ -8,7 +8,7 @@
 >
 > 本清单**只跟踪仍待答的问题**（不留已解决区），是导航 / 拾取清单，**权威归属在各主题文档**。
 >
-> 最近更新：2026-08-30 — 全量整理：移出 1 条 · 合并 2 处 · 清 3 处失真（详见 `open-questions/update-log.md` · `answer-logs/log-0830.md`）
+> 最近更新：2026-09-03c — 快照 faceDown · 剧本广播 · 神通机制 · 寿元定价表与量纲（移出 5 条 · 详见 `open-questions/update-log.md`）
 > （逐次变更摘要见 `open-questions/update-log.md`；已答定问题的逐条移出记录见 `answer-logs/`）
 
 ## 分片导航

@@ -185,7 +185,7 @@
   - **物化日志：** `[FutureEvent-Weight] location=<Id> arcs=<n> N=<n> dist=<Combat:.42,Exchange:.18,...> k=<n>`。一批只在屏幕切换点产出一次，不落任何热路径（与「逐候选条目算一次池计数」同款代价论证）。
 - **重算依据 = 角色的整体历程，不是上一批（承重）。** 新一批**不在上一批基础上增删**，而是依角色的整体状态与历程重新产出——**`pastEvent` 是本服务的一等输入**（与 location 框定、PlotManager 调制、map 子流并列）。**「更新后」这三个字是硬要求**：收口那一次事务里本次事件的账与新 `pastEvent` 条目必须已经算进去，故 life-cycle-service 先取一份**只读投影**（`profile-service.Project(spec)`）再调本方法，把新一批放回同一次提交——**收口仍是一次事务、一个存档点**。**推论：本服务不持有跨批次的状态**；批与批之间唯一的信息通道是 CharacterProfile 本身，这与「模板不可写回」「产出即定稿」共同保证了本服务是无记忆的纯产出侧。
 - **批次刷新只有一种形态：整批重算（承重）。** 玩家面对一批 eventOptions 唯一能做的是**择一进入**；**每完成一次选择，本服务整批重算**——**选中一个即等价于跳过了其余全部**，故**不设跳过通道**。
-  - **不设单项补位。** 本服务的 API 面是**四个**方法，没有 `TryRefill` 一类的单项补位方法——一旦有它，就要跟着回答「补位落空怎么办」「不生成付不起的事件」「不生成整批不可选的批次」一整串问题，而整批重算让这些问题不存在。
+  - **不设单项补位。** 本服务的 API 面上没有 `TryRefill` 一类的单项补位方法——一旦有它，就要跟着回答「补位落空怎么办」「不生成付不起的事件」「不生成整批不可选的批次」一整串问题，而整批重算让这些问题不存在。
   - **`EventOptionBatch` 不设「至少一个必做项」的不变式**：**本批的每一项都是必做项**，不需要字段去保证它。
   - **「打不过也得打」这条设计意图升级为结构性事实。** 仍**不需要**产出侧的「至少一个可负担 / 可战胜选项」保证：**必须面对的遭遇打不过 → 输掉这一局，是正常且合意的结果**。这与失败侧的既有建制自洽（EnemyCodex 遭遇即记、失败也可能给经验，加上篇章重试模型；**道统残卷的累积已收窄为 Finale 失败专属**，不参与常规遭遇的论证）——**「输」是这个游戏的一个正常出口**；同时它**约束产出侧不要过度保护**，难度的界由赋级带给出已经足够。
   - **`selectCost` 侧同样不欠可负担性保证。** 支付 `selectCost` 是**无条件的可推进行为**，付不起也照付、支付后判定状态、判负进失败流程（见 `systems/adventure-event/common-properties.md`）。**推论：「付不起唯一可选项 ⇒ 无法推进」这条死锁在规则层不成立**，本服务不需要为此做任何产出侧兜底。
@@ -276,7 +276,7 @@
   - **本服务只读「当前篇章的带」这一个概念，不为分章写分支**（读取面 = `BandFor(chapter)` 一次取值）。带边界与带内权重同住一份平衡资源，**资源形态与加载期校验见 `systems/balance.md`**。
   - **PlotManager 不得改带边界，只能对带内权重施加乘性调制**（只改权重不改支撑集）——与本服务权力面三项中的「偏移带内赋级权重」是同一条。
   - **赋级规则挂在 Enemy 上，不挂在事件类型上** ⇒ **`combatTier` 三档一视同仁**。天劫只是 Enemy 的一种，不享有等级规则上的例外（见 `systems/adventure-event/combat/`）；Practice 的「低风险」由回合数与胜负门槛承担，**不由「派个更弱的对手」承担**。
-  - **推论 ①（承重 · 三章全部成立）：一次惨败的量级由规则层框住。** 上界统一为 `+2`，最坏落差为 9（炼气十三层 `baseMomentum` 15 遇筑基中期 24）；对炼气段 100 点的寿元预算约为 9%，与回寿三档的中档同量级——赋级带因此仍是「一次失败最多有多重」的规则层闸，而不是唯一防线。
+  - **推论 ①（承重 · 三章全部成立）：一次惨败的量级由规则层框住。** 上界统一为 `+2`，最坏落差为 9 点道念（炼气十三层 `baseMomentum` 15 遇筑基中期 24）；按 ch1 的 `lossPerMomentum = 10` 换算为 90 点寿元，占炼气段 1000 点寿元预算的 9%，与回寿三档的中档同量级——赋级带因此仍是「一次失败最多有多重」的规则层闸，而不是唯一防线。
   - **推论 ②：越阶遭遇只出现在每个境界的末两级**——12 · 13 → 筑基；16 · 17 → 金丹；20 · 21 → 元婴。**三章统一**，越阶压迫感自动向篇章尾部集中，与 Finale 落在篇章边界同向。
   - **推论 ③：`±2` 是无例外的硬规则。** 任何调制源（PlotManager、location 框定、事件模板、Finale）都不得产出带外 `diff`；**赋级函数不接受任何区间覆盖参数**——不给这个口子，就不存在「谁有权用它」的问题。调制源只能改**带内权重**。
   - **推论 ④：上界档不必然越阶。** `diff = +2` 只在境界末两级才是越阶；境界中段的 `+2` 是同阶。
@@ -290,7 +290,7 @@
 - **Exchange 的库存在物化阶段掷定，随 `EventOption` 落存档。** 模板上的 `ExchangeSpec.StockRules` 在本服务物化时展开为 `ExchangeOffer[]`：逐条规则按 `Kind` 映射到对应仓储取池、按 `RarityFilter` 过滤、按 `RarityTier` 权重无放回抽 `SlotCount` 条，再逐条从「族 × 稀有度」定价表该格抄下 `Currency`、算出 `BasePrice` 与 `ListPrice`。
   - **随机源 = `RngStream.Shop` 子流**，它已在子流清单里，不新开。
   - **取池链沿用授予池那一条，不另写一段**：`AllEnabled()` → 按 `Kind` 映射仓储 → 排除 `ExclusiveSource != null` → `Card` / `CultivationTechnique` 两族排除 `Pool == Enemy`、功法族另叠灵根修习准入 → 排除已持有（能力族）→ `RarityFilter` → 加权 `PickMany`（无放回 ⇒ 同批不出现重复商品，免费成立）。**不新建任何抽取池**——五个商品族一一映射到既有仓储。
-    - **能力族商品经第二级 `TryPickGrantableMany` 取池，其余三族直用第一级 `DrawPool<T>`**（`[采纳推荐 — 待复核]`）。理由：「排除已持有」是需要读 `Profile` 的那道过滤，它必须只写在一个地方；走既有门面方法即可，**不给 `GrantPoolPicker` 新开入口**——它已是全库唯一的能力抽取处，入口越多越容易漏用。代价：本条取池链因此分裂为两种写法。
+    - **能力族商品经第二级 `TryPickGrantableMany` 取池，其余三族直用第一级 `DrawPool<T>`**（`[采纳推荐 — 待复核]`）。理由：「排除已持有」是需要读 `Profile` 的那道过滤，它必须只写在一个地方；走既有门面方法即可，**不给 `GrantPoolManager` 新开入口**——它已是全库唯一的能力抽取处，入口越多越容易漏用。代价：本条取池链因此分裂为两种写法。
   - **`ListPrice` 在此定稿，`ModifierKey.ShopPrice` 也在此施加。** 依据是「一个 `ModifierKey` 只能有一个施加点」：商店价格必须先算才能标价 ⇒ 施加点在物化 / 展示侧，**两个货币行**的两个修正列因此恒为 `null`（见 `systems/services/profile-service.md`）。**代价明写：** 轮回中途新获得的降价修正不影响已定稿的库存，下一个 Exchange 事件才生效。
   - **以物易物的 `BarterStock` 由 `ExchangeSpec.BarterRules` 逐条平移得出，不经取池链、不掷 `RngStream.Shop`。** 一条 `ExchangeBarterRule` 恰好平移为一个 `BarterOffer`（`OfferId` 与 `ExchangeOffer` 同一命名空间、`SoldOut` 初值 `false`、产出为功法时抄下层数），**不读定价表、不施加任何 modifier 与折扣、不参与三道短缺闸**——它是内容作者点名的定值编排，没有分母可算。`BarterRules` 为空即 `BarterStock` 为空数组。字段面与六条加载期校验见 `systems/adventure-event/exchange/common-properties.md`。
   - **`RerolledCount` 初值为 0。** 刷新是结算侧的动作（花灵石重掷整批库存，走同一条取池链与同一个 `Shop` 子流），本服务只负责给出初始库存。规则见 `systems/adventure-event/exchange/_index.md`，字段面与校验见其 `common-properties.md`。
@@ -344,7 +344,8 @@ Source: `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30
 | 物化一批 | A | `EventOptionBatch ComputeEventOptions(CharacterProfile character)` | 内容池为空 = 坏数据 → `PushError` + 抛 |
 | 结算后重算 | A | `EventOptionBatch RefreshAfterEvent(CharacterProfile character, string resolvedInstanceId)` | 同上。**`character` 可以是一份投影 profile**（含本次收口尚未提交的账与新 `pastEvent` 条目），本服务不区分投影与已提交视图 |
 | 当前批 | A | `EventOptionBatch Current { get; }` | — |
-| 剧本分支 | A | `OpResult ChooseBranch(string branchId)` | 业务失败 → `OpResult`；PlotManager 的**唯一对外投影**；剧本内容属本地内容层，无远端请求 |
+| 剧本分支 | A | `OpResult ChooseBranch(string branchId)` | 业务失败 → `OpResult`；PlotManager 的**两处对外投影之一**；剧本内容属本地内容层，无远端请求 |
+| 剧本段 | A | `bool TryGetPlotSegment(CharacterProfile character, out PlotSegment segment)` | 全部 arc 惰性 / 无 `Active` arc → `false` + `PushWarning`（转发 `TryResolvePlot` 的既有语义），呈现侧不渲染剧本段、轮回继续；**非失败路径** |
 
 ```csharp
 public sealed record EventOption(                 // 定稿实例：immutable 引用类型，落存档
@@ -437,7 +438,7 @@ public sealed record AbilityChangeSlot(       // 定稿 · immutable；物化时
 - **形状与 `EventOption.ResearchSlots` 同构，随机源同为 `RngStream.Reward` 子流。** 两者都是「物化时掷定的决策点候选 + 落存档 + 绝不重抽」，不发明第二套形态。
 - **掷定时点前移到物化时，与「抽取在物化时掷定」一条纪律收口。** 三个决策点面板（Research 槽 · Exchange 库存 · 置换 / 禁用候选）由此掷定时点一致，既有的不对称消失；防重掷也更严——留到结算那一刻现掷，玩家退出重进即可刷一个更合意的置换对象。
 - **`OutcomeSpec` 侧因此可写死 `Op == Grant`。** resolver 在结算时把玩家的选择翻译为 `Remove` + `Grant`（同 `PairKey`）或 `Disable` 三类 element，并入 `eventEnd` 那一次 `TryApply`；`ResolveOutcome` 不新增结构。
-- **存档 schema 有一格增量（如实记）：** `EventOption` 新增 `AbilityChangeSlots` 一格 ⇒ 随同批 bump（当前无线上存档 = 空迁移）。`PastEventEntry` **不受影响**——本次掷定的结果已在 `AppliedChange` 里，候选本身按既有判据（重算不出来**且有消费方**）在事件收口后无消费方。
+- **存档形状（如实记）：** `EventOption` 上的 `AbilityChangeSlots` 一格属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`。`PastEventEntry` **不受影响**——本次掷定的结果已在 `AppliedChange` 里，候选本身按既有判据（重算不出来**且有消费方**）在事件收口后无消费方。
 
 **模板侧的参数空间与加载期校验见 `systems/adventure-event/common-properties.md`；本服务只负责把它物化成上述定稿实例。**
 
@@ -519,14 +520,16 @@ public sealed record AbilityChangeSlot(       // 定稿 · immutable；物化时
 - **`ComputeEventOptions` 的语义就是「物化」：** 取 `AllEnabled()` 候选 → location 框定 → PlotManager 调制 → map 子流抽取 → 组装定稿实例（**成本量值在此取负**）。**物化完成后本服务不改这批实例**；一批的更新只有一种形态——`RefreshAfterEvent` 产出**一批全新的实例**。
 - **未选项摘要从「被替换的那一批」取，取用方是 life-cycle-service。** `RefreshAfterEvent` 会把当前批整批换掉；被换掉的那一批里除 `resolvedInstanceId` 之外的选项，正是要写进 `PastEventEntry.Unchosen` 的轻摘要来源。**本服务不因此新增方法、也不负责写档**——`Current` 在重算之前仍指向旧批，life-cycle-service 在组装 `PastEventEntry` 时读它即可，写入照常经 `profile-service.ProfileManager`。字段形态见 `systems/adventure-event/common-properties.md`。
 - **`EffectivePriority` 由本服务算好放进 batch**，而不是让 UI 自己去 `Max(o.Priority)`。呈现层只做呈现，「哪些可选」是产出侧的语义。
-- **PlotManager 的四个方法不出现在服务门面上**（manager 不被跨服务调用）：`TryResolvePlot` / `ModulateEventOptions` / `OnHiddenStatThreshold` 是 `ComputeEventOptions` 物化链条内部的一环；只有 `ChooseBranch` 需要玩家输入，故投影为服务门面上的同名方法。
+- **PlotManager 的四个方法里有两个投影到服务门面上**（manager 本身不被跨服务调用，投影的是方法、不是类型）：`ModulateEventOptions` / `OnHiddenStatThreshold` 是 `ComputeEventOptions` 物化链条内部的一环，不投影；`ChooseBranch` 需要玩家输入，投影为门面上的同名方法；`TryResolvePlot` 因呈现侧要拿剧本段渲染事件结算面板，投影为只读的 `TryGetPlotSegment`。
+  - **`TryGetPlotSegment` 不破坏「本服务是无记忆的纯产出侧」**：它是纯只读转发，不取池、不掷随机、不写档、不改 `Current`，故面板重绘 / 退出重进重复调用都安全。呈现侧直接调本服务亦不违反编排顶点纪律 —— 编排顶点定「谁在什么时机调谁」，但不是一切跨服务调用的必经中转。
+  - **剧本层的广播面见 `plot-manager.md`「事件面」**：剧本段走的是这条只读查询，不走 EventBus（完整实例进不了负载；且揭示是「询问」）。
 
 **事件面：**
 
 | 事件 | 负载 |
 |------|------|
 | `EventOptionsChanged` | `(string BatchId, int Revision)` |
-| `PlotThresholdReached` | `(string CharacterId, HiddenStat Stat, int Threshold)`（本服务代 PlotManager 广播） |
+| `PlotThresholdReached` | `(string CharacterId, HiddenStat Stat, int BandIndex)`（本服务代 PlotManager 广播） |
 
 **协作面：** 物化出的 eventOptions 交由 **game-progression（编排顶点）** 以**月圆之夜式菜单 / 横向滑动选择区**呈现；随机性从 `life-cycle-service.Stream(RngStream.Map)` 取得；模板按 `Id` 经 `content-service.ContentRegistry` 解析。
 

@@ -41,6 +41,6 @@
 
 - **一次性关掉一组悬空**：两个 location 字段与 band 字段自此都有承载列（`StatusKey` 的成员清单随各专场逐条补，配表不写死）。
 - `EventOption` 七字段 → 八字段；Explore 遮罩 Travel 时目的地在物化时一并掷定，且 **`DestinationLocationId` 与 `RevealedEventId` 同属「揭示前不得进入呈现层」**——这是 Explore 泄漏面纪律在字段侧的第二个实例，写在同一处以免被当成两条不同的纪律。
-- 存档 schema 不额外 bump：两个 `Status` 字段此前已随 location 载体落定并 bump 过；`EventOption` 快照多一格随「完整物化字段清单」那次 bump 一并处理。
+- **不另起一次 bump：** 两个 `Status` 字段、`ProfileChangeSpec.StatusChanges` 列与 `EventOption` 的 `DestinationLocationId` 一格**都属 `schemaVersion` 1**，逐条登记见 `systems/services/profile-schema-versions.md`。
 - **仍未答**：`ResourceElements` 是否增 `ApplyOp { Add, Set }`（归 profile-service）· `plotKeyPoint` 的 element 形态（它是集合型、本列装不下，归 plot-manager / profile-service）· `EventOption` 的完整物化字段清单。
 - 因此必须这么写的文档：`systems/architecture.md`（`ProfileChangeSpec` 逐列 + `StatusAssignment` / `StatusKey` / `StatusFields` / `StatusValueKind`）· `systems/services/profile-service.md`（施加与失败语义）· `systems/services/life-cycle-service.md`（组装点）· `systems/services/future-event-service.md`（Travel 物化伪码）· `systems/adventure-event/travel/common-properties.md` · `systems/adventure-event/explore/_index.md` · `terminology.md`。

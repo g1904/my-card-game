@@ -55,12 +55,12 @@ public sealed record ResearchCandidate(
 
 | 槽内候选 | 取池链 |
 |---|---|
-| **法宝三选一** | **直接复用 `GrantPoolPicker`**：`TryPickGrantableMany(AbilityCarrierKind.Item, AbilityScope.Character, rng, 3)` —— 取池 → `(CarrierKind, Scope)` → 去成就限定 → 排除已持有 → 按 `RarityTier` 加权 → **无放回**抽 3 条 |
+| **法宝三选一** | **直接复用 `GrantPoolManager`**：`TryPickGrantableMany(AbilityCarrierKind.Item, AbilityScope.Character, rng, 3)` —— 取池 → `(CarrierKind, Scope)` → 去成就限定 → 排除已持有 → 按 `RarityTier` 加权 → **无放回**抽 3 条 |
 | **功法三选一（学新）** | `CultivationTechniqueData` 仓储 → `AllEnabled()` / `DrawPool<T>` → **排除 `Pool == Enemy`**（敌方专用功法，见 `systems/character-profile/deck/_index.md`「卡池划分」）→ **排除该角色修不了的功法**（灵根修习准入 `CanLearn`，见同文档「灵根修习准入」）→ **排除卡组中已持有的功法 `Id`** → 按 `RarityTier` 加权 → `PickMany(rng, 3)`（无放回） |
 | **升阶候选** | 卡组内已持有、**未达层数上限**、且仍通过灵根修习准入的功法（不足 3 门时给几门算几门；一门都没有则该操作不进候选）。**准入这一层对升阶同样叠**——它只在 overlay 中途改动了灵根或功法属性时才会真正筛掉东西，处置是「不再进候选」而非没收已持有的功法 |
 | **弃置 / 移除散牌候选** | 卡组内已持有的功法 / 游离散牌 |
 
-- **法宝那一路是纯复用**：`GrantPoolPicker` 已是账号级 / 轮回级能力条目的**唯一抽取处**，法宝三选一恰好是 `(Item, Character)` + `count = 3`，一行调用即可。
+- **法宝那一路是纯复用**：`GrantPoolManager` 已是账号级 / 轮回级能力条目的**唯一抽取处**，法宝三选一恰好是 `(Item, Character)` + `count = 3`，一行调用即可。
 - **功法那一路形状与之完全同构**（`CultivationTechniqueData` 带 `Rarity`），落 `DrawPool<T>` 的第五个调用方。
 - **随机源 = `RngStream.Reward` 子流的 `GodotRandomSource`，不新开子流。** `Reward` 已承载「战后奖励候选一次性抽定」这一完全同构的用途（预先掷定 + 落存档 + 绝不重抽），而奖励候选与构筑候选**从不并发**（一次只结算一个事件）；新开子流换来零隔离收益。
 - **候选池不接 modifier pipeline，故不受 PlayerPower 影响。** 候选池的**权重**若可被法则推拉，等于开一条「账号级内容改写轮回级构筑运气」的通道，而它在 `ContentEnabled` / `ExclusiveSource` 之外无人校验。**唯一例外是 capability flag**（如「看见候选的稀有度」这类呈现向 flag）——那走呈现层，不改池。

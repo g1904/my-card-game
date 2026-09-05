@@ -116,7 +116,7 @@
   - **三个首胜标记落具名布尔**，沿用 `chapterRetry` 的既定形态（篇章数是固定的游戏结构，不是可扩展列表），不用字典 / 索引数组。
   - **`x` 不落字段**——它是对 `List<PlayerPower>` 的一次**带过滤计数**（**只数 `SourceCode == Source.FinaleWin` 的条目**），落字段即制造第二份真值（与「`CapabilitiesChanged` 空负载、订阅者自行重查」同一条纪律）。
   - **读档校验：** `Accumulated` 落在 `[0, 10000]` 外 → `GD.PushWarning` + 钳制；三个首胜布尔与通关史不一致时**以布尔为准**（它是权威，不由通关史重建）。
-  - **schema 影响：** 本类 7 个字段 + `AccountInfo.AccountSeed` ⇒ 存档 schema 版本 bump。迁移分两路：**客户端写入的字段缺失 → 以默认值补齐**（无损）；**回声路径缺失（含 `AccountInfo.AccountSeed`）→ 走必需缺失处置**（`GD.PushError` + 该顶层键本次不进 diff + 触发一次 pull 重取权威值），**不补默认值**——补一个客户端造出来的值去回声，会在正常老档上稳定把上行打成整批拒绝。见 `systems/services/sync-service.md` 与 `account-info.md`。
+  - **schema 影响：** 本类 7 个字段 + `AccountInfo.AccountSeed` 属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`。迁移分两路：**客户端写入的字段缺失 → 以默认值补齐**（无损）；**回声路径缺失（含 `AccountInfo.AccountSeed`）→ 走必需缺失处置**（`GD.PushError` + 该顶层键本次不进 diff + 触发一次 pull 重取权威值），**不补默认值**——补一个客户端造出来的值去回声，会在正常老档上稳定把上行打成整批拒绝。见 `systems/services/sync-service.md` 与 `account-info.md`。
 - **账号级字段分两层，判据是「它有没有被规则读」（通则）。** `chapterRetry` 的账号级累计与 `PlayerPowerFragment` 不进统计计数用的是同一条判据，它是 `PlayerProfile` 上账号级字段的通则：
 
   | | **规则字段层** | **统计计数层** |
@@ -176,7 +176,7 @@
   - **为何是具名字段而不是 `List<EntitlementKind>` / 字符串集合**：与「`CapabilityFlag` 用 `enum` 而非字符串 key」同一条纪律；付费点在本作被刻意限窄（负面边界见 `systems/monetization.md`），可扩展集合的成本高于收益。日后真新增第二个付费点 = 本类加一个具名字段 + bump 一次 schema。
   - **不落成 `CapabilityFlag`，也不走 modifier pipeline**——两者都是由内容条目聚合出的**派生态**、且受轮回级禁用截断，而付费凭证是账号上的**原始事实**、必须是不参与 pipeline 的硬状态。完整判据见 `systems/monetization.md`。
   - **读档校验**：`BundleGrantOrdinal` `< 0` → `GD.PushError` + **`entitlement` 顶层键本次不进 diff** + 触发一次 pull 重取权威值，**不钳制**——它是回声路径，任何方向的改写都是客户端在改写一个只由后端写入的字段，而钳制出来的值一旦被回声上行就会稳定招致整批拒绝。`BundleRedeemedOrdinal` 的两向钳制**原样成立**：`< 0` → 钳制到 `0`、`> BundleGrantOrdinal` → **钳制到 `BundleGrantOrdinal`**（判定为「无待兑现」），两向皆 `GD.PushWarning`——它是客户端写入路径，且读 `Grant` 只是读、不写回。两者**都不由购买历史重建**（与三个首胜布尔同口径——它们是权威）。**钳制方向偏向不重复发放**：坏档下最坏是少发一次，而少发有后端对账信号可查，多发则是不可回收的发放侧漏洞。
-  - **schema 影响**：`PlayerProfile.entitlement` 的两个字段并入既有的同一次 bump，老档缺字段 → `0`（未购买 / 从未兑现，无损）。
+  - **schema 影响**：`PlayerProfile.entitlement` 的两个字段属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`；老档缺字段 → `0`（未购买 / 从未兑现，无损）。
   - **两条 JSON path `/entitlement/bundleGrantOrdinal` 与 `/entitlement/bundleRedeemedOrdinal` 都是透明路径。** 前者是**后端会写入**的字段（验票通过时 `+1`），后者后端只读并可校验不变式；白名单、后端写入字段的封闭表与只读语义见 `backend-design-documents/contracts/profile-sync.md` §5，写入端点见同库 `contracts/purchase.md`——本库不复述。移动或重命名任一 path = 破坏性契约变更，须 bump `schemaVersion` 并与后端同批改。
 - **服务归属：profile-service。** 账号级行为——PlayerPower 的获取 / 失去与 `status` 开关持久化、PlayerItem 使用次数扣减、成就进度与奖励发放、capability flag 聚合——归 **`systems/services/profile-service.md`**。因 `PlayerProfile ⊃ List<CharacterProfile>`，该服务**同时是两层 profile 的唯一写入面**（`ProfileManager.TryApply(spec)`，全有或全无），使「扣账号级 PlayerItem 次数 + 扣轮回级灵石」天然落在同一事务内。登录归 `account-service`，云端同步归 `sync-service`。
 

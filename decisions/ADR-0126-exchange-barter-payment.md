@@ -38,7 +38,7 @@
 
 ## 后果
 
-- `EventOption` 增一格 ⇒ **bump 存档 schema**（当前无线上存档 = 空迁移）。
+- `EventOption` 上的 `BarterStock` 一格属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`。
 - **灰显判据从一条变两条**：`CanAfford` 管货币格、`Holds` 管 barter 格。两条各自单点、互不交叠，但「预校验只有一个方法」这句话不再为真。
 - **白送保护落在门面而非 element 层** ⇒ 绕过门面直接组装 barter spec 的调用方仍能触发。与 `UseItemOutOfCombat` 同一类风险、同一种处置。
 - **Exchange 第一次持有指向内容条目的定值引用**（`PayItemId` / `GoodsId`）——此前它只持有抽取规则、从不点名任何条目。

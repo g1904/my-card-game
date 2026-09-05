@@ -17,9 +17,11 @@
   - **真身模板的成本字段不是死字段。** 同一个 Combat / Travel / Exchange 条目**也可能作为普通选项直接出现**在同批 eventOptions 里，那时它自己的 `selectCost` 照常施加。「被遮罩时不读」是 Explore 这条路径的局部规则，不是对该字段的全局否定。
 - **泄漏面在定价侧，由两条纪律封死（承重 · 独立成立）。** `selectCost` 恒精确展示，故成本数字**始终**摆在玩家面前；指纹泄漏因此不靠任何呈现门控挡住，全部由**定价结构**堵死：Explore 行是一个与真身无关的唯一定值，壳恒按该行报价 ⇒ 成本数字不含任何真身信息。
   - **Explore 在 `lifeSpanCost` 定价表上自成一行，该行不得由真身推导。** 若成本取自真身（「遮罩什么就收什么价」），精确展示会让玩家**用成本数值反推真身类型**——Combat / Travel / Exchange 三行定价不同即构成指纹。
-  - **Explore 条目禁用条目级成本覆盖值。** `lifeSpanCost` 一律取定价表的 Explore 行，内容条目**不得**标偏移 / 覆盖值——作者写出的差异化成本本身就是第二种指纹（玩家会记住「这个秘境花 4 点的总是打架」），会把上一条封死的泄漏面从另一侧重新捅开。落地为**内容模板加载期校验**，违规条目 `PushError` + `Id`。
+  - **Explore 条目禁用条目级成本覆盖值。** `lifeSpanCost` 一律取定价表的 Explore 行，内容条目**不得**标偏移 / 覆盖值——作者写出的差异化成本本身就是第二种指纹（玩家会记住「这个秘境花 40 点的总是打架」），会把上一条封死的泄漏面从另一侧重新捅开。落地为**内容模板加载期校验**，违规条目 `PushError` + `Id`。
     - **代价（明写接受）：** Explore 作者失去一个风味旋钮，无法用成本表达「这个秘境格外凶险」——那类表达改由文案与美术承载。要求「同一 location / 篇章内取值齐平」的折中效果等价，但**无法机械检查**、只能靠作者自律，而本库对内容侧的收口方式是「能加载期校验的就不留自律」。
     - **这是 Explore 独有的例外，不是对定价表通则的收紧。** 其余四类照常「不填即取类型基准，需要时标偏移 / 覆盖」。
+    - **⚠ 成本值域铺开后，指纹的辨识度更高、这条禁令更必要。** 定价表的七行跨度超过 20 倍（同章最低到最高相差一个数量级），一个偏移出的成本数字比在窄值域下更容易被玩家记住并反推。
+  - **⚠ 「设计期按真身分布的期望标定」与「运行期按真身取价」是两件事，不得混为一谈（承重）。** 上面两条禁的是后者——按**这一个**实例的真身定价，以及逐条目覆盖。Explore 行本身的取值则由**整个 Explore 条目池的真身分布期望**标定（`t(Explore) ≈ 1.6` 分钟，构成式见 `systems/balance.md`），产出的仍是一个**与任何具体真身无关的常数**，玩家在任何一次 Explore 上看到的都是同一个数字，展示侧零泄漏面。**这条区分必须留在文档里**——否则日后会有人拿上面两条纪律去否掉 Explore 行唯一有依据的定法。
   - **两条纪律恒常承重，不随任何呈现开关。** 它们是本作对「资源换外部情报」这条禁令在 Explore 上的兑现——每一张 Explore 卡若都免费给出一个关于真身的信号，遮罩机制的价值即被抽空。
 - **泄漏面还有字段侧的一条：`RevealedEventId` 与 `DestinationLocationId` 同属揭示前不得进入呈现层的字段（承重）。** 两者**都在物化时掷定并落在壳实例上**（目的地必为随机那一档，见 `../travel/_index.md` 的 80 / 20 掷定）——这是既有防重掷纪律的要求：候选须预先算定并落决策点存档，否则玩家退出重进即可刷一个更合意的真身 / 地域。**落在实例上不等于可呈现**：ViewModel 在 `IsRevealed == false` 时**这两个字段一个都不读**。两者写在同一条里而非分列两条，因为它们是同一条纪律的两个实例——分开写迟早会有人只守其中一条。
   - **同一条纪律在呈现侧的完整形态：遮罩态卡面只取 Explore 模板自己的**显示名 / 描述 / 风味文案 / 图标。真身的任何一个字段泄漏到卡面上，都会成为定价侧两条纪律之外的又一种指纹。呈现细节（卡片与其余 eventOption 完全同构、揭示转场层）见 `ux/screen-flow.md`。
@@ -100,7 +102,7 @@
 - **这不是缺陷，正是 Explore 的定价**——元类型出售的就是「不知道」。若为它补一条「秘境内的战斗不得越级」之类的保护，等于用规则把风险抹平，Explore 随之失去存在理由；且它会成为 `±2` 带那条**无例外硬规则**的一个例外，而该规则明写不接受例外。
 - **风险的界仍由 `±2` 带给出**（赋级规则挂在 Enemy 上、`combatTier` 三档一视同仁），已经足够：秘境里的战斗不会比常规战斗更超纲，只是玩家事前不知道有没有。它与「打不过也得打是正常出口」自洽——产出侧本就不欠可战胜保证。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

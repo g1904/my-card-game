@@ -11,9 +11,9 @@
 - **胜负 = 道念高者胜。** 战斗结束时比较双方道念，**高者胜**。战斗**不以任一方的任何资源池归零为终止 / 判定条件**。
 - **战斗过程中寿元不被读写（资源纪律 · 承重）。** 回合内的一切焦点都在**积累道念 / 压制对方道念**上；寿元在战斗过程中既不被消耗也不被读取，**只在收口时刻被扣**。理由：战斗内一旦能读写这条命，以生命值为终止条件的消耗战就从后门回来，而本作的战斗终止条件是道念比拼。故战斗内可用的道具与法则不得产出 `LifeSpan`（见 `systems/character-profile/life-span.md`）。
 - **失败惩罚 = 按道念差扣寿元。** 战斗 / 修炼失败时，角色在**战斗结束的**收口**时刻**损失寿元，损失量由「**角色道念 − 敌人道念**」的差值决定（差得越多，伤得越重）。**它与事件成本 `lifeSpanCost` 落在同一个值上**——一次战斗失败因此同时压缩「还能失败几次」与「本章还能做几个事件」。
-- **换算 = 道念差 × `lossPerMomentum`（负侧）。** `lifeSpan -= (敌人道念 − 角色道念) × lossPerMomentum(篇章)`——**第一篇章的系数锁定为 1**，道念差就是损失量，战斗屏上的「我落后 8 点」同时就是「输了要掉 8 点寿元」，账当场可算、无需额外教学；后两章由系数吸收 `baseMomentum` 的量纲膨胀（`baseMomentum` 约百倍膨胀而预算只有三倍），玩家在一个篇章之内看到的始终是同一个系数。**系数按篇章分档、不按 `combatTier` 分档**：三档共用同一系数，故同一时刻不存在两套账本。**不设上限截断：** 换算就是全部规则，不加封顶。表、ch1 = 1 的锚与 ch2 / ch3 的形状锚见 `systems/balance.md`。
+- **换算 = 道念差 × `lossPerMomentum`（负侧）。** `lifeSpan -= (敌人道念 − 角色道念) × lossPerMomentum(篇章)`——**第一篇章的系数锁定为 10**，战斗屏上的「我落后 8 点」同时就是「输了要掉 80 点寿元」——一次乘 10，账当场折得出来，不需要额外教学；后两章由系数吸收 `baseMomentum` 的量纲膨胀（`baseMomentum` 约百倍膨胀而预算只有三倍），玩家在一个篇章之内看到的始终是同一个系数。**代价如实写下：可算性是 ×10 而不是逐点对应**，比 1:1 多一步心算，这一步是为寿元定价表的分辨率付出的对价。**系数按篇章分档、不按 `combatTier` 分档**：三档共用同一系数，故同一时刻不存在两套账本。**不设上限截断：** 换算就是全部规则，不加封顶。表、ch1 = 10 的锚与 ch2 / ch3 的形状锚见 `systems/balance.md`。
 - **道念差因此仍是一把通用刻度，且现在跨事件类型可比价。** 被扣的是角色唯一的那条命，故「打一场输了」与「多走三到五个事件」第一次落在同一把尺子上。
-- **胜利侧同样读道念差 → 奖励厚度。** 赢多少也算数：**道念差越大，奖励越厚**（碾压 > 险胜）。**道念差因此是一个双向的结算刻度**——同一个量在胜负两侧分别驱动奖励厚度与惩罚深度，不需要第二套结算量。**负侧 = 1:1；胜侧 = 两条支路**——**强制奖励（可数量）走线性 `1:1 × 可调单价`**（「1 点道念差 = 1 个 `rewardPerMomentum` 单位」，单价逐篇章下调以吸收 `baseMomentum` 的百倍量纲膨胀），**可选奖励（品质）走归一化 `advantage` 三档**（险胜 / 优胜 / 碾压，只改候选池的稀有度权重、不改数量）。**道念差因此有两个消费点，调平衡时须同时看。** 公式、单价表与门槛见 `systems/balance.md`。
+- **胜利侧同样读道念差 → 奖励厚度。** 赢多少也算数：**道念差越大，奖励越厚**（碾压 > 险胜）。**道念差因此是一个双向的结算刻度**——同一个量在胜负两侧分别驱动奖励厚度与惩罚深度，不需要第二套结算量。**负侧 = 道念差 × 篇章系数；胜侧 = 两条支路**——**强制奖励（可数量）走线性 `1:1 × 可调单价`**（「1 点道念差 = 1 个 `rewardPerMomentum` 单位」，单价逐篇章下调以吸收 `baseMomentum` 的百倍量纲膨胀），**可选奖励（品质）走归一化 `advantage` 三档**（险胜 / 优胜 / 碾压，只改候选池的稀有度权重、不改数量）。**道念差因此有两个消费点，调平衡时须同时看。** 公式、单价表与门槛见 `systems/balance.md`。
 - **`momentum` 的字段形态 = 非负整数。** `>= 0` 的 Integer——下限 0 在类型层面即已表达，不引入小数、不引入负值。**推论：削减是饱和减法**，削到 0 即止、多余量不结转，故若要如实呈现「本次削了多少」，需区分**意图削减量**与**实际削减量**。
 
 ```
@@ -25,7 +25,7 @@
                        平：只发 baseReward（差值 0 = 不加码的原点，不扣寿元）
                        负：baseReward（少数事件夹带负向条目）
                            且 lifeSpan -= (敌人道念 − 角色道念) × lossPerMomentum(篇章)
-                                          ← ch1 系数 = 1；唯一动寿元的战斗内时刻是收口
+                                          ← ch1 系数 = 10；唯一动寿元的战斗内时刻是收口
 战斗外：  lifeSpan = 角色唯一的资源命线（见 systems/character-profile/life-span.md）
 ```
 
@@ -77,14 +77,14 @@
 | 哪些卡牌产 / 削道念 | `systems/character-profile/deck/` |
 | 隐藏属性（道心 / 煞气）与战斗层的边界 —— **战斗层不读写隐藏属性，交互全在事件层** | `systems/services/plot-manager.md` |
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
 - **计分模型 = 道念（momentum）；道念即战斗胜负判据；失败按道念差扣寿元** → `decisions/ADR-0018-momentum-scoring-model.md`（Accepted）。
 - **终止条件 = `EncounterSpec.TurnLimit`**（遭遇参数，**不是常量**——`Standard` 档取值为双方合计 10 回合）**；产出途径 = 卡牌、可互削、下限 0；起始道念 = `baseMomentum`；胜利侧按道念差给奖励厚度；平局只发基础奖励** → 同上 ADR-0018。
-- **道念差 → 寿元损失 = 道念差 × `lossPerMomentum`（ch1 = 1）；`momentum` = 非负整数；失败仍发 `baseReward`、额外惩罚以负向条目包在 reward 内；`combatTier` 三档的回合数与胜负条件随档可变** → 同上 ADR-0018；`WinMargin` 在 `Finale` 退场亦见该 ADR。
+- **道念差 → 寿元损失 = 道念差 × `lossPerMomentum`（ch1 = 10）；`momentum` = 非负整数；失败仍发 `baseReward`、额外惩罚以负向条目包在 reward 内；`combatTier` 三档的回合数与胜负条件随档可变** → 同上 ADR-0018；`WinMargin` 在 `Finale` 退场亦见该 ADR。
 - **下限 0 的截断时机 = 每一次结算时截断**（溢出量不结转，LIFO 顺序因此影响最终结果）→ `decisions/ADR-0086-lifo-resolution-and-combat-log.md`（Accepted）。
 - **道念削减的第二条通道 = 疲劳**（抽牌堆不重洗；空堆时每抽一张 −1 道念，同受下限 0 截断）→ `decisions/ADR-0052-no-reshuffle-fatigue.md` · `decisions/ADR-0088-fatigue-as-stack-entry.md`（均 Accepted）。
 

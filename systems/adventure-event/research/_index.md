@@ -9,7 +9,7 @@
 - **开局那个强制的构筑事件归 Research。** **炼气新角色**的起始批次（含 ch1 的篇章重试）中**必有一个强制事件**，让玩家选**一门功法**与**一件法宝**（各三选一）——形态取 Slay the Spire 第一章的味道。它是 Research 的一个条目，**不需要第六类事件**；承载机制是既有的 `eventPriority = 1`（本批有效可选集收窄为该档），**不新增机制**。**推论：Research 既定起手形状（开局），也承担整个轮回的多轮构筑（途中）**——两者是同一类事件的两种编排。
 - **Research 不可被 Explore 遮罩。** 卡组编辑是玩家主动规划的动作，把它藏在未知后面只制造挫败，不制造张力。见 `../explore/_index.md`。
 - **不单列「休养 / Rest」。** 休养语义并入 战斗 或 闭关——闭关承担其中的静养 / 修整语义。见 `systems/adventure-event/_index.md`、`terminology.md`。
-- **闭关比常规事件耗时更长。** 这是寿元定价上的一条既定差异：定价表里 Research 的 `lifeSpanCost` 高于常规事件。表的形态与取值归 `systems/balance.md`。
+- **闭关比常规事件耗时更长。** 这是寿元定价上的一条既定差异：定价表里 Research 的 `lifeSpanCost` 高于常规事件（当前 ch1 64 / ch2 70 / ch3 176）。表的形态与取值归 `systems/balance.md`。
 
 ### 结算形态 = 构筑面板，由若干决策槽组成（承重）
 
@@ -54,7 +54,7 @@
 **玩家可以选一个高风险的钻研候选：成功 `manaLimit +1`，失败 `−1`；掷定发生在物化阶段并随 `EventOption` 落存档**（退出重进不改变结果）。
 
 - **叙事轴与 mana 的推拉分档表天然对齐。** Research 已是推高的**主通道**（钻研 / 潜修在叙事上就是提升法力容量），走火入魔是同一条轴的反面，挂同一类型不需要新叙事前提。Explore 是纯元类型、无自己的产出口径，其可揭示的三类都不是走火入魔场景。
-- **它是 Research 唯一的内部张力，因此是承重的。** 没有它，Research 就是**纯收益事件**（付寿元、拿构筑，没有任何可能变糟），而闭关的 `lifeSpanCost` 又是全类型最贵一档——一个「最贵且必然赚」的事件会成为批次里的无脑首选，压掉「从一批里择一」的决策价值。**风险档是这条张力的唯一载体**，不可省。
+- **它是 Research 唯一的内部张力，因此是承重的。** 没有它，Research 就是**纯收益事件**（付寿元、拿构筑，没有任何可能变糟），而闭关的 `lifeSpanCost` 又是**玩家可自由比价的各类中最贵的一档**（`Finale` 以 `eventPriority = 1` 收窄整批出场、玩家没有替代选项，不参与比价）——一个「最贵且必然赚」的事件会成为批次里的无脑首选，压掉「从一批里择一」的决策价值。**风险档是这条张力的唯一载体**，不可省。
 - **「玩家自选」而非「随机惩罚」是关键的一半。** 被系统随机扣上限只会让玩家感到被惩罚，并进而回避 Research——而 Research 是构筑的唯一落点；**自己按下那个按钮**则与「明知是死路仍然走 / 打不过也得打」是同族的取向，风险是被选择的，不是被施加的。
 - 载体是 `CostKey.ManaLimit`（`ResourceElements` 该行两个修正列均为 `null`，见 `systems/services/profile-service.md`）。
 
@@ -74,12 +74,12 @@
   - 抬升判据与当前闭合的三条抬升条件见 `systems/services/future-event-service.md`。
 - **两个决策槽**：槽 1 限定 `LearnTechnique`（候选 3），槽 2 限定 `GrantItem`（候选 3）。
 - **两槽均 `AllowDecline = false`。** 开局底盘明写为「2 门角色绑定功法 + 1 门选来的功法 + 1 件选来的法宝」，允许拒绝会让底盘残缺；且它是玩家的第一屏，不该以「什么都不选」开场。**常态条目的默认值相反，是 `true`**（见 `common-properties.md`）。
-- **`lifeSpanCost` 取 0 的条目级覆盖。** 它是被强制进入的第一个事件，收寿元等于开局即扣而玩家未做出任何取舍。这落在「个别事件可在表值之外设更小的覆盖值」这条既有通道内，不需要新规则。
+- **`lifeSpanCost` 取 0 的条目级覆盖。** 它是被强制进入的第一个事件，收寿元等于开局即扣而玩家未做出任何取舍。这落在「个别事件可在表值之外设更小的覆盖值」这条既有通道内，不需要新规则。**它是定价表在内容侧唯一登记在案的覆盖值**，与表同处登记，见 `systems/balance.md`。
 - **它可以缺席，开局流程仍然成立（承重）。** 两槽 `AllowDecline = false` ⇒ 取池期的池前置对它逐槽收紧为「必须能产出 ≥ 1 条候选」（见 `systems/services/future-event-service.md`）；不满足时该条目不进批次，**首批退化为常规批，轮回照常开始**。上面那句开局底盘描述因此是内容编排的目标形态，不是结构性保证。
   - **缺席是一次大声失败的运营事故**（`PushError` + 上报），运行期唯一可能的成因是 flags 把功法 / 法宝池关到见底。**不新增任何降级路径或补发机制**——空池是运营事故，不是玩法分支。
   - 反面的做法是运行期静默把 `AllowDecline` 改成 `true` 让它照常出场：那用「静默改写一条内容侧的强约束」换「不缺席」，而开局底盘残缺的后果贯穿整个轮回，且玩家与运营都看不见发生过什么。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

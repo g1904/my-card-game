@@ -135,9 +135,11 @@
   - **能力条目一概不得产出寿元**（`PowerData` 两个 `Scope` 皆然），判据是次数——它没有 `Charges`，见 `../power/_index.md`。回寿只挂在**有明确次数上限的一次性消费**与**占事件位的事件产出**上。
   - **回寿的总量护栏在内容编排面**（出现频率、商店库存深度、定价），**规则层不设持有上限**——上方两道加载期校验管的是条目合法性，能囤多少交给编排。口径未定，见待决问题。
 
+- **什么该做成一件法宝而不是一张卡 / 一个神通**：判据 = **有明确的使用次数上限、由玩家主动在某一刻花掉**（`Charges` 是节流阀；`ItemData` 不设 `Abilities` ⇒ 它写不出常驻 / 触发式效果）。三者共用的完整判据表与四条推论在 `../power/_index.md`，本文件**不复述**。
+
 > 本文件夹为「每类角色道具 / 每份道具设计一个 Markdown」预留结构；具体语义见 `common-properties.md` 与待决问题。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12c-identifier-singular-collapse.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md`
+Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12c-identifier-singular-collapse.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -145,8 +147,8 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-doc
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **角色级道具的内容目录未设计。** **已定：战斗内形态 = `CardType.Item`、储物袋、`UsableScene` 三档、`ItemData` 字段形态与两格使用效果面、本场配额格、加载期校验、消耗即时写 Profile、以及战斗外效果的第一个具体条目形态（回寿法宝）**（见上）。**仍未设计**：道具的种类目录本身，以及「什么该做成一张卡 / 一件道具 / 一个神通」的判据。
-- **道具的获取途径与「什么该做成道具」的判据。** 战斗内形态与折价系数均已给出；**获取途径已有三条**（开局强制事件三选一 · 商店购入 · 事件产出），仍未给的是**哪些事件给、给几件**与**「什么该做成一张卡 / 一件道具 / 一个神通」的判据**。→ `systems/adventure-event/`、`systems/balance.md`。
+- **角色级道具的内容目录未设计。** **已定：战斗内形态 = `CardType.Item`、储物袋、`UsableScene` 三档、`ItemData` 字段形态与两格使用效果面、本场配额格、加载期校验、消耗即时写 Profile、以及战斗外效果的第一个具体条目形态（回寿法宝）**（见上）；**载体判据亦已给出**，见 `../power/_index.md` 的跨载体边界判据表。**仍未设计**：道具的种类目录本身。
+- **道具的获取途径：哪些事件给、给几件。** 战斗内形态与折价系数均已给出；**获取途径已有三条**（开局强制事件三选一 · 商店购入 · 事件产出），仍未给的是各条通道的分布与数量口径。→ `systems/adventure-event/`、`systems/balance.md`。
 - **回寿法宝的总量护栏在内容编排面的具体口径未定（承重）。** 规则层不设持有上限后，出现频率 / 商店库存深度 / 定价共同承接这条护栏，而三者的口径都还空着——它是寿元这条压力线的唯一剩余数量闸。→ 本文档、`systems/adventure-event/`、`systems/balance.md`。
 
 > **储物袋的 UI 形态**（不进主菜单、纵向滚动网格 + 筛选 chip、战斗内视图称「随身」= 角标 + 底部抽屉），见 `ux/screen-flow.md` 与 `ux/combat-ux.md`。条目数不设上限、可观 ⇒ **筛选 chip 与排序是必要的**，具体排布归 UX 侧。

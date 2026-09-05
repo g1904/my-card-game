@@ -84,7 +84,7 @@
 - **一场 `Standard` 档战斗 = 固定 10 个回合。** 双方各 5 个回合、交替，**打满即止**再比道念；不设提前终止（无「先到某值即胜」，也不以卡组耗尽终止）。**回合数固定，且每个回合的步骤固定（三步，见下）**，故**「每场时长可预测」成立**——它直接服务篇章时长控制，无须为交互次数另加护栏。
 - **道念的规则骨架：** 由**卡牌**产出、**可互相削减**、**下限为 0**；**起始道念 = `baseMomentum`（按自身全局等级）**，故**等级差直接变成开局的起跑线差**——这与「敌人等级精确标注」形成闭环：看到等级即看到起跑线。表与系数归 `systems/balance.md`，完整模型见 `systems/scoring.md`。
 - **胜利侧也读道念差（换算 = 两条支路）。** 赢多少也算数：**道念差越大，奖励越厚**（碾压 > 险胜）。道念差因此是一个双向刻度——胜侧给奖励厚度，负侧扣寿元。**换算分两条支路**：**强制奖励（可数量）走线性 `1:1 × 可调单价`**（「1 点道念差 = 1 个 `rewardPerMomentum` 单位」，单价逐篇章下调）；**可选奖励（品质）走归一化 `advantage` 三档**（险胜 / 优胜 / 碾压，只改候选池的稀有度权重、不改数量）。公式、单价表与门槛见 `systems/balance.md`。
-- **负侧换算 = 道念差 × `lossPerMomentum`（按篇章分档，ch1 = 1）。** 失败时 `lifeSpan -= (敌人道念 − 角色道念) × lossPerMomentum(篇章)`；**三个 `combatTier` 共用同一系数**，一个篇章之内玩家看到的始终是同一个数。`momentum` 为 **`>= 0` 的 Integer**。表见 `systems/balance.md`。
+- **负侧换算 = 道念差 × `lossPerMomentum`（按篇章分档，ch1 = 10）。** 失败时 `lifeSpan -= (敌人道念 − 角色道念) × lossPerMomentum(篇章)`；**三个 `combatTier` 共用同一系数**，一个篇章之内玩家看到的始终是同一个数。`momentum` 为 **`>= 0` 的 Integer**。表见 `systems/balance.md`。
 - **回合数与胜负判据是遭遇参数，落在 `EncounterSpec` 上**（不落 `EnemyData`），三档取值见上方档位表。**推论：10 回合与「道念高者胜」是 `Standard` 这一档的默认值，不是全局常量**。借的是 blind 的难度分档结构，不是它的计分结构。取值与理由见 `systems/balance.md`。
 - **胜负判据参数化为一个数，不做「可替换的判定对象」。** `VictoryRule(int WinMargin)`：`d = 角色道念 − 敌人道念`；**`d >= WinMargin` → `Victory`；`d == WinMargin − 1` 且 `WinMargin >= 1` → `Draw`；`d < WinMargin − 1` → `Defeat`**。代入已陈述的全部需求（`Standard` `1`、`Practice`「打平即通过」`0`、`Finale`「不落后即通过」`0`）已完全覆盖——**无需策略枚举、无需分发**。**`WinMargin == 0` 的两档因此二值化**（`Draw` 分支的条件恒不成立），Finale 侧 `d < 0` 的 `Defeat` 即角色终结。
 - **卡牌结算 = stack，但不含交互与优先权（承重）。** 借入 MTG 的 **stack**（先入栈、后进先出、「打出」与「结算」分两个时刻）；**但 instant / 栈非空时出牌与优先权传递整体不借**——理由是它们**拉长时长、决策点过多、复杂度高而深度收益小**。**推论：「双方各 5 个回合、我打完换你打」的简单交替成立**，且**「定长 = 每场时长可预测」成立**。规则细则见 `systems/character-profile/deck/`。
@@ -126,7 +126,7 @@
 - **奖励分两类：强制自动计入（例：经验）/ 可选由玩家择一（参照 Slay the Spire 的战后奖励面板）。** **推论：战斗后需要一个奖励选择步骤**，且它在战斗流程内——**奖励计算与发放归 combat-service**，写入仍由 life-cycle-service 在 `eventEnd` 一次施加。
 - **Combat 条目允许声明事件级产出（`OutcomeRule` 的 `GrantFromPool` 等），它与战利品是两条通道（编排须知）。** 战利品出自 `CombatResult.Spoils`、记 `Source.CombatReward`、取值来自 `EncounterSpec.BaseReward` / `RewardPoolId`；事件级产出出自条目模板的产出格、记 `Source.EventOutcome`——**分野判据仍是「谁组装出这条 element」**，两者并存于同一次结算是合规的。**代价明写：** 玩家会看到同一场战斗掉了两批东西，而战后奖励的厚度轴**不覆盖后一批**。故内容作者为 Combat 条目编排事件级产出时须自行把它算进该条目的总产出，不要当作免费附加。字段面与校验见 `systems/adventure-event/common-properties.md`。
 - **不是 StS 纯 HP，也不是 Balatro 的 chips × mult。** 道念是**双方对抗的相对量**（比谁高），不是对抗静态阈值的绝对量——与「敌人也出牌、双方对称」的参战方模型一致。
-- **mana = 无曲线 · 每回合恢复至 `manaLimit`。** 不采用 mana 曲线（既非 Hearthstone 式每回合 +1 上限，也非 MTG 式打地递增）：战斗内**每回合的开始阶段、回合归属方的 mana 自动恢复到 `manaLimit`**（恢复的是本回合归属方的 mana——非归属方无法出牌，其 mana 在对手回合无用途）；`manaLimit` 的成长有两条来源、同走 `CostKey.ManaLimit` 的增量语义：**由 AdventureEvent 的 cost / reward 推拉**（可升可降，主通道），外加**每次大境界提升 `+1`**（在篇章边界施加一次，常量 `RealmBreakthroughManaBonus`）；**不设下界护栏**（下降极罕见）。语义与三章末推算见 `systems/character-profile/mana.md`。**炼气期标准基线（起始满值）：** 寿元 = **100**、mana = **5/5**。
+- **mana = 无曲线 · 每回合恢复至 `manaLimit`。** 不采用 mana 曲线（既非 Hearthstone 式每回合 +1 上限，也非 MTG 式打地递增）：战斗内**每回合的开始阶段、回合归属方的 mana 自动恢复到 `manaLimit`**（恢复的是本回合归属方的 mana——非归属方无法出牌，其 mana 在对手回合无用途）；`manaLimit` 的成长有两条来源、同走 `CostKey.ManaLimit` 的增量语义：**由 AdventureEvent 的 cost / reward 推拉**（可升可降，主通道），外加**每次大境界提升 `+1`**（在篇章边界施加一次，常量 `RealmBreakthroughManaBonus`）；**不设下界护栏**（下降极罕见）。语义与三章末推算见 `systems/character-profile/mana.md`。**炼气期标准基线（起始满值）：** 寿元 = **1000**、mana = **5/5**。
 
 ### 危险度 = 精确标注敌人等级
 
@@ -174,7 +174,7 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-13.md`
 - **战斗固定 10 回合（双方各 5）；道念由卡牌产出、可互削、下限 0、起始 = `baseMomentum`；胜利侧按道念差给奖励厚度**。
 - **敌人静态数据 = `EnemyData`；敌人等级为 future-event-service 的物化产物**。
 - **敌人的行动不作任何事前预告**（不设揭示档位 / 行动类别标注 / 回合级描述 / 探查通道）；**敌人回合的可读性由逐步执行反馈 + 敌人图鉴 + 战场承担，逐步反馈是硬要求**。
-- **mana 无曲线 · 每回合恢复至 `manaLimit`（由事件推拉，另在每次大境界提升 `+1`）、炼气基线寿元 100 · mana 5/5**。
+- **mana 无曲线 · 每回合恢复至 `manaLimit`（由事件推拉，另在每次大境界提升 `+1`）、炼气基线寿元 1000 · mana 5/5**。
 - **危险度 = eventOptions 上精确标注敌人等级（否决模糊档位）；承重理由 = 看到等级即看到起跑线**。
 - **引入 battlefield（战场）及 BattlefieldManager / StackManager；触发载体开放；道念下限 0 逐次结算截断；满手抽不进**。
 - **卡牌类型五分 + 异能三分 + 永久物 + 次类型体系；触发条件可跨归属方（埋伏成立）；敌人同样持有 item 与 power**。

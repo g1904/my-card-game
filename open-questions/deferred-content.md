@@ -11,12 +11,12 @@
 - **内容目录整体未编写：** 卡牌定义与起始卡组、**敌人目录（含其等级、招式与定制卡组）**、遭遇战（encounter）编排、道具目录、各类型 AdventureEvent 的具体条目。→ `systems/character-profile/deck/`、`item/`、`systems/adventure-event/**`。（原列的「意图目录」随 08-15d 意图机制整条移除而作废。）
 - **敌人条目的叙事一致性编写口径（08-16b 采集 · 此前未进清单）：** 标为 `[Practice, Standard]` 的敌人条目，其图鉴词条与台词须**同时说得通「切磋」与「厮杀」两种语境**——具体口径归 `enemy-codex.md` 的写作规格，属内容编写阶段。→ `systems/player-profile/codex/enemy-codex.md`、`systems/adventure-event/combat/_index.md`。
 - **成就两档奖励内容：** 阈值（60% / 90%）、一次性、80/20 可见已定；仅剩**两档各发放何种奖励**（PlayerPower / PlayerItem / 账号级）待定。→ `ux/screen-flow.md`、`systems/player-profile/achievement/`。
-- **数值标杆的取值（08-02 定归宿 · 由焦点区移入）：** **卡牌产 / 削道念的量纲基准**（一张牌该产多少、一场内总产出相对 `baseMomentum` 的倍数、是否有道念相关的状态与倍率）与**回寿量三档的绝对点数**，**留待内容扩充后的统计校准**——内容铺开且游戏可运行后由实测样本定出，归开发路线第 ③ 阶段；切入点是设计起始角色 starter deck 的过程。**并且优先打磨 ch1 内容。** **形状先于数值**：越级追分的量化形状已由 `systems/balance.md` 的形状锚点框住（一档层数差的产出差 ≈ 一档 `diff` 的 `baseMomentum` 落差，粒度为整副卡组），本条只欠取值、不欠形状。**卡牌产 / 削道念的量纲基准同时是 `lossPerMomentum` 的 ch2 / ch3 系数反推的前置**——典型道念差的分布定不下来，那两个系数就无从标定。→ `systems/balance.md`、`systems/character-profile/deck/`、`systems/character-profile/life-span.md`、`vision/scope.md`。
+- **数值标杆的取值（08-02 定归宿 · 由焦点区移入）：** **卡牌产 / 削道念的量纲基准**（一张牌该产多少、一场内总产出相对 `baseMomentum` 的倍数、是否有道念相关的状态与倍率）与**回寿量三档的绝对点数**（标定口径 5% / 10% / 20% 已定，ch1 折算为 50 / 100 / 200，ch2 / ch3 随本章可用预算浮动；**折算不构成定案**，三档点数与每章回寿事件次数仍欠取值），**留待内容扩充后的统计校准**——内容铺开且游戏可运行后由实测样本定出，归开发路线第 ③ 阶段；切入点是设计起始角色 starter deck 的过程。**并且优先打磨 ch1 内容。** **形状先于数值**：越级追分的量化形状已由 `systems/balance.md` 的形状锚点框住（一档层数差的产出差 ≈ 一档 `diff` 的 `baseMomentum` 落差，粒度为整副卡组），本条只欠取值、不欠形状。**卡牌产 / 削道念的量纲基准同时是 `lossPerMomentum` 的 ch2 / ch3 系数反推的前置**——典型道念差的分布定不下来，那两个系数就无从标定。→ `systems/balance.md`、`systems/character-profile/deck/`、`systems/character-profile/life-span.md`、`vision/scope.md`。
 - **灵石 `spiritStone` 的获取渠道与掉落权重（承重）：** 消耗侧已有形态（商店定价表「商品族 × 稀有度」），**产出侧一片空白**——哪些事件给灵石、给多少、随篇章如何缩放均未定。**它卡住商店定价表的全部绝对数字**（产出侧空白时无从反推消耗侧），是内容扩充后统计校准里唯一一条「不先答就没法开工」的前置。→ `systems/character-profile/currency.md`、`systems/adventure-event/exchange/`、`systems/balance.md`。
 - **仙玉 `immortalJade` 的获取量与价格量级（承重 · 与上一条互相约束）：** 形态已定（获取 = 稀有 AdventureEvent 产出、花销 = 定价表中以仙玉计价的那些格），只欠取值——稀有事件给多少、定价表**哪些格填仙玉**、各格基准价多少均未定。**双币经济的相对价值由两条产出曲线共同决定**，故它与灵石那一条必须一同反推，不能各自定值。→ `systems/character-profile/currency.md`、`systems/balance.md`、`systems/adventure-event/exchange/`。
 - **平衡数值整体：** ante / 篇章缩放、掉落权重、成本档位、奖励曲线。**blind / ante 缩放曲线本身尚未陈述**（进程语义见 `systems/game-progression.md`，一旦落定数值归此）。→ `systems/balance.md`。
 - **重试上限两档数值是否随实测再调（08-16b 采集 · 轻）：** **落点已定**——两行住在平衡资源、由 `HasPremiumBundle` 选行，故它已是可调平衡项；待定的只有**数值本身**。→ `systems/balance.md`、`systems/services/life-cycle-service.md`。
-- **事件出现概率与地域配额的具体数值（08-05b 明确归内容阶段）：** 各 location 的**事件类型出现概率修正取值**、**敌人模板清单**、**`eventCountLimit` 数字**，以及一个篇章途经几个 location。**结构已定案**（location 携带这三组字段，见 `systems/game-progression.md`）；**用户明确「details of event odds will be defined during content making phase」**。注意 `eventCountLimit` 与 `lifeSpanCost` 是篇章时长的两个互相约束的旋钮，须一同反推。→ `systems/balance.md`、`systems/game-progression.md`。
+- **事件出现概率与地域配额的具体数值（08-05b 明确归内容阶段）：** 各 location 的**事件类型出现概率修正取值**、**敌人模板清单**、**`eventCountLimit` 数字**，以及一个篇章途经几个 location。**结构已定案**（location 携带这三组字段，见 `systems/game-progression.md`）；**用户明确「details of event odds will be defined during content making phase」**。注意 `eventCountLimit` 与 `lifeSpanCost` 是篇章时长的两个互相约束的旋钮，须一同反推——**ch1 已有反推产出：一章途经 4–5 个 location、每个 `eventCountLimit` ≈ 4–5**（25 个批次中 4 个是不占配额的 Travel ⇒ 计入配额 21 个，见 `systems/balance.md`）；ch2 / ch3 仍归内容制作阶段。→ `systems/balance.md`、`systems/game-progression.md`。
 
 ## 元进程持久化与内容开关
 
@@ -32,7 +32,7 @@
 - **元婴界面（通关证书）的具体形态：** 用途已定（读取并显示最终寿元）；展示哪些字段（最终寿元、用时、修行历程摘要、成就？）、何时弹出、能否回看 / 分享未定。→ `ux/screen-flow.md`。
 - **寿元余量跌破低位时是否伴随音效 / 震动：** 视觉形态已定（余量明文常驻于 EventOption 选择界面的角色状态条、恒精确）；是否在跌破低位时附加听觉 / 触觉反馈未陈述。→ `ux/screen-flow.md`。
 - **战斗屏幕的其余形态：** 手牌布局、回合节奏与动画时长、竖屏下的敌我分区、**敌方出牌的呈现方式**（敌人也持有卡组）、**战后奖励面板的形态**（强制项与可选项如何同屏区分、逐项列表的竖屏排布、已领取 / 已跳过两态的视觉处置；交互已定为逐项领取 / 跳过且不可反悔）、**stack 是否需要进入呈现层**（响应窗口移除后读栈不再是决策必需，与「栈深何时 > 1」绑定）、**三步结构的呈现细节**（开始阶段的 mana 刷满 / 抽牌节拍、结束阶段的回合内状态消散、"轮到谁"的常驻指示）——待后续战斗 UX 专场。→ `ux/combat-ux.md`。（注：**信息面**在 08-15d 意图机制整条移除后收敛为**敌人图鉴（事前）+ 战报 / 战场（战斗内）**，「意图三档 + 探查 + 图鉴」三通道的旧表述作废；**主视觉**已定案为「双方道念对比」，寿元不常驻战斗屏。二者的残留细节留在焦点区 ①。）
-- **道念对比的视觉形态：** 主视觉地位已定；用什么形态（左右对比条 / 双数值 / 天平隐喻）、道念变化的反馈、「道念差」是否显式呈现均未定（后者的支持论据在 ch2 / ch3 因 `lossPerMomentum` 而被削弱）；**「还剩几回合」的呈现**（定长 10 回合的连带）亦未定。（寿元不常驻战斗屏、结算面板如实展示扣减量与扣后余量，已答结。）→ `ux/combat-ux.md`。
+- **道念对比的视觉形态：** 主视觉地位已定；用什么形态（左右对比条 / 双数值 / 天平隐喻）、道念变化的反馈、「道念差」是否显式呈现均未定（后者的支持论据因 `lossPerMomentum` 而弱于逐点对应——三章各需乘一个不同的篇章系数：10 / 5 / 10）；**「还剩几回合」的呈现**（定长 10 回合的连带）亦未定。（寿元不常驻战斗屏、结算面板如实展示扣减量与扣后余量，已答结。）→ `ux/combat-ux.md`。
 
 ## 美术与音频（`art/` · 08-04 立起脚手架，内容待填）
 

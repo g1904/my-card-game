@@ -19,6 +19,9 @@
   | `sync.payload_schema_unsupported` | `ERR_SYNC_PAYLOAD_SCHEMA_UNSUPPORTED` |
   | `rate.limited` | `ERR_RATE_LIMITED` |
 
+  **合规域的三条端点码走的正是这条规则，零新增纪律**：`compliance.ticket_invalid` → `ERR_COMPLIANCE_TICKET_INVALID`、`compliance.verification_failed` → `ERR_COMPLIANCE_VERIFICATION_FAILED`、`compliance.deletion_irrevocable` → `ERR_COMPLIANCE_DELETION_IRREVOCABLE`；二级键同为机械变换（一级键 + `_` + `reasonKey` 的 UPPER_SNAKE 像），**本库不为它们建任何对照表**。落地面只有 `errors.csv` 里的若干条翻译，**处置表之外零增量**——处置见 `systems/services/account-service.md`「失败映射」。
+  **`errors.csv` 里的二级行不是「第二张取值表」**：它是**措辞的载体**，不是取值域的声明。漏写一条 → 该情形走未知回落（一级文案），是既定的可降级失败；多写一条 → 反向审计的前缀匹配照样放行、该键永不被取用。本库因此仍不持有任何 `reasonKey` 清单。
+
   **理由：** 手写对照表引入一个新的失效面——「后端加了个 `code`，处置表加了一行、文案表忘了加」。机械规则下该失效面**不存在**：键必然存在，只可能是**翻译条目缺失**，而那可在启动期一次性扫出。它比「新增一个 `code` = 表里加一行」的可加性纪律更进一步——文案侧连那一行都不用加，只用加一条翻译。
 - **兜底 = 四条 `class` 默认路径在文案侧的镜像。** Godot 的 `tr()` 缺键时**原样返回键本身**，直接用就会把 `ERR_AUTH_SESSION_REVOKED` 显示给玩家，故必须包一层：
 
@@ -93,7 +96,7 @@
 - **一级文案仍按 `code` 取**，`reasonKey` 只驱动二级措辞。这保证任何一个 `code` 在 `reasonKey` 缺失或不认识时仍有话可说。
 - **未知 `reasonKey` 必须回落到该 `code` 的一级文案**，不得留空、不得把键本身显示出来。这与「未知 `code` → 按 `class` 降级」同构，理由也同源：后端新增一个 `reasonKey` **不应要求客户端同批发版**。
 - **`reasonKey` 的取值集合由后端契约给出，客户端不维护第二份清单。** 客户端只维护「已知取值 → 二级措辞」的翻译条目，未列出的一律走上一条。
-  取值表与形态的权威在 `backend-design-documents/contracts/auth.md` §10（`auth.session_revoked` 与 `auth.nickname_rejected` 各一张取值表 · 形态 PascalCase 锁死）**——连条数也不在本库记**，写死一个数目就是又一份会漂移的副本与 `backend-design-documents/contracts/compliance.md` §5（`compliance.*` 四条码各自的取值）。**本库不复述取值**——复述即制造第二权威，而这份表按契约设计**会持续扩张**。
+  取值表与形态的权威在后端契约，**连条数也不在本库记**——写死一个数目就是又一份会漂移的副本。三处回链：`backend-design-documents/contracts/auth.md` §10（`auth.session_revoked` 与 `auth.nickname_rejected` 各一张取值表 · 形态 PascalCase 锁死）· `backend-design-documents/contracts/compliance.md` §5（四条 `compliance.*` **拦截**码各自的取值）· 同文件 §11（`compliance.*` **端点**码的取值；其中 `compliance.deletion_irrevocable` 不设 `reasonKey`，故它只有一级键）。**本库不复述取值**——复述即制造第二权威，而这份表按契约设计**会持续扩张**。
 
 **二级文案键同样是机械变换，不是第二张手写表。** 一级键（`code` 的像）+ `_` + `reasonKey` 按大写字母切分转 UPPER_SNAKE：
 
@@ -180,6 +183,7 @@
 | `PROFILE_` | `profile.csv` | PlayerProfile / CharacterProfile 面板、图鉴族、成就 |
 | `SETTINGS_` | `settings.csv` | 设置屏（含同步版本 `#N` 的标签）。首批十个键：`SETTINGS_TITLE` · `SETTINGS_SECTION_AUDIO` · `SETTINGS_VOLUME_MASTER` / `_MUSIC` / `_SFX` · `SETTINGS_SECTION_COMBAT` · `SETTINGS_FAST_ANIMATION` · `SETTINGS_SECTION_LANGUAGE` · `SETTINGS_SYNC_REVISION` / `_NONE` |
 | `STORE_` | `store.csv` | 礼包屏：标题、权益条目、再次购买说明、入口不可用说明、购买按钮、**购买处理态与兑现结果态的全部文案** |
+| `CYCLE_` | `cycle.csv` | 轮回结束屏：三个变体标题、结果行标签、剩余重试行（含「无限」）、主按钮（**不含按 `DefeatReason` 取的定性文案——那是内容层**） |
 
 > **边界必须写在规范里，否则分区表会被误用：分区划的是「界面」，不是「内容域」。** `EVENT_` 装的是选项框的按钮与标题，**事件正文一个字也不进**——正文归内容层（`ux/_index.md` 的四问判据）。这条不写清楚，第一个写事件屏的人就会把正文塞进 `event.csv`。
 
@@ -309,6 +313,19 @@ public readonly record struct BlockingNoticeSpec(
 **只由已知后端 `code` 触发、且玩家没有任何自愈路径的终局态，才进这张表。** 二者缺一即不进——否则每一个「转圈等一等」的等待态都能援引本表长成第四、第五个变体，而那张表正是靠「三行且只由 `code` 触发」才可机械检查。
 
 - **首个实例：premium bundle 的购买处理态不进本表。** 玩家已付款、验票 / 购后 pull 未回期间，行为上确实走不下去（不允许开始新轮回），但它**不由任何 `code` 触发**（是客户端自己的等待态）且**有自愈路径**（重试直到成功）。它落成 **Store 流程内的全屏模态进度态**——自带进度指示、「重试」与「退出应用」，文案走 `STORE_` 分区，≥ 15 秒追加一句「网络较慢，可稍后回来，购买不会丢失」；兑现完成后同屏切到兑现结果态。`BlockingNoticeKind` 与上表**一格不动**。流程与失败语义见 `systems/services/sync-service.md` 与 `systems/monetization.md`。
+- **合规域的七条 `code` 逐条核过判据，一条也不进本表，`BlockingNoticeKind` 与上表一格不动。**
+
+  | 组 | `code` | 由已知 `code` 触发 | 玩家有无自愈路径 | 结论 |
+  |---|---|---|---|---|
+  | **拦截**（`signin` 应答） | `compliance.realname_required` | ✅ | 有——去实名 | 不进 |
+  | | `compliance.playtime_blocked` | ✅ | 有——到点再来 | 不进 |
+  | | `compliance.account_restricted` | ✅ | 有——站外申诉；且登录屏本可换账号登录 | 不进 |
+  | | `compliance.account_deleting` | ✅ | 有——撤销注销 | 不进 |
+  | **端点**（玩家主动操作的失败） | `compliance.ticket_invalid` | ✅ | 有——回登录屏重取 ticket | 不进 |
+  | | `compliance.verification_failed` | ✅ | 有——重填表单 | 不进 |
+  | | `compliance.deletion_irrevocable` | ✅ | 有——回登录屏可正常登录 | 不进 |
+
+  两组的落屏各自不同（拦截 → 登录屏就地呈现，端点 → 发起该操作的那一屏内联呈现，见 `ux/screen-flow.md`），但**判据结论同一条**：准入要求「由已知 `code` 触发」**且**「玩家没有任何自愈路径」，七条全部卡在后一条上。**更硬的一条理由：变体表的准入若在此松动，就会新增第三处由 `code` 触发的硬阻塞**，直接违反 `systems/architecture.md` 总则 7；而阻塞点的穷举清单见 `systems/services/sync-service.md`「三条不变式」①。
 
 #### 「去更新」按钮的落点与渠道差异吸收
 
@@ -348,7 +365,7 @@ public readonly record struct BlockingNoticeSpec(
 - **非模态提示与 toast 级提示不放**——那是高频呈现，加编号是噪音。
 - **纪律：它是诊断展示，不是玩法数据。** ViewModel 只读一次，不进任何玩法路径、不参与判断（与「同步版本 #N」同条纪律）。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-03-compliance-client-surface.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

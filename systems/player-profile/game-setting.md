@@ -20,15 +20,17 @@
 
 ### 两侧对照表
 
-| 归属 | 键 | 类型 | 取值域 | 默认 | 载体 | 进 diff | 进存档 schema |
-|---|---|---|---|---|---|---|---|
-| 账号级 | `MasterVolume` | `int` | 0–100 | `100` | `PlayerProfile.gameSetting` | ✅ | ✅ |
-| 账号级 | `MusicVolume` | `int` | 0–100 | `80` | 同上 | ✅ | ✅ |
-| 账号级 | `SfxVolume` | `int` | 0–100 | `100` | 同上 | ✅ | ✅ |
-| 账号级 | `FastCombatAnimation` | `bool` | — | `false` | 同上 | ✅ | ✅ |
-| 设备本地 | `locale` | `string?` | `zh` \| `en` \| 缺省（跟随系统） | 缺省 | `user://cache/device-settings.json` | ❌ | ❌ |
+| 归属 | 键 | 类型 | 取值域 | 载体 | 进 diff | 进存档 schema |
+|---|---|---|---|---|---|---|
+| 账号级 | `MasterVolume` | `int` | 0–100 | `PlayerProfile.gameSetting` | ✅ | ✅ |
+| 账号级 | `MusicVolume` | `int` | 0–100 | 同上 | ✅ | ✅ |
+| 账号级 | `SfxVolume` | `int` | 0–100 | 同上 | ✅ | ✅ |
+| 账号级 | `FastCombatAnimation` | `bool` | — | 同上 | ✅ | ✅ |
+| 设备本地 | `locale` | `string?` | `zh` \| `en` \| 缺省（跟随系统） | `user://cache/device-settings.json` | ❌ | ❌ |
 
-**三条音量轨的默认值 100 / 80 / 100 是待实测初值**（BGM 略低于音效，避免盖住出牌 / 结算的反馈音）；正确的调校时机是真机 + 响度目标定稿之后，见 `art/soundtracks/_index.md`。
+**四个账号级键的默认值不在本表，逐行取值见 `systems/services/profile-service.md` 的 `SettingFields` 表**——默认值只住那一处（老档补默认、读档单字段缺失、UI 初值三处读同一行），本表在此只登记归属、类型、取值域与载体。设备本地侧的 `locale` 缺省即「跟随系统」，规则见下方「语言项与启动期 locale 归一」。
+
+**三条音量轨的默认值是待实测初值**（相对关系为 BGM 略低于音效，避免盖住出牌 / 结算的反馈音）；正确的调校时机是真机 + 响度目标定稿之后，见 `art/soundtracks/_index.md`。
 
 ### 账号级：`GameSetting` 四字段
 
@@ -105,7 +107,7 @@ public sealed class GameSetting     // 不被任何规则读，也不是统计�
 - **不进透明段、后端零配合。** 后端不读它、不复算、不据它发放任何东西 ⇒ `/gameSetting/**` 不出现在透明路径白名单里（白名单权威在 `backend-design-documents/contracts/profile-sync.md` §5，本库不复制）。**但它仍受字段名机械映射为 JSON path 的约束**：改字段名仍要 bump `schemaVersion`，只是**不需要后端配合**。这两件事必须分开说，否则「Profile 字段都受路径稳定性纪律约束」会被读成「改个音量字段名也要与后端同批改」。
 - **离线改设置可能被云端覆盖，代价照录。** 玩家离线改了音量、另一台设备写入，恢复时补提交前先 pull 发现云端 `revision` 领先 ⇒ 以云端为准丢弃本地缓冲，那次改动回滚，玩家会看到既定的「另一设备的进度已生效」提示。**不为设置做任何补偿**——字段级三路合并正是 `ADR-0003` 排除的东西，为一个滑条位置削弱云端权威不成比例。
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-game-setting-schema.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-09-02-architecture-services-reconcile.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -113,7 +115,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **三条音量轨的默认值是待实测初值。** 100 / 80 / 100 的相对关系有依据，绝对值待真机与响度目标定稿后校准。→ `art/soundtracks/_index.md`。
+- **三条音量轨的默认值是待实测初值。** 相对关系有依据，绝对值待真机与响度目标定稿后校准；取值见 `systems/services/profile-service.md` 的 `SettingFields` 表。→ `art/soundtracks/_index.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/game-setting.md`（待建）。

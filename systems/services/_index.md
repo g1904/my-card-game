@@ -15,17 +15,19 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 
 ## 层级：service ⊃ manager ⊃ module ⊃ processor ⊃ handler
 
-**抽象层次不封顶在两级**，但每一级都有固定的层级词——**名字的后缀即宣告它在第几层**：service（第一级）→ manager（第二级）→ module（第三级）→ processor（第四级）→ handler（第五级）。第四 / 第五级目前无实例，定名以免各处自造词。层级表与纪律见 `systems/architecture.md`。
+**抽象层次不封顶在两级**，但每一级都有固定的层级词——**名字的后缀即宣告它在第几层**：service（第一级）→ manager（第二级）→ module（第三级）→ processor（第四级）→ handler（第五级）。五级各有现有实例（第四级 `EffectProcessor`、第五级效果 kind handler，均在 combat-service 的 `StackManager` 之下）。层级表、下沉判据与纪律见 `systems/architecture.md`。
 
 - **service（服务）= 边界单元。** 一个职能值得成为服务，当且仅当命中**三条判据之一**：
   1. 拥有**自己的状态机或跨多帧的长流程**；
   2. 需要**事务性地跨多个字段一致写入**（全有或全无）；
   3. 坐在一个**外部 I/O 边界**上（网络、存档、平台 SDK）。
-  服务以 Godot **autoload** 形式存在。**边界纪律（已定案的准确措辞）：服务之间不读写对方字段、不伸手进对方 manager；跨服务的方法调用（经对方门面 `Xxx.Instance.Method(...)`）允许。**
+  服务以 Godot **autoload** 形式存在。**边界纪律的准确措辞：服务之间不读写对方字段、不伸手进对方 manager；跨服务的方法调用（经对方门面 `Xxx.Instance.Method(...)`）允许。**
 - **manager（管理器）= 服务内部的职能组件。** 多个 manager 生活在同一服务里，**共享宿主服务的事务边界与生命周期**；**不被跨服务直接调用**——外部只看得见宿主服务的 API 面。manager 是服务持有的普通 C# 对象（非 `Node`，除非确需 `_Process`）。
 - **module（模块）= manager 内部的组件。** 同样共享宿主服务的事务边界；**不跨层直呼**——它是宿主 manager 的内部实现，服务门面上看不见它。现有唯一实例：`DeckModule`。
+- **processor（处理器）= 无状态的处理阶段**，输入 / 输出明确、不持有跨调用的状态；**handler（处理子）= 按开放 `kind` 分派的叶子**，一个 kind 一个。两者同样共享宿主服务的事务边界、同样不跨层直呼。现有实例：`EffectProcessor`（combat-service 的 `StackManager` 内）及其下的效果 kind handler。**宿主可以是 manager 而非 module**——层级链允许跳过中间级，为凑层数造一个只被调用一次的 module 正是下沉反判据要挡的形态。
+- **manager 级文档在内容量足够时可单列一份**，仍住在 `services/` 下，归属由下方服务清单表中宿主服务行的 `⊃` 记法表达。现有唯一实例：`plot-manager.md`（隶属 future-event-service）。
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-09-02-architecture-services-reconcile.md`
 
 ## 拆分轴：生命周期层 + 行为边界，**不是数据类型**
 
@@ -46,7 +48,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 | **account-service** | ③ | AuthManager、ComplianceManager | [account-service](account-service.md) |
 | **content-service** | ③ | ContentRegistry、ContentUpdateManager | [content-service](content-service.md) |
 | **sync-service** | ②③ | ProfileSyncManager、LocalCacheManager、MigrationManager | [sync-service](sync-service.md) |
-| **profile-service** | ② | ProfileManager、CapabilityManager、AchievementManager | [profile-service](profile-service.md) |
+| **profile-service** | ② | ProfileManager、CapabilityManager、AchievementManager、CodexManager、GrantPoolManager | [profile-service](profile-service.md) |
 | **life-cycle-service** | ① | CycleStateManager、ChapterManager、SeedManager | [life-cycle-service](life-cycle-service.md) |
 | **future-event-service** | ① | EventOptionManager、PlotManager | [future-event-service](future-event-service.md) ⊃ [plot-manager](plot-manager.md) |
 | **combat-service** | ① | TurnManager、CharacterManager、EnemyManager、BattlefieldManager、StackManager | [combat-service](combat-service.md) |
@@ -55,9 +57,11 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 >
 > **战场与栈各自一个 manager。** **BattlefieldManager** 持有 **battlefield（战场）**——场上正在生效的卡牌 / 持续状态 / 触发器注册面；**StackManager** 持有**栈**——压栈、LIFO 结算、连锁触发的解决顺序。**二者是两个区**：栈 = 等待结算的队列，战场 = 已结算并正在生效的东西。**属于某一方的 mana / 道念 / 手牌 / 卡组仍归两个参战方 manager。**
 
+> **`services/` 下还住着一份非服务、非 manager 的文档：`profile-schema-versions.md`** —— 两层 Profile 的 `schemaVersion` 逐版登记表，宿主服务是 **sync-service**（`MigrationManager` 在那里）。它是台账不是设计文档，故**不进上表、也不用 `⊃` 记法**（该记法的定义限于 manager 级文档）。
+
 **编排顶点 = game-progression**（不是服务，是屏幕流程编排层）。核心循环 `ComputeEventOptions → 呈现 → 玩家选择 → AdvanceEventAsync → 重算` 由它串联。见 `systems/game-progression.md`。
 
-Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md`
+Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-09-02-architecture-services-reconcile.md`
 
 ## 两条唯一入口 + 一个唯一物化点
 

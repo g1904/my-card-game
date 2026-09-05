@@ -38,7 +38,7 @@
 
 ## 后果
 
-- 存档面加一格，成本此刻恒为零（无线上存档 ⇒ 空迁移），量级只在 `UsedItem` 条目上有值、一场至多几条；`kind` 增员本身不加字段，多的只是一个取值。
+- 存档面加一格，**该格属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`**；量级只在 `UsedItem` 条目上有值、一场至多几条；`kind` 增员本身不加字段，多的只是一个取值。
 - `deck/common-properties.md` 增一条软检查：`TimingId == card.played` 且 `TriggerFilter.CardTypes` 仅含 `Item` → `PushWarning`（该异能永不触发）。
 - 战报的「五类情形」改为六类。
 - **`ADR-0121` 后果里那条「待答：用道具产生的栈条目落在 `StackEntryKind` 哪个成员上」自此关闭**，已改为指向本 ADR。

@@ -28,6 +28,7 @@
 
 | 文件 | status | 说明 | 下一步 |
 |------|--------|------|--------|
-| *（空）* | | | |
+| `solution-draft-finale-level-config.md` | `awaiting-review` | Finale（天劫）等级来源由硬编码「相对 `+1`」改为 `EnemyLevelRange` 上的一格 `FinaleLevel`，**初值取当前行为**（ch1 14 / ch2 18 / ch3 22）。补上 `balance.md` 自陈并加 ⚠ 的「Finale 无专属难度旋钮」缺口，并消解该文件「不掷骰」与「校准手段①走带内权重偏移」的内部矛盾。取值域由加载期校验锁死在 `±2` 带内 ⇒ **`ADR-0044` / `ADR-0018` 均不需订正**；零 schema、零迁移、零新内容条目、玩家侧零可感知变化 | `/analyze-new-ideas`（无待决取向项） |
+| `solution-draft-backend-batch-client-obligations.md` | `decided` | 后端 2026-09-02 批量评审落给客户端的四项义务：登录后强制改名呈现 · 未成年剩余时长呈现（阈值 30/10 分钟）· 购买失败面处置档（**新增 `OpError.Purchase`**）与长等待 UX · 打包工具产包证明与在架版本基线快照。**09-03 订正：`purchase.*` 为五条不是四条**。跨库配套草稿，counterpart 为后端库四份 | `/analyze-new-ideas`（2 项取向已裁决；须与 counterpart 同批采纳） |
 
 清空即为「无在办草稿」。已提炼草稿 → handoff 的对应关系见 `archive/_index.md`。

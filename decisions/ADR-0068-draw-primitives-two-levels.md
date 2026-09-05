@@ -13,7 +13,7 @@
 **抽取原语只有两级，不设第三级（承重）：**
 
 - **第一级 `DrawPool<T>`** — 住 content-service，是**唯一的抽取发起面**。
-- **第二级 `GrantPoolPicker`** — 住 profile-service，是**能力授予的唯一取池处**。
+- **第二级 `GrantPoolManager`** — 住 profile-service，是**能力授予的唯一取池处**。
 
 **分界判据：这道过滤需不需要读 `Profile`。** 需要（排除已持有、按已解锁筛）→ 第二级；不需要 → 第一级。
 

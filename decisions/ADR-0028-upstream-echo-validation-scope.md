@@ -40,7 +40,7 @@
 
 ## 后果
 
-- **零 schema 影响、零迁移**：不增删任何字段，只改组装路径与读档处置；`sync-service.md` 的 bump 清单与老档补默认值列表不含 `accountInfo` 任何字段。
+- **零 schema 影响、零迁移**：不增删任何字段，只改组装路径与读档处置；`systems/services/profile-schema-versions.md` 的版本行与 `sync-service.md` 的老档补默认值列表都不含 `accountInfo` 任何字段。
 - **`AccountId` 须点明「不在后端写入封闭表内、不受回声约束」**——它写入方是后端却不在表内，读者按「后端写的都受约束」会导出一份多一行的错误清单。
 - **本条与 `decisions/ADR-0003-online-cloud-authority.md` 同向并加强它**；`decisions/ADR-0023-premium-entitlement-and-redemption.md` 只讲「谁有权推进序号」与「客户端置位当场失败」，不含读档钳制与补默认值口径，不受影响。
 - **成对采纳已完成。** 后端契约半已落笔：受约束 path 的恒等式（≡ 后端写入字段表行集合）与类型感知的比较口径表在 `backend-design-documents/contracts/profile-sync.md` §5c，追加字段的例外指路在 `contracts/envelope.md` §8。**逐条 path 与比较口径的权威在对侧，本库不复述**；客户端侧的「不得再加工」纪律在任何一种口径下都成立，故本条既不预设口径、也不因口径落定而改动。

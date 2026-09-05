@@ -942,3 +942,38 @@
 - **新增 UI 落点**：`PlayerProfile` 屏内增一区「持有的古宝」（只读 + 剩余 `Charges`，不新增主菜单入口）——储物袋只在轮回内存在，付费主要交付物在轮回外此前不可见。储物袋详情卡片加「售出」键（仅法宝、就地二段确认、同币回收价预览、售出后移出列表）。
 - **未收口，已记为待答项**：用户在裁决中提到「Exchange event 是以物易物或资源换取道具」，但**以物易物在本库零承载**（`ExchangeOffer` 支付侧恒为货币 element，`ExchangeStockRule` 无「以什么换」的书写位）。写下它 = 新增一种交易形态（支付侧形状 + 库存规则字段 + `CanAfford` 语义三处都要动），超出本次授权，故只记入 `03-adventure-event-types.md` 待用户拍板。
 
+
+## 2026-08-26（`/write-adr all` · 新建 69 份 ADR · 移出候选 0 条 · 待答项零改动）
+
+- **一次全量扫描把「已落笔但无档案」的定案补齐**：逐份精读 `handoffs/` 下 07-12 ~ 08-26 的全部 handoff（约 100 份，全部 `status: distilled`），逐条打开它指向的权威主题文档**查证是否已落笔**，去重后得 **81 条**候选，按「能否被单独推翻」合并为 **69 份 ADR**（`ADR-0031` ~ `ADR-0099`）。`decisions/` 由 30 份增至 99 份，Accepted 由 29 增至 98。
+- **承重的漏网件**（此前无任何 ADR 承载）：功法 = 卡组构筑单位（`ADR-0054`）· 敌人赋级带 `±2` 无例外硬规则（`ADR-0044`）· 跳过通道整体移除（`ADR-0046`）· 寿元递减预算模型（`ADR-0031`）· 敌人意图整条移除（`ADR-0059`）· 借 stack 不借交互 + 三步回合（`ADR-0039`）· 「信息靠遭遇获得」升格为支柱（`ADR-0093`）。
+- **待答清单本体一字未动**：本次只写 `decisions/`、台账与「下一阶段」的 ADR 计数句。各分片的问题条目、分片导航、当前焦点与 `/assess-derive-readiness` 独占的「derive 就绪度」全部原样保留。
+- **候选清单移出 0 条**：唯一在册候选「不设 `GlobalBalanceData` 兜底大表，平衡资源按三问判据逐份切」经核对**查无实据**——`systems/services/content-service.md` 把判据转手给 `systems/balance.md`，而后者「单例」零命中。按「台账绝不领先于事实」**不建档**，原样留在「下一阶段」。补 `balance.md` 那一小节后再固化。
+- **11 条判为不够 ADR 门槛**（落笔位置 / 字段增删 / 数值待定），见本次报告；`ADR-0083` 收窄了 `ADR-0019`「五类靠卡框色 + 类型角标区分」的适用面，已写在其「后果」内，`ADR-0019` 本体未改。
+
+
+## 2026-08-26（`/batch-analyze-new-ideas` 战斗三题 · 移出 3 条 · 新增 1 条 · 追加 1 处）
+
+- **一批三份 `decided` 草稿并行校验、串行落笔**（`substream` → `enemy-ai` → `ability`）。三份写入面两两相交（`combat-service.md` 三份共写、`enemies/common-properties.md` 两份共写），故 Phase B 不并行。合并 interview 去重后 **2 问**，用户裁决**两项均与推荐相反**。
+- **战斗随机收口为单一 `combat` 子流**（移出 `01-combat.md` 1 条）：五处互不相容的表述横跨四份文档，统一为「两侧共用 `combat` 子流、其上不派生任何层」，连带删除 `Hash64(combatStreamSeed, eventId)` 派生层。`RngStream` 枚举与 `rng.stream[]` schema **一字不改、零迁移**。台账原先登记的代价「放弃玩家额外抽牌不打乱敌人牌序」**订正为代价实为零**——该性质由「抽牌堆不重洗 + 参战方组装时一次初洗」提供，与子流数无关。同批明写洗牌顺序规则（按 `sides[]` 序初洗、`sides[0]` = 玩家侧、掷先后手排其后）与确定性验收断言三条。
+- **敌人 AI 的决策形态整条答结**（移出 `01-combat.md` 1 条，五项未定一次答齐）：表达形态 = 独立可复用资源 `EnemyAiProfileData` + 权重向量（`[Export]` 直接类型引用，可空即回落兜底）· 算法 = 1-ply 加权效用评分 + 确定性 argmax · 粒度 = 逐张、每次重算候选集 · 多回合倾向 = **零记忆纯局面函数**（`ActiveCombat` 一格不加）· 强弱差 = 三条结构性上界（只给权重不给代码 · 深度恒 1-ply · `Value` 钳在 `[AiWeightMin, AiWeightMax]` 越界 `PushError`）。同批：AI 全流程**零随机**；**AI 读取面 = `CombatSnapshot` 双视角化**（新增 `ViewerSide`，缓存按视角分持，**不新增第二个投影类型**）——字段语义不变（仅 viewer 己方非空），故「不读玩家手牌内容」仍是结构性做不到，未降为纪律级；profile 逐条取值归内容层，`content/enemy-ai/` 待 `/scaffold-content-type` 开张。
+- **`ActivateAbility` 的服务契约答结**（移出 `05-service-contracts.md` 1 条）：签名 `ActionResult ActivateAbility(entryId, abilityId, targets)`（**按战场条目寻址，不寻址 `Power`**）· 代价 = `AbilityData.ManaCost` 一格，首版不开 Profile 侧代价列 · 每场配额 = `MaxActivationsPerCombat`（`-1` = 不限、`0` 非法），运行期落既有 `entry.counters`，`ActiveCombat` 零新增字段 · 拒绝语义走 `ActionResult`，新增 `AbilityNotAvailable` / `AbilityQuotaExceeded` 两个成员。连带：加载期校验由「有费用」放宽为「有有限性闸」，`CombatFeedKind` 增 `AbilityActivation`，灰态预判由 `BattlefieldEntryView.ActivatableAbilities` 承载（只填 `ViewerSide` 己方）。
+- **新增 1 条**（`01-combat.md`）：卡牌效果重洗牌库是否开口——全库从未讨论，却已被两条全称推论顺带排除，与子流数量正交。**追加 1 处**：`01-combat.md` 既有的竖屏专场条目追加「阵法上启动式异能的 UI 宿主」。
+- **跨草稿口径统一**：`enemy-ai` 引用的 `ActivateAbility` 准入条件以 `ability` 稿为准；末波另修正了一处会把不限次异能整个排除出 AI 候选集的 `-1` 语义漏洞。
+
+
+## 2026-08-27（`/batch-analyze-new-ideas` 效果语法 · 取池链 · capability flag · 移出 5 条 · 新增 1 条）
+
+- **一批三份 `decided` 草稿并行校验、两波串行落笔**（波 1 = `ability` + `card-pool` 合并，因两者共写 `deck/_index.md` 的 `MoveCard` 同一行与 `combat-service.md`；波 2 = `capability`，与波 1 共写 `balance.md` 故排后）。Phase A 分级 🔴 5 · 🟠 2 · 🔵 41，去重合并 + 跨草稿追加 1 条后 **8 问**，分三轮问齐。
+- **效果原语 / 异能语法整条答结**（移出 `01-combat.md` 1 条 · 另 `CardData` 字段清单部分答定）：`EffectData` = 抽象基类 + 一原语一 `[GlobalClass]` 子类树（否决 `Op` 枚举扁平表与表达式串）· 静止式修正另立并列定义体 `StaticModifierData`，**不是 `EffectData` 子类** · 首批八原语 + `TimingIds` 十时点 + 三谓词条件 · `AbilityData` 的占位 `Effect` 落为 `Effects` / `StaticModifiers` 两格 + XOR 校验 · `CardData` 收口（`ManaCost` 独立格、取消触发器格、新增 `OnPlay`）· 加载期校验 19 条 · 存档零新增字段。
+- **效果流水线定形，条件求值取「逐 element 就地求」**：阶段序 `重检/挂起 → 关键字展开 → 数值求值 → 逐 element{条件 → 施加} → 收口`；规则「element 顺序是规则、前一条改了道念后一条读到改后的值」保留，代价是 **AI 试算须补一条例外规则**（按进入本动作前的局面求条件，明写试算与真实结算可能分支不同），`combat-service.md` 的试算措辞相应改写；「阶段 1–4 全路径无副作用」收窄为「`Evaluate` 与条件求值无副作用」。
+- **启动式的有限性闸整条推翻**：删除加载期校验「`Kind == Activated` ⇒ `ManaCost >= 1` 或 `MaxActivationsPerCombat >= 1`」，**组合技达成无限升为被接受的设计面**，非本意的无限由内容侧纪律承接；工程侧改设**单次动作链的栈条目总数上限 N**（落 `CombatRulesData`，超限中止 + `PushError`），它只阻止进程不返回、不约束任何设计面。触发式异能携带回堆效果因此**不加任何闸**。`TimingIds` 首批据此保留十个（含 `momentum.changed`）。
+- **疲劳的「可被取消」全库改为「可被削减至 0」**：`ADR-0088`（标题 / 决策 / 理由 / 备选四处）· `combat-service.md` 四处 · `scoring.md` · `terminology.md`。终止性由 `TurnLimit` 承接，故不需要「不可削减」这条特权。
+- **事件产出的卡牌取池链答结**（移出 `03-adventure-event-types.md` 1 条）：走池抽收窄为**仅 `AddLooseCard`**，其余四个 `Op` 的 `TargetId` 必填；取池链逐字沿用商店 `Card` 族那一条、子流复用 `RngStream.Reward`、**抽取在物化时掷定并随定稿实例落存档**；只新增 `CardTypeFilter` 一格（`RarityFilter` / `Count` 与 `GrantFromPool` 共用）；池容量校验为**清单式 `PushWarning`**、短缺仍走物化期降级；权重表挂**战后奖励池**（族维度已含卡牌），事件侧固定取一档、不按优势档选表。
+- **卡牌效果把牌送回抽牌堆：开口**（移出 `01-combat.md` 1 条）。形态 = `MoveCard` 的目的地扩展 —— `To : CardZone` 保持四值 + 独立一格 `InsertPosition { Top, Bottom }`，**不开随机位**；校验放宽为「`From == To` 且 `To != DrawPile` → `PushError`」故**允许抽牌堆内重排**。护栏落在载体消耗性与 `TurnLimit` 上，`ADR-0052` 只在「后果」补一条边界说明。连带收掉 `deck/_index.md` 内 `⇄` 与「只减不增」的自相矛盾（改的是后者）。
+- **capability flag 体系与重试上限的存档表达答结**（移出 `deferred-content.md` 与 `06-meta-progression.md` 各 1 条）：扁平 `enum` 不分区 · 命名 = 动词三词表 `{Reveal, Show, Unlock}` + 禁否定式（它是「union 即全部叠加规则」这条不变式的可机械检查护栏）· 叠加 = 集合并幂等不告警、**冲突结构上关死** · `HashSet` 而非 `[Flags]` · 宿主 = `profile-service.CapabilityManager`，**注册面两层共用**（神通与法则皆可授予）· `PowerData` 追加 `GrantedFlags` / `Modifiers` 两字段 · 重试上限三候选全否，读既有 `PlayerEntitlement.BundleGrantOrdinal`，存档 schema / `CostKey` / `ResourceElements` / 后端契约零改动，仅补载体 `ChapterRetryLimitsData`（具名篇章字段，不用索引数组）。
+- **跨草稿量纲对齐**（批量独有）：战斗内 `ModifierTarget` 与 Profile 侧 `ModifierKey` 两套 key 空间分立不合并，但**量纲统一万分比整数、合并算法统一「同层求和 → 只乘一次 → 只取整一次」**，两波逐字落齐。
+- **新增 1 条**（`01-combat.md`）：疲劳扣减是否进 `EncounterSpec` 覆写组 —— `MoveCardEffect` 的 `From` 可取抽牌堆使「削减对手抽牌堆」结构上成立，`balance.md` 那条的重开判据 ① 触发，本次不答定。
+- **就地改写三份 Accepted ADR**（用户当场授权）：`ADR-0017` 收窄失真的「仍未定三项」· `ADR-0088` 四处措辞 · `ADR-0052` 后果补边界说明。均不新增编号、不改台账排序。
+- **对应 answer log**：`answer-logs/log-ability-primitive-grammar.md` · `log-card-pool-and-reshuffle.md` · `log-capability-flag-and-entitlement.md`。
+

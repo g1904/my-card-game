@@ -19,6 +19,7 @@ Source: `handoffs/2026-08-12b-grant-source-per-kind-scope.md`
 
 - **内容定义侧 = `PowerData`，两层共用一个类型**，由条目上的 `Scope: AbilityScope` 声明自己属于哪一层。字段清单（含 `Abilities` 的三档取值域、`GrantedFlags` / `Modifiers` 两条战斗外通道、三格至少一格非空与战斗外触发式两条加载期校验）的权威在 `_index.md`，本文件**不复述**——复述即制造第二权威，两份各自漂移而本库无机制发现。
 - **触发条件与效果的表达形态**同样不在本层：触发器是 `TriggerConditionData` + 封闭时点常量表、效果原语与关键字体系是 `EffectData` 子类树与 `KeywordData`，两者的权威均在 `../deck/common-properties.md`，`PowerData` 与 `CardData` 共用同一套。
+- **内容编排口径**（开放的 `SourceCode` 通道与各自的档位收窄 · 失去形态与频次归属 · 效果形态禁令 · 条目数下限 · 绑定神通是否填 `ExclusiveSource`）与**跨载体边界判据**（什么该做成一张卡 / 一件法宝 / 一个神通）的权威同样在 `_index.md`，本文件**不复述**。
 - **持有条目侧仍待定的一格**：`status`（启用 / 禁用）与「拥有 / 失去」两个正交维度如何编码进 schema，见 `_index.md` 的同名待决项。
 
 ## 对应

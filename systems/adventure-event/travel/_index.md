@@ -57,7 +57,8 @@
 
 - **Travel 的代价 = `lifeSpanCost` 定价表的 Travel 一行，取非 0 的低值。** 代价走既有通道、不新增机制；内容条目默认不填、取表值。
   - **该行必须 > 0，是结构性理由而非数值偏好。** Travel 不计入 `eventCountLimit`（配额闸拦不住它）+ 换图 = 换类型修正 + 整批重算 ⇒ 若定价为 0 即开出一条**零成本的事件池 reroll**，「来回横跳直到刷出想要的事件」成为最优策略，而它正是本库反复否决的那类可电子表格化优化。**寿元定价是唯一能拦住它的闸。**
-  - **取值为常规事件基准的 1/3 ~ 1/2**（「赶路便宜，但不是免费的」）：换图的策略价值保住、reroll 漏洞被寿元堵死、20% 随机档也不至于显得亏。绝对数字见 `systems/balance.md`。
+  - **取值为同章 `Exchange` 行的 1/3 ~ 1/2**（「赶路便宜，但不是免费的」）：换图的策略价值保住、reroll 漏洞被寿元堵死、20% 随机档也不至于显得亏。当前取值 **ch1 9 / ch2 10 / ch3 25**，对同章 `Exchange` 的 23 / 25 / 63 分别为 0.39 / 0.40 / 0.40。
+    - **分母写死为 `Exchange` 行。** 该纪律的目的是堵零成本 reroll 且不让换图显得亏，绑住的应当是**最便宜的那条常规行**——那是紧的一边；`Exchange` 恰是表上最便宜的非 Travel 行，故它同时是加载期校验的机械分母（越出 1/3 ~ 1/2 即 `PushWarning`）。表、校验与全部绝对数字见 `systems/balance.md`。
 
 - **Travel 条目的 outcome 侧不得含 `LifeSpan` 产出（结构性禁令 · 加载期 `PushError` + 条目 `Id`）。** 它与上一条同源：寿元回复通道的平衡护栏之一是「回寿事件占 `eventCountLimit` 配额，挤掉的是别的事件」，而 **Travel 不计入配额** ⇒ 那道闸对它整条失效，只剩定价最低一档的那道。一条带回寿的 Travel 条目就是「来回横跳换寿元」，与零成本 reroll 是同一个漏洞的两半。**Explore 遮罩的情形自动覆盖**——被遮罩的真身本身就是一个 Travel 条目，模板侧校验照常命中。回寿通道的完整形态见 `systems/adventure-event/common-properties.md`。
 
@@ -75,7 +76,7 @@
 
 - **Travel 的 `pastEvent` 痕迹记出发地。** Travel 是唯一一类会在自己结算过程中改变 `PastEventEntry.LocationId` 的事件，故明写：**记出发地**（与其余四类一致——都是「这一步发生在哪」），目的地由**下一条痕迹**的 `LocationId` 自然给出。不新增字段；`LocationCodex` 从痕迹序列读出的路径因此连贯。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

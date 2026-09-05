@@ -120,7 +120,7 @@ public sealed record BarterOffer(            // 定稿实例：immutable，随 E
     bool              SoldOut);              // 兑换后置位
 ```
 
-- **落在 `EventOption.BarterStock` 上**，与 `ExchangeStock` / `RerolledCount` 平级 ⇒ `EventOption` 增一格 ⇒ **bump 存档 schema 版本**（当前无线上存档 = 空迁移，走既有 MigrationManager 骨架）。承载与读档校验见 `systems/character-profile/_index.md`。
+- **落在 `EventOption.BarterStock` 上**，与 `ExchangeStock` / `RerolledCount` 平级；该格属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`。承载与读档校验见 `systems/character-profile/_index.md`。
 - **不往 `ExchangeOffer` 上加 `PayItemId` + 一个「这是 barter」的布尔。** 那会让 `Currency` / `BasePrice` / `ListPrice` 三格在 barter 行上恒无意义，而「一个字段在某些行上恒为空」正是分列判据（键与载荷的形状根本不同，见 `systems/architecture.md`）。
 - **`BarterStock` 由 `ExchangeSpec.BarterRules` 逐条平移得出**，不经取池链、不掷 `RngStream.Shop`、不参与三道短缺闸。物化伪码见 `systems/services/future-event-service.md`。
 - **不参与刷新：** `RerolledCount` 增加时整批替换的只有 `ExchangeStock`，`BarterStock` 原样保留。

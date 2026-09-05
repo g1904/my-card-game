@@ -322,9 +322,9 @@ public interface ISingletonContent { }
 
 **同批落地的还有 `LocalizedText`：** 两者的排期理由完全相同（纯加法窗口，一旦内容写完就退化为「改全部调用方 / 全部资产」），且都是同一次 `XxxData` 面的改动，宜一并做掉。见 `systems/common-properties.md`「内容文本的多语言形态」。
 
-**调用方共五处：** future-event-service 物化 · 商店库存 · 奖励掷骰 · **账号级 / 轮回级能力的授予池**（残卷 · 礼包 · 置换共用一段抽取，宿主是 profile-service 的 `GrantPoolPicker`，见 `systems/player-profile/player-power/_index.md`）· **闭关构筑面板的功法候选**（`CultivationTechniqueData` 加权无放回抽取，见 `systems/adventure-event/research/common-properties.md`）。**这加强了「第二阶段开工前落地」的排期理由。**
+**调用方共五处：** future-event-service 物化 · 商店库存 · 奖励掷骰 · **账号级 / 轮回级能力的授予池**（残卷 · 礼包 · 置换共用一段抽取，宿主是 profile-service 的 `GrantPoolManager`，见 `systems/player-profile/player-power/_index.md`）· **闭关构筑面板的功法候选**（`CultivationTechniqueData` 加权无放回抽取，见 `systems/adventure-event/research/common-properties.md`）。**这加强了「第二阶段开工前落地」的排期理由。**
 
-**抽取原语只有两级，不设第三级（承重）。** 第一级 `DrawPool<T>`（本服务，`readonly struct`）是抽取动作在语言层的**唯一发起面**，只认内容侧的过滤（`ContentEnabled` / `ExclusiveSource` / `Rarity`）；第二级 `GrantPoolPicker`（profile-service 内 `internal`）在其上固化能力授予的四道过滤 + 排重 + 稀有度锚定，供残卷 · 礼包 · 置换共用。
+**抽取原语只有两级，不设第三级（承重）。** 第一级 `DrawPool<T>`（本服务，`readonly struct`）是抽取动作在语言层的**唯一发起面**，只认内容侧的过滤（`ContentEnabled` / `ExclusiveSource` / `Rarity`）；第二级 `GrantPoolManager`（profile-service 内 `internal`）在其上固化能力授予的四道过滤 + 排重 + 稀有度锚定，供残卷 · 礼包 · 置换共用。
 
 - **分界判据 = 这道过滤需不需要读 `Profile`。** 不需要的留第一级；需要的（排除已持有）只能在第二级——它读的是 profile-service 的自有状态。这条判据同时解释了为何其余调用方不经第二级：它们抽的不是能力条目、没有「已持有」这个概念。
 - **否决「为统一抽取再造一个通用原语」**（带策略参数的 `Draw(spec)` 之类）：两级分工已经对上判据，第三级只会给「抽取代码只有一处」这条纪律多一个绕行入口；且策略参数化无法被编译器约束——一个填错的 spec 与一个正确的 spec 类型相同。
