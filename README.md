@@ -6,7 +6,9 @@
 
 ## 状态
 
-尚未开工。技术栈与目录结构待定。设计意图见 `backend-design-documents/`（`backend-design` 分支）。
+代码尚未开工——本目录目前只有这份 README，工程目录结构待定。
+
+**技术栈与托管形态已落定：** C# / ASP.NET Core · 腾讯云托管容器 · 云数据库 PostgreSQL（单主）· 云 Redis · 云 KMS · CDN。环境实体为两套云上（testing + production）+ 本地 docker-compose 承担 feature。权威在 `backend-design-documents/systems/_index.md` 与 `operations/environments.md`；协议契约六份已成文，见 `backend-design-documents/contracts/`。
 
 在后端就绪之前，客户端的边界服务（`account-service` / `content-service` / `sync-service`）以**离线 stub** 实现，使整个游戏可先端到端跑起来。
 
