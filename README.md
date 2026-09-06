@@ -30,7 +30,7 @@ backend-feature  →  backend-testing  →  backend-production   (云端后端)
 ```
 
 `game-feature` / `game-testing` / `game-production` 全都从同一个 Godot 4.7 项目脚手架播种而来。
-`backend-*` 尚未开工 —— 目前只有 README，技术栈待定。
+`backend-*` 的代码尚未开工 —— 目前只有 README；技术栈与托管形态已落定（C# / ASP.NET Core · 腾讯云托管容器 · PostgreSQL 单主 · Redis · KMS · CDN），见 `backend-design-documents/`。
 
 `game-design`、`backend-design` 和 `claude-config` **独立**于这两条线 —— 孤儿历史、无产品代码、从不合并进发布。
 `game-design` 携带客户端设计文档（意图的事实来源）；`backend-design` 携带后端设计文档；`claude-config` 携带 Claude Code 工具配置。
