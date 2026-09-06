@@ -15,7 +15,7 @@ premium bundle 的**兑现段**可以纯客户端演算（见 `decisions/ADR-002
 配套的范围边界：
 
 - **定价起步单一 SKU、单一价格档**；金额属发行侧，**不落客户端**（价格与货币由平台商店按 SKU 返回，客户端不硬编码任何金额）。**地区定价在范围之外**。
-- **SDK 选型与封装层形态不在本库定稿**——归后端的支付渠道选型与一次专门的客户端工程蓝图。
+- **SDK 选型方向与封装层形态见 `systems/monetization.md` 与 `systems/services/sync-service.md`**；导出配置与各平台构建细节归实现蓝图。
 - **唤起内购失败（用户取消 / SDK 失败）一律回主菜单**，无任何 Profile 变更、无痕迹。
 
 范围表述见 `vision/scope.md`「MVP」与「范围之外（暂时）」；客户端侧的时序见 `systems/monetization.md`。
@@ -35,6 +35,6 @@ premium bundle 的**兑现段**可以纯客户端演算（见 `decisions/ADR-002
 ## 后果
 
 - 客户端因此有一处第三方 SDK 依赖，牵动 Godot 导出配置与各平台构建——这是 MVP 工程面里唯一的此类项。
-- 条件编译清单有一次**已预告的、有边界的扩张（5 → 6）**：新增第四个窄接口 `IPurchaseBackend`（其失败语义——用户取消 / 订单待处理 / 票据重复 / 跨设备重复到账——与 `IProfileBackend` 完全不同）。**本次不新增接口**，裁决点留到真正需要它的时候。
+- 条件编译清单含第四个窄接口 `IPurchaseBackend` 带来的第 **6** 处（其失败语义——用户取消 / 订单待处理 / 票据重复 / 跨设备重复到账——与 `IProfileBackend` 完全不同）；接口形态见 `systems/services/sync-service.md`，清单判据见 `systems/architecture.md` 总则 7。
 - 合规面（实名 / 防沉迷 / 渠道分成 / 退款）归后端与合规侧；**客户端不读年龄、不做任何本地拦截**，只承接后端 `code` 展示对应 `ERR_*` 文案。
 - 影响文档：`vision/scope.md`（权威，范围口径）· `systems/monetization.md` · `systems/architecture.md`（条件编译清单的预告扩张）· `ux/screen-flow.md`（Store 屏）。跨库：`backend-design-documents/contracts/purchase.md`。

@@ -62,6 +62,8 @@
 
 - **Travel 条目的 outcome 侧不得含 `LifeSpan` 产出（结构性禁令 · 加载期 `PushError` + 条目 `Id`）。** 它与上一条同源：寿元回复通道的平衡护栏之一是「回寿事件占 `eventCountLimit` 配额，挤掉的是别的事件」，而 **Travel 不计入配额** ⇒ 那道闸对它整条失效，只剩定价最低一档的那道。一条带回寿的 Travel 条目就是「来回横跳换寿元」，与零成本 reroll 是同一个漏洞的两半。**Explore 遮罩的情形自动覆盖**——被遮罩的真身本身就是一个 Travel 条目，模板侧校验照常命中。回寿通道的完整形态见 `systems/adventure-event/common-properties.md`。
 
+- **Travel 条目的 outcome 侧同样不得产出货币（`SpiritStone` / `ImmortalJade`），与上一条合为同一行校验。** 理由逐字相同：**换图的代价是寿元，顺带给钱会把这条代价抵消掉**，而抵消掉之后「来回横跳刷事件池」的成本就不再是净支出。**方向位保留**——本禁令只挡产出向；Travel 条目扣走货币（路上的花销、被劫）是合法编排。灵石的渠道口径（战斗是主产出口）见 `systems/character-profile/currency.md` 与 `systems/balance.md`。
+
 - **不设途中遭遇。** 「路上可能有事」这一语义由 **Explore 遮罩 Travel** 承载（秘境把人带到别处），不再另设第二套机制。
   - **规则依据：** 「一次选择仍只结算一个事件」「一批 = 一次操作 = 一次配额消耗」是承重定案；途中遭遇 = 一次选择结算两个事件，且该遭遇算不算配额、写几条 `PastEventEntry` 都要新增规则。
   - **风险面已足：** Travel 的风险 = 付出寿元却可能走到一个更不利的地域（类型修正不合自己的 build、敌人池更凶）。**这已是一次真实的风险决策**，且它由 `LocationCodex` 的知识积累化解——正是设计目标。
@@ -76,7 +78,7 @@
 
 - **Travel 的 `pastEvent` 痕迹记出发地。** Travel 是唯一一类会在自己结算过程中改变 `PastEventEntry.LocationId` 的事件，故明写：**记出发地**（与其余四类一致——都是「这一步发生在哪」），目的地由**下一条痕迹**的 `LocationId` 自然给出。不新增字段；`LocationCodex` 从痕迹序列读出的路径因此连贯。
 
-Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md` · `handoffs/2026-09-05-currency-acquisition-and-pricing.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

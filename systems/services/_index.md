@@ -47,7 +47,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 |------|------|-------------|------|
 | **account-service** | ③ | AuthManager、ComplianceManager | [account-service](account-service.md) |
 | **content-service** | ③ | ContentRegistry、ContentUpdateManager | [content-service](content-service.md) |
-| **sync-service** | ②③ | ProfileSyncManager、LocalCacheManager、MigrationManager | [sync-service](sync-service.md) |
+| **sync-service** | ②③ | ProfileSyncManager、LocalCacheManager、MigrationManager、StoreChannelManager | [sync-service](sync-service.md) |
 | **profile-service** | ② | ProfileManager、CapabilityManager、AchievementManager、CodexManager、GrantPoolManager | [profile-service](profile-service.md) |
 | **life-cycle-service** | ① | CycleStateManager、ChapterManager、SeedManager | [life-cycle-service](life-cycle-service.md) |
 | **future-event-service** | ① | EventOptionManager、PlotManager | [future-event-service](future-event-service.md) ⊃ [plot-manager](plot-manager.md) |
@@ -61,7 +61,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 
 **编排顶点 = game-progression**（不是服务，是屏幕流程编排层）。核心循环 `ComputeEventOptions → 呈现 → 玩家选择 → AdvanceEventAsync → 重算` 由它串联。见 `systems/game-progression.md`。
 
-Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-09-02-architecture-services-reconcile.md`
+Source: `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-09-02-architecture-services-reconcile.md` · `handoffs/2026-09-06-iap-channel-integration.md`
 
 ## 两条唯一入口 + 一个唯一物化点
 

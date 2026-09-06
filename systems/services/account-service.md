@@ -182,21 +182,39 @@ refresh token **不进 `Session`**，由本服务落 `user://cache/`（契约对
 | | 表单填写 + 提交 + 失败分流 + 成功后重走 `signin` | **ComplianceManager**（编排 + 持 ticket） | 实名屏（登录流程内） |
 | **防沉迷** | 拦截呈现 + `resumeAtUtc` | 登录屏 | 登录屏 |
 | | 会话中途到点 | **`AuthManager`**（既有 `auth.session_revoked` 路径） | 阻塞屏（既有「被挤下线」变体） |
-| | 剩余时长的呈现 | 数据由 `ComplianceManager` 的 status 单点提供 | 呈现形态另定 |
+| | 剩余时长的呈现 | 数据由 `ComplianceManager` 的 status 单点提供 | 主菜单常驻指示 + 两级提醒（见下「剩余时长的呈现」） |
 | **注销** | 申请 / 撤销（已登录态） | **ComplianceManager** | PlayerProfile 屏 |
 | | 冷静期内被拦 + 撤销（未登录态，凭 ticket） | 呈现归登录屏，调用归 **ComplianceManager** | 登录屏 |
 | **数据导出** | 申请 + 轮询 + 打开下载链接 | **ComplianceManager** | PlayerProfile 屏 |
-| **昵称须改名** | `nicknameChangeRequired` 的读取 | `ComplianceManager` 的 status 单点 | 呈现形态另定 |
-| | 改名提交本身 | **`AuthManager`**（既有 `SetNicknameAsync`） | 既有改名入口 |
+| **昵称须改名** | `nicknameChangeRequired` 的读取 | `ComplianceManager` 的 status 单点 | 启动链内的全屏模态（见下「须改名的落屏」） |
+| | 改名提交本身 | **`AuthManager`**（既有 `SetNicknameAsync`） | 该模态内复用 PlayerProfile 屏昵称区的同一输入与提交路径 |
 
 **四件明确不归它的事**（写下来是为了防日后被「补全」）：
 
 1. **任何判定**——不读年龄、不比时钟、不算时段、不判是否未成年。`isMinor` / `playtimeRemainingSeconds` 只作**呈现的输入**，永不用于决定能否继续游玩（`decisions/ADR-0024` 与 `systems/monetization.md`：客户端不做任何本地合规拦截，强制力在后端）。
+   - **呈现用的单调递减倒计时不属「判定」（这句必须明写，否则会被读成互相矛盾）。** 剩余时长下发的是**相对量而非时刻**（字段语义见 `backend-design-documents/contracts/compliance.md`，本库不复述），正因如此客户端做倒计时**不需要任何本地时钟比较**——它只是把一个已收到的数字随进程时间往下走。它永不决定能否继续游玩：到点仍由既有的 `auth.session_revoked` 路径接住。**禁的是拿它做判断，不是显示它。**
 2. **会话中途下线**——`AuthManager` 的既有路径，本节一个字都不改它。
 3. **昵称合法性判定与提交**——既有 `SetNicknameAsync`。
 4. **拦截错误的措辞选择**——那是 UI 层 `ErrorText` 的事，manager 不碰文案（`ux/error-and-blocking-ux.md`）。
 
-**客户端侧的「强制改名」不是硬阻塞（边界必须明写）。** 它的兑现依赖 `GET /v1/compliance/status` 这一次**可降级**的请求：请求取不到即本次会话不呈现须改名面，下次会话再拦。**后端侧的兜底是存量扫描与复核通道**（语义见 `backend-design-documents/contracts/compliance.md` 与 `backend-design-documents/operations/moderation.md`）。这与「合规的强制力在后端、客户端只呈现」逐条一致——把它升级成启动阻塞就会新增一处阻塞点，而阻塞点是穷举的（`sync-service.md`「三条不变式」①）。
+**客户端侧的「强制改名」不是穷举四处阻塞点之一（边界必须明写，否则「拦」与「不新增阻塞点」会被读成互相矛盾）。** 那四处（`sync-service.md`「三条不变式」①）是**失败态**阻塞：由后端 `code` 触发、玩家在当下**没有任何自愈路径**，只能去更新 / 重登 / 重试。而须改名是一道**一次性、可由玩家自己当场完成、请求取不到即放行**的流程门——它由 status 应答里的一个布尔驱动（**不由任何 `code` 触发**），玩家改个名就过。两者不同类，故它是启动链内的一道门而不是第五处阻塞点。
+
+- **兑现依赖 `GET /v1/compliance/status` 这一次可降级的请求**：请求取不到即本次会话不拦，下次会话再拦（fail-open 的原义就是「取不到就放行」）。
+- **后端侧的兜底是存量扫描与复核通道**（语义见 `backend-design-documents/contracts/compliance.md` 与 `backend-design-documents/operations/moderation.md`）。这与「合规的强制力在后端、客户端只呈现」逐条一致：客户端这道门只是把改名的时机提到玩家面前，真正的强制力不依赖它。
+
+#### 须改名的落屏：启动链内的一道全屏模态，不新增屏、不进变体表
+
+- **时机 = 启动链内、主菜单之前**，与既有的合规检查**同一次 status 读取**，不新开请求。
+- **形态 = 全屏模态**（与购后等待期的全屏模态进度态同款先例），**不新增屏**。本库没有独立的改名屏——昵称编辑本就是 PlayerProfile 屏内的一个区（见 `ux/screen-flow.md`），模态复用它的输入与提交路径。
+- **不进 `BlockingNoticeScreen` 的变体表**，`BlockingNoticeKind` 一格不动。准入判据是「只由已知后端 `code` 触发」**且**「玩家没有任何自愈路径」，须改名**两条都不成立**（判据逐条复核见 `ux/error-and-blocking-ux.md`）。
+- **提交失败沿用既有映射，不新增任何处置路径**：`auth.nickname_rejected` + `detail.reasonKey` → 二级文案（机械变换，本库不持有 `reasonKey` 清单）。**「须改名」这个标记本身不带 `reasonKey`**——它与「这次提交为什么被拒」是两件事。
+
+#### 剩余时长的呈现：两级提醒 + 一处常驻，阈值落数据资源
+
+- **两级提醒 + 主菜单常驻指示**：进入游戏时剩余量低于第一阈值给一次提示，再低于第二阈值给第二次；常驻指示复用主菜单顶部同步指示的同一条带形态（见 `ux/screen-flow.md`）。
+- **阈值属可调数值，落数据资源、不硬编码**。字段以**秒**计（与下发的相对量同量纲，不做换算），初值 **1800 / 600**（即 30 分钟 / 10 分钟），待实测校准。
+- **不在战斗中弹窗打断**——与「战斗无倒计时、无超时自动选」的既定手感一致；战斗内至多走常驻指示（常驻同步指示在战斗屏内必须可见，同处呈现）。
+- **时段到点的实际下线不变**：仍是既有的 `auth.session_revoked` 硬阻塞重登路径，本项只是给它加一段预告。
 
 #### `complianceTicket` 只在内存里，绝不落盘、绝不出 API 面
 
@@ -220,7 +238,7 @@ ticket 一次性、单端点、寿命由后端定（语义权威在 `backend-des
 - **输入约束只做长度与字符集**，与昵称同构；**不做证件号校验位、不做地区码判定**——判定权在后端。
 - **核验被拒时保留玩家已输入的内容、不自动清空**（被拒的通常只有一项）。这与实名材料的脱敏纪律不冲突：那条禁的是**服务端回显 / 进应答 / 进日志**，客户端进程内输入框里的内容不在其列。
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-22-refresh-token-client-storage.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `decisions/ADR-0003-online-cloud-authority.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-22-refresh-token-client-storage.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `decisions/ADR-0003-online-cloud-authority.md`
 
 ## 管理器
 

@@ -7,6 +7,66 @@
 > **只保留最近 10 条。** 更早的条目原样移入 [`update-log-archive.md`](update-log-archive.md)（按时间正序），
 > 一字未改、仅换了文件——本日志与归档合起来即全部历史（`decisions/ADR-0005`：台账不无限膨胀）。
 
+## 2026-09-06（`/batch-analyze-new-ideas` · 4 份已评审草稿 / 2 跨库 counterpart 对 · 单波并行 · 合并 interview 1 题 · 移出 3 条 · 新增 0 条 · 客户端半）
+
+- **四份草稿均已批量评审、裁决回写**（视同用户拍板），Phase A 校验新增问题仅 1 题：**客户端购买域三个 HTTP 调用的后端接口落形**——草稿提议扩展 `IProfileBackend`，但 `architecture.md` 早已预告 `IPurchaseBackend`（清单 5→6）并点名否决前者，草稿「张力：无」属漏检。**用户裁 B：新增第四个窄接口 `IPurchaseBackend`，条件编译清单 5 → 6**（兑现既有预告、零 ADR 推翻；ADR-0011 / 0023 / 0024 预告行同批改当前事实）。跨草稿核对无矛盾。
+- **移出 3 条：** `cross-boundary.md` 待承接两条（基线超集纪律 · 产包证明条目计数）→ `content-service.md` 新增「内容发版纪律（基线 `Id` 超集不变式）」节（只增不删 · 退役三分 · 归档步 `Id` 超集闸）+ `entryCountsByType` dormant 附注，`ADR-0141` 后果句订正（「只跑最新」经推演不成立，逐基线各跑为长期形态）；`07-codex-monetization.md` 的 SDK 选型与封装层一条 → `monetization.md` 唤起段收口 + `sync-service.md` 的 `StoreChannelManager` / `IStoreChannel` / `IPurchaseBackend`。另两条既定裁决落笔：非商店平台 Store 入口不渲染（前置条件表加行、计数措辞去计数）· iOS 部署下限 15（`vision/scope.md`）。
+- 对应 answer logs：`../answer-logs/log-baseline-superset-and-pack-proof.md`（2 条）· `../answer-logs/log-iap-channel-integration.md`（1 条）；对侧库同批落笔（两对 handoff 互链），后端半摘要见 `backend-design-documents/open-questions/update-log.md`。本文件同批把最早两条摘要（08-30c · 08-30d）移入 `update-log-archive.md`，并修复 09-05c 条目丢失的标题行。
+
+## 2026-09-05e（`/write-adr game`，范围 `all` · 固化 26 份新 ADR · 候选清单清空）
+
+- **三条登记候选全部立档**（均出自 `handoffs/2026-09-05-currency-acquisition-and-pricing.md`）：`ADR-0133` 货币跨篇章结转与寿元同形 · `ADR-0134` 灵石 ≈ 战利品（战斗主产出口 + Travel 禁令扩三 key）· `ADR-0135` 仙玉不落可售出族。三条均先在 `systems/balance.md` / `character-profile/currency.md` / `services/life-cycle-service.md` / `adventure-event/common-properties.md` 核到落笔原文才建档。
+- **另逐份核对 22 份未被任何 ADR 引为来源的 handoff**，补固化 23 条散落定案 → `ADR-0136` ~ `ADR-0158`。按批：09-02 六份（绑定功法恒第 1 层 · 图鉴单一入口三层浏览 · `CycleEndScreen` 一屏三变体 · 阵法启动式异能宿主 · 剧本段落结算面板 · `BranchLabel` ⟺ `BranchChosen` 焊死）· 09-03 七份（跨载体边界判据 · 神通强度上沿不设总闸 · 快照对侧 `faceDown` 按视角过滤 · 合规域切分判据 · `lifeSpanCost` 耗时正比定价 · 剧本层对外面 · schema 登记权威 + `ProfileShapeCheck`）· 09-05 八份（须改名 fail-open 流程门 · 未成年时长只呈现不判定 · `OpError.Purchase` · 打包工具产包证明与基线快照 · 灰态非禁用 · `ChapterEndScreen` · `FinaleDiff` 旋钮 · 登记表不写计数）· 早期两份（`ADR-0136` 两层档案持有骨架 · `ADR-0137` 设计库类模型化组织）。
+- **未固化 2 项，如实留下：** ①「`terminology.md` 是术语事实来源」判为库内书写约定而非方向性设计决策，不建 ADR；②「结转是 ch2 的必要预算构成」属对 `ADR-0031` 既有决定的补强而非新决定，不另开编号（本次未改 `ADR-0031`，留待下次触及该 ADR 时就地补写）。
+- **台账对账无残留**：建档前 `decisions/_index.md` 132 行 ↔ 132 份文件已一致，无孤儿 / 悬空行需修平；建档后 158 ↔ 158。
+- **越界发现（未处理，归主题文档写入者）：** `systems/_index.md` 的 services 表内 combat-service 一行仍写「敌人 AI 与意图（三档揭示）」，与 `ADR-0059` 及同文件另一行的「行动不作事前预告」相抵。
+
+## 2026-09-05d（`/summarize-open-questions game` · 全量整理 · 移出 1 条 · 归集 3 条 · 订正 2 处 · 报告 5 处矛盾）
+
+- **采集面**：主题文档 `vision/` · `systems/**` · `art/**` · `ux/` + 根级三份共 **59 处 `## 待决问题`** 小节（本库范围内标题写法统一为中文「待决问题」，无英文写法）；`handoffs/` **152 份全部 `distilled`**（唯一 `raw` 是 `2026-07-12-example.md` 模板示例，自述「写好真实的之后请删除」），台账 ↔ frontmatter 零不一致 ⇒ **无「尚未进主题文档」的未决项**。
+- **移出 1 条**：`deferred-content.md` 的**元婴界面（通关证书）的具体形态**——同日已随 `ChapterEndScreen` ch3 变体答结并从 `06-meta-progression.md` 移出，但本片留着一份重复登记。见 `../answer-logs/log-0905.md`。
+
+- **归集 3 条**（此前只在主题文档侧登记、本清单零承载）：
+  - `01-combat.md` ← **敌人台词的槽位清单 `LineSlot` 成员**（`enemies/common-properties.md` 的待决项**已点名回链本分片**，而本分片此前没有这一条——单向悬空）；并入竖屏专场。
+  - `03-adventure-event-types.md` ← **Travel 一行的具体定价**（结构约束已定、绝对数字未定）；Explore 条由「两个待实测初值」扩为**三个待定取值**（补 `Explore` 行定价，随真身占比实测偏移须与 `t = 1.6` 一并重算）。
+  - `06-meta-progression.md` ← **通用功法（空 `RequiredAffinities`）的占比口径**，与「全池指定的强度塌缩」「多灵根换算」同属灵根辨识度这条压力线的第三面。
+- **订正 2 处清单自身的失真**：① `01-combat.md` 与 `deferred-content.md` 两处把 `lossPerMomentum` 写成既定的「三章 10 / 5 / 10」，而 `balance.md` 只锁定了 **ch1 = 10**，ch2 / ch3 的 **5 / 10 是候选值、尚未定案** —— 两处改为如实措辞。② `deferred-content.md`「尚未设计」区把**账号层** `player-profile/player-item/common-properties.md` 与**角色层** `character-profile/item/common-properties.md` 混为一谈，据前者「已写出机制面」宣布「本节已不再有空占位文档」；该文件自陈「共有字段……目前均为占位，无实质设计」⇒ 抬头措辞推翻为「仍有一处空占位」，欠的是整份共有字段面而非 `status` 一格。
+- **`03-adventure-event-types.md` 的首条改版式**：主干「各类型的结算 / 机制细化」五类已全部收口，由待答子弹改为 `>` 前提说明（结论早在各 `log-*-mechanics.md` 归档，不重复计入本次移出），片内保留的只是收口后**只欠取值 / 只欠呈现形态**的残留。
+- **`## derive 就绪度` 小节一字未动**（`/assess-derive-readiness` 独占）；本次报告不含就绪度结论。
+
+## 2026-09-05c（`/batch-analyze-new-ideas game` · 3 份草稿 / 2 分片 · 单波并行 · 合并 interview 3 题 · 移出 4 全条 · 新增 1 条）
+
+- **分区依据写入面而非主题**：barter 与 run-end 两份草稿都写 `ux/error-and-blocking-ux.md`（前者「灰态判据」小节、后者「键命名规范」分区表），合并给同一 worker 串行落笔；schema 分片写入面零交集，并行。Phase A 分级 🔴 1 · 🟠 2 · 🔵 28，必问过滤后问 3 题，一轮问齐。**跨草稿核对未发现矛盾**，且查出一处正向咬合：run-end 的「元婴证书只用已定字段 ⇒ 零 schema bump」恰好坐实 schema 草稿「本次不新增版本行 ⇒ 不触发后端矩阵」的前置。
+
+- **篇章结束屏 `ChapterEndScreen` = 一屏三变体**（移出 `06-meta-progression.md` 2 条：篇章通关那一刻的呈现 · 元婴界面的具体形态）。变体轴取 `chapter`，**ch3 变体即元婴通关证书**；与 `CycleEndScreen` 合成轮回收尾族两屏——不合并为一屏五变体，判据是失败侧「账号级收获零呈现」与元婴「必须有统计区」互相否定。出口只有「返回主菜单」，允许一次入场演出（≈1.2s + 短音效 + 任意触点跳过）。`CompleteChapter` 组装只读摘要 `ChapterEndSummary`，时点两条硬要求：境界寿元增量之后、`TeardownCycle` 与任何角色数据处置之前。零新增存档字段 / 零 schema bump / 后端零配合。「通关」口径分离：ch1 / ch2 写「突破」。
+- **新增 1 条待答（`06-meta-progression.md`）：`completed` 是否清理角色数据。** 库内两处写「两条出口的数据都会被清理」，而「篇章继承：全部继承 + 读档续章」与 `program-overview.md` 阶段 5 的 `completed` 分支要求它不被清理。用户裁决**本次不拍板**：`life-cycle-service.md` 用中性措辞（摘要在任何角色数据处置之前组装，两种读法下均成立），矛盾另立待答项。
+- **barter 灰态补进权威判据表**（移出索引「台账 / 投影缺口」1 条）。判据表 4 → 6 行：新增「barter 格：不持有 `PayItemId` 或产出目标已持有（能力族）」（两条触发条件写一行）与用户裁决一并补的「Exchange 商店买不起」。两个新键 `EVENT_BARTER_UNAVAILABLE_NOT_HELD` / `_ALREADY_OWNED`（`<CONTEXT>` 取 `BARTER` 不取 `EXCHANGE`），买不起那行**零新增键**（说明由 `ApplyResult.MissingElement` 机械映射）。新增落地纪律「**灰态是视觉降级不是禁用，灰格必须继续接收触控**」。顺手修同一张分区表内 `COMBAT_` 行残留的已删机制 `intent`。
+- **schema 登记表：原条目所指四批漏登经核实已不成立**（移出 `05-service-contracts.md`，改写后降级留档）。真残留是登记表**自身**的覆盖空缺——由草稿说的 7 处**修正为 11 处**（另有 `magicPack` / `characterPower` / `playerPower` / `playerItem` 四个顶层键零登记），追加 v1 行 #28–#33；#18 错归属订正（`disabledAbility` 属 `CharacterProfile`、已由 #10 登记）；`AccountInfo` 补登依据由形态纪律 ⑤ 第三档改挂 ①（`AccountId` 不受回声约束）。**立形态纪律 ⑥「本表不写任何计数」**并同批清掉表内既有六处计数（否则新纪律在自己表内当场不成立），⑥ 加射程限定句以免规则吃掉自己；`ADR-0127` 两处「22 格」与登记表 #12 删计数改回链，ADR 的决定 / 理由链一字未动。`ProfileShapeCheck` 补一条 `/sync-knowledge` 条目 ↔ 字段表行双向对账断言（第 3 级，不造工具 / 不抬管线闸）。
+- **两处边界裁决。** ① 草稿要撤销的三处 derive 前置标注全在 `## derive 就绪度` 小节内——该小节由 `/assess-derive-readiness` 独占，故**小节一字不碰**，改写后的条目移入 `05-service-contracts.md` 并在正文写明那三处已失效、待下次全量评估清理。② 草稿断言「对侧无残留错指」**不成立**：后端 `open-questions.md` 两处仍按 09-03 之前的事实陈述，本次一并删除（纯删除，不新增后端义务、不触碰契约）。
+
+## 2026-09-05b（`/batch-analyze-new-ideas game` · 1 份 decided 草稿 · 未触发 interview · 移出 4 全条 · 新增 0 条）
+
+- **批次范围只有一份草稿**（`inbox/` 顶层唯一在办项），批量编排退化为一次单会话提炼；无跨草稿核对可做。Phase A 分级 🔴 0 · 🟠 0 · 🔵 全部——草稿以 `status: decided` 进入，两项真取向已在同日的批量评审中裁决，其余各节自带 `[既有推演]` / `[通行做法]` 标注且经复核成立，故按必问过滤**一题未问**。
+
+- **两条货币的产出曲线一同定下**（移出 `deferred-content.md` 2 条、`03-adventure-event-types.md` 1 条收窄）。**灵石 ≈ 战利品**：战斗是主产出口，`Research` / `Exchange` / `Travel` / `Explore` 一律不给，篇章缩放落在「一场给多少」（`S(c)` = 15 / 35 / 60，`Practice` 0.5× / `Finale` 2.0×）。**仙玉**每章 1–2 次、单次 1 / 2 / 4 枚，载体是既有的 `SelectionWeightGrades.Rare` 档，不加字段。25 格定价表按「族系数 × 稀有度基价」外积给出初值，回收率 40% / 15%，载体新开 `ExchangePriceTableData`。**货币量不引入档位枚举**——定价表不设篇章维 ⇒ 绝对值本身跨章可比，套档位只增书写位不增分辨率。
+- **「货币每章重置」改为跨篇章结转（用户裁决）。** 该措辞全库零机制承载，改为与寿元同形后 `ChapterManager` 不新增任何职责、不新增存档点。三处镜像句同批改写——草稿只登记了 `currency.md` / `balance.md` 两处，**校验查出第三处在 `exchange/_index.md`**。「定价表不设篇章维」的理由随之换成「跨章结转要求价格跨章稳定，否则余额被通胀稀释」；`currency.md`「不由 Finale 发放」的旧理由（收口发放随后即被清理）整条失效，结论保留、理由重立为「Finale 的 `BaseReward` 本就是战斗货币通道的一部分，另设一条即重复记账」。
+- **仙玉不落 `CharacterItem` 行，净产出敞口结构性关闭（用户裁决）。** 可售出 ⟺ `Kind == CharacterItem` 是代码级常量 ⇒ 仙玉不落该族即让「售出产仙玉」不可能发生，`balance.md` 原先「被接受的取舍 + 归统计校准把关」整条删除。代价如实写下：**永远编排不出以仙玉计价的法宝**，含顶级消耗品。
+- **校验面纯加法**：Travel 禁令的 `ResourceKey` 集合扩为三 key（**`Direction == Gain` 保留**——草稿的写法会连带误禁 Travel 的货币扣减向，如「路上被劫」）· 新增软校验「非 Combat 条目产货币 → `PushWarning`」（校验表第 9 行）与「`BaseReward` 灵石量 > `2.5 × S` → `PushWarning`」。零字段增量、零 schema bump。
+- **三处推翻草稿自身的主张**：`ADR-0089` 并非自相冲突（草稿引的 `:38` 是五条否决通道的列举，不含「稀有 AdventureEvent 产出」，冲突方在 ADR 与系统文档之间）· `balance.md` 待决第 10 条与货币无关（其「定价表」指寿元 `lifeSpanCost` 表）、第 4 条方向相反（`RarityTier` 分布权重是本方案的**前置**而非产物）· 校验 6 的谓词是合取而非单条件。
+- **顺带订正三处历史残留**：`ADR-0089` 的「唯一主动获取通道是商店」（商店是花销出口）· 同 ADR 的「`CostKey` 15 → 16」（`LifeTotal` 退役后恒为 15，08-30 漏改此处）· `terminology.md` 仙玉词条漏掉的「主动」二字。
+
+## 2026-09-05（`/batch-analyze-new-ideas game` · 2 份草稿 / 2 分片 · 单波并行 · 合并 interview 5 题 · 移出 3 全条 · 新增 2 条）
+
+- **两分片写入面零交集**（S1 = 平衡面 Finale 赋级 · S2 = 合规 / 购买 / 打包工具），单波并行，跨草稿核对**未发现矛盾**。Phase A 分级 🔴 4 · 🟠 2 · 🔵 30，必问过滤后**问 5 题**，两轮问齐，用户五项均取推荐。**批次范围顺带核实出一处事实**：用户圈选的「一并处理后端 counterpart 四份」无事可做——那四份已于 2026-09-03 全部提炼完毕、后端 inbox 顶层为空，故本次是补上客户端欠的那一半。
+
+- **Finale 的指派等级改为平衡资源上的旋钮 `FinaleDiff`**（移出 0 条、新增 0 条）。草稿自称「与既有决策的张力：无」**不成立**，校验查出两处真冲突：① 装等级旋钮正面撞 `balance.md`「绝境感永远不由等级差表达」与 `combat/_index.md` 推论 ②「特殊性不落在等级上」——裁决为**收窄这两句的作用域**（剧本 / 内容侧禁用等级差，平衡面独占该旋钮），依据 `ADR-0077` 的能力检查点论据；② 草稿的取值域 `[末级−2, 末级+2]` 下半段会让天劫等级 ≤ 角色等级，与「必然越阶 / 渡劫 = 突破到下一境界」相抵，**收窄为 `[末级+1, 末级+Upper]`**，既有承重链一字未动。
+- **收窄后的实际收益如实写下、未粉饰**：ch1 / ch2 各 2 档，**ch3 受 `Upper` 与全局序 22 双重截断恒为单值——旋钮在第三篇章不可拧**，恰是草稿开篇点名的那个「全作压迫顶点」。用户在知悉这一点后仍选择装旋钮。
+- **字段形态由绝对改相对**：`FinaleLevel : int` → `FinaleDiff : int`，初值三章恒 `+1`（绝对 14 / 18 / 22 降为推导结果）。理由是校验退化为纯本地断言、不外借住在境界枚举里的「篇章末级」常量，与 `EnemyLevelRange` 全行的相对语义一致。另订正草稿两处机械错误：下界写成 `末级 − Upper`（应为 `Lower`，本次定为常量 1）· 点名要改的 `future-event-service.md`「恒为 `diff = +1`」**该串不在此文件**。改动面由草稿宣称的 3 处扩到 8 处。
+
+- **后端 09-02 批量评审落给客户端的四项义务全部承接**（移出 `cross-boundary.md` 3 条，全条移出）。三处推翻草稿：① A 项「复用既有的**改名屏**」是**臆造**——本库没有改名屏，昵称编辑是 PlayerProfile 屏内的一个区，改为**启动链内 fail-open 全屏模态**，并就地改写 `account-service.md` 的边界句消歧（同一句里既写「下次会话再拦」又写「升级成启动阻塞就会新增一处阻塞点」）；② C 项「在 `code → (OpError, 处置)` 表补四行」**作废**——核实发现本库根本没有逐 `code` 表，只有按 `class` 的默认表，且 09-03b 已定案「开半张表即制造与对侧台账重复的第二权威」，改为只加一行枚举、处置落 `monetization.md`；③ **客服可达面草稿完全未提**（对侧刻意把「有 / 无客服入口」分列为一个维度），裁决为复用既有的 `#requestId` 长按复制，不新增入口、不引入客服地址配置面。
+- **新增两条待答**（均落 `cross-boundary.md`「待承接」）：更高版本客户端基线是否恒为更低版本基线的超集（取决于本库尚未定的「发版能否删除随包内容条目」纪律，成立则打包工具可只跑最新基线）· 产包证明是否增设「按类型的条目计数」一格（对侧一条尚未采纳的优化路径需要它，须两侧同批落地）。
+- 关闭 `cross-boundary.md` 购买域那条时**顺手订正其落点登记**：原写「本库需改 `systems/services/sync-service.md`（`OpError` 枚举）」，该枚举实际住 `systems/architecture.md`。
+
 ## 2026-09-03c（`/batch-analyze-new-ideas` · 4 份 decided 草稿 / 4 分片 · 两波 · 合并 interview 8 题 · 移出 5 全条 + 1 部分 · 新增 0 条）
 
 - **四分片两波**：Wave 1 = S1 战斗快照 `faceDown` ∥ S2 剧本广播面 ∥ S3 神通机制（三片写入面两两不交）· Wave 2 = S4 寿元定价表（其量纲扫荡波及六份 Wave 1 也在改的文件，故放最后）。Phase A 分级 🔴 8 · 🟠 6 · 🔵 43，必问过滤降 6 条为标准默认后**问 8 题**，两轮问齐，用户八项均取推荐。**跨草稿核对产出一条归并动作**（见下 X1），未产生新的裁决题。
@@ -79,115 +139,4 @@
 **未触碰 `## derive 就绪度`（强制边界）。** 该小节由 `/assess-derive-readiness` 独占写入，本批答结的多条（尤其 `CharacterData` 字段表与 `MoveCardEffect` 的排除面）已使其中若干行陈旧——刷新方式是择时手动重跑一次该技能，不在本批范围内。
 
 **连带的机械收尾：** `GrantPoolPicker → GrantPoolManager` 在活文档中全量替换完成（9 处，跨 `systems/` 与两份 ADR），过程档案（`handoffs/` · `inbox/` · `answer-logs/`）按溯源三条不改。
-
-## 2026-08-30d（`/summarize-open-questions game` · 全量整理 · 移出 1 条 · 合并 2 处 · 清 3 处失真）
-
-**范围与形态。** 客户端库全量（`vision/` · `systems/` · `art/` · `ux/` + 根级三份），10 份分片逐条对账。**先探明的一件事：本库的主题文档已无一份带 `## Open questions` 小节**——待答项全部集中在 `open-questions/` 分片里，故本次「从主题文档采集散落未决项」一步的产出为零，工作量全在**反向核对**（清单里的每条，主题文档是否已给出定论）。五个子代理并行核对，逐条给证据路径。
-
-**移出 1 条** → `../answer-logs/log-0830.md`：
-
-- **`experiencePoint` 的阈值曲线与产出分布**（`06-meta-progression.md`，标注为「承重」）。四问全部已答：阈值公式 `threshold(L) = 4 + floor((L−1)/2)`（L=12 特例取 10；ch1 合计 79 / ch2 32·38·44 / ch3 38·46·54）· 给予量走 `ExperienceGrade` 枚举 × 平衡表映射（ch1 4 / ch2 12 / ch3 16，与阈值同比放大）· 分布 = **带经验产出点约占事件总数 75%** 且档位偏置逐类给出 · 失败 = 同档 × `FailureRatio`（默认 50）向下取整下限 1。权威在 `systems/balance.md` 与 `systems/game-progression.md`，**清单一直未随之更新**。它的验收侧（「N 次典型失败仍能升满」的 N）仍待答，留在原分片。
-
-**合并 2 处**（同一未知的两个面，文档自身已明写「同批处理 / 同一专场」）：
-
-- `01-combat.md`：「逐项领取后的奖励厚度重估」并入「`RarityTier` 的分布与权重表」作从属项——`systems/balance.md` 明写战后奖励池各档取值与三档奖励厚薄**同批处理**。
-- `01-combat.md`：「道具区 / 神通法则条 / 埋伏标记 / 卡牌类型标识的四项具体形态」并入「竖屏分区的整体排布」作从属项——两者本就归同一场已排期的战斗 UX 专场。
-
-**清 3 处失真：**
-
-- `03-adventure-event-types.md`「闭关构筑面板的**三个**数值格」→ **两个**。第三格「`Recuperate` 的 `lifeTotal` 回复量」随 `ADR-0127`（08-30，Accepted）作废——`Recuperate` 整条删除、Research 收敛为纯构筑事件的五类操作，回复只留三通道。分片此前仍在引用一个已被结构性删除的机制名。
-- `06-meta-progression.md`「中长期规划感的来源」收窄：**进度感的时间那一半已被经验条常驻承接**（`ux/screen-flow.md` 明写这是本条的一个答复），仍待定的只剩「还有几步到 Finale」那一角。
-- `deferred-content.md`「尚未设计（占位）」一节：`player-item/common-properties.md` 与 `achievement/` 均已成文，措辞由「仍是空占位或仅有骨架」改为逐份点名其**唯一剩余的子项**（`status` schema 编码 / 条目 schema 与进度模型）。
-
-**索引侧：** 「最近更新」一行改写；「下一阶段」的 ADR 计数由 **121 份（`ADR-0002`~`ADR-0122`）** 订正为 **131 份（`ADR-0002`~`ADR-0132`）**——08-30c 那次 `/write-adr` 新立的 10 份没同步进这行。`## derive 就绪度` 小节原样未动（`/assess-derive-readiness` 独占）。本文件同批把最早的 4 条摘要（08-25d · 08-25f · 08-26×2）原样移入 `update-log-archive.md`，维持「只留最近 10 条」。
-
-**跨边界：** 反向扫描 08-25~08-30 全部 21 份客户端 handoff 涉及后端义务的部分，逐条在 `backend-design-documents/contracts/` 与其待答清单中找到承载（或 handoff 自行明写「后端零改动」且可检索核实），**未发现「一侧已定案、另一侧零承载」的缺口**，故本次未在对侧库补登任何条目。`cross-boundary.md` 唯一那条待承接项（`ComplianceManager` 覆盖面切分）经核**未关闭**，原样保留。
-
-**报告给用户、本技能不改的 3 处（权威在主题文档，编辑归用户 / `/analyze-new-ideas`）：** `exchange/_index.md` 仍标「ADR 候选，待 `/write-adr` 立档」而 `ADR-0126` 已立 · `game-progression.md` 的待决区未随 `screen-flow.md` 同步收窄「规划感」 · `combat-ux.md` 的意图区与待决区对战报文案体系双重记账。
-
-## 2026-08-30c（`/write-adr game` · 固化 10 份 ADR）
-
-**范围。** 客户端库全量：`## 下一阶段` 登记的 4 条 ADR 候选，外加逐份核对「未被任何 ADR 引为来源」的 handoff 后扫出的散落定案。每条先回主题文档核对事实是否已落地，查无实据 / 矛盾者不立档。
-
-**固化 10 条（`ADR-0123` ~ `ADR-0132`）。** 登记候选 4 条：灵根与功法属性的硬性修习准入（`0123`）· `Artwork` 基数恒为单格 + `CharacterData.RealmArtworks` 稀疏覆写（`0124`）· 二进制资产不经 overlay / blob 下发（`0125`）· Exchange 支付侧二选一（`0126`）。散落定案 6 条：`lifeTotal` 并入 `lifeSpan` 并完全显性化（`0127`，全库最重的一条，波及 30 余份主题文档）· `ProfileChangeSpec` 增 `StatusChanges` 置值列（`0128`）· `HiddenStatGrant` 方向位（`0129`）· `ContentEnabled` 的 flags 第三层覆盖来源（`0130`）· `Upgrade` 类错误只在两处硬阻塞（`0131`）· `StackEntryKind.UsedItem`（`0132`）。
-
-**台账对齐。** `decisions/_index.md` 新增 10 行（最新置顶、同日按编号降序），文件 ↔ 台账零不一致（132 : 132）。`ADR-0121` 的「待答：用道具产生的栈条目落在哪个成员」改为指向 `ADR-0132`；`ADR-0120` 的两条后果补指向 `ADR-0124` / `ADR-0125`；`ADR-0055` / `ADR-0052` / `ADR-0050` 补上漏写的来源 handoff。`## 下一阶段` 的候选清单清空。
-
-**未固化 2 条**（已被既有 ADR 覆盖，只补来源行、不新开编号）：「购买次数不设 `StatKey` 成员」（`ADR-0050` 正文已点名本例）·「角色模板池首批 5 个 / 全池指定 / 不做账号级解锁」（`ADR-0055` 后果段已逐字写入）。
-
-## 2026-08-30b（`/batch-analyze-new-ideas` · inbox 剩余两份 solution-draft · 合并 interview 3 题）
-
-**范围与形态。** 客户端库 inbox 顶层清空：疲劳扣减是否进 `EncounterSpec` 覆写组 · 用道具的栈条目类型。Phase A 两分片并行只读校验（🔴 1 · 🟠 0 · 🔵 21），跨草稿核对确认两者虽同写 `combat-service.md` 但小节不重叠、结论不矛盾，Phase B 串行落笔。合并 interview 3 题（1 项真冲突 + 2 项此前标「采纳推荐 — 待复核」的确认题）。
-
-**答结 2 条 · 新增 1 条。**
-
-- **疲劳扣减维持不进 `EncounterSpec` 覆写组，也不开 `EncounterTighten` 第六格。** 三条既有理由重估：① 仍成立且被加强（削堆条目只是又一个**内容侧**决定因素，档位侧仍是零条）· ② 未被削弱（「`MoveCard` 能搬对手抽牌堆」本就写在该理由正文里，不是新事实；重开判据 ① 要的是**已签核条目**，而 `content/` 零条目 ⇒ 字面未触发）· ③ 结论不变、论据换成「常规抽牌预算已被覆写组三格 + `Tighten` 两格覆盖，`DrawEffect` 能抬高实际次数但逐条有限，终止性归 `TurnLimit`」（原论据靠「极端不会发生」取信，不再可靠）。**新增第 ④ 条否决论据「方向不单调」**——疲劳打抽牌方而非玩家，正向 delta 对小卡组加压、对大卡组送礼，过不了 `EncounterTighten` 的全序 + 单调难度方向判据；它同时是五格封闭性的第一个具体实证。原重开判据 ②「某遭遇档需显式调节疲劳压力」由**三条既有承接通道表**取代；判据 ① 收紧为「`Pool` 覆盖敌人侧 · 以削堆为主要效果 · **已签核** · 密度足以让一方在 `TurnLimit` 前 40%（待实测占位）内空堆」，并明写**结构可写性不构成触发**。零字段零数值零存档。
-  - **🔴 裁决：`ADR-0052` / `ADR-0077` / `plot-manager.md` 三处「无覆写基准可拧」措辞一处不动。** 草稿称该句「读起来是错的」，但 `ADR-0052` 破折号从句已界定此处指 per-encounter 基准，且 `FatiguePerDraw` 在两份 ADR 落笔时已是具名常量 ⇒ 无新事实支撑改写。新论据只进 `balance.md`，与既有论据并行共存。
-  - **确认：`ModifierTarget.FatigueAmount` 保持双向、不加方向约束**（落地面零动作；`deck/common-properties.md` 因此不改）。
-- **用道具的栈条目类型：`StackEntryKind` 增第五个成员 `UsedItem`。** 不复用 `ActivatedAbility`（复用会让 `sourceEntryId` 与 `abilityId` 两格同时变可空，抹掉该成员全部不变式）。连带：栈条目**新增 `itemId` 一格**（与 `kind == UsedItem` 互为双向不变式）· `CombatFeedKind` 增 `ItemUse`、战报引言五类 → **六类**、`## 决策(-> ADR)` 的「四类共用」同改 · 读档校验 ② 扩入栈条目 `itemId`，并写明 **②/⑥ 分档**（`CombatItemSave.ItemId` 走 ⑥，被丢弃时该栈条目照常结算）· 存档「新增字段一格」改为**两格** · `UseItem` 段补齐 **mana 扣费与 `InsufficientMana`**（`ItemData.ManaCost` 早已存在，是既有缺口）与入栈填法、敌人侧路径 · `card.played` 不由 `UseItem` 广播，`deck/common-properties.md` 校验表新增第 20 条软检查。
-  - **确认：`TimingIds.ItemUsed` 不开**（时点随广播点增长，当前无内容需要它；开它要给 `SubjectKind` 增一档并扩 `TriggerFilter` 相容矩阵，日后是纯加法）。
-- **新增待答（01-combat「结构与配置的残留」）：`MoveCardEffect` 缺一格方位声明**——`ADR-0119` 断言 `From` 可取对手抽牌堆，但原语表未给它 `Side : SideConstraint`，而同表另五个原语逐个都有。「削减对手抽牌堆」在字段面尚未闭合；三种收法各有代价，需一次独立推演。
-- **承接项（交 `/write-adr`）：** `ADR-0121` 末行「待答：用道具的栈条目落在哪个成员上」已失效，应在固化本决策时清理。`decisions/` 本批零改动。
-
-## 2026-08-30（`/batch-analyze-new-ideas` · 一次提炼六份 decided 草稿 · 合并 interview 15 题 · 跨库 1 对）
-
-**范围与形态。** 客户端库六份草稿一次清完（寿元合并 · 灵根与角色池 · Artwork 基数 · 以物易物 · flags 缓存），其中 flags 那份与后端库同名草稿**成对落笔、互相回链**。Phase A 五个分片并行只读校验（🔴 18 · 🟠 8 · 🔵 74），复核降级 3 项后合并去重为 **15 题**，分四轮问齐后才落笔。
-
-**答结 8 条 · 新增 8 条 · 改写既有条目 14 处。**
-
-- **寿元合并（最重）：** `lifeTotal` 整体并入 `lifeSpan`，寿元**退出隐藏属性体系**（Band 门控整体退役、明文常驻恒精确）。结构收缩：`DefeatReason` 4 → 3 · `CostKey` 16 → 15 · `OutcomeDirection` 5 → 4 · `Status` 子表 12 → 9 行 · 隐藏属性 12 → 9 档 · Research 六类操作 → **五类**（`Recuperate` 退役，直接改写 `ADR-0022`）。负侧换算 ch1 = 1 + 一维 `lossPerMomentum`（按篇章，三个 `combatTier` 共用；形状锚 8%–12%）。`life-total.md` 退役 → 新建 `life-span.md`；`ADR-0045` 连文件名一起改挂寿元。
-  - **接受的取向三条：** 失败正反馈螺旋（grimdark 滚雪球，`FailureRatio` 保持 50%）· 寿元预算从此可被玩家精确规划 · 压力线由两条并为一条。
-  - **保结论、改理由六处：** `ADR-0016` 减档禁令射程收窄为「不得为文案密度而减档」· `ADR-0081` 管辖收窄为道心 / 煞气，「寿元战斗内不读写」升格为落 `life-span.md` 的资源纪律 ·「1:1 不得分档」收窄为「不按 `combatTier` 分档」· 境界基线公式删除但赋级带 `±2` 与层数散布 `±1 档` **取值全不变**、改挂非数值理由且护栏整条迁往 `enemies/_index.md` ·「战斗内回寿道具 → 拒」换新理由（防 StS 式 HP 战从后门回来）· `profile-service.md` 明写两条组装纪律。
-  - **`pillars.md` 第 9 条不松动**：Explore 的定价指纹泄漏改由「Explore 行的独立定值」恒常堵死，护栏由呈现门控升为定价结构。
-  - **跨档叙事不做补偿**：余量已明文常驻 ⇒ 预警型文案失去存在理由，寿元三条 Band 文案条目一并删除，「大限将至」不另找载体；终态 `DefeatReason` 呈现照旧。
-- **灵根与角色池：** 五行 `Affinity` 挂 `CharacterData`，功法侧 `RequiredAffinities` / `MaxCharacterAffinityCount` 构成**硬性修习准入**（契合度三态 / 层数折减 / 取池加权全部否决）。角色池**全池指定 · 规模 5**（覆盖 08-28 的 4）。**`CharacterData` 字段表首次成文**（六格 + 十一条加载期校验）。撞名回避：AI 侧 `KeyCardAffinity` → `KeyCardBias`（四处）。
-- **`Artwork` 基数收口：** 恒为一条内容一格，境界维度不进该字段；敌人与其余五类不换相，玩家角色随境界换（稀疏 `CharacterData.RealmArtworks` + 两级回落）。「境界越高画面越沉」收窄为**按条目自身的叙事定位取沉**（`ADR-0100` 与 `art-direction.md` 同改）。`common-properties.md` 的 ⚠ 前置依赖行删除。
-- **以物易物落地：** 支付侧二选一（货币 element 或点名的轮回级法宝），定值不经取池链、不掷 `Shop`、不参与刷新与三道闸；白送漏洞以门面 `Holds()` 前置拒绝堵死，**不扩 `CanAfford`**；新增 `Source.ExchangeBarter = 10`；不持有 → 灰显 + 支付要求可见 + 一条 `EVENT_` 说明。
-- **flags 缓存 + 二进制不经 overlay（跨库成对）：** `flags.json` 补 `schemaVersion` 与写入时点；overlay 只承载 `.tres`；后端补 `no-cache` 层次澄清与零义务表、新增「blob 通道不承载二进制资产」一节，并纠正 `ADR-0002` 里同一句「以支撑离线开局」的错误前提。
-- **新增待答项 8 条**：`01-combat.md` 1（赋级带是否可放宽）· `06-meta-progression.md` 4（角色强度塌缩 / 多灵根换算 / 绑定功法初始层数 / 失败螺旋容错量）· `deferred-content.md` 3（`lossPerMomentum` ch2/ch3 · 回寿量三档点数 · 通用功法占比）。
-- **新增 ADR 候选 4 条**（见索引「下一阶段」）。**旧 answer log 一份未改**，被取代的结论只在新 log 里登记取代关系。
-- answer logs：`log-life-lifespan-merge.md`(2) · `log-character-template-pool.md`(1) · `log-realm-progression-artwork-basis.md`(2) · `log-exchange-barter-support.md`(1) · `log-client-flag-cache-and-binary-overlay.md`(2，对侧同批 2)。
-
-## 2026-08-28c（用户指派的定点修复 · 两轮 · 手牌上限定案 7 · 三份根级横切同批改齐 · 陈旧 ADR 候选行全库清零 · `RelicData` 清零 · `balance.md` 补三问判据）
-
-- **不是技能运行，是一次按 08-28 全量评估所列问题的定点修复。** 输入 = `open-questions.md`「本次新识别的三处问题」+「两处转手空洞」；**唯一一次裁决由用户直接给出：手牌上限定案 7**，其余全部是零决策的投影修正。
-- **🔴 手牌上限 9 → 7**（`terminology.md` 词条），并补上推导回链。下游两处引用本就按 7 写，未动。
-- **三份根级横切同批改齐**：`terminology.md`（`ProfileChangeSpec` 补 `ItemElements` / `ItemUseElements` 两列 · capability flag / modifier pipeline 两词条改两层共用形态 · **新增 11 条词条**覆盖 `ADR-0113` / `0115` / `0117` / `0118` / `0119` / `0122` · `Source:` 补至 08-28）· `program-overview.md`（回合数改 `EncounterSpec.TurnLimit` · 重试上限改两档表选行 · `EnemyManager` 删「意图生成」改 1-ply argmax · `CapabilityManager` 改两层聚合 · 补 `Project(spec)` 与批次层储物袋提交两处落点）· `system-overview.md`（补 `BattlefieldManager.cs` / `StackManager.cs` · `CombatantDeck.cs` → `DeckModule.cs` 消孤例 · `combat.csv` 注释删 `intent` · autoload 树补 combat-service 五个 manager）。
-- **四份文档的陈旧「ADR 候选（待固化）」行改为指向已 Accepted 的 ADR**：`architecture.md` 10 条 → `0007` / `0008` / `0009` / `0010` / `0011` / `0012` / `0013` / `0014` / `0108`；`viewmodel.md` → `0010`；`scoring.md` → `0018` / `0086` / `0052` / `0088`（同批把「固定 10 回合」改写为 `TurnLimit` 遭遇参数）；`monetization.md` → `0023` / `0024` / `0101` / `0117`。
-- **第二轮（同日，用户追加授权）：同型遗留一并清零，另 9 份文档 13 条** —— `adventure-event/common-properties.md` → `0021` · `exchange/_index.md` → `0020` · `research/_index.md` → `0022` · `enemies/_index.md` → `0113` · `player-power/common-properties.md` → `0017`（并另起一行记形态 `0116`）· `combat-service.md` 两条 → `0018` / `0019` · `content-service.md` → `0007`（「固化时须一并纳入两条」改写为「已一并纳入」，因 `ADR-0007` 决策段确已含剧本例外与「无云端内容通道」）· `life-cycle-service.md` → `0036` · `plot-manager.md` 四条 → `0007` / `0014` / `0016` / `0015`，并**补记一条** `0029`（剧本树不分包，此前决策段漏列）· `profile-service.md` 两条 → `0017` + `0116` / `0009`，并**补记一条** `0108` · `vision/scope.md` 两处 → `0006`。**逐条都回读了对应 ADR 的决策段核对覆盖面**（非按标题猜），`0007` / `0016` / `0036` 三条尤其确认了正文里那半句限定确实在 ADR 内。**全库主题文档现已零处「ADR 候选 / 待固化」措辞**；`ADR-0004` / `ADR-0005` 背景段里的「曾列为 ADR 候选」是史实叙述，未动。
-- **`RelicData` 遗留清零**：`player-power/_index.md` 5 处 + `player-profile/_index.md` 1 处改写为 `PowerData` 并指向 `character-profile/power/_index.md` 的字段面权威；那条「relic / joker 字段清单尚未设计」的待决项随之改写为「类型面已闭合、缺的只是内容条目」。**`content/_index.md` 经复核已无该阻塞理由**（上次评估的这半条记录已过期）。
-- **转手空洞闭合**：`systems/balance.md` 新增「不设 `GlobalBalanceData` 兜底大表；平衡资源按三问判据逐份切」一节（三问表 · 不设兜底大表的理由与代价 · 三处既有应用 · 「消费点早于 `LoadAll()` 不进注册表」准入边界）；`CombatRulesData` / `EnemyLevelingData` 各补注册形态回链；管线旋钮表为 overlay 下载重试 / 退避标注「不可线上调」。**`ADR-0074` 就地改写**（决策段补「不设兜底大表 + 三问判据」，后果里自陈的欠账关闭）——同一件事不另开编号，故「下一阶段」的**待固化候选由 1 条降为 0 条**。
-- **未做（如实留痕）**：同一份 handoff 的另一半承接——`systems/game-progression.md` 的 `LocationMapData` 校验行改回链 + 类定义加 `ISingletonContent`。不阻塞任何 derive 步骤，已记在 `open-questions.md` 的转手空洞小节里。
-- **未新增 / 未移出任何待答问题条目**（`answer-logs/` 无新条目）；判定表的判定一格未改，只更新了各行的「已修 / 未修」备注与「落笔前的修正」清单。
-
-## 2026-08-28b（`/write-adr all` 客户端库 · 全量扫描 · 固化 23 条 · 只写 `decisions/` 与「下一阶段」）
-
-- **范围 = 客户端库全量。** 机械对出 **29 份未被任何 ADR 引为来源的 handoff**，分三片并行只读核查（早期 10 份 / 中段 10 份 / 最新 9 份），逐条判定「已覆盖既有 ADR / 已落地 / 查无实据 / 矛盾 / 已推翻 / 非方向性决策」，并逐条回主题文档抽查事实依据。
-- **固化 23 份新 ADR（`ADR-0100` ~ `ADR-0122`）**，编号按定案日期升序分配、台账按日期降序置顶：
-  - **sync 族三条**：`revision` CAS + `pushId` 幂等（`0103`）· `Immediate` flush 非阻塞（`0104`）· 缓冲闸门口径 = 事件级存档点（`0102`）。三者可各自单独推翻，故不合并。
-  - **战斗族四条**：`combat` 单子流 + 初洗按 `sides[]` 序（`0112`）· 敌人 AI 权重向量（`0113`，08-26c 与 08-28 两次推进合成一份）· `ActivateAbility` 契约（`0114`，按 08-27 推翻后的口径落笔，有限性闸只作备选记一句）· 效果原语语法与五阶段流水线（`0115`）。
-  - **内容 / 道具族四条**：`Artwork` + 敌人台词 + 不开音效字段（`0120`）· 道具使用效果面按世界分两格（`0121`）· 批次层储物袋提交与痕迹（`0122`）· `DeckOperation` 取池链（`0118`）与 `MoveCard` 抽牌堆插入位（`0119`）**刻意不合并**（两个子问题各自独立，同批落笔只因写入面重叠）。
-  - **其余**：美术方向（`0100`）· `chapterRetry` 承载 + `attemptIndex` 删层（`0101`）· 单数命名通则（`0105`，来源两份 handoff）· `IgnoresProtection` 落内容编排层（`0106`）· 账号身份客户端承接（`0107`）· `Project(spec)` 只读投影（`0108`）· `lifeSpanCost` 定值（`0109`）· `EnemyData.ChapterScope`（`0110`）· `eventCountLimit` 剧本免疫（`0111`）· capability flag / modifier 形态（`0116`）· 重试上限载体（`0117`，与 `0116` 不合并——可单独推翻且承重论证不同源）。
-- **候选清单移出 1 条**：「敌人 AI 策略 = 权重向量的重新加权」→ `ADR-0113`。**剩余 1 条**：「不设 `GlobalBalanceData` 兜底大表 + 三问判据」经复核**仍是查无实据**——`content-service.md:275` 明写把判据「归 `systems/balance.md`」，而后者只有该判据的逐处应用（`EnemyLevelingData` / `ChapterRetryLimitsData` 各自的「不并入」论证），没有一处陈述这个决定本身。按「台账绝不领先于事实」不建档，原样留下。
-- **两处子代理误判已由主上下文抽查纠正**（如实留痕）：「`Charges == -1` 且含 `OutOfCombat` → `PushError`」被报为查无实据，实际在 `item/_index.md` 校验表 **I-12** 行（核查只到 I-9）；「敌人不开音效字段」同样被报为查无实据，实际在 `enemies/common-properties.md:41`。两条均已按「已落地」处理。
-- **两处既有 ADR 与主题文档矛盾，本次不改、留报告交裁决**（改写既有决定归 `/analyze-new-ideas`，不在本技能范围）：`ADR-0019` 后果行仍写 `IgnoresProtection` 稀缺性靠「`PushWarning` 软检查」，而该加载期核对表已随 `ADR-0106` 删除；`ADR-0017` 决策段仍只写聚合 `PlayerPower` 一层，而 `ADR-0116` 已扩为两层。
-- **台账**：`decisions/_index.md` 新增 23 行，重排后 **122 行 ↔ 122 个文件**、零不一致（本次运行前亦为零不一致）。「状态词汇」「约定」「ADR 形状」三节一字未动。
-- **未碰任何主题文档、未碰 handoff、未碰 `content/`、未碰「derive 就绪度」小节、未碰后端库。**
-
-## 2026-08-28（`/batch-analyze-new-ideas` 道具使用效果面 · 战斗外使用存档点与痕迹 · 内容资产字段 · 移出 6 条 · 新增 2 条）
-
-- **一批三份 `decided` 草稿并行校验、三波串行落笔**（三片写入面两两相交——`item/_index.md` · `deck/common-properties.md` · `combat-service.md` · `systems/common-properties.md` · `profile-service.md`——故不并行）。Phase A 分级 🔴 7 · 🟠 1 · 🔵 54；必问过滤降级 3 项、去重合并 1 组（两个 worker 独立报出同一条跨草稿矛盾）后 **6 问**，分两轮问齐，**全部取推荐项**。
-
-- **`ItemData` 使用效果面整条答结**：两格（战斗内 `EffectData[]` / 战斗外 `ProfileChangeSpec` 模板，只开 `Elements` / `CodexElements` / `Stats`）· **`Abilities` 整格移除**（三档异能都以「在场」为前提，而道具从不进场）· 新增本场配额格 `MaxUsesPerCombat`，把 `ItemUsesThisCombatExceeded` 从 `Charges` 上摘开 · 13 条加载期校验 · 存档零增量。
-- **`RelicData` 条整条移出**（四子项各有权威落点；该类型名已不存在，全库四处同源表述随之改写为 `PowerData`）。**`item/common-properties.md` 与 `CardData` 两格占位条整条移出**；`PlayerItem` 条**部分答定**（只移出「战斗外的效果形态」，目录 / 次数补充 / 价格库存三项仍在）。
-- **「战斗外道具的使用入口」整条答结**：一次使用**不是决策点**、是一次即时提交（一次 `TryApply` ⇒ 一次本地原子写）；push 走 `Debounced` + **新增第六个 `SavePointReason` 成员 `InventoryChanged`**，它同时补上随售此前空着的那个 reason。
-- **`ProfileChangeSpec` 补两列**：`ItemElements`（次数扣减——此前**没有任何一列装得下它**，这是「消耗即时经 `TryApply` 写档」这条已定纪律长期悬空的根因）与 `ItemUseElements`（战斗外使用痕迹，新序列 `CharacterProfile.pastItemUse`）。三处合并为**一次** schema bump、空迁移。
-- **`ItemUseEntry` 收为五字段、零派生量**：`LifeSpanAfter` / `ChargesAfter` 都不写，痕迹判据零松动、`ADR-0021` 的「不是先例」句一字未改；代价由一条写清楚的读取算法承接（从最近一条 `pastEvent` 锚点起、在归并的同一趟遍历内累加）。**`Source` 一个成员不加。**
-- **`AbilityKind` 撞名拆分**：element 侧改名 `AbilityCarrierKind`，成员名不动 ⇒ 零迁移；连带补写「枚举类型名不参与序列化」这条库内此前缺失的承重句。
-- **敌人 schema 三格答结**（出自主题文档待决项，不在任何分片）：立绘 → 新增**顶层共有字段 `Artwork : Texture2D`**（挂载面七类，功法不挂 · 可空是常态 · 缺失由 `LoadAll()` 收口汇总一行而非逐条目告警 · 占位回落只写一处）· 台词 → `Lines : EnemyLine[]` 形态落定（`LineSlot` 成员**收窄**待战斗 UX 专场）· 音效 → **判定不开字段**。另补齐 `AiWeightVector` 这处形式化残留（全库只被使用、从未被定义）。
-- **`ADR-0099` 就地改写**（本批唯一一次 ADR 改写授权）：「`PowerData.Abilities` 取值域不收窄」限定为「不按启动式 / 被动式收窄」，战斗外触发式另受一条加载期校验约束。
-- **新增待答 2 条**：用道具产生的栈条目落在 `StackEntryKind` 哪个成员上（`01-combat.md`）· 二进制资产是否可经 overlay / blob 通道下发（`deferred-content.md`，后端 `contracts/content-manifest.md` 留对侧承接项）。**收窄 1 条**（生成资产落地的命名与导入规则——寻址不再依赖命名约定）。
-- **跨库对称落笔**：`SavePointReason` 扩为六值，后端 `contracts/profile-sync.md` 同批同改并明写未知取值宽容语义；资产下发通道的空白两侧对称登记。**本次不留跨库空悬项。**
-- **纪律观察（供下次 `/summarize-open-questions` 收口）：两条承重缺口都从未进过任何 `open-questions/` 分片**——`ItemData` 的效果格缺口只活在 `content/_index.md` 登记表与一份 handoff 的 Open questions 里；`Charges` 扣减无 element 形态同理。两次同款发现值得一次专门对账。另：后端 `open-questions/cross-boundary.md` 的「待承接」长期为空，该分片的登记纪律本身可能已失效。
-- **索引 `## derive 就绪度` 小节内有三处失真未修**（旧文本仍称「效果原语 / 异能语法未定案」并把它列为玩法侧欠账之首）——该小节由 `/assess-derive-readiness` 独占写入，本技能无权触碰，留待下一次全量重估。
 

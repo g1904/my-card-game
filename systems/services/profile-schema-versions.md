@@ -4,7 +4,7 @@
 > 宿主服务是 `sync-service`（`MigrationManager` 在那里）；服务本体的设计见 `systems/services/sync-service.md`。
 > `schemaVersion` 不是 `PlayerProfile` 的字段——它落三处信封，见该文件「JSON 序列化命名策略」。
 
-Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md`
+Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-09-05-schema-ledger-v1-coverage.md`
 
 ## 登记表
 
@@ -26,29 +26,37 @@ Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md`
 | 4 | `CharacterProfile` | `rng`（`cycleSeed` + `stream[]`，键名 camelCase）· `startContentVersion : int` · `lastContentVersion : int` | `systems/character-profile/_index.md` |
 | 5 | `CharacterProfile` | `eventOption : EventOptionSave?` · `activeEvent : ActiveEventState?` | 同上 |
 | 6 | `CharacterProfile` | `activeCombat : ActiveCombat?`（战斗中间态） | `systems/services/combat-service.md` |
-| 7 | `CharacterProfile` | `pastEvent : PastEventEntry[]`（条目结构 13 字段，含 `EnemyTraceRef`） | `systems/adventure-event/common-properties.md` · `decisions/ADR-0021-past-event-trace-schema.md` |
+| 7 | `CharacterProfile` | `pastEvent : PastEventEntry[]`（条目结构逐字段见权威列，含 `EnemyTraceRef`） | `systems/adventure-event/common-properties.md` · `decisions/ADR-0021-past-event-trace-schema.md` |
 | 8 | `CharacterProfile` | `pastItemUse : ItemUseEntry[]` | `systems/character-profile/_index.md` · `decisions/ADR-0122-batch-layer-inventory-commit-and-trace.md` |
 | 9 | `CharacterProfile` | `plotKeyPoint : PlotKeyPoint[]` | `systems/character-profile/_index.md` |
 | 10 | `CharacterProfile` | `disabledAbility : DisabledAbilityEntry[]`（顶层键） | 同上 |
-| 11 | `CharacterProfile` | `chapterRetry` 三格具名字段 `Ch1RetryUsed` / `Ch2RetryUsed` / `Ch3RetryUsed` | 同上 |
-| 12 | `CharacterProfile.Status` | 首发形状 **22 格**，**不含** `currentMana`（战斗内运行态，落 `activeCombat`） | 同上 · `decisions/ADR-0127-life-merged-into-lifespan.md` |
+| 11 | `CharacterProfile` | `chapterRetry` 具名字段 `Ch1RetryUsed` / `Ch2RetryUsed` / `Ch3RetryUsed` | 同上 |
+| 12 | `CharacterProfile.Status` | 子类的首发形状（逐格见 `systems/character-profile/_index.md` 的 `CharacterProfile.Status` 子表），**不含** `currentMana`（战斗内运行态，落 `activeCombat`） | 同上 · `decisions/ADR-0127-life-merged-into-lifespan.md` |
 | 13 | `CharacterProfile.Status` | `FaithBand` · `BloodlustBand`（`sbyte`） | `systems/character-profile/_index.md` |
 | 14 | `CharacterProfile.Status` | `CurrentLocationId` · `LocationEventCount` | 同上 |
-| 15 | `PlayerProfile` | `entitlement : PlayerEntitlement`（2 字段） | `systems/player-profile/_index.md` |
-| 16 | `PlayerProfile` | `PlayerPowerFragment` 七格：`Accumulated` · `FinaleWinOrdinal` · `Ch1/2/3FirstWinDone` · `LastRoll` · `LastEffectiveChance` | 同上 |
+| 15 | `PlayerProfile` | `entitlement : PlayerEntitlement` | `systems/player-profile/_index.md` |
+| 16 | `PlayerProfile` | `PlayerPowerFragment` 各格：`Accumulated` · `FinaleWinOrdinal` · `Ch1/2/3FirstWinDone` · `LastRoll` · `LastEffectiveChance` | 同上 |
 | 17 | `PlayerProfile` | `AccountInfo.AccountSeed` | `systems/player-profile/account-info.md` |
-| 18 | `PlayerProfile` | 引入 `statistics`（`PlayerStatistics`）与 `disabledAbility` **两个顶层键**本身（见下方形态纪律的顶层键分界） | `systems/player-profile/_index.md` · `systems/character-profile/_index.md` |
+| 18 | `PlayerProfile` | 引入 `statistics`（`PlayerStatistics`）这个顶层键本身（见下方形态纪律的顶层键分界） | `systems/player-profile/_index.md` |
 | 19 | `PlayerProfile` | 全部 Codex 顶层键（元素 `CodexEntry`） | `systems/player-profile/codex/common-properties.md` |
 | 20 | `PlayerProfile` | `gameSetting`（子对象 `GameSetting`） | `systems/player-profile/game-setting.md` |
 | 21 | `PlayerProfile` | 四类持有条目定形，条目键名 `powerId` / `itemId`；**集合字段名一律单数** | `systems/player-profile/_index.md` · `decisions/ADR-0105-singular-collection-field-naming.md` |
 | 22 | `ProfileChangeSpec` | 按施加语义分列的各列：`StatusChanges` · `DeckElements` · `PlotElements` · `EventStateChanges` · `RngElements` · `TraceElements` · `CodexElements` · `SettingChanges` · `ItemElements` · `ItemUseElements`（元素类型 `StatusAssignment` / `DeckChangeElement` / `PlotKeyPointAssignment` / `EventStateAssignment` / `RngStateAssignment` / `PastEventEntry` / `CodexUnlock` / `SettingAssignment` / `ItemChargeElement` / `ItemUseEntry`） | `systems/services/profile-service.md` · `decisions/ADR-0128-status-changes-assignment-column.md` |
 | 23 | `ProfileChangeSpec` | `ChangeElement` 第三字段 `Op`；`ElementSpec` 第六列 `AllowedOps`；`DeckChangeOp` 含 `AddLooseCard` ⇒ `PastEventEntry.AppliedChange` 的形状随之定形 | `systems/services/profile-service.md` |
 | 24 | `EventOption` | `OutcomeSpec` · `Encounter` · `DestinationLocationId` | `systems/adventure-event/common-properties.md` · `decisions/ADR-0128-status-changes-assignment-column.md` |
-| 25 | `EventOption` | Exchange 物化三格 `ExchangeStock` · `BarterStock` · `RerolledCount` | `systems/adventure-event/exchange/common-properties.md` · `decisions/ADR-0126-exchange-barter-payment.md` |
+| 25 | `EventOption` | Exchange 物化字段 `ExchangeStock` · `BarterStock` · `RerolledCount` | `systems/adventure-event/exchange/common-properties.md` · `decisions/ADR-0126-exchange-barter-payment.md` |
 | 26 | `EventOption` | `AbilityChangeSlots` | `systems/services/future-event-service.md` |
-| 27 | `ActiveCombat` | 战场条目 `amount` · 栈条目 `itemId`（两格） | `systems/services/combat-service.md` · `decisions/ADR-0132-stack-entry-kind-used-item.md` |
+| 27 | `ActiveCombat` | 战场条目 `amount` · 栈条目 `itemId` | `systems/services/combat-service.md` · `decisions/ADR-0132-stack-entry-kind-used-item.md` |
+| 28 | `CharacterProfile` | `status : CycleStatus` · `chapter : int` | `decisions/ADR-0004-realm-checkpoint-retry-model.md` |
+| 29 | `CharacterProfile` | `realm : Realm` · `level : int` | `systems/game-progression.md` |
+| 30 | `CharacterProfile` | `magicPack` · `characterPower` 两个持有列表顶层键（元素 record 的形状见 #21） | `systems/character-profile/item/common-properties.md` · `systems/character-profile/power/common-properties.md` |
+| 31 | `PlayerProfile` | `characterProfile`（两层聚合的容器顶层键） | `systems/character-profile/_index.md` |
+| 32 | `PlayerProfile` | `playerPower` · `playerItem` 两个持有列表顶层键（元素 record 的形状见 #21） | `systems/player-profile/player-power/_index.md` · `systems/player-profile/player-item/_index.md` |
+| 33 | `PlayerProfile` | `AccountInfo` 其余各格 `AccountId` · `CreatedAtUtc` · `Identities` · `Nickname`——与 #17 的 `AccountSeed` 合为该顶层键的完整形状 | `systems/player-profile/account-info.md` |
 
 **清单只写对象 + 字段名 + 一句话，不复述类型 / 取值域 / 校验语义**——那些的权威在「权威」列所指的字段所在文档。这与 `content/` 的硬边界是同一条纪律。
+
+**`PlayerProfile.achievement` 尚未进清单。** 它的条目结构待 `Achievement` schema 答定后补入本清单，届时仍属 `schemaVersion` 1、不产生新的 bump。在唯一登记面上写一个推测形状比空着更危险——它会被当作权威照抄进迁移器；留这一句是让这处空缺**有承载**而不是不可见。
 
 ## 形态纪律
 
@@ -70,6 +78,9 @@ Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md`
 - **引入一个新的顶层键** ⇒ 进版本行（它是浅合并的最小替换单位，形状上是一格新结构）。
 - **不透明段内、已登记顶层键内向对象追加一个字段** ⇒ **不进版本行、不 bump**。典型是统计层加一项计数：宽松同步 + 老档缺字段补默认值 + 不参与任何判定 ⇒ 既不需要迁移路径也不需要后端配合（`systems/services/sync-service.md`；契约侧的对位推论在 `backend-design-documents/contracts/envelope.md` §8）。
 - **受回声校验约束的顶层键内追加字段** ⇒ 与「移动 / 重命名透明路径」同档：两侧同批落笔并进版本行。理由见 `systems/services/sync-service.md`「透明路径的稳定性纪律」。
+
+**⑥ 本表不写任何计数（格数 / 条数 / 行数）。** 计数是随字段族增长的第二真值，且与形态纪律 ① 的可机检判据相抵——golden 快照能逐行对，对不了一个数。指代一组字段一律用不带计数的措辞 + 指向字段表的回链，与 `ProfileChangeSpec` 的「列表数不进承重表述」及 Codex 顶层键的「不带计数的措辞」同一条。
+- **射程 = 字段计数**（某对象有几格、某列表有几条、某表有几行）。纪律与清单**自身的条目编号**（本节的「三档」「六条」、清单行号 #N）不在此列——否则规则会吃掉自己。
 
 ## 登记时点与责任人
 
@@ -93,6 +104,7 @@ Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md`
 - **首发前只有 v1 一版 ⇒ 只保留当前版一份 golden 文件**，不为尚无实例的多版本回归先行造目录。
 - **落地时点：** `game-feature-branch/` 尚无 `.csproj`，本护栏宜与那批既有实测项同批落地（`open-questions/05-service-contracts.md`），**不单独排期；设计形态不依赖实测结果**。
 - **第 3 级的一条廉价旁证：** 「凡本表之外出现『bump schema 版本』字样 ⇒ 必须是回链或上述三类非自称形态」可作为 `/sync-knowledge` 的一条 grep 断言。它抓的是**文档漂移**，护栏抓的是**代码漂移**，两者不重叠。
+- **第 3 级的第二条廉价旁证：** 本护栏比对的是**代码形状 ↔ golden 文件**；「**登记表条目 ↔ 两层 Profile 字段表行**」那一段由 `/sync-knowledge` 的一条对账断言承担——v1 清单的条目集合与 `systems/character-profile/_index.md` · `systems/player-profile/_index.md` 字段表的行集合双向核对，任一侧有而另一侧无 ⇒ 报一条不一致。它与上一条互补不重叠：上一条抓「别处又自己宣布了一次」，本条抓「本表少了一格」。条目漏登的后果是文档面误导（golden 快照仍会带上那个字段、`ProfileShapeCheck` 仍会通过，而迁移器作者照表写会漏格），属「能上线、开发期可发现」⇒ 第 3 级足够，**不为它另造工具、也不抬到管线闸**（管线读不到设计库）。它是跟着 `/sync-knowledge` 走的机会性对账，不是排期的周期性巡检——后者已被「登记时点与责任人」明确排除。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/sync-service.md`（引用层，待建）。

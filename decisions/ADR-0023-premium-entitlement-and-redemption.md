@@ -19,7 +19,7 @@ while (Grant > Redeemed) { ordinal = Redeemed + 1; rng = AccountRng.For(PremiumB
                            抽 1 法则 + 2 古宝 → 一次 TryApply（水位与授予同批） }
 ```
 
-**③ 整条流程只在主菜单发起**，且购买入口有**四条前置条件**（在主菜单 · 待发队列为空 · 可授予池够 · 无待兑现）。
+**③ 整条流程只在主菜单发起**，且购买入口受一张**前置条件表**把关（在主菜单 · 待发队列为空 · 可授予池够 · 无待兑现 · 当前平台存在可用渠道；表的权威在 `systems/monetization.md`，以不带计数的措辞指代）。
 
 **④ 空池 = 三道闸 + 不补发**：内容加载期硬校验 · **购买入口拦截**（真正的防线，把失败点挪到掏钱之前）· 兑现结算（理论不可达，真发生则计未兑现、不补发不折价不降级替代，但**水位照常推进**）。
 
@@ -54,5 +54,5 @@ while (Grant > Redeemed) { ordinal = Redeemed + 1; rng = AccountRng.For(PremiumB
 - **它引入同步模型此前没有的第四种情形：后端主动写入**——时机纪律与冲突窗口的关闭机理归 `systems/services/sync-service.md`。
 - **购后 pull 失败 ⇒ 阻塞在主菜单重试直到成功，无硬超时、永不放弃**；等待期呈现是 Store 流程内的全屏模态进度态，不是阻塞屏的第四个变体。
 - **诚实性纪律**：第二次及以后的购买，UI 必须在**付款前**如实标注本次仅含随机 1 法则 + 2 古宝。
-- 商业化落地时条件编译清单由 **5 → 6**（新增 `IPurchaseBackend`），这是一次已预告的、有边界的扩张。
+- 条件编译清单含购买域带来的第 **6** 处（第四个窄接口 `IPurchaseBackend` 的 `OfflinePurchaseBackend`）；判据见 `systems/architecture.md` 总则 7，接口形态见 `systems/services/sync-service.md`。
 - 影响文档：`systems/monetization.md`（权威）· `systems/player-profile/_index.md` · `systems/services/sync-service.md` · `systems/services/profile-service.md` · `systems/common-properties.md`（账号级 RNG 与 `Source`）· `ux/screen-flow.md` · `ux/error-and-blocking-ux.md`。跨库：`backend-design-documents/contracts/purchase.md`（验票报文与幂等口径）。

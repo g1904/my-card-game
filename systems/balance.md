@@ -24,7 +24,8 @@
 
 - **敌人赋级的合法区间 = 角色当前等级 `±2` 的对称带（三章统一）。** 物化赋级落在 `[角色等级 − 2, 角色等级 + 2]` 内，在全局序 **1–22** 上截断。它**不是**按境界给的绝对天花板，且**同时给出上界与下界**。**赋级规则挂在 Enemy 上、不挂在事件类型上**，故 **`combatTier` 三档一视同仁**（天劫亦然，见 `systems/adventure-event/combat/`）。
   - **带边界住在平衡资源 `EnemyLevelingData` 里**（与下方的带内分布权重表**同住一份**），随内容 overlay 可调。代码侧只读「当前篇章的带」这一个概念，**不为分章写分支**（当前三章取同一组值）。形态与加载期校验见下方「敌人赋级资源 `EnemyLevelingData`」。
-  - **`±2` 是无例外的硬规则。** 任何调制源（PlotManager、location 框定、事件模板、Finale）**都不得产出带外 `diff`**；**赋级函数不接受任何区间覆盖参数**——不给这个口子，就不存在「谁有权用它」的问题。最强论据来自 Finale：全作最凶的天劫**不享有任何等级规则上的例外**，其特殊性全部落在定制卡组与遭遇参数上。**「绝境感」只能由样本卡组 / item / power / 遭遇参数四个旋钮表达，永远不由等级差表达**（且剧情线的差异化改走**专属敌人模板池**，见 `systems/services/future-event-service.md`）。已知代价：在卡牌的道念量纲经统计校准定出之前，剧本侧**暂时造不出可校准的绝境遭遇**——绝境感被推迟，不是被取消。
+  - **`±2` 是无例外的硬规则。** 任何调制源（PlotManager、location 框定、事件模板、Finale）**都不得产出带外 `diff`**；**赋级函数不接受任何区间覆盖参数**——不给这个口子，就不存在「谁有权用它」的问题。最强论据来自 Finale：全作最凶的天劫**在赋级带上不享有任何例外**——它的 `diff` 同样必须落在带内。
+  - **剧本 / 内容侧不得用等级差表达 Finale 的特殊性。** 对剧本与内容编排而言，天劫的特殊性全部落在定制卡组与遭遇参数上：**「绝境感」只能由样本卡组 / item / power / 遭遇参数四个旋钮表达，不由等级差表达**（且剧情线的差异化改走**专属敌人模板池**，见 `systems/services/future-event-service.md`）。**平衡面则独占一个 Finale 等级旋钮 `FinaleDiff`**（见下方「敌人赋级资源」），其取值受同一条 `±2` 带纪律约束。这条分工的依据是「Finale 是篇章的能力检查点，它的难度必须由平衡面独占决定」——允许剧本加压 Finale 等于让某些剧本线不可通关（见 `decisions/ADR-0077-encounter-tighten-increments.md`）。已知代价：在卡牌的道念量纲经统计校准定出之前，剧本侧**暂时造不出可校准的绝境遭遇**——绝境感被推迟，不是被取消。
   - **推论 ①（承重）：一次惨败的量级由规则层框住。** 最坏情形是境界边界的跨越（炼气十三层 `baseMomentum` 15 遇筑基中期 24 = **落后 9 点道念**）；按 ch1 的 `lossPerMomentum = 10` 换算为 **90 点寿元**，占炼气段 1000 点寿元预算的 **9%**——与回寿三档的中档同量级。**「落差 9 → 9%」不是规律，是 ch1 一格上 `预算 ÷ 系数 = 100` 的巧合等式**；ch2 / ch3 须各自按本章的预算与系数换算，不可照抄这个读法。**内容侧纪律是第二道防线**（见 `systems/character-profile/life-span.md`、`systems/scoring.md`）。
   - **推论 ②：越阶遭遇只出现在每个境界的末两级** —— 12 · 13 → 筑基；16 · 17 → 金丹；20 · 21 → 元婴。**三章统一**；越阶压迫感自动向篇章尾部集中，与 Finale 落在篇章边界同向。
   - **推论 ③：上界档不必然越阶。** `diff = +2` 只在境界末两级才是越阶；境界中段的 `+2` 是同阶。
@@ -40,16 +41,16 @@
   - **全章统一一张表，不按章内进度分段。** `diff` 的唯一消费点是 `baseMomentum` 起跑线，早 / 中 / 末三段的分辨率没有对应的消费面；且分段在 ch2 · ch3 天然粗（4 级里末段占一半），「分布随进度右移」在那里兑现不出来。**不分段同时省掉一处状态读取**——赋级不需要知道角色在本境界内的等级位置。
   - **众数恒为 `diff = 0`**（「多数同级、偶有硬仗」），与「`Standard` 档的常态是同级对局」一致。
   - **「篇章尾部变险」由规则单独承载**：越阶只可能出现在境界末两级（`±2` 带的推论 ②），这条不依赖分布右移即成立。
-  - **调制修正（乘性，只改权重不改支撑集）**：PlotManager 可对本批 / 本剧情线整体施加偏移系数（如把 `+1 / +2` 权重翻倍后归一化）；**事件类型不修正**（`Standard` / `Practice` 档共用同一张表——`Practice` 的低风险由回合数与胜负门槛承担，**不由派更弱的对手承担**）；**Finale 不掷骰**（天劫是指派，恒为 `diff = +1` 且必然越阶）。
+  - **调制修正（乘性，只改权重不改支撑集）**：PlotManager 可对本批 / 本剧情线整体施加偏移系数（如把 `+1 / +2` 权重翻倍后归一化）；**事件类型不修正**（`Standard` / `Practice` 档共用同一张表——`Practice` 的低风险由回合数与胜负门槛承担，**不由派更弱的对手承担**）；**Finale 不掷骰**（天劫是指派，`diff` 直接读本篇章配置的 `FinaleDiff`，见下方「敌人赋级资源」；该值恒 `>= +1` ⇒ **天劫必然越阶**）。
   - **截断重分配（必须显式写出）**：全局序 1–22 截断后落空的档位，其权重**按比例并入带内剩余档**（角色 L1 时 `−2 / −1` 的 25% 并入 `0 / +1 / +2`）——否则 L1 · L2 的抽取会出现权重和不为 1 的实现分歧。
   - **批内去重**：同一批 eventOptions 内若有多个战斗类事件，赋级尽量互不相同（掷出重复时重掷一次，仍重复则接受）。理由：只有当一批里同时存在高低档，「越级挑战是可主动选择的风险 / 回报维度」才成立。已知代价：去重后实际分布会轻微偏离权重表，接受。
   - 权重是纯经验初值，留待内容扩充后的统计校准（带宽与权重一并回归）。
 
-- **敌人赋级资源 `EnemyLevelingData`（带边界与带内权重同住一份）。** 敌人赋级这一件事的全部旋钮落在一份平衡资源上：三章各一行，每行是一个 `EnemyLevelRange`（相对 `diff` 的闭区间 + 逐档权重）。
+- **敌人赋级资源 `EnemyLevelingData`（带边界、带内权重与 Finale 指派值同住一份）。** 敌人赋级这一件事的全部旋钮落在一份平衡资源上：三章各一行，每行是一个 `EnemyLevelRange`（相对 `diff` 的闭区间 + 逐档权重 + 该章天劫的指派 `diff`）。
 
   ```csharp
   [GlobalClass]
-  public partial class EnemyLevelingData : Resource
+  public partial class EnemyLevelingData : Resource, ISingletonContent
   {
       // 三章各一行；篇章数是固定的游戏结构 ⇒ 具名字段，不用字典 / 索引数组
       [Export] public EnemyLevelRange Chapter1 { get; set; }
@@ -63,18 +64,33 @@
       [Export] public int     Lower   { get; set; } = -2;   // 相对角色等级的下界（含），须 <= 0
       [Export] public int     Upper   { get; set; } = +2;   // 上界（含），须 >= 0
       [Export] public float[] Weights { get; set; }         // 从 Lower 到 Upper 逐档；长度须 == Upper - Lower + 1，和为 1
+      [Export] public int     FinaleDiff { get; set; } = +1; // 本章天劫的指派 diff（相对角色等级）；须落在 [1, Upper]
   }
   ```
 
   - **行类型定名 `EnemyLevelRange`，刻意不写成 `LevelBand`。** 「Band」在本库已被**隐藏属性档（道心 / 煞气）**占用（`HiddenStatBandData` · `BandIndex` · `PlotTrigger.HiddenStatBand`），同页两义会让读者把两个毫不相干的档位概念混起来——判据与 `Tier`（优势档）/ `RarityTier`（稀有度档）不得复用同一枚举那条硬约定完全一致。中文侧照旧叫「赋级带」，改的只是代码标识符。
   - **带边界与权重必须同住一份资源。** 权重表的支撑集就是带宽：`−2 … +2` 五个档位不是五个独立数字，而是「从下界到上界逐档」的枚举。分放两份会立刻产生一条**跨文件不变式**（档数 == `Upper − Lower + 1` 且顺序一一对应），这种不变式要么无人校验、要么校验代码得同时加载两份资源猜它们的对应关系；一旦破了，赋级会静默取到错位的权重（下界档吃到上界档的 10%）——**能上线、线上分布悄悄不对却不崩**。同住一份，它退化为一次本地断言。
+  - **`FinaleDiff`：Finale 的专属难度旋钮，与带边界同住一行。** 天劫不掷骰，它的等级是**指派**；指派值不再是硬编码常数，而是本篇章行上的 `FinaleDiff`——物化时以 `角色等级 + FinaleDiff` 得出天劫等级。
+
+    | 篇章 | `FinaleDiff`（初值） | 角色在境界巅峰 | 推导出的天劫等级 | 对应境界 | 开局落差（道念） |
+    |---|---|---|---|---|---|
+    | ch1 | **+1** | 13 | 14 | 筑基初期 | **5** |
+    | ch2 | **+1** | 17 | 18 | 金丹初期 | **13** |
+    | ch3 | **+1** | 21 | 22 | 元婴初期 | **25** |
+
+    - **存储形态是相对 `diff`，不是绝对等级。** 表右侧的 14 / 18 / 22 是**推导结果**，不是配置值。取相对形态的理由：同一行的其余字段本就是「相对 `diff` 的闭区间 + 逐档权重」，往一行相对语义里塞一个绝对值是同页两义；且相对形态下校验退化为**纯本地断言**，不必外借「篇章末级」这个住在境界枚举里的常量——跨文件不变式要么无人校验、要么校验代码得加载两份资源猜对应关系，这正是带边界与权重必须同住一份的同一条理由。
+    - **它与同行的 `Upper` 之间有跨字段不变式**（`FinaleDiff <= Upper`），按「有跨字段不变式的同住一份」判据，它不容拆成第二份资源；而平衡资源是本库唯一的配置层（见 `decisions/ADR-0074-balance-resource-is-the-only-config-layer.md`），也不存在「服务配置」这一层可放。
+    - **初值三章恒 `+1` ⇒ 装上旋钮而不拧它。** 玩家侧零可感知变化，平衡侧零重算：三个推导等级恰是当前的运行结果。
+    - **下界恒为 1（不是 `Lower`）。** `FinaleDiff = 0` 意味着天劫与角色同级、不越阶，「渡劫 = 突破到下一境界」的叙事随之破裂；负值同理。**天劫必然越阶是承重的**，故下界由它定死为常量 1，与带的 `Lower` 无关。
+    - **实际档位（如实写下）：ch1 `[14,15]` · ch2 `[18,19]` · ch3 `[22,22]`。** 上界受 `Upper = +2` 与全局序上界 22 双重截断，**ch3 的 `FinaleDiff` 只有 `+1` 一个合法取值 —— 这个旋钮在第三篇章不可拧**。第三篇章的 Finale 校准因此仍只能走定制卡组强度与 `TurnLimit`。这是接受的取向：旋钮在 ch1 / ch2 各有 2 档已足以消解「手段 ① 是死手段」这一缺口，而为 ch3 争取余量需要放宽 `±2` 带本身（那是一次要有实测数据支撑的独立决策，见 `decisions/ADR-0044-enemy-leveling-band.md`）。
+    - **校验基准取「本境界末级」而非「角色当前等级」的前提：角色进入 Finale 时恒在本境界末级**（Finale 的出现条件就是角色已达本境界巅峰，且它以 `Priority = 1` 封锁同批其余选项）。见 `systems/adventure-event/combat/_index.md`、`systems/services/future-event-service.md`。
   - **不并入 `CombatRulesData`：** 那一份的消费者是 combat-service（起手 / 抽牌 / 手牌上限，且可被 `EncounterSpec` 可空覆写），赋级则发生在 future-event-service 的物化阶段、战斗开始之前，且**不接受任何覆写参数**。消费者不同、覆写纪律相反，合成一份会让「哪些字段可被 `EncounterSpec` 覆写」变成逐字段记忆的事。（这是下方「平衡资源三问判据」问 ①② 的一处应用。）
   - **注册形态：`EnemyLevelingData` 是 `ISingletonContent`，进 ContentRegistry、经 `Content.Single<EnemyLevelingData>()` 取**；条数与启用态的加载期校验见 `systems/services/content-service.md`。
   - **三行当前同值 `(−2, +2)` 不是冗余**：三章统一是**当前取值**而非结构性约束，留三行等于把「分章 ↔ 统一」的可逆性保留在数据侧，而不是焊进代码。读取收敛为一次取值 `BandFor(chapter)`，调用侧看到的仍是「当前篇章的带」这一个概念，与「不为分章写分支」自洽。
   - **写权收口：** 带边界只有这一份权威，赋级函数不接受任何区间覆盖参数；**PlotManager 只能乘性调制带内权重（只改权重不改支撑集），不得改带边界**——调制若能改支撑集，就等于给剧本开了一个绕过 `±2` 硬规则的后门，而 `±2` 的数值安全性推导正建立在支撑集封闭之上。
   - **`EnemyLevelRange` 与功法层数不建立机械对应关系。** 敌人的功法层数在 `EnemyData` 上**逐条编排为固定值**，赋级只动 `baseMomentum`；同一个敌人不因掷到 `+2` 而换一套更高层的卡组。理由：**卡组保持强度中立、不叠第二条强度曲线**（见 `systems/enemies/_index.md`），而层数按定义就是严格升级的第二条纵轴——让它随赋级浮动，难度曲线就失去可控性——同一个敌人条目在两次遭遇中强度不同，且强度差不体现在玩家唯一能读到的刻度（等级）上。「强敌 = 更高层数」成立于**内容编排层**，不成立于物化层。连带收益：层数固定 ⇒ 敌方卡组的展开在加载期即唯一确定，图鉴的静态性与关键卡牌的加载期校验都不必改。
 
-  **加载期校验（五条，全部带定位上下文）：**
+  **加载期校验（八条，全部带定位上下文）：**
 
   | 违规 | 语义 | 处置 |
   |---|---|---|
@@ -83,8 +99,12 @@
   | 某章 `Weights.Length != Upper − Lower + 1` | 档位与带宽错位，**能上线、线上分布静默不对** | `PushError` + 抛，带章号与两个长度 |
   | 某章权重和 ≠ `1`（浮点比较取容差 `1e-6`） | 抽取实现分歧 | `PushError` + 抛，带章号与实际和值 |
   | 某章权重含负值 | 不可能态 | `PushError` + 抛，带章号与违规档位 |
+  | 某章 `FinaleDiff < 1` | 天劫不越阶（含缺值 / 未赋值 ⇒ 读作 `0`），「渡劫 = 突破到下一境界」的叙事破裂；且 `0` 会让天劫与角色同 `baseMomentum`，Finale 的开局落差归零 | `PushError` + 抛，带章号与取值 |
+  | 某章 `FinaleDiff > Upper` | 天劫落在带外，`±2` 无例外硬规则被静默破坏 | `PushError` + 抛，带章号与两个取值 |
+  | 某章 `该章末级 + FinaleDiff > 22`（末级 13 / 17 / 21） | 天劫等级超出全局序，无对应 `baseMomentum` | `PushError` + 抛，带章号与算出的等级 |
 
   - **不设「下界不得使 `diff` 门槛不可达」这条一致性检查**——被检查的对象（按 `diff` 分档的信息揭示门槛）在本作中不存在。**这一点必须留在文档里**，否则它会作为「曾经提过的校验」被日后实现重新捡起来，去检查一个不存在的东西。
+  - **`FinaleDiff` 的上界读同一行的 `Upper`，不写字面量 `2`**——两者同住一份正是为此；写死 `2` 会在日后调整带宽时静默失配。**下界则写常量 `1`，刻意不读 `Lower`**：它表达的是「天劫必然越阶」，与带的下界是两件事，跟着 `Lower` 走会让一次带宽调整顺手把不越阶的天劫放进来。
   - **截断重分配不进加载期校验**：全局序 1–22 的截断是**运行期**行为（角色 L1 时 `−2 / −1` 落空、权重按比例并入剩余档），与加载期的「权重和 = 1」作用在不同时刻，二者不矛盾。
 
 - **敌人功法层数的内容编排护栏。** 敌人的功法层数按篇章给一个基准档（对齐玩家在该阶段的典型层数），**逐条目偏离不超过 ±1 档**。一档 `TechniqueTier` 差在标准 10 回合内累计 ≈ 一档 `diff` 的落差（见下方追分锚点），故层数差是一条与 `diff` 同量纲的强度旋钮；不设护栏就等于在赋级带之外再开一条不可见的难度轴。护栏本体与核对归属见 `systems/enemies/_index.md`。
@@ -264,11 +284,11 @@
   | 篇章维 | **不设** |
 
   - **理由与 `lifeSpanCost` 表同构**：改一张表即可全局调经济、不必重扫数百个 `.tres`、避免同类商品在不同作者手里定价漂移。
-  - **不设篇章维**：货币随轮回清理、每章重置，与寿元的跨篇章结转不同——篇章差异应由「掉落多少货币」承载，而不是让同一件东西在第三篇章更贵。
+  - **不设篇章维**：两种货币与寿元同形，**跨篇章结转**——价格因此必须跨章稳定，否则攒下来的余额会被通胀稀释，「省着花有跨篇章回报」这条激励当场失效。篇章间的经济差异改由「掉落多少货币」承载（见下方「货币产出与定价」），而不是让同一件东西在第三篇章更贵。
   - **支付币种由格决定，内容侧零新增书写位（承重）。** 一件商品收灵石还是收仙玉，由它所在的「族 × 稀有度」格给出——`ExchangeStockRule` / `ExchangeSpec` 都不带币种格，「内容条目默认不填、取表值」原样成立。物化时把币种连同基准价一起抄进 `ExchangeOffer.Currency`（与 `BasePrice` / `ListPrice` 同处的快照格）；购买 spec 写成 `ChangeElement(offer.Currency, -ListPrice, Add)`，`MissingElement = offer.Currency`。`CanAfford` / `TryApply` pipeline 本就对 `CostKey` 泛化，**零改动**。`PriceOffset` 的语义不变，仍是作用在本格基准价上的偏移。
   - **售出所得 = 同币回收，因而不产生事实汇率。** `SellRatePercent` 折算的基准就是本表的基准价，而币种在同一格上 ⇒ 卖出所得恒与买入同币。「灵石与仙玉完全不可兑换」这条纪律因此由结构闭合，无需任何额外判断；「可售出 ⟺ `Kind == CharacterItem`」那条判据一字不动。见 `systems/character-profile/currency.md`。
   - **被接受的代价明写：币种与「族 × 稀有度」绑死。** 编排不出「同一稀有档有的收灵石、有的收仙玉」，也编排不出「专收仙玉的商贾」。换来的是币种不可能被内容条目误填，且售出侧不产生事实汇率。
-  - **每格填多少（含哪些格填仙玉）留待内容扩充后的统计校准，且在两种货币的获取渠道答定前无法反推**（见待决问题）。币种在格上的分布与基准价属同一次校准的两个输出，不单独先定。
+  - **25 格的初值与币种分布见下方「货币产出与定价」**——它们由两条产出曲线反推得出，币种在格上的分布与基准价是同一次反推的两个输出。绝对数字仍归内容扩充后的统计校准复核。
   - **该表同时是两条售出通道的折算基准**（Exchange 商店内售出与储物袋随售）：回收率作用在表上的基准价，**不作用在 `ListPrice`** 上——后者已含 `ShopPrice` modifier 与内容侧 `DiscountPercent`，按它折算会让「在打折商店卖东西更亏」，玩家读不出因果。
   - **随售场合没有 `ExchangeOffer`，故它现查本表那一格。** 储物袋里的法宝多数由战后奖励 / 事件产出而来，从未经过物化，读不到 `PriceOffset` / `DiscountPercent` / `ListPrice`（三者都是店铺库存规则与物化产物）；随售因此按 `(CharacterItem, 该条目的 RarityTier)` 现取这一格的 (币种, 基准价) 折算。这与「`ExchangeOffer` 恢复即读、绝不回查定价表重算」不冲突——那条约束的是**已物化的 offer**，而随售没有 offer。**已知代价正面写下：** overlay 在轮回中途改了本表，随售价随之变化；它落在「确定性边界只到同一 `contentVersion` 内」之内，不构成新的例外。
   - 定价链、折扣叠加顺序与 `Clamp >= 1` 见 `systems/adventure-event/exchange/_index.md`。
@@ -279,12 +299,92 @@
 
   | 档 | 旋钮 | 落点 | 取值 |
   |---|---|---|---|
-  | 商店档 | `SellRatePercent` | `ExchangeSpec` 上的逐条目字段（内容编排面） | 建议 **30–50%**：卖仍是亏，只是比丢掉强 |
-  | 随售档 | `PackSellRatePercent` | **全局单值**，住平衡资源、经 `Content.Single<T>()` 取 | **显著低于**商店档区间；取值同归内容扩充后的统计校准 |
+  | 商店档 | `SellRatePercent` | `ExchangeSpec` 上的逐条目字段（内容编排面） | **初值 40%**，可编排区间 **30–50%**：卖仍是亏，只是比丢掉强 |
+  | 随售档 | `PackSellRatePercent` | **全局单值**，住平衡资源、经 `Content.Single<T>()` 取 | **初值 15%**，显著低于商店档区间 |
+
+  - **15% 使「清仓不构成经济来源」在算术上成立：** 一件 Tier2 法宝（基准价 40 灵石）随售得 6，不足半次购入；同一件在商店收购档得 16，恒显著更优。两个数字都是初值，随内容扩充后的统计校准复核。
 
   - **两者互不作缺省、不共用一格。** 商店档存在的理由是「让『只卖不收』与『压价低』的商店可编排」，随售没有编排主体（它不发生在任何条目上）⇒ 天然是全局单值。
   - **相对关系是结构性约束，不是编排口径：`SellEnabled == true` 且 `SellRatePercent <= PackSellRatePercent` → 加载期 `PushError`**（校验行见 `systems/adventure-event/exchange/common-properties.md`）。两个值都在加载期可得，机械可比，故按「坏数据在启动期大声失败」处置，而不是留给 `/audit-content` 只报告。
   - **两档的论证基底：储物袋随售是常态的弃置途径**——低回收率使「清仓」不构成一条经济来源，弃置的收益只是聊胜于无；**提供收购的商店是罕见的更优机会**，硬校验保证它恒优于随售，这正是它作为机会的全部意义。通道形态见 `systems/character-profile/item/_index.md`（随售）与 `systems/adventure-event/exchange/_index.md`（商店内）。
+
+- **货币产出与定价（两条产出曲线一同反推）。** 灵石与仙玉的产出量、25 格定价表的初值与币种分布是**同一次反推的三个输出**，不单独先定其一——双币经济的相对价值由两条曲线共同决定。
+
+  - **两种货币跨篇章结转，与寿元同形。** 篇章边界不做任何清零动作，货币只随轮回清理。故「省着花有跨篇章回报」对货币逐字成立，标定分母也随之有两个，须并用：
+
+    ```
+    I(c)     = Σ 本章战斗的 BaseReward 灵石量
+             + Σ 本章战斗的 道念差 × rewardPerMomentum[SpiritStone][c]
+             + Σ 本章事件 outcome 的灵石产出          ← 本章新增收入
+    I_cum(c) = Σ_{k ≤ c} I(k) − 已花销                ← 购买力的真实分母
+    ```
+
+    `I(c)` 校准「本章掉多少」，`I_cum(c)` 校准「玩家此刻买得起什么」。仙玉侧同构（`J(c)` / `J_cum(c)`）。**四者与「占本章可用预算的百分比」同性质：是作者标定用的书写口径术语，不是运行期读取的字段**，也**不是新枚举**。
+
+  - **灵石的渠道口径：战斗是主产出口，非战斗事件默认不给。**
+
+    | 事件类型 | 灵石产出 | 理由 |
+    |---|---|---|
+    | `Combat`（三档） | **主产出口**：`BaseReward` + 道念差 × `rewardPerMomentum` 线性加成 | 它是唯一已给出取值的货币通道 |
+    | `Research` | 不给 | 两种货币的长期价值出口都已分派给 Exchange，见 `systems/adventure-event/research/_index.md` |
+    | `Exchange` | 不给 | 它是消费点；在消费点发钱等于给定价表打一个不可见的折，两条曲线都失去可反推性 |
+    | `Travel` | 不给（结构性禁令） | 换图的代价不得被同一事件抵消，见 `systems/adventure-event/travel/_index.md` |
+    | `Explore` | 不单独给 | 它解析为真身，产出随真身走，本身再给一份即双记 |
+
+    **⇒ 灵石 ≈ 战利品。** 这条口径把灵石收入钉在「战斗场数」这个已知且近似恒定的量上（7 / 8 / 8），而定价表不设篇章维恰恰要求收入的形状可控。`OutcomeRule.FixedResource` 的可写 key 白名单**不改**（改它会连带动仙玉的唯一通道），非 Combat 类型的例外由一条加载期软检查看住（见下方 C-2）。
+
+  - **篇章缩放落在「给多少」，不落定价表。** 篇章标准战斗灵石给予量 `S(c)`（书写口径）与三档偏置：
+
+    | | ch1 炼气 | ch2 筑基 | ch3 金丹 |
+    |---|---|---|---|
+    | **`S(c)` 标准场（`Standard`）** | **15** | **35** | **60** |
+    | `Practice` ≈ 0.5 × S | 8 | 18 | 30 |
+    | `Finale` ≈ 2.0 × S | 30 | 70 | 120 |
+
+  - **货币量不引入档位枚举，就写绝对整数——这不是疏漏。** 既有三处枚举先例（`ExperienceGrade` / `HiddenStatGrade` / `SelectionWeightGrades`）要枚举，是因为同一个数在不同篇章意义不同、必须先归一化再映射（经验要对齐逐章阈值、隐藏属性标定在 `[0,100]`、寿元预算逐章 1000 / 2000 / 3000+）。**货币恰恰相反：定价表不设篇章维 ⇒ 「40 灵石」在三章买到的是同一格商品 ⇒ 绝对值本身就跨章可比**，再套一层「档 × 篇章标准值」只是把一个已经可比的数拆成两个书写位，反推口径不增加任何分辨率。与回寿量三档「是量值口径不是新枚举」同向——两者同为走资源 element 路径的绝对量值。
+
+  - **仙玉：每章 1–2 次、单次 1 / 2 / 4 枚。** 出现频次的载体是既有的 `SelectionWeightGrades.Rare` 档（**不加字段、不加校验**——「稀有事件的稀有度由内容侧出现权重承载」是既有口径）；单次给予量三章统一（同上，绝对值跨章可比）。
+
+  - **书写口径表（非运行期字段 · 初值）：**
+
+    | 口径 | ch1 | ch2 | ch3 |
+    |---|---|---|---|
+    | `S(c)` 标准战斗灵石给予量 | 15 | 35 | 60 |
+    | `I(c)` 本章**新增**灵石 | ≈ 127 | ≈ 300 | ≈ 480 |
+    | `I_cum(c)` 累计灵石（未花销上界） | ≈ 127 | ≈ 427 | ≈ 907 |
+    | `J(c)` 本章**新增**仙玉 | ≈ 2 | ≈ 3 | ≈ 5 |
+    | `J_cum(c)` 累计仙玉（未花销上界） | ≈ 2 | ≈ 5 | ≈ 10 |
+
+    - **`I(ch1)` 的构成（用上方 25 批次的参考构成）：** `BaseReward` 3×8 + 3×15 + 1×30 = 99，加支路 A 的道念差加成 ≈ 28，合 ≈ 127。**⚠ 加成项用到败率 20% 与 `E[道念差]` 5 两个待实测格，故它是量级估算而非定稿**（那两格明令不得引为承重依据，见上方 λ 反推式）。
+    - **`I(ch2)` / `I(ch3)` 比 `I(ch1)` 粗一档**：ch2 / ch3 只有事件总数（26 / 32）、没有逐类型构成表，两章构成表补齐后须复核。
+
+  - **25 格定价表初值（篇章维不设 · 石 = `CostKey.SpiritStone` · 玉 = `CostKey.ImmortalJade`）：**
+
+    | 族 \ 档 | Tier1 | Tier2 | Tier3 | Tier4 | Tier5 |
+    |---|---|---|---|---|---|
+    | `Card` | 石 15 | 石 30 | 石 60 | 石 120 | 石 240 |
+    | `CharacterItem` | 石 20 | 石 40 | 石 80 | 石 160 | 石 320 |
+    | `CharacterPower` | 石 30 | 石 60 | 石 120 | **玉 3** | **玉 5** |
+    | `CultivationTechnique` | 石 40 | 石 80 | 石 160 | 石 320 | **玉 6** |
+    | `PlayerItem` | **玉 1** | **玉 2** | **玉 3** | **玉 5** | **玉 8** |
+
+    - **初值来源可解释：两个一维向量的外积。** 稀有度基价（灵石）逐档 ×2：`Tier1 20 · Tier2 40 · Tier3 80 · Tier4 160 · Tier5 320`；族系数 `Card 0.75 · CharacterItem 1.0 · CharacterPower 1.5 · CultivationTechnique 2.0 · PlayerItem 2.5`（依据：`Card` 是单张、`CultivationTechnique` 是整组替换的构筑单位、`PlayerItem` 是账号级留存物，价值随留存期放大）。**落表时仍写 25 个独立整数，表结构不变。**
+    - **购买力校验（按结转口径用 `I_cum`）：** ch1 约 127 灵石、主要遇到 Tier1–Tier2 ⇒ 约 3–4 次购入，落在 8 次 Exchange 里 ⇒ 「常去逛、偶尔买」。逐章基本花完则节奏稳定在每章 4–5 次；**刻意屯攒则 ch3 可一次拿下 Tier5**——这是结转口径下「省着花有跨篇章回报」的兑现形态，是预期行为不是漏洞。**该校验的前提（ch1 主要遇到低档）尚未被机械保证**，它依赖战后奖励池 / 商店库存的 `RarityTier` 分布权重，见待决问题。
+    - **仙玉基准价与 `J_cum` 对齐成一条递进曲线：** ch1 只够 Tier1–Tier2、ch2 够到 Tier3–Tier4、ch3 攒满才够 Tier5（8 枚）。**「顶档仙玉商品 = 一次轮回至多一件」由算术本身保证，不需要任何新机制。**
+
+  - **仙玉一格都不落 `CharacterItem` 族，售出侧因此结构上不产仙玉。** 可售出 ⟺ `ExchangeGoodsKind == CharacterItem` 是代码级常量判据 ⇒ 仙玉不落该族 ⇒ 「售出产仙玉」不可能发生，无需任何新机制、无需统计盯防。**在仙玉预期收入只有个位数、而回收价有 `Clamp >= 1` 下限的量级上这尤其要紧**：3 枚定价 × 40% = 1.2 → 1，任何一件免费掉落的仙玉法宝都稳产 1 枚，占一章收入的 20–50%，这个量级上「统计校准把关」不可靠。
+    - **代价如实写下：从此编排不出「以仙玉计价的法宝」**——包括补天丹类顶级消耗品，它们只能以灵石计价。这是在「币种与族 × 稀有度绑死」这条既有代价之上再收一格。
+
+  - **两条加载期软校验（`PushWarning`，不拒绝加载）。** 书写口径若无机械护栏会在内容铺开后静默漂移；取警告而非错误，是因为口径是编排目标而非结构不变式，硬失败会挡住合理的例外条目。
+
+    | 编号 | 条件 | 报出 |
+    |---|---|---|
+    | **C-1** | 单个 `EncounterSpec.BaseReward` 的灵石量 > `2.5 × S(该篇章)` | 条目 `Id` + 实际值 |
+    | **C-2** | `eventType != Combat` 的条目携带 `FixedResource(SpiritStone \| ImmortalJade)` 且 `Direction == Gain` | 条目 `Id` |
+
+    C-2 的模板侧落点见 `systems/adventure-event/common-properties.md` 的校验表。
+
+  - **载体：新开一份平衡资源 `ExchangePriceTableData`。** 按三问判据：25 格 `(Currency, BasePrice)` 与 `PackSellRatePercent` 的消费者是 Exchange 物化与随售折算，**两者共用同一张基准价表 ⇒ 跨字段不变式 ⇒ 必须同住一份**。形状照 `LifeSpanCostTableData`：具名字段 + 内嵌 `Resource` 行类型 + 加载期校验表，经 `Content.Single<T>()` 取、调用方不写 `Id` 字面量。**灵石产出侧不新开资源**——`S(c)` 是书写口径不是字段，`rewardPerMomentum` 已有归属。
 
 - **`MaxConcurrentSideArcs = 2`（全局单值）。** 同时处于 `Active` 的**支线**剧本 arc 上限（只统计 `SideChapter` / `SideStory`；Story 与 Chapter 各恒有一条，是结构不是穿插，**不占配额**）。
   - **依据：调制是叠加的。** 三条 side arc 同时改类型权重 / 事件权重，候选池会变成谁也说不清的混合物——而调制正是隐藏属性与剧本的**主要显影通道**（玩家感知「这条线在动」主要来自摆在面前的事件变了）。上限保住的是这条通道的可读性。
@@ -353,7 +453,7 @@
 
     **单价表只列灵石，不列仙玉。** 仙玉的唯一**主动**获取通道是稀有 AdventureEvent 产出（见 `systems/character-profile/currency.md`）；售出与储物袋随售是**同币回流**，不新增获取渠道。给每场战斗一条随道念差线性增长的仙玉产出，会把它变成常态涓流，与「稀有」这一重表达直接相抵。
 
-    - **净产出敞口正面写下（被接受的取舍）：** 免费取得（战后奖励 / 事件产出）的仙玉计价法宝，其售出所得是仙玉的**一条净产出**——取得成本为 0，回收率不足 100% 只是打折，净额仍为正。**它的量级由「定价表哪几格填仙玉 × 该族的掉率」共同决定**，故不需要新机制去堵，归那一次统计校准一并把关（见待决问题）。
+    - **售出侧结构上不产仙玉：仙玉不落可售出族。** 唯一可售出的是 `CharacterItem`，而定价表在该族五档全部收灵石 ⇒ 「免费取得的仙玉计价法宝卖出即净产出」这条泄漏不可能发生，不需要任何新机制或统计盯防（见下方「货币产出与定价」）。
 
     **单价逐篇章下调**是必需的：否则奖励通胀曲线会被偷偷绑死在 `baseMomentum` 的百倍曲线上，而那条曲线的形状是为「越级难度」设计的，不是为经济设计的。
 
@@ -451,12 +551,12 @@
   | **Standard**（big blind） | **10** | `1` | 标准档，道念高者胜、相等为平局 |
   | **Finale**（boss blind） | **12** | `0` | 不落后即通过；落后即**角色终结** |
 
-  通过 Finale 所需追回的道念点数因此就是开局落差本身：**ch1 5 / ch2 13 / ch3 25**（角色在境界巅峰 13 · 17 · 21，天劫在下一境界初期 14 · 18 · 22）。
+  通过 Finale 所需追回的道念点数因此就是开局落差本身：在 `FinaleDiff` 的初值（三章恒 `+1`）下为 **ch1 5 / ch2 13 / ch3 25**（角色在境界巅峰 13 · 17 · 21，天劫在下一境界初期 14 · 18 · 22）。**这三个数随 `FinaleDiff` 变动**——它正是下一条列出的校准手段 ①。
 
   - **Practice 减到 8**：追分窗口少 2 回合，但要求从「反超」降到「追平」，两侧相抵 → **更简单且更快**，正是 small blind 该有的节奏，也直接服务篇章时长控制。
   - **Finale 加到 12**：若减回合会退化为**纯粹的起跑线检定**（谁 `baseMomentum` 高谁赢），玩家一整章攒起来的 build 无从表达。**Finale 是 build 的检验场，12 回合是给 build 表达自己的窗口**——这条论据独立于胜负线取值，不随门槛高低而变。
   - **⚠ Finale 二重压迫叠加**：（a）开局落后 5 / 13 / 25；（b）失败即角色终结、本篇章不推进。两条都是既有定案的必然结果——(a) 出自 `baseMomentum` 表，(b) 出自篇章闸门语义；12 回合是对 (a) 的部分补偿。**压迫的顶点是不可逆的终结，不是「扣得最狠」。**
-  - **⚠ Finale 的难度不再有专属旋钮（明写，避免有人去找一个不存在的旋钮）。** 两重压迫都不可单独调：(a) 动 `baseMomentum` 会同时改变全部战斗的起跑线，(b) 是二值的。`WinMargin` 在该档恒为 0；剧本侧的 `EncounterTighten` 对该档**整档豁免**（`Tier == Finale` 跳过整个 `Tighten`，闸的理由见 `systems/services/plot-manager.md`），故剧本也够不着这一档。**校准 Finale 难度只有三条替代手段**，全部留待内容扩充后的统计校准：**① 天劫的赋级带位置**（`±2` 带内的权重偏移）· **② 天劫定制卡组的强度**（本作唯一允许卡组承载强度差的地方）· **③ `TurnLimit`**（12 回合可上下调，但要连带重估上一条论据）。
+  - **⚠ 二重压迫本身都不可单独调，Finale 的难度旋钮另在别处（明写，避免有人去 (a)(b) 上找旋钮）。** (a) 动 `baseMomentum` 会同时改变全部战斗的起跑线，(b) 是二值的。`WinMargin` 在该档恒为 0；剧本侧的 `EncounterTighten` 对该档**整档豁免**（`Tier == Finale` 跳过整个 `Tighten`，闸的理由见 `systems/services/plot-manager.md`），故剧本够不着这一档——**Finale 的难度由平衡面独占校准**。**校准手段共三条**，全部留待内容扩充后的统计校准：**① 天劫的指派等级 `FinaleDiff`**（平衡资源 `EnemyLevelingData` 上的专属旋钮，见上方「敌人赋级资源」；**ch1 / ch2 各 2 档；ch3 受带上界与全局序 22 双重截断，只有 `+1` 一个合法取值，该旋钮在第三篇章不可拧**）· **② 天劫定制卡组的强度**（本作唯一允许卡组承载强度差的地方）· **③ `TurnLimit`**（12 回合可上下调，但要连带重估上一条论据）。
   - **8 / 10 / 12 三个回合数意味着战斗时长有三档**，故定价表里 Combat 一行须按 `combatTier` 三档分别给值。
   - **`Practice` 与 `Finale` 同取 `0` 是巧合，不是共性**——两个数出自两条互不相干的理由，两档的一切其余参数都不同。**不要把它们合并成一个共享常量。**
 
@@ -702,7 +802,7 @@
   | 剧本预取深度 | **下一批 eventOptions 对应的 key points** | `systems/services/plot-manager.md` |
 
 
-Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-08-30-fatigue-not-in-encounter-override.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-08-30-fatigue-not-in-encounter-override.md` · `handoffs/2026-09-05-finale-level-config.md` · `handoffs/2026-09-05-currency-acquisition-and-pricing.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
@@ -711,7 +811,7 @@ Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handof
 > _尚未解决，需要一次 handoff/决策。_
 
 - **事件类型配比 `BaseTypeWeights` 的具体取值：** 该表是本文件的一项平衡旋钮，**形态已定**（五类各一格，以乘性方式参与类型分布，归一化在类型分布层发生），仍待定的是每格填多少，以及 Combat 内 `combatTier` 三档的配比。语义与所在管线见 `systems/services/future-event-service.md`。
-- **商店定价表每格填多少 · 哪些格填仙玉 · Exchange 的三组数值格（留待内容扩充后的统计校准）：** 表的**形态**已定（「商品族 × 稀有度」、格值 = 支付币种 + 基准价、内容条目只标偏移、不设篇章维），仍待定每格取值、**每格的支付币种落在灵石还是仙玉**，以及刷新基价 / 递增量、两档回收率（商店档 `SellRatePercent` 与随售档 `PackSellRatePercent`）、槽位总数上界。**定价表的绝对数字被两种货币的获取渠道阻塞**——产出侧一片空白时无从反推消耗侧，而灵石与仙玉的相对价值由两条产出曲线共同决定。→ `systems/character-profile/currency.md`、`systems/adventure-event/exchange/_index.md`。
+- **Exchange 剩余的两组数值格（留待内容扩充后的统计校准）：** 刷新基价 `RerollBaseCost` / 递增量 `RerollCostStep`（首批一律填 0 = 关闭刷新）· 单个 Exchange 事件的槽位总数上界（建议 ≤ 8）。**定价表 25 格、每格币种与两档回收率已有初值**（见上方「货币产出与定价」），其绝对数字仍归这次校准复核；复核的两个已知输入缺口是 `I(c)` 加成项所依赖的道念量纲基准，以及战后奖励池 / 商店库存的 `RarityTier` 分布权重。→ `systems/character-profile/currency.md`、`systems/adventure-event/exchange/_index.md`。
 - **道念的两组剩余数值：** **起始值已定**（`baseMomentum` 表）、**负侧换算已定**（道念差 × `lossPerMomentum`，ch1 = 10）、**胜侧换算已定**（两条支路 + 单价表）。**敌人侧的产出结构亦已定**（无敌方专属缩放曲线，产出决定因素与玩家一致）。仍待定，**留待内容扩充后的统计校准**：卡牌的道念产出 / 削减量这一组量纲。→ `systems/scoring.md`、`systems/adventure-event/combat/`。
 - **`RarityTier` 的分布与剩余权重表：** 五档已定名并挂上 `PowerData` / `ItemData` / `CardData`；**授予池的权重表已定**（见上方 `GrantPoolWeights`），**置换候选池不需要权重表**（同档等概率）。仍待定：**战后奖励池**各档权重（按优势档 `Tier` 三档各一张表，族维度含卡牌 / 道具 / 功法三类），以及内容侧「每档应有多少条目」的编排口径；另有三格取池余量（`GrantPoolMargin` / `ResearchPoolMargin` / `ExchangePoolMargin`）的具体取值（结构已定、数值待内容规模明朗，可先填 0 而不阻塞落地）。→ `systems/services/combat-service.md`、`systems/player-profile/player-power/_index.md`、`systems/adventure-event/research/common-properties.md`、`systems/adventure-event/exchange/common-properties.md`。
 - **重试上限的两档数值是否再调：** **落点已定**——两行住在平衡资源、由 `HasPremiumBundle` 选行（见上方条目），故它已是可调平衡项；仍待定的只有**数值本身**是否随实测调整。
@@ -725,7 +825,7 @@ Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handof
 - **`EnemyManaLimit` 初值 `5` 的校准（留待内容扩充后的统计校准）：** 玩家侧 `manaLimit` 随大境界 +1，第三章差距达 4~7 点，敌人的行动空间是否仍够用需实测。**校准顺位已定**：第一顺位是逐条 `EncounterSpec.EnemyManaLimit` 覆写，第二顺位才是改全局常量——先改常量会一次性改掉全部遭遇。→ `systems/character-profile/mana.md`、`systems/services/combat-service.md`。
 - **blind / ante 缩放曲线：** 具体 ante 缩放 / blind 要求 / 奖励曲线尚未陈述（进程语义见 `systems/game-progression.md`）；一旦落定，数值归此。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-09-05-currency-acquisition-and-pricing.md`
 
 ## 对应
 提炼至：`.claude/knowledge/data/_index.md`（引用层，待建）。

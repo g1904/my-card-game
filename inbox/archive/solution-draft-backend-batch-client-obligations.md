@@ -4,7 +4,9 @@ date: 2026-09-02
 question: 后端 2026-09-02 批量方案草稿给客户端带来的四项新增义务，客户端侧各应是什么形态？
 source: 跨库承接（后端批量评审 2026-09-02）→ `backend-design-documents/inbox/solution-draft-*.md` 五份
 targets: systems/architecture.md（`OpError` 表与错误码数据表）· ux/error-and-blocking-ux.md（阻塞屏变体与 `STORE_` 分区）· systems/services/account-service.md（`ComplianceManager` 覆盖面）· systems/services/content-service.md（打包工具产出面）· systems/monetization.md
-status: decided
+status: distilled
+reviewed: 2026-09-05 —— A 取启动链内 fail-open 全屏模态（本稿「复用既有的改名屏」是臆造，本库无改名屏）；C 只加 `OpError` 枚举成员、处置落 `systems/monetization.md`，**不开逐 `code` 表**（本库没有逐 `code` 表，只有按 `class` 的默认表）；客服可达面复用 `#requestId` 长按复制，不新增入口
+distilled-to: handoffs/2026-09-05-backend-batch-client-obligations.md
 counterpart: |
   backend-design-documents/inbox/solution-draft-compliance-endpoint-payloads.md（A · B）
   backend-design-documents/inbox/solution-draft-nickname-moderation-and-risk-control.md（A）

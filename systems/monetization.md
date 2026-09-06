@@ -50,7 +50,7 @@
 
   - **闸 ① 只断言「礼包所需 + 余量」，不断言任何「单账号可获取上限」。** 残卷在 `systems/balance.md` 的三表中**没有账号级上限**（`x ≥ 15` 档仍有 `Gain = +1%` / `Cap = 5%`），且「池已取尽 → 静默停摆」本就是它的**既定正常终局**——因此「单账号可获取上限」不是一个有定义的量，闸 ① 不能建立在它之上。收窄后闸 ① 保住了唯一真实的目的（保护付费兑现）且可机械校验。**残卷把池抽干仍按静默停摆处理，不是事故。**
   - **否决**：为残卷设账号级硬上限（新机制，且与「池取尽 → 静默停摆」重复承担同一职责）；只在兑现处报错而不做前置拦截（让玩家在**付款之后**才撞上失败，是最糟的失败时机）；以灵石 / 其他资源折价补偿（本作没有账号级可支配货币，为兜底引入一条等于新开一套经济，与残卷「不发放账号级货币」同一条理由）。
-  - **推论：购买入口多一条可用性前置条件**——它并入下方的**四条前置条件表**（不新增拦截点）；入口的 UI 态为**置灰 + 说明、不隐藏**，见 `ux/error-and-blocking-ux.md` 的灰态判据。
+  - **推论：购买入口多一条可用性前置条件**——它并入下方的**前置条件表**（不新增拦截点）；入口的 UI 态为**置灰 + 说明、不隐藏**，见 `ux/error-and-blocking-ux.md` 的灰态判据。
   - **玩法内容侧另有一组三道闸，失败处置方向相反（降级到更少而非拒绝进入）；分界判据 = 玩家有没有为这一次产出付过钱，本体见 `systems/services/future-event-service.md`。** 不复述那一侧的规则——两处看似相反，边界只在那一处写一遍。
   - **内容侧硬纪律**：两个通用池的条目总数必须显著大于礼包所需；闸 ① 是它的机械化检查，与 `UsableScene ≤ 1/5` 的比例检查同一处落地。**空池是运营事故，不是玩法分支**——不为它设计兜底玩法。线上 flags 秒关导致的运行时池收缩由闸 ② 兜住，不需要额外规则。
 - **持有状态 = `PlayerProfile.entitlement: PlayerEntitlement`，类内只放付费凭证本身与其兑现水位，不放任何派生量（承重）。** 字段形态、层归属与读档校验的权威在 `systems/player-profile/_index.md`；此处只记本系统侧的判据：
@@ -85,7 +85,7 @@
 
   | 段 | 谁做 | 内容 |
   |---|---|---|
-  | **① 购买段** | 平台 SDK + 后端 | 唤起平台内购 → 收据 → 上行验票 → **后端**把云端 `bundleGrantOrdinal` +1、`cloudRevision` +1 |
+  | **① 购买段** | 平台 SDK + 后端 | （渠道要求商户侧下单时：**先经下单端点**取支付参数与 `receiptId`）→ 唤起平台内购 → 收据 → 上行验票 → **后端**把云端 `bundleGrantOrdinal` +1、`cloudRevision` +1 |
   | **② 兑现段** | 客户端（后端复算） | 客户端 **pull** 到新序号 → 用 `(PremiumBundle, ordinal)` 掷骰抽 3 条 → 一次 `TryApply` → `Immediate` push；后端以同一 `(AccountSeed, stream, ordinal)` 复算校验 |
 
   - **验票端点的报文、幂等口径与服务端保证的权威在 `backend-design-documents/contracts/purchase.md`**（验票由后端向平台校验、写入只由 verify 承担、渠道回调只作对账；平台收据 id 是幂等键，同一张票重复提交绝不重复 `+1`）。本文件只写客户端这一半，不复述报文。
@@ -94,7 +94,7 @@
 
   - 「谁有权把 `BundleGrantOrdinal` 从 n 推到 n+1」**只能是后端**，否则整套防篡改归零。**否决客户端自行置位 + 后端事后校验**（客户端置位 = 客户端有权发货；事后发现不一致时玩家已拿到东西，回收比不发更糟），**否决兑现也放后端做**（`AccountRng` / `GrantPoolManager` 要在两侧各实现一遍，与既定的「客户端掷、后端复算」分裂成两条路径）。
   - **⚠ 它引入同步模型此前没有的第四种情形：后端主动写入。** 时机纪律与它关闭冲突窗口的机理见 `systems/services/sync-service.md`；本系统侧只承接其结果——**购买入口在轮回内 / 战斗内 / 结算流程内不存在**。
-  - **购买入口的前置条件表（四条全满足才可点；闸 ② 并入此表，不新增拦截点）：**
+  - **购买入口的前置条件表（全部满足才可点；闸 ② 并入此表，不新增拦截点）：**
 
     | # | 条件 | 不满足时 |
     |---|---|---|
@@ -102,8 +102,38 @@
     | 2 | 待发队列为空（或一次 `FlushPendingAsync` 成功） | 入口置灰 + 「请先完成同步」 |
     | 3 | `GrantableCount(Power, Player) ≥ 1` 且 `GrantableCount(Item, Player) ≥ 2` | 入口置灰 + 说明 + `PushError` + 上报（既定闸 ②） |
     | 4 | `BundleGrantOrdinal == BundleRedeemedOrdinal`（无待兑现） | 入口置灰 + 「上一笔购买正在发放」 |
+    | 5 | 当前平台存在可用渠道（运行时探测到可用的商店渠道实现） | 入口不渲染 |
 
     条件 4 是不变式 `Grant - Redeemed ≤ 1` 在单设备下的维持者；在待兑现状态下允许再次付款，会把一个待发放问题叠成两个。**它是往这张既有的表里加一行，拦截点数量不变**（表本身就是那个拦截点）。
+    条件 5 与条件 1 同形取「不渲染」而非置灰：三渠道全是移动渠道，桌面 / 网页构建上不存在任何可用渠道，而灰态的既有语义是「暂不可用、会恢复」——在这些平台上它**永不恢复**，置灰即对灰态判据的语义污染。云端权威使移动端购得的权益在桌面照常经 pull 生效，玩家无损失；渠道插件缺席的设备（如无 Play 服务的 Android 包）同样命中本条。探测形态见 `systems/services/sync-service.md`，呈现见 `ux/screen-flow.md` 与 `ux/error-and-blocking-ux.md`。
+- **购买流程内的三个显式步骤（写下来是为了防它们被挂在顺手处）。**
+  - **下单（条件步）。** 渠道要求商户侧下单时，须在唤起支付**之前**先经下单端点取支付参数与 `receiptId`，并把 `receiptId` 随待兑现态持久化。**它只对需商户侧下单的渠道存在**；**首版微信不开通，故这一步首版不发生、也不阻塞上线**。端点、报文与哪些渠道需要它的权威在 `backend-design-documents/contracts/purchase.md` 与其渠道接入文档，**本库不复述**。
+  - **验票。** 收据上行由后端向平台校验，写入只由验票承担（同上，不复述报文）。
+  - **Apple 侧的 `finish()`。** 它是**客户端动作**，且**只能在验票成功或幂等命中之后**调用——提前 `finish()` 等于在后端确认之前销毁唯一的凭证。**它是流程内的一个明确步骤，不挂在任何 UI 回调的顺手处**：UI 回调的执行时机随屏幕生命周期变化，而这一步的前置是一个后端应答。
+- **唤起内购 = 平台 SDK 经 sync-service 的渠道封装层；SDK 选型方向如下表（版本 / 产品行为假设，接入时一律以官方文档核实）。** 封装层的形态（`StoreChannelManager` 持窄接口 `IStoreChannel`、运行时探测 + `UnavailableStoreChannel` 兜底、后端三个 HTTP 调用走第四个窄接口 `IPurchaseBackend`）权威在 `systems/services/sync-service.md`，**本文件不复述接口形状**；逐渠道凭据字段的权威在 `backend-design-documents/contracts/purchase.md` §3a（回链，不另立表）；导出配置与各平台构建细节归实现蓝图。
+
+  | 渠道 | 选型方向 | 版本假设 | 要点 |
+  |---|---|---|---|
+  | Google Play | **Google Play Billing Library**，经 Godot 4 Android 插件（v2 插件系统）接入 | Billing Library **7.x**（Google 对更新提审有最低版本时限，逐年上抬） | 官方 `godot-google-play-billing` 插件历史上滞后于 Billing 大版本 → **以其为骨架自维护 fork 升级**，不把上线押在上游节奏上。产出恰为契约所需的 `purchaseToken` + `productId`。商品配 consumable；**客户端不调用 consume / acknowledge**——后端在 `+1` 事务后发起（权威在对侧契约） |
+  | App Store | **StoreKit 2**，自写 Swift iOS 插件（静态库 + `.gdip`） | **iOS 15+**（StoreKit 2 的硬下限，已进 `vision/scope.md` 平台约束） | 官方 `godot-ios-plugins` 的 in-app-store 插件是 StoreKit 1（`SKPaymentQueue`），**拿不到 JWS**——契约的 `signedTransaction` 只能由 StoreKit 2 的 `jwsRepresentation` 给出，故不可用、必须自写。插件暴露购买（回 JWS + `transactionId`）与 `finish()` 两个动作 |
+  | 微信支付 | **WeChat OpenSDK**（Android / iOS）自写插件包一层 `WXApi` 唤起 APP 支付 | OpenSDK 随接入时取最新 | 产出只有「支付流程已返回」信号——`errCode` 不作判据（既定）；真正的凭据是下单端点预取的 `outTradeNo`。渠道随资质开通启用，**插件可整体后置**、接口分支先占位。微信原生插件将来**同时服务登录（authCode）与支付**——原生层按平台一个 WeChat 插件，封装接口按职责切分（支付走渠道封装层，登录走 account-service 既有渠道形态），不因共用 SDK 而把两条职责塞进一个封装 |
+
+  - **否决依赖官方 / 上游插件原样接入**（godot-google-play-billing 滞后于 Billing 版本时限、godot-ios-plugins 是 StoreKit 1 拿不到 JWS——把上线押在上游维护节奏上不可接受）；**否决 iOS 走 StoreKit 1 + 收据文件以兼容 iOS 15 以下**（`verifyReceipt` 已废弃，且契约只收 JWS ⇒ 要改契约来迁就一条被废弃的路径，覆盖率收益可忽略）；**否决桌面端接 Steam 等第四渠道**（`platform` 取值域已封闭为三条，新增渠道是显式的契约追加事件）。
+- **购买失败的处置与呈现：处置轴按 `code`，呈现落 `STORE_` 分区。**
+
+  后端为购买域定义了一组 `code`，其中一部分需要一条既有错误档都不表达的处置轴——「这笔购买没成」，故 `OpError` 增一档 `Purchase`（枚举见 `systems/architecture.md` 总则 7）。**逐 `code` 的清单、`class` 与处置轴的归档权威在 `backend-design-documents/contracts/envelope.md`，本库不复述、不建对照表**；此处只写客户端这一半——每种情形**说什么、待兑现态怎么动**。
+
+  | 情形 | 待兑现态 | 呈现 |
+  |---|---|---|
+  | **收据尚在处理中**（可重试档） | **保持**待兑现态 | 留在既有的全屏模态进度态，见下 |
+  | **收据无效 · 终态失败** | **解除**待兑现态 | Store 屏终态失败面（见下「客服可达面」） |
+  | **该收据已在另一账号上核销** | **解除**待兑现态 | 同上，措辞明写「已在另一账号上核销」 |
+  | **渠道未开通** | **不进**待兑现态（玩家尚未付款） | 一句 `STORE_` 文案 + 回到礼包详情；**不出客服可达面**——没有任何一笔钱需要申诉 |
+  | **报文格式错误** | 不进待兑现态 | 走上行校验失败的既有处置，不是购买失败的一档 |
+
+  - **文案全部走 `STORE_` 分区的普通键**（本地措辞），后端 `code` 对应的 `ERR_*` 键照既有机械变换得出、**不手写**（`ux/error-and-blocking-ux.md`）。
+  - **长等待的两句话不同。** 「收据还在处理」与「平台不可达」在报文层已被后端刻意分列，客户端这一半是**说两句不同的话**：前者是「钱还没扣成，稍后回来」，后者是「我们这边的问题，正在重试」。两者都留在既有的全屏模态进度态内，**不新增变体、不设硬超时**——只是既有的 15 秒软提示文案按这两种情形分岔。
+  - **客服可达面 = 复用既有的 `#requestId`，不新增入口。** 终态失败面 = 一句 `STORE_` 文案 + 底部 `#requestId`（**可长按复制**，禁 hover-only 可供性）+ 一行「请提供此编号联系客服」。**不新增独立的「联系客服」入口、不引入客服地址配置面**——那要求一个可下发或随包的地址，会牵出与「去更新」同款的渠道差异吸收问题，而本库尚无该配置面；`#requestId` 是既有的、跨越进程边界的那个定位标识符，客服凭它即可定位这笔请求。呈现形态见 `ux/error-and-blocking-ux.md`。
 - **购买形态 = 可重复购买；① ② 每次都给，③ ④ 只在首次生效、不叠加。**
   - **否决「一次性不可重复」**：商业化封顶为一次性小额，与「重账号 + 强制在线 + 长期运营」的路线不匹配，且让闸 ② 几乎永无用武之地。
   - **否决「③ ④ 叠加」**：花钱买接近无限的重试 ⇒ 抹平 ADR-0004 唯一的失败压力线，与「免费档是基准、付费是宽松化而非必需品」正面冲突。
@@ -127,7 +157,7 @@
   - **重试次数耗尽时不提示购买**，两条独立理由——① 那是玩家刚失去一个角色的时刻，此处推销正是「付费才玩得下去」观感的经典成因，且会把 ③ ④ 从「宽松化」在观感上变成「解锁继续游玩」；② **它在结构上本就不可行**（购买只在主菜单发起、待发队列为空，而重试耗尽是轮回内 / 结算流程内的时刻）。
   - **允许的全部呈现穷举为三处**：主菜单入口本身；礼包详情页内如实列出四项权益（及第二次起的删减说明）；**兑现结果态**（列出本次获得的 1 法则 + 2 古宝）。这句穷举约束的是**推销面**——兑现结果不是推销：它发生在付款之后、内容已定，且「付了钱看不到货」与本文件反复出现的诚实性纪律正面相悖，也是退款争议的常见诱因。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -142,7 +172,6 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 - **`GrantPoolMargin` 的数值与 `K`。** 闸 ① 的口径已改写为「支撑 K 次重复购买 + 留给第 K+1 次的缓冲」，**结构已定、数值待内容规模明朗**。→ `systems/balance.md`。
 - **纯外观付费点做成什么。** 架构预留、首批不做已定；做成角色皮肤 / 卡背 / 界面主题的哪些、落成 `PlayerEntitlement` 的哪个具名字段形状，仍未定。通行证 / 赛季已明确「当前不做」。
 - **合规。** 付费与实名 / 防沉迷 / 渠道分成 / 退款的交互归后端与合规侧；客户端不读年龄、不做任何本地拦截，只承接后端 `code` 展示对应 `ERR_*` 文案。→ `backend-design-documents/`。
-- **平台内购 SDK 的选型与封装层（不在本库定稿）。** Google Play Billing / App Store / 微信支付三渠道**纳入 MVP**（见 `vision/scope.md`），它们是客户端**唯一必须引入第三方 SDK 的地方**，牵动 Godot 导出配置与各平台构建。SDK 选型、封装层形态与三渠道的收据差异归后端的支付渠道选型（`backend-design-documents/`）与一次专门的客户端工程蓝图；本方案的时序不受其形态影响——唤起内购失败（用户取消 / SDK 失败）一律回主菜单，无任何 Profile 变更、无痕迹。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/monetization.md`（待建）。

@@ -38,7 +38,7 @@
 
 ---
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-09-06-iap-channel-integration.md`
 
 ## 二、项目结构
 
@@ -76,6 +76,10 @@ game-feature-branch/
 │   │   ├── Sync/
 │   │   │   ├── SyncService.cs
 │   │   │   ├── ProfileSyncManager.cs  LocalCacheManager.cs  MigrationManager.cs
+│   │   │   ├── StoreChannelManager.cs            ← 平台内购渠道封装（运行时探测选实现）
+│   │   │   ├── IStoreChannel.cs  GooglePlayChannel.cs  AppStoreChannel.cs  WeChatPayChannel.cs  UnavailableStoreChannel.cs
+│   │   │   ├── IPurchaseBackend.cs  HttpPurchaseBackend.cs  OfflinePurchaseBackend.cs
+│   │   │   │                                     ← DebugStoreChannel 与 OfflinePurchaseBackend 同文件同 #if DEBUG 区
 │   │   │   └── IProfileBackend.cs  HttpProfileBackend.cs  OfflineProfileBackend.cs
 │   │   ├── Profile/
 │   │   │   ├── ProfileService.cs
@@ -283,20 +287,23 @@ ContentService.InitializeAsync   （版本比对 + overlay 合并 + 校验；断
 
 三个纯本地服务（profile / life-cycle / combat）**不实现该接口**——它们在 `_Ready` 里装配完就绪。
 
-### 后端接口化：三个边界服务各持一个可替换后端
+### 后端接口化：三个边界服务持四个可替换后端
 
 ```csharp
 internal interface IAccountBackend  { Task<OpResult<Session>>          SignInAsync(LoginChannel c, CancellationToken ct); }
 internal interface IContentBackend  { Task<OpResult<ContentManifest>>  GetManifestAsync(CancellationToken ct); }
 internal interface IProfileBackend  { Task<OpResult<ProfileSnapshot>>  PullAsync(string accountId, CancellationToken ct);
                                       Task<OpResult<PushAck>>          PushAsync(ProfilePayload p, CancellationToken ct); }
+internal interface IPurchaseBackend { Task<OpResult<VerifyAck>>        VerifyPurchaseAsync(string receiptId, ChannelReceipt receipt, CancellationToken ct);
+                                      Task<OpResult<OrderAck>>         CreateOrderAsync(StorePlatform platform, string productId, CancellationToken ct);
+                                      Task<OpResult<ReceiptStatusAck>> GetReceiptAsync(string receiptId, CancellationToken ct); }
 ```
 
 每个接口两份实现：`HttpXxxBackend`（后端就绪后）与 `OfflineXxxBackend`（当前阶段，读 `res://` 假数据 / 内存回显）。离线 stub 是「换一个实现」，而不是「在服务里插 `if (offline)`」。
 
-#### 选择形态：唯一选择点 + Release 构建里离线实现根本不存在（已定案）
+#### 选择形态：唯一选择点 + Release 构建里离线实现根本不存在
 
-**三个服务不各自持开关。** 选级理由见 `systems/architecture.md`「纪律的可执行化」——离线后端属「能上线且线上不可见」，必须做到阶梯第 1 级。**共三个窄接口**（剧本内容属本地内容层，故不设剧本后端接口）。
+**三个服务不各自持开关。** 选级理由见 `systems/architecture.md`「纪律的可执行化」——离线后端属「能上线且线上不可见」，必须做到阶梯第 1 级。**共四个窄接口**（`IPurchaseBackend` 与 `IProfileBackend` 同宿主 sync-service；剧本内容属本地内容层，故不设剧本后端接口）。
 
 ```csharp
 // src/Core/BackendSelector.cs —— 后端实现的唯一选择点
@@ -308,7 +315,7 @@ internal static class BackendSelector
 #else
         new HttpAccountBackend();
 #endif
-    // CreateContent() / CreateProfile() 同形
+    // CreateContent() / CreateProfile() / CreatePurchase() 同形
 
     private static bool UseOffline =>
         (bool)ProjectSettings.GetSetting("mycardgame/backend/use_offline_backend", true);
@@ -316,7 +323,7 @@ internal static class BackendSelector
 ```
 
 ```csharp
-// src/Services/Account/OfflineAccountBackend.cs —— 三个离线实现整类包在 #if DEBUG 内
+// src/Services/Account/OfflineAccountBackend.cs —— 四个离线实现整类包在 #if DEBUG 内
 #if DEBUG
 internal sealed class OfflineAccountBackend : IAccountBackend { /* ... */ }
 #endif
@@ -329,9 +336,9 @@ internal sealed class OfflineAccountBackend : IAccountBackend { /* ... */ }
 | 3 | **ProjectSettings `mycardgame/backend/use_offline_backend`**（bool，默认 `true`） | 3 | 开发期开关载体，**不用 `[Export]`**。值落在 `project.godot`：进版本控制、可 diff、可在评审中看见；Godot 原生支持 feature tag override（`....release`） |
 | 4 | **BootstrapScreen 横幅 + release×offline 断言** | 3 | 在驱动 `InitializeAsync` 前打一行必然位于日志顶部的 `[Bootstrap-Backends] offline=… build=…`；`!OS.IsDebugBuild() && IsOffline` → `PushError` + `throw`。若第 2 项生效此 `throw` 恒不可达，**保留它是为了防「条件编译常量哪天被改错」**，成本一行 |
 
-**条件编译使用清单（穷举，不得扩张）：** `src/Core/BackendSelector.cs`、三个 `src/Services/*/Offline*Backend.cs`、`src/Autoload/EventBus.cs` 的审计块，**共 5 处**。**服务与 manager 内部一律不得出现 `#if`**——「换实现而非插 `if`」在条件编译上同样成立。
+**条件编译使用清单（穷举，不得扩张）：** `src/Core/BackendSelector.cs`、四个 `src/Services/*/Offline*Backend.cs`、`src/Autoload/EventBus.cs` 的审计块，**共 6 处**。**服务与 manager 内部一律不得出现 `#if`**——「换实现而非插 `if`」在条件编译上同样成立。
 
-> **已预告的一次扩张：** 商业化落地时新增第四个窄接口 `IPurchaseBackend` + `OfflinePurchaseBackend`，清单由 **5 → 6**。属**有边界的、已预告的**扩张，不构成普遍松动；本次不新增接口。判据与否决记录见 `systems/architecture.md` 总则 7。
+> **第四个窄接口 `IPurchaseBackend` + `OfflinePurchaseBackend` 是清单的第 6 处来源**（`DebugStoreChannel` 与 `OfflinePurchaseBackend` 同文件同 `#if` 区，不另增位点）。判据与否决记录见 `systems/architecture.md` 总则 7；渠道封装 `IStoreChannel` 走运行时探测、不占 `#if` 位点，见 `systems/services/sync-service.md`。
 
 > **待实测确认一次：** 前提是「Godot 的 .NET 集成在 Release 导出配置下不定义 `DEBUG`，编辑器内运行与 Debug 导出定义」。`game-feature-branch/` 当前尚无 `.csproj`，无从验证；若不成立，改用显式 `<DefineConstants>MYCARDGAME_OFFLINE_OK</DefineConstants>`，**方案形态不变**。
 

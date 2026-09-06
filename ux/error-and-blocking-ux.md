@@ -179,11 +179,11 @@
 | `MENU_` | `menu.csv` | 主菜单、篇章切换、更新横幅 |
 | `SYNC_` | `sync.csv` | 常驻同步指示、软阻塞模态、更新引导半屏 |
 | `EVENT_` | `event.csv` | EventMenu、事件选项框架文案（**不含事件正文——那是内容层**） |
-| `COMBAT_` | `combat.csv` | CombatScreen、出牌 / intent / 结算面板的框架文案 |
+| `COMBAT_` | `combat.csv` | CombatScreen、出牌 / 结算面板的框架文案 |
 | `PROFILE_` | `profile.csv` | PlayerProfile / CharacterProfile 面板、图鉴族、成就 |
 | `SETTINGS_` | `settings.csv` | 设置屏（含同步版本 `#N` 的标签）。首批十个键：`SETTINGS_TITLE` · `SETTINGS_SECTION_AUDIO` · `SETTINGS_VOLUME_MASTER` / `_MUSIC` / `_SFX` · `SETTINGS_SECTION_COMBAT` · `SETTINGS_FAST_ANIMATION` · `SETTINGS_SECTION_LANGUAGE` · `SETTINGS_SYNC_REVISION` / `_NONE` |
-| `STORE_` | `store.csv` | 礼包屏：标题、权益条目、再次购买说明、入口不可用说明、购买按钮、**购买处理态与兑现结果态的全部文案** |
-| `CYCLE_` | `cycle.csv` | 轮回结束屏：三个变体标题、结果行标签、剩余重试行（含「无限」）、主按钮（**不含按 `DefeatReason` 取的定性文案——那是内容层**） |
+| `STORE_` | `store.csv` | 礼包屏：标题、权益条目、再次购买说明、入口不可用说明、购买按钮、**购买处理态与兑现结果态的全部文案**、**购买失败各情形的文案与终态失败面的「请提供此编号联系客服」一行** |
+| `CYCLE_` | `cycle.csv` | **轮回收尾族**：轮回结束屏（三个 `DefeatReason` 变体标题）+ 篇章结束屏（三个 `chapter` 变体标题、解锁行、元婴统计区两行标签）、结果行标签、剩余重试行（含「无限」）、主按钮（**不含定性文案——那是内容层**） |
 
 > **边界必须写在规范里，否则分区表会被误用：分区划的是「界面」，不是「内容域」。** `EVENT_` 装的是选项框的按钮与标题，**事件正文一个字也不进**——正文归内容层（`ux/_index.md` 的四问判据）。这条不写清楚，第一个写事件屏的人就会把正文塞进 `event.csv`。
 
@@ -201,13 +201,18 @@
 | 情形 | 呈现 | 判据 |
 |---|---|---|
 | **事件选项付不起 `selectCost`** | **不设灰态**；`selectCost` **恒精确展示**，寿元余量亦常驻可见 | 「明知是死路仍然走」是**有意义的玩法决策**，与「打不过也得打」同构——灰掉它等于替玩家做决定。余量与标价恒可见反而**强化**了这个决策的分量：玩家是**知情地**走进死路，而不是蒙着眼（权威见 `systems/adventure-event/common-properties.md`） |
-| **礼包购买入口的四条前置不满足** | **置灰 + 一行说明，不隐藏** | 玩家点下去只会撞上一个**必然失败的流程**，没有任何决策价值 |
+| **礼包购买入口前置条件表中「置灰档」的行不满足**（待发队列非空 / 可授予池不足 / 有待兑现） | **置灰 + 一行说明，不隐藏** | 玩家点下去只会撞上一个**必然失败的流程**，没有任何决策价值。**表中「不渲染档」的行不适用灰态**（不在主菜单 / 当前平台无可用渠道）——前者入口本就不存在于轮回内，后者在该平台上永不恢复，「暂不可用、会恢复」的灰态语义不成立（表见 `systems/monetization.md`） |
 | **有一笔购买待兑现时的「开始新轮回」** | **置灰 + 一行说明，不隐藏** | 同上；且此刻的等待是有终点的（一直重试直到发放成功），说明文案须让玩家看见它在推进 |
 | **Exchange 刷新按钮的池前置不满足**（可产出 offer 数 < 1） | **置灰 + 一行说明，不隐藏** | 刷了也必然是空店，没有任何决策价值；且刷新要花灵石 ⇒ 不拦就把失败点留在付费之后。**只拦「必然空店」这一种**——刷出一个商品更少的店是正常方差，不提示、不置灰（判据见 `systems/adventure-event/exchange/_index.md`） |
+| **Exchange 商店买不起**（货币格） | **置灰 + 价格与币种保持可见 + 点按一行说明「差哪一样」**，不隐藏 | 商店里点一件买不起的商品没有任何决策价值。说明由 `ApplyResult.MissingElement` **机械映射到币种**，**不手写第二张表、不新增键**（形态见 `ux/screen-flow.md`「Exchange（交易）屏」） |
+| **Exchange 的 barter 格：不持有 `PayItemId`，或产出目标已持有（能力族）** | **置灰 + 支付要求（支付物图标 + 名称）保持可见 + 点按一行说明**，不隐藏、**不按持有面过滤呈现** | 换不成的格子点下去只会撞上一个**必然被门面前置拒绝**的提交（只读 `ProfileService.Holds(...) == false`），没有任何决策价值。与上一行同出于「恒真 vs 可变」：是否持有某件法宝是**可变**状态（轮回内可买到、可由事件产出、可售出），故落在灰显一侧，而非储物袋「古宝无售出键」那种恒真不可用（`decisions/ADR-0126-exchange-barter-payment.md`；产出侧那条见 `systems/adventure-event/exchange/common-properties.md` 运行期失败表） |
 
 - **判据一句话：灰态禁令适用于「玩家可能有意选择的失败」，不适用于「必然无结果的操作」。**
 - **不隐藏而是置灰**：隐藏会让玩家以为功能消失且无处解释，而闸 ② 触发时后端已收到 `PushError` 上报——**正在被修的运营事故不该表现为「功能不见了」**。
-- 说明文案走**所属分区**的普通键（礼包入口 → `STORE_UNAVAILABLE_POOL` / `STORE_UNAVAILABLE_SYNC` / `STORE_UNAVAILABLE_PENDING`；主菜单「开始新轮回」→ `MENU_` 分区；Exchange 刷新 → `EVENT_REROLL_UNAVAILABLE_POOL`），**不占 `ERR_` 前缀**——它们是本地业务拒绝，没有后端 `code`。
+- 说明文案走**所属分区**的普通键（礼包入口 → `STORE_UNAVAILABLE_POOL` / `STORE_UNAVAILABLE_SYNC` / `STORE_UNAVAILABLE_PENDING`；主菜单「开始新轮回」→ `MENU_` 分区；Exchange 刷新 → `EVENT_REROLL_UNAVAILABLE_POOL`；Exchange barter 格 → `EVENT_BARTER_UNAVAILABLE_NOT_HELD` / `EVENT_BARTER_UNAVAILABLE_ALREADY_OWNED`），**不占 `ERR_` 前缀**——它们是本地业务拒绝，没有后端 `code`。
+  - 两个 barter 键的 `<CONTEXT>` 取 `BARTER`（与 `REROLL` 指刷新按钮同一层级），**不取 `EXCHANGE`**：`EVENT_` 分区已隐含事件界面，再嵌一层事件类型名会让 `EVENT_EXCHANGE_*` 与 `EVENT_REROLL_*` 两种嵌套深度并存。两键只承载框架句，支付物 / 产出物的名称是内容层 `LocalizedText`，由呈现层以格式参数插入。
+  - **买不起那一行不需要键**：说明由 `ApplyResult.MissingElement` 机械映射到币种，写第二张文案表就是给同一件事造两个权威。
+- **灰态是视觉降级，不是禁用：灰格必须继续接收触控。** 上表全部灰态项（礼包入口、「开始新轮回」、Exchange 刷新按钮、买不起格、barter 格）一律以降低饱和度 / 透明度表达不可用，**触控接收位与可用态完全一致、触控目标尺寸不缩水**。做成引擎级的 disabled 控件会让「点按给一条说明」这条纪律被静默取消——disabled 控件不发按下信号，症状是「点了没反应」，一种线上不可见的失败。
 
 ### 语言开关只有一个：启动期把 locale 归一到封闭二值
 
@@ -312,7 +317,10 @@ public readonly record struct BlockingNoticeSpec(
 
 **只由已知后端 `code` 触发、且玩家没有任何自愈路径的终局态，才进这张表。** 二者缺一即不进——否则每一个「转圈等一等」的等待态都能援引本表长成第四、第五个变体，而那张表正是靠「三行且只由 `code` 触发」才可机械检查。
 
-- **首个实例：premium bundle 的购买处理态不进本表。** 玩家已付款、验票 / 购后 pull 未回期间，行为上确实走不下去（不允许开始新轮回），但它**不由任何 `code` 触发**（是客户端自己的等待态）且**有自愈路径**（重试直到成功）。它落成 **Store 流程内的全屏模态进度态**——自带进度指示、「重试」与「退出应用」，文案走 `STORE_` 分区，≥ 15 秒追加一句「网络较慢，可稍后回来，购买不会丢失」；兑现完成后同屏切到兑现结果态。`BlockingNoticeKind` 与上表**一格不动**。流程与失败语义见 `systems/services/sync-service.md` 与 `systems/monetization.md`。
+- **首个实例：premium bundle 的购买处理态不进本表。** 玩家已付款、验票 / 购后 pull 未回期间，行为上确实走不下去（不允许开始新轮回），但**进度态是客户端自己的等待态升起的**（不由任何 `code` 触发），且**有自愈路径**（重试直到成功）——两条判据都不成立。它落成 **Store 流程内的全屏模态进度态**——自带进度指示、「重试」与「退出应用」，文案走 `STORE_` 分区，≥ 15 秒追加一句「网络较慢，可稍后回来，购买不会丢失」；兑现完成后同屏切到兑现结果态。`BlockingNoticeKind` 与上表**一格不动**。流程与失败语义见 `systems/services/sync-service.md` 与 `systems/monetization.md`。
+  - **等待期间收到的可重试 `code` 只改写这个进度态的文案，不改变它是否进本表。** 「收据还在处理」与「平台不可达」的 15 秒软提示分岔即是一例：**判据仍是二者缺一即不进**——等待态本身不由 `code` 升起，且自愈路径未变。**这一条必须写下来**，否则「有 `code` 参与」会被误读成「已满足第一条判据」，于是每一个带 `code` 的等待态都能援引本表长成第四个变体。
+- **须改名（`nicknameChangeRequired` 为真）不进本表。** 它**不由任何 `code` 触发**（是合规 status 应答里的一个布尔）且**有自愈路径**（改个名就过），两条都不成立。它落成**启动链内的一道全屏模态**（不新增屏——本库没有独立的改名屏，昵称编辑是 PlayerProfile 屏内的一个区），status 取不到即放行。`BlockingNoticeKind` 与上表**一格不动**，阻塞点的穷举清单不变。形态与边界见 `systems/services/account-service.md`。
+- **购买的终态失败同样不进本表，但它需要一条客服可达通道——复用既有的 `#requestId`，不新增入口。** 呈现 = **Store 屏内**一句 `STORE_` 文案 + 底部 `#requestId`（**可长按复制**，与阻塞屏底部编号同一条触控纪律）+ 一行「请提供此编号联系客服」。**不新增独立的「联系客服」入口、不引入客服地址配置面**：那需要一个可下发或随包的地址，会牵出与「去更新」按钮同款的渠道差异吸收问题。**并非每一种购买失败都出这条通道**——玩家尚未付款的那一类（如渠道未开通）只出文案，没有任何一笔钱需要申诉。逐情形的处置与待兑现态联动见 `systems/monetization.md`。
 - **合规域的七条 `code` 逐条核过判据，一条也不进本表，`BlockingNoticeKind` 与上表一格不动。**
 
   | 组 | `code` | 由已知 `code` 触发 | 玩家有无自愈路径 | 结论 |
@@ -365,7 +373,7 @@ public readonly record struct BlockingNoticeSpec(
 - **非模态提示与 toast 级提示不放**——那是高频呈现，加编号是噪音。
 - **纪律：它是诊断展示，不是玩法数据。** ViewModel 只读一次，不进任何玩法路径、不参与判断（与「同步版本 #N」同条纪律）。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-03-compliance-client-surface.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-05-barter-grayed-state-keys.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-iap-channel-integration.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

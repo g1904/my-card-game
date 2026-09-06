@@ -131,7 +131,7 @@ ContentRegistry（内存）    按 Id 索引，唯一内容读取入口
 | **业务失败 = 预期内的拒绝** | 返回 `OpResult` / `OpResult<T>` / `ApplyResult`，**绝不抛** | 网络不通、token 失效、重试耗尽（**事件推进不校验「付得起」**，见总则 8） |
 
 ```csharp
-public enum OpError { None, Network, Auth, Compliance, Validation, NotFound, Conflict, Cancelled, Migration }
+public enum OpError { None, Network, Auth, Compliance, Validation, Purchase, NotFound, Conflict, Cancelled, Migration }
 
 public readonly record struct OpResult(bool Success, OpError Error, string Detail)
 {
@@ -243,28 +243,31 @@ public sealed record EventOption(                 // 定稿实例：immutable �
 2. **`InstanceId` 与 `EventId` 并存且不可互相替代。** 同一模板可在一次轮回里被物化多次；`pastEvent` 与 `EventResolved` 负载都按 `InstanceId` 定位。
 3. **通则：** 凡「内容定义 + 情境 / 轮回内状态」的组合都是两个类型——`AdventureEventData` ↔ `EventOption`（**定稿不可变**）；`CardData` ↔ `CardInstance`（运行态**可变**）；**`EnemyData` ↔ `EnemyInstance`**（**定稿不可变**；future-event-service 取模板 → 充实 / 改写 → 指派给事件，**敌人等级即物化产物**；条目定义归 `systems/enemies/`）。共享纪律：**服务签名里传实例，不传 `Resource`**；差别只在实例是否可变。这与展示层三层切分同构，把第二层的类型形态明确了。
 
-#### 总则 7 —— 后端接口化：三个边界服务各持一个可替换后端
+#### 总则 7 —— 后端接口化：三个边界服务持四个可替换后端
 
-把跨进程边界的调用收敛到三个窄接口，让离线 stub 是「换一个实现」而非「在服务里插 `if (offline)`」：
+把跨进程边界的调用收敛到四个窄接口，让离线 stub 是「换一个实现」而非「在服务里插 `if (offline)`」：
 
 ```csharp
 internal interface IAccountBackend  { Task<OpResult<Session>>          SignInAsync(LoginChannel c, CancellationToken ct); }
 internal interface IContentBackend  { Task<OpResult<ContentManifest>>  GetManifestAsync(CancellationToken ct); }
 internal interface IProfileBackend  { Task<OpResult<ProfileSnapshot>>  PullAsync(string accountId, CancellationToken ct);
                                       Task<OpResult<PushAck>>          PushAsync(ProfilePayload p, CancellationToken ct); }
+internal interface IPurchaseBackend { Task<OpResult<VerifyAck>>        VerifyPurchaseAsync(string receiptId, ChannelReceipt receipt, CancellationToken ct);
+                                      Task<OpResult<OrderAck>>         CreateOrderAsync(StorePlatform platform, string productId, CancellationToken ct);
+                                      Task<OpResult<ReceiptStatusAck>> GetReceiptAsync(string receiptId, CancellationToken ct); }
 ```
 
-> **三个后端接口全部落在服务身上，`manager` 没有跨边界的例外。** 不设剧本后端接口：剧本内容属本地内容层（见上方「内容与档案的存储分界」），客户端不存在剧本的网络通道。条件编译清单共 **5 处**，不得扩张（清单见下方「纪律的可执行化」）。
+> **四个后端接口全部落在服务身上，`manager` 没有跨边界的例外。** `IPurchaseBackend` 与 `IProfileBackend` 同宿主 **sync-service**——支付与档案同步是两个语义无关的边界，接口分立、宿主同一（载荷类型与调用形态见 `systems/services/sync-service.md`）。不设剧本后端接口：剧本内容属本地内容层（见上方「内容与档案的存储分界」），客户端不存在剧本的网络通道。条件编译清单共 **6 处**，不得扩张（清单见下方「纪律的可执行化」）。
 
 每个接口两份实现：`HttpXxxBackend`（后端就绪后）与 `OfflineXxxBackend`（当前阶段，读 `res://` 假数据 / 内存回显）。
 
-**选择形态：唯一选择点 `BackendSelector` + Release 构建里离线实现根本不存在。** 三个服务**不各自持开关**——由 `src/Core/BackendSelector.cs` 的 `CreateAccount()` / `CreateContent()` / `CreateProfile()` 产出实现，三个 `OfflineXxxBackend` **整类包在 `#if DEBUG` 内**（阶梯第 1 级：Release 下写不出对离线实现的引用，配错连编译都不通过）；开发期的开关载体是 ProjectSettings 自定义项 `mycardgame/backend/use_offline_backend`（第 3 级兜底），**不是 `[Export]`**。落地形态、启动期审计与「条件编译共 5 处、不得扩张」的清单见 `system-overview.md` 第四节，选级理由见下方「纪律的可执行化」。
+**选择形态：唯一选择点 `BackendSelector` + Release 构建里离线实现根本不存在。** 三个服务**不各自持开关**——由 `src/Core/BackendSelector.cs` 的 `CreateAccount()` / `CreateContent()` / `CreateProfile()` / `CreatePurchase()` 产出实现，四个 `OfflineXxxBackend` **整类包在 `#if DEBUG` 内**（阶梯第 1 级：Release 下写不出对离线实现的引用，配错连编译都不通过）；开发期的开关载体是 ProjectSettings 自定义项 `mycardgame/backend/use_offline_backend`（第 3 级兜底），**不是 `[Export]`**。落地形态、启动期审计与「条件编译共 6 处、不得扩张」的清单见 `system-overview.md` 第四节，选级理由见下方「纪律的可执行化」。
 
 > **理由（承重）：** 每个服务各持一个开关字段 = 若干个可能各自出错的点，最糟的失败态是「开了一部分没开另一部分」的**半在线状态**——它比全离线更难诊断（登录成功、内容加载正常，只有存档静默写进内存回显）。收敛成一个选择点后，这个失败态在结构上不存在。这与两条唯一入口 + 唯一物化点是同一条纪律。**接口有几个不削弱这条理由**——只要多于一个，半在线态就有可能。
 
 > **不插 `if`，也不插 `#if`：** 服务与 manager 内部一律只见 `IXxxBackend` 接口。
 
-> 这三个接口是客户端 ↔ 后端**协议契约的客户端一侧投影**；其权威在 `backend-design-documents/`。本库只定客户端的**调用形状**（方法名、参数、`OpResult` 语义），不定 HTTP 路径 / 报文字段。
+> 这四个接口是客户端 ↔ 后端**协议契约的客户端一侧投影**；其权威在 `backend-design-documents/`。本库只定客户端的**调用形状**（方法名、参数、`OpResult` 语义），不定 HTTP 路径 / 报文字段。
 
 **`IProfileBackend` 的两个返回类型都带 `revision`**（`ProfileSnapshot(Profile, Revision, SchemaVersion)` / `PushAck(NewRevision, Deduplicated)`）——`revision` 是**后端分配的账号级单调递增 `long`**，客户端持有的基线值 `baseRevision` 是**传输层元数据**（落 `user://cache/sync-envelope.json`，不进 Profile、不进存档 schema）；上行走 **CAS**，并携带幂等键 `pushId` 防「请求已达、响应丢失」时丢进度。语义、三分支表与校验点见 `systems/services/sync-service.md`。
 
@@ -294,6 +297,7 @@ internal interface IProfileBackend  { Task<OpResult<ProfileSnapshot>>  PullAsync
 | `Upgrade` | `Validation` | 非闸门点的非阻塞处置（见 `sync-service.md`） |
 
 - **硬阻塞仍然只有两处，且只由已知 `code` 触发**——`auth.session_revoked`（被挤下线）与**登录点**的 `client.version_unsupported`。**协议维度的版本闸门只在 `signin` 判定一次**，pull 侧原样返回、不判定、不拒绝（权威：`backend-design-documents/contracts/profile-sync.md` §2 与 `contracts/auth.md` §5）；让 pull 也判一次即出现两个闸门、两套阈值。（**阻塞屏有三个变体，但由 `code` 触发的硬阻塞仍是这两处**：本地迁移失败走「需更新」变体，但它是 `MigrationManager` 在启动 pull 路径上做的**存档 schema 维度**判定——与协议维度的 `minAppVersion` 无关，也不由任何后端 `code` 触发。阻塞点的穷举清单见 `systems/services/sync-service.md`「三条不变式」①，呈现见 `ux/error-and-blocking-ux.md`。）**一个未知 `code` 永远不得新增第三处硬阻塞**：未知 `Reauth` 走保守的静默刷新，代价是一个真失效的会话可能多跑一小会儿（下一次操作仍会被拒），收益是后端新加一条错误码不可能打断玩家进行中的轮回。
+- **`OpError.Purchase` 只由 `purchase.*` 域的 `code` 映入，别的域一条也不映。** 它承载「这笔购买没成」这条 `Validation` / `Network` 都不表达的处置轴；付费面是玩家最不能容忍含糊的地方。**并非该域的每一条都映它**——报文格式错误那一类仍是上行校验失败，照常映 `Validation`；逐 `code` 的归档权威在 `backend-design-documents/contracts/envelope.md`，**本库不复述清单**。呈现与处置见 `systems/monetization.md`。
 - **`OpError.Cancelled` 与 `OpError.Migration` 不得出现在映射表的取值域里。** 前者是 `CancellationToken` 的本地语义，后者是 `MigrationManager` 的本地存档迁移失败；后端拒绝一个它不认识的 `schemaVersion` 是**上行校验失败**（`Validation`），映到 `Migration` 会让客户端去跑一条本地迁移路径，而问题根本不在本地。**这条可机械检查**（表的 `OpError` 列排除两值）。
 - **应答体无法解析为契约错误体**（网关 502、非 JSON 错误页）→ 按 HTTP 状态码降级为 `server.unavailable`（`Retryable`）；不要求网关也产出契约错误体。
 - **映射表不含 `plot` 域**——剧本内容属本地内容层，客户端不存在剧本的网络失败态。
@@ -468,6 +472,14 @@ public enum RngStream       { Map, Combat, Shop, Reward }
 public enum EventType       { Combat, Exchange, Research, Explore, Travel }
 public enum CombatTier      { Practice, Standard, Finale }   // 仅 EventType.Combat 携带
 
+// —— 购买段（sync-service 的渠道封装与购买后端；完整形态见 systems/services/sync-service.md）
+public enum StorePlatform   { GooglePlay, AppStore, WeChatPay }
+// 成员名与契约 platform 取值逐字相同（envelope.md §2 的既定纪律，两侧同批冻结）；取值域封闭为三渠道，
+// 新增渠道是显式的契约追加事件。ChannelReceipt（以 StorePlatform 为判别式的渠道凭据客户端投影，
+// 分支字段与 backend-design-documents/contracts/purchase.md §3a 三表逐字对位——回链，不另立取值表）、
+// ChannelOrderParams（下单应答里交给渠道 SDK 唤起支付的参数对象，同按 platform 判别）
+// 与 VerifyAck / OrderAck / ReceiptStatusAck 的定义见 systems/services/sync-service.md。
+
 // —— 事件产出侧（模板参数空间 → 物化定稿）；载体与断言见 systems/services/future-event-service.md
 public sealed record EventOutcomeSpec(                        // EventOption.OutcomeSpec 的类型
     ProfileChangeSpec OnResolved,                             // 恒非 null；无产出时为空 spec
@@ -632,9 +644,9 @@ public static class AtomicJsonFile          // 无状态；不持有任何服务
 | overlay 新增剧本条目不得引用新的非剧本 `Id` | 上线且不可见 | **3 + 发布侧等价 2** | 合并期 `newIds` 双闸（全量 `PushError`，非 `#if DEBUG`）+ 打包工具跑同一份 `LoadAll()`、不通过不产包。见 `services/content-service.md` |
 | 改了 Profile 结构必须登记进 `schemaVersion` 登记表 | 上线且不可见 | **3 + 发布侧等价 2** | `ProfileShapeCheck`：序列化形状与该版 golden 快照逐字比对，打包管线不通过不产包 + `#if DEBUG` 启动期跑同一份。见 `services/profile-schema-versions.md` |
 
-**「不插 `if`，也不插 `#if`」——条件编译的使用清单是穷举的，不得扩张：** `src/Core/BackendSelector.cs`、三个 `src/Services/*/Offline*Backend.cs`、`src/Autoload/EventBus.cs` 的审计块，**共 5 处**。服务与 manager 内部一律不得出现 `#if`。
+**「不插 `if`，也不插 `#if`」——条件编译的使用清单是穷举的，不得扩张：** `src/Core/BackendSelector.cs`、四个 `src/Services/*/Offline*Backend.cs`、`src/Autoload/EventBus.cs` 的审计块，**共 6 处**。服务与 manager 内部一律不得出现 `#if`。
 
-> **一次已预告的、有边界的扩张：** 商业化落地时将新增**第四个窄接口 `IPurchaseBackend`**（平台内购 SDK + 后端验票是一条全新的跨进程边界，其失败语义——用户取消 / 订单待处理 / 票据重复 / 跨设备重复到账——与 `IProfileBackend` 完全不同），条件编译清单相应由 **5 → 6**。这遵守总则 7 的**本意**（防「服务内插 `if (offline)`」造成半在线态，而非禁止新增边界服务），**不构成对该纪律的普遍松动**：清单仍是穷举的，新增仍需逐次裁决。**本次不新增接口**——商业化落地在 `vision/scope.md` 的「范围之外（暂时）」内，裁决点留到真正需要它的时候。**否决**把 `CreateOrderAsync` / `RedeemReceiptAsync` 挂进 `IProfileBackend`（清单虽不变，却把「档案同步」与「支付」两个语义无关的边界混住，且 `OfflineProfileBackend` 要同时假装是内存回显和假支付网关）。见 `systems/monetization.md`。
+> **第四个窄接口 `IPurchaseBackend`（购买域）是清单的第 6 处来源：** 平台内购 SDK + 后端验票是一条独立的跨进程边界，其失败语义——用户取消 / 订单待处理 / 票据重复 / 跨设备重复到账——与 `IProfileBackend` 完全不同。`OfflinePurchaseBackend` 整类 `#if DEBUG`；`DebugStoreChannel` 与它**同文件、同一个 `#if` 区**，不另增位点。**否决**把 verify / order / receipt 三个调用挂进 `IProfileBackend`（清单虽少一处，却把「档案同步」与「支付」两个语义无关的边界混住，且 `OfflineProfileBackend` 要同时假装是内存回显和假支付网关）。这条扩张遵守总则 7 的**本意**（防「服务内插 `if (offline)`」造成半在线态，而非禁止新增边界接口），**不构成对该纪律的普遍松动**：清单仍是穷举的，再扩张仍需逐次裁决。渠道封装 `IStoreChannel` 不是后端接口——渠道可用性是运行时事实，走运行时探测、不占 `#if` 位点，见 `systems/services/sync-service.md`；购买流程见 `systems/monetization.md`。
 
 **否决记录：** Roslyn 分析器（单独项目要维护、随 Godot 生成的 `.csproj` 走易被覆盖、无 CI 前提下只在本机构建生效；`[Obsolete(error: true)]` 拿到同一份编译期保证）· 把「上线且不可见」类纪律只做到第 3 级（断言只在跑到那一步时生效，而这类违规的症状恰恰是「一切正常」）。
 
@@ -666,7 +678,7 @@ Input (touch, 横向滑动选择)
                                    (SeedManager 的具名子流驱动全部随机性)
 ```
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-02-architecture-services-reconcile.md` · `handoffs/2026-09-03-plot-eventbus-broadcast.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-02-architecture-services-reconcile.md` · `handoffs/2026-09-03-plot-eventbus-broadcast.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

@@ -45,11 +45,11 @@
 
 ### 定价与折扣
 
-- **定价归属 = `systems/balance.md` 的一张「商品族 × 稀有度」定价表，不逐条目手写。** 与 `lifeSpanCost` 的「事件类型 × 篇章」定价表完全同构：**内容条目默认不填、取表值**，需要体现风味差异时在 `ExchangeStockRule.PriceOffset` 上标偏移。理由逐条对应：改一张表即可全局调经济、不必重扫数百个 `.tres`、避免同类商品在不同作者手里定价漂移。**不设篇章维**——两种货币都随轮回清理、每章重置，与寿元的跨篇章结转不同，篇章差异应由「掉落多少货币」承载而非「同一件东西涨价」。
+- **定价归属 = `systems/balance.md` 的一张「商品族 × 稀有度」定价表，不逐条目手写。** 与 `lifeSpanCost` 的「事件类型 × 篇章」定价表完全同构：**内容条目默认不填、取表值**，需要体现风味差异时在 `ExchangeStockRule.PriceOffset` 上标偏移。理由逐条对应：改一张表即可全局调经济、不必重扫数百个 `.tres`、避免同类商品在不同作者手里定价漂移。**不设篇章维**——两种货币与寿元同形、跨篇章结转，价格必须跨章稳定，否则攒下的余额被通胀稀释；篇章差异由「掉落多少货币」承载而非「同一件东西涨价」。**表的载体是平衡资源 `ExchangePriceTableData`**：25 格 `(Currency, BasePrice)` 与全局单值 `PackSellRatePercent` 同住一份（两者共用同一张基准价表，是一条跨字段不变式），形状照 `LifeSpanCostTableData`，经 `Content.Single<T>()` 取。
 - **表的格值 = (支付币种, 基准价)，币种由格决定。** 一件商品收灵石还是仙玉，读的是它所在的「族 × 稀有度」那一格；**内容侧不新增任何书写位**，「条目默认不填、取表值」原样成立。物化时币种随基准价一同抄进 `ExchangeOffer.Currency`。
   - **仙玉的高阶性由它落在哪几档表达，不由新机制表达**——高阶商品之所以是高阶商品，是因为它的族与稀有档在表上收仙玉，而不是因为它带了一个标记。
   - **被接受的代价（正面写明）：** 币种与「族 × 稀有度」全局绑死 ⇒ 编排不出「同一稀有档有的收灵石有的收仙玉」，也编排不出「专收仙玉的商贾」这一风味。换来的是**币种不可被内容条目误填**，且售出侧不产生事实汇率（见「售出」）。
-  - **哪几格填仙玉属数值取值**，与定价表逐格取值同归内容扩充后的统计校准。
+  - **哪几格填仙玉已定：仅 `PlayerItem` 全五档 · `CharacterPower` 的 Tier4 / Tier5 · `CultivationTechnique` 的 Tier5，其余 18 格全部收灵石。** `CharacterItem` 五档**恒收灵石、一格仙玉都不给**——它是唯一可售出的族，仙玉不落在它上面即让「售出产仙玉」在结构上不可能发生。**代价：从此编排不出「以仙玉计价的法宝」**，含顶级消耗品。逐格基准价见 `systems/balance.md`。
 - **折扣通道一 = `ModifierKey.ShopPrice`（PlayerPower 的具名 modifier）。** 它**在物化时施加、写入 `ExchangeOffer.ListPrice`**，因此**不进 `ResourceElements` 表**：「一个 `ModifierKey` 只能有一个施加点」，而商店价格必须先算才能标价 ⇒ 施加点在物化 / 展示侧。
 - **折扣通道二 = `ExchangeStockRule.DiscountPercent`（内容侧静态折扣）。** 用于表达「这位商贾对同门有优待」一类风味；与玩家侧修正来源不同、可叠加。施加顺序：
 
@@ -100,7 +100,7 @@
 - **售出所得的币种 = 该条目在定价表那一格的币种，即同币回收（承重）。** 折算基准本就读那张表，币种也在那张表上 ⇒ 卖出所得恒与买入同币，零新机制。
   - **售出不构成跨币种通道。** 灵石与仙玉之间不存在任何兑换通道，售出侧也不例外：以仙玉计价的法宝卖回仙玉，以灵石计价的法宝卖回灵石，两条价值线各自闭合、不产生汇率。两币不可兑换的完整纪律见 `systems/character-profile/currency.md`。
   - 准入判据不受影响：「可售出 ⟺ `Kind == CharacterItem`」仍是唯一那一条代码级常量，**不加第二个条件**。
-- **回收率显著低于标价**（商店档建议落在 30–50%，具体留待内容扩充后的统计校准）。摩擦保住取舍感：卖仍是亏，只是比丢掉强。
+- **回收率显著低于标价**：商店档 `SellRatePercent` 初值 **40%**、可编排区间 30–50%，随售档 `PackSellRatePercent` 初值 **15%**（取值随内容扩充后的统计校准复核）。摩擦保住取舍感：卖仍是亏，只是比丢掉强；15% 使一件 Tier2 法宝随售只得基准价的零头，「清仓」不构成一条经济来源。
 - **商店收购恒优于随售，这条由加载期硬校验保证（承重）：`SellEnabled == true` 且 `SellRatePercent <= PackSellRatePercent` → `PushError`。** 论证基底是两条通道各自的角色：**储物袋随售是常态的弃置途径**——玩家手上多出来的法宝主要靠它清掉，低回收率使「清仓」不构成一条经济来源，弃置的收益只是聊胜于无；**提供收购的商店则是罕见的更优机会**，一个玩家遇上它时该觉得「这次卖得划算」，而这正是它作为机会的全部意义。若某家店收得比随手卖还低，它作为机会就不成立，且玩家无从解释这家店为什么存在——故它是坏数据，不是一种风味。「压价狠的商贾」仍可用 `SellEnabled = false`（只卖不收）或一个仍高于随售档的低费率表达。
 - **售出面不受库存短缺影响**：`SellEnabled` / `SellRatePercent` 与库存抽取无关，一个只剩一件商品的店照常收购。
 - **售出即时提交**，与购买同一条路径。
@@ -150,7 +150,7 @@
 - **回寿法宝（补天丹一类）是 `CharacterItem` 族的一个普通商品，零机制增量。** 它使商店成为「货币 → 寿元」的一条兑换通道，但**不需要任何新接口**：库存抽取、定价（「族 × 稀有度」表的 `CharacterItem` 行）、购买 spec（`ChangeElement(offer.Currency, -ListPrice)` + `AbilityChangeElement(Grant, Item, Character, id, Source.ExchangePurchase)`）全部照既有路径走。**账号级古宝 `PlayerItem` 一族被结构性排除在这条通道之外**——含寿元产出的 `ItemData.Scope == Player` 在加载期即 `PushError`，见 `systems/character-profile/item/_index.md`。回寿通道的完整形态与平衡护栏见 `systems/adventure-event/common-properties.md`。
 - **商品的内容定义一律归各自的内容子树，Exchange 只承载交易机制。** 五个商品族的定义位置：`Card` → `systems/character-profile/deck/`；`CultivationTechnique` → 同上；`CharacterItem` → `systems/character-profile/item/`；`CharacterPower` → `systems/character-profile/power/`；`PlayerItem` → `systems/player-profile/player-item/`。
 
-Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-purchase-count-statkey.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-30-exchange-barter-support.md`
+Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-purchase-count-statkey.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-09-05-currency-acquisition-and-pricing.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -167,7 +167,7 @@ Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` �
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **定价表每格填多少 · 刷新基价与递增量 · 两档回收率（商店档 `SellRatePercent` 与随售档 `PackSellRatePercent`）· 槽位总数上界的取值。** 形态均已定，留待**内容扩充后的统计校准**；且**绝对数字在两种货币的获取渠道答定前无法反推**——灵石的获取渠道与掉落权重整体未设计，仙玉的产出量与价格量级同样未定，两者互相约束（双币经济的相对价值由两条产出曲线共同决定）。**定价表哪几格收仙玉**并入本条。→ `systems/balance.md`、`systems/character-profile/currency.md`。
+- **刷新基价与递增量 · 单事件槽位总数上界的取值。** 形态均已定，留待**内容扩充后的统计校准**；刷新首批一律填 0（关闭）。定价表 25 格、每格币种与两档回收率**已有初值**（见 `systems/balance.md`），其绝对数字仍归同一次校准复核。→ `systems/balance.md`、`systems/character-profile/currency.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/exchange.md`（待建）

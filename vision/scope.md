@@ -13,7 +13,7 @@
 - **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。见「平台与约束」。
 - **premium bundle 端到端。** 支付接入（Google Play Billing / App Store / 微信支付三渠道）+ Store 屏 + 购后兑现。它是客户端唯一必须引入第三方 SDK 的地方，牵动 Godot 导出配置与各平台构建。形态见 `systems/monetization.md`。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-09-06-iap-channel-integration.md`
 
 ## 范围之外（暂时）
 > _明确推迟——先泊车，以免蔓延进来。_
@@ -27,6 +27,7 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-
 
 ## 平台与约束
 - 首要：Android / iOS（竖屏、触控）。
+- **iOS 部署下限 15。** App Store 内购走 StoreKit 2（验票契约只收 JWS，见 `backend-design-documents/contracts/purchase.md` §3a），其系统下限即整包部署下限。
 - 次要：桌面、网页。
 - **平台 / 登录渠道优先级（已定）。** **移动端优先**（手机 / 邮箱）→ **微信 / QQ 登录其次** → **海外与跨平台最后**。**没有游客登录**（强制账号登录）。
 - **强制在线 · 云端权威（已定）。** **去除离线游玩**：必须在线，进度实时同步云端；**冲突时一切以云端为准**。项目根约定（`.claude/CLAUDE.md`、`state-save-rules.md` 及知识笔记）均以强制在线为准，并确立「决策可被后续更权威的用户意图改写，含根约定」的治理原则。

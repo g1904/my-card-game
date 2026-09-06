@@ -23,6 +23,14 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| [log-iap-channel-integration](log-iap-channel-integration.md) | 2026-09-06 | `inbox/archive/solution-draft-iap-channel-integration.md` → `handoffs/2026-09-06-iap-channel-integration.md` | 1（另 interview 裁决 🔴-1 → `IPurchaseBackend` 与两条既定裁决同批落笔；新增 0 条） |
+| [log-baseline-superset-and-pack-proof](log-baseline-superset-and-pack-proof.md) | 2026-09-06 | `inbox/archive/solution-draft-baseline-superset-and-pack-proof.md` → `handoffs/2026-09-06-baseline-superset-and-pack-proof.md` | 2（cross-boundary 待承接两条全条；新增 0 条） |
+| [log-0905](log-0905.md) | 2026-09-05 | `/summarize-open-questions game`（全量整理，无草稿来源） | 1（`deferred-content.md` 的重复登记；同批归集 3 条 · 订正 2 处 · 报告 5 处矛盾） |
+| [log-run-end-and-chapter-completion-screens](log-run-end-and-chapter-completion-screens.md) | 2026-09-05 | `inbox/archive/solution-draft-run-end-and-chapter-completion-screens.md` → `handoffs/2026-09-05-chapter-end-screen.md` | 2 全条（同批新增 1 条：`completed` 是否清理角色数据） |
+| [log-barter-grayed-event-key](log-barter-grayed-event-key.md) | 2026-09-05 | `inbox/archive/solution-draft-barter-grayed-event-key.md` → `handoffs/2026-09-05-barter-grayed-state-keys.md` | 1（新增 0 条） |
+| [log-sync-schema-bump-ledger](log-sync-schema-bump-ledger.md) | 2026-09-05 | `inbox/archive/solution-draft-sync-schema-bump-ledger.md` → `handoffs/2026-09-05-schema-ledger-v1-coverage.md` | 1（四批漏登经核实已于前次答结；残留改写为 v1 行覆盖空缺 11 处 + 一处不可核对计数，降级后移入 `open-questions/05-service-contracts.md`。新增 0 条） |
+| [log-currency-acquisition](log-currency-acquisition.md) | 2026-09-05 | `inbox/archive/solution-draft-currency-acquisition.md` → `handoffs/2026-09-05-currency-acquisition-and-pricing.md` | 4 全条（另有七项同批裁决 / 订正不在清单上，含两处 `ADR-0089` 措辞订正） |
+| [log-backend-batch-client-obligations](log-backend-batch-client-obligations.md) | 2026-09-05 | `inbox/solution-draft-backend-batch-client-obligations.md` | 3 |
 | `log-lifespan-cost-chapter-tiers.md` | 2026-09-03 | `inbox/archive/solution-draft-lifespan-cost-chapter-tiers.md` → `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` | 2 全条 + 1 部分（另有三项同批裁决不在清单上：21 格按 λ 层重算 · `lossPerMomentum` ch1 由 1 改为 10 并改写两份 ADR · ch1 经验阈值曲线 79 → 55） |
 | `log-character-power-mechanics.md` | 2026-09-03 | `inbox/archive/solution-draft-character-power-mechanics.md` → `handoffs/2026-09-03-character-power-mechanics.md` | 1（五子项全部答定。**不含**「`status` 与拥有 / 失去两个正交维度的 schema 编码」，该条仍在待答清单） |
 | `log-plot-eventbus-broadcast.md` | 2026-09-03 | `inbox/archive/solution-draft-plot-eventbus-broadcast.md` → `handoffs/2026-09-03-plot-eventbus-broadcast.md` | 1（未新增待答项） |

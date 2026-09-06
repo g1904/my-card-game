@@ -120,7 +120,7 @@
 - **储物袋随售：常态的弃置途径。** Exchange event 的形态是以物易物或资源换取道具，**大部分可随售的道具在 Exchange 中并不提供回收**（首批内容以「不收购」为常态，属内容编排口径）。随售因此是玩家弃置不需要物品的主要途径，而它的回收率**显著低于商店档**——低回收率使「清仓」不构成一条经济来源，弃置的收益只是聊胜于无；少数**提供回收**的商店是**罕见的更优机会**，商店档恒优于随售档由一条加载期硬校验保证（校验行落 `systems/adventure-event/exchange/common-properties.md`），这正是它作为机会的全部意义。
   - **两档是两个独立旋钮，互不作缺省**：商店档 `SellRatePercent` 是逐条目字段（编排面，存在理由是让「只卖不收」的商店可编排）；随售档 `PackSellRatePercent` 是全局平衡资源单值（随售没有编排主体）。数值格与取值区间见 `systems/balance.md`。
   - **折算基准取「族 × 稀有度」定价表的基准价**，不含 `PriceOffset` / `DiscountPercent` / `ListPrice`（随售没有 stock rule、没有 offer，天然读不到），否则「在打折商店卖东西更亏」，玩家读不出因果。**已知代价**：定价表被 overlay 在轮回中途改动时随售价随之变化，落在「确定性边界只到同一 `contentVersion` 内」之内。
-  - **同币回收**：币种由定价表那一格决定，落在收仙玉那一格的法宝随售即产出仙玉。净产出敞口的量级归统计校准，见 `systems/balance.md`。
+  - **同币回收**：币种由定价表那一格决定。**法宝一族在表上五档恒收灵石 ⇒ 随售恒回灵石，一枚仙玉都产不出**（仙玉不落唯一可售出的族，是关闭净产出的结构性手段，见 `systems/balance.md`）。
   - **随售的来源标注 = `Source.PackSell`**（成员表与 `(CarrierKind, Scope)` 合法子集表的权威在 `systems/common-properties.md`）。它进 `TryApply` 的可追溯性日志与客服溯源，**不进存档**——随售没有 `PastEventEntry` 可挂，又不落 `SourceCode`（东西已不在），故**事后不可重建**，这条代价被明写接受。不新开 `PastEventEntry` 通道，不为「售出次数」设 `StatKey`。
   - **售出即时提交**，沿用既有路径，不新增存档点类型（玩家主动发起且本身自足）。它与战斗外使用同属批次层的储物袋操作，**push 走同一个 `SavePointReason.InventoryChanged`**（见 `systems/services/sync-service.md`）；随售的其余规则一字不变。
 

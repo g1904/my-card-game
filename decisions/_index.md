@@ -4,6 +4,30 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| [ADR-0145](ADR-0145-schema-ledger-no-counts.md) | 逐版 schema 登记表不写任何计数（形态纪律第 ⑥ 条） | Accepted | 2026-09-05 | systems/services/profile-schema-versions.md, decisions/ADR-0127-life-merged-into-lifespan.md |
+| [ADR-0144](ADR-0144-finale-diff-balance-knob.md) | 天劫指派等级改为平衡资源上的旋钮 `FinaleDiff`（相对 diff，下界恒 1） | Accepted | 2026-09-05 | systems/balance.md, systems/adventure-event/combat/_index.md, systems/services/future-event-service.md |
+| [ADR-0143](ADR-0143-chapter-end-screen.md) | 新增 `ChapterEndScreen`：一屏三变体，ch3 变体即元婴通关证书 | Accepted | 2026-09-05 | ux/screen-flow.md, systems/services/life-cycle-service.md, systems/services/plot-manager.md, ux/error-and-blocking-ux.md |
+| [ADR-0142](ADR-0142-grayed-state-is-visual-only.md) | 灰态是视觉降级而非引擎级禁用：灰格必须继续接收触控 | Accepted | 2026-09-05 | ux/error-and-blocking-ux.md, systems/adventure-event/exchange/_index.md |
+| [ADR-0141](ADR-0141-overlay-packer-proof-and-baseline-snapshot.md) | overlay 打包工具须产出机读产包证明与按在架版本归档的基线快照 | Accepted | 2026-09-05 | systems/services/content-service.md |
+| [ADR-0140](ADR-0140-op-error-purchase-domain.md) | `OpError` 增一档 `Purchase`，只由 `purchase.*` 域映入；不建逐 `code` 表 | Accepted | 2026-09-05 | systems/architecture.md, systems/monetization.md, ux/error-and-blocking-ux.md |
+| [ADR-0139](ADR-0139-minor-playtime-display-only.md) | 未成年账号剩余可游玩时长：客户端只呈现不判定，阈值落数据资源 | Accepted | 2026-09-05 | systems/services/account-service.md, ux/screen-flow.md |
+| [ADR-0138](ADR-0138-nickname-change-is-flow-gate.md) | 「须改名」是启动链内一道 fail-open 的一次性流程门，不是第五处硬阻塞点 | Accepted | 2026-09-05 | systems/services/account-service.md, ux/screen-flow.md, ux/error-and-blocking-ux.md |
+| [ADR-0135](ADR-0135-jade-excluded-from-sellable-family.md) | 仙玉一格都不落可售出族（`CharacterItem` 行全灵石），净产出敞口结构性关闭 | Accepted | 2026-09-05 | systems/balance.md, systems/character-profile/currency.md, systems/adventure-event/exchange/_index.md, systems/character-profile/item/_index.md |
+| [ADR-0134](ADR-0134-spirit-stone-is-combat-loot.md) | 灵石 ≈ 战利品：战斗是主产出口，Travel 禁令扩至三个 `ResourceKey` | Accepted | 2026-09-05 | systems/balance.md, systems/adventure-event/common-properties.md, systems/adventure-event/travel/_index.md, systems/adventure-event/combat/_index.md |
+| [ADR-0133](ADR-0133-currency-carries-across-chapters.md) | 两种货币跨篇章结转、与寿元同形；定价表因此不设篇章维 | Accepted | 2026-09-05 | systems/character-profile/currency.md, systems/balance.md, systems/adventure-event/exchange/_index.md, systems/services/life-cycle-service.md |
+| [ADR-0158](ADR-0158-schema-version-ledger-authority.md) | 存档 `schemaVersion` 的登记权威 = 独立成文的逐版登记表 + `ProfileShapeCheck` 护栏 | Accepted | 2026-09-03 | systems/services/profile-schema-versions.md, systems/services/sync-service.md, systems/architecture.md |
+| [ADR-0157](ADR-0157-plot-layer-outward-surface.md) | 剧本层对外面：EventBus 恰好一条事件，剧本段走门面只读查询 `TryGetPlotSegment` | Accepted | 2026-09-03 | systems/services/plot-manager.md, systems/services/future-event-service.md, systems/architecture.md, ux/screen-flow.md |
+| [ADR-0156](ADR-0156-lifespan-cost-proportional-to-time.md) | `lifeSpanCost` 每格 = `round(t(type) × λ(chapter))`，定价正比于玩家实际耗时 | Accepted | 2026-09-03 | systems/balance.md, systems/character-profile/life-span.md, systems/game-progression.md |
+| [ADR-0155](ADR-0155-compliance-client-split-criterion.md) | 合规域客户端切分判据：流程归 `ComplianceManager`，说明失败归发起屏 | Accepted | 2026-09-03 | systems/services/account-service.md, ux/error-and-blocking-ux.md, ux/screen-flow.md, systems/services/sync-service.md |
+| [ADR-0154](ADR-0154-snapshot-facedown-viewer-filter.md) | 对侧 `faceDown` 战场条目整条排除出 `CombatSnapshot.Battlefield` | Accepted | 2026-09-03 | systems/services/combat-service.md, systems/character-profile/deck/common-properties.md, ux/combat-ux.md |
+| [ADR-0153](ADR-0153-character-power-strength-ceiling.md) | 单条神通的战斗内强度上沿取 `baseMomentum` 比例刻度，不设合计总闸 | Accepted | 2026-09-03 | systems/balance.md, systems/character-profile/power/_index.md |
+| [ADR-0152](ADR-0152-cross-carrier-boundary-criterion.md) | 跨载体边界判据：卡牌 / 法宝 / 神通共用一张按代价排序的表 | Accepted | 2026-09-03 | systems/character-profile/power/_index.md, systems/character-profile/deck/_index.md, systems/character-profile/item/_index.md, systems/balance.md |
+| [ADR-0151](ADR-0151-branch-label-iff-branch-chosen.md) | `BranchLabel` 非空 ⟺ `Condition.Kind == BranchChosen`，加载期焊成充要关系 | Accepted | 2026-09-02 | systems/services/plot-manager.md, ux/screen-flow.md |
+| [ADR-0150](ADR-0150-plot-segment-in-outcome-panel.md) | 剧本分支触发于 `eventEnd` 提交之后，呈现落在事件结算面板内的「剧本段」 | Accepted | 2026-09-02 | ux/screen-flow.md, systems/services/plot-manager.md |
+| [ADR-0149](ADR-0149-enchantment-activated-ability-host.md) | 阵法上启动式异能的 UI 宿主 = 战场区内该条目自身，零新增区 | Accepted | 2026-09-02 | ux/combat-ux.md |
+| [ADR-0148](ADR-0148-cycle-end-screen.md) | 轮回结束屏 `CycleEndScreen` = 一屏三变体；定性文案改按 `DefeatReason` 查表 | Accepted | 2026-09-02 | ux/screen-flow.md, ux/error-and-blocking-ux.md, systems/services/life-cycle-service.md, systems/services/plot-manager.md |
+| [ADR-0147](ADR-0147-codex-single-entry-three-layer-browse.md) | 图鉴收进主菜单单一入口，按索引页 → 单本页 → 词条三层浏览 | Accepted | 2026-09-02 | ux/screen-flow.md, systems/player-profile/codex/_index.md |
+| [ADR-0146](ADR-0146-bound-technique-initial-tier.md) | 两门绑定功法恒以第 1 层入组，`CharacterData` 不加字段 | Accepted | 2026-09-02 | systems/character-profile/_index.md, systems/character-profile/deck/_index.md |
 | [ADR-0132](ADR-0132-stack-entry-kind-used-item.md) | 用道具的栈条目自成一员 `StackEntryKind.UsedItem`，栈条目增 `itemId` | Accepted | 2026-08-30 | systems/services/combat-service.md, systems/character-profile/deck/common-properties.md |
 | [ADR-0127](ADR-0127-life-merged-into-lifespan.md) | `lifeTotal` 并入 `lifeSpan`：一条命、两个扣减来源，且完全显性 | Accepted | 2026-08-30 | systems/character-profile/life-span.md, systems/scoring.md, systems/balance.md, systems/services/plot-manager.md, systems/services/profile-service.md, systems/adventure-event/research/_index.md, ux/screen-flow.md, vision/pillars.md |
 | [ADR-0126](ADR-0126-exchange-barter-payment.md) | Exchange 支付侧二选一：货币，或一件点名的轮回级法宝 | Accepted | 2026-08-30 | systems/adventure-event/exchange/_index.md, exchange/common-properties.md, systems/services/profile-service.md, systems/common-properties.md, ux/screen-flow.md |
@@ -132,8 +156,10 @@
 | [ADR-0014](ADR-0014-plot-manager-inside-future-event-service.md) | PlotManager 隶属 future-event-service；eventOptions 唯一出口 | Accepted | 2026-07-25 | systems/services/plot-manager.md, systems/services/future-event-service.md, systems/architecture.md |
 | [ADR-0010](ADR-0010-presentation-three-layer-split.md) | 展示层三层切分：Data / 运行时·存档 / ViewModel | Accepted | 2026-07-25 | systems/viewmodel.md, systems/architecture.md, systems/common-properties.md |
 | [ADR-0009](ADR-0009-single-entry-points-and-orchestrator.md) | 两条唯一入口 + 一个编排顶点 | Accepted | 2026-07-25 | systems/architecture.md, systems/services/profile-service.md, systems/services/content-service.md |
+| [ADR-0137](ADR-0137-class-model-systems-tree.md) | 设计库以「类概念」组织为单一 `systems/` 树；独立内容层撤销 | Accepted | 2026-07-24 | systems/_index.md, README.md |
 | [ADR-0004](ADR-0004-realm-checkpoint-retry-model.md) | 境界存档 · 篇章重试模型 | Accepted | 2026-07-23 | systems/services/life-cycle-service.md, systems/game-progression.md, systems/monetization.md |
 | [ADR-0003](ADR-0003-online-cloud-authority.md) | 强制在线 · 云端权威（含重账号） | Accepted | 2026-07-23 | vision/scope.md, systems/services/life-cycle-service.md, .claude/rules/state-save-rules.md |
+| [ADR-0136](ADR-0136-two-layer-profile-ownership.md) | 两层档案持有骨架：`PlayerProfile` 持有 `List<CharacterProfile>`；AdventureEvent 自足 | Accepted | 2026-07-15 | systems/player-profile/_index.md, systems/character-profile/_index.md, systems/services/future-event-service.md |
 | [ADR-0100](ADR-0100-art-direction-painterly-chinese-grimdark.md) | 美术方向 = 绘画感中式卡牌插画 × grimdark 仙侠 | Accepted | 2026-07-13 | art/visuals/art-direction.md, art/_index.md, vision/pillars.md, vision/references.md |
 | [ADR-0001](ADR-0001-example.md) | 战斗 / 计分模型（示例，未定） | Proposed | 2026-07-12 | systems/scoring.md, systems/adventure-event/combat/_index.md |
 

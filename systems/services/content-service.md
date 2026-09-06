@@ -52,6 +52,67 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 
 **客户端侧的天花板是阶梯第 3 级，等价的第 2 级由打包工具承担。** 第 1 级靠类型 / 可见性、第 2 级靠编译期，而这两条闸检查的对象是 `.tres` 的**引用图**，C# 编译器与类型系统都触不到它。故按「纪律的可执行化」对内容侧纪律的通用补注（`systems/architecture.md`）：**同一份校验前移进 overlay 打包工具**——喂「基线 + 待发 overlay」跑同一个 `LoadAll()` 路径，不通过就不产出包；客户端启动期的 `PushError` 保留为兜底，处理手工塞进 `user://overlay/` 的非发布路径。发布侧的执行归属见 `backend-design-documents/open-questions/04-content-delivery.md`。
 
+#### 打包工具的两项产出：机读产包证明与在架版本基线快照
+
+发布侧的闸**不重跑一遍校验**——那会造出第二份实现，两份随时漂移而本库无机制发现。它改为核对**本工具产出的机读证明**与待推文件集逐文件 hash 一一对应（核对形态与发布侧留痕的权威在 `backend-design-documents/operations/content-delivery-ops.md`，**本库不复述**）。客户端这一半有两项产出：
+
+**① 机读产包证明。** 字段集由本库自定（对侧明写字段形态归客户端），下限四项：
+
+| 字段 | 内容 |
+|---|---|
+| 工具版本 | 产出本次证明的打包工具版本 |
+| 基线 `appVersion` | 本次校验所依据的那份基线快照对应的客户端版本 |
+| 断言项计数 | 本次已执行的校验断言条数 |
+| 逐文件 `path` + `sha256` | 与 `files[]` 一一对应 |
+
+- **证明必须与产包同批产出、同批上传，且内嵌在产包的唯一路径上。** 单独一个「记得再跑一下」的步骤会让整条链退回评审级——这正是上面那条天花板判据说过的事。
+- 校验规则本身**不变、不外移**：仍是既有的两条合并期闸 + `LoadAll()` 路径，本项只是把它的产出物变成可被发布侧核对的东西。
+- **`entryCountsByType`（已设计、未启用——dormant 附注）。** 按类型的条目计数**不在当前字段集内、不 emit**：无人消费的字段就是无人校验的字段，先发出去只会静默腐坏。形态预先定死，**启用与对侧爆炸半径闸的池规模缩放（`backend-design-documents/operations/content-delivery-ops.md` A4'）同批**，届时退化为一个机械开关：
+
+  | 项 | 形态 |
+  |---|---|
+  | 字段名 | `entryCountsByType` |
+  | 键 | 内容条目 `Id` 的**首段前缀**（`content/_index.md` 的 `<内容类型>.` 段，如 `card` / `player_power`）——对侧按同一前缀对 `disabledIds` 做纯字符串分组，不解析内容 |
+  | 值 | 该基线 + 本次 overlay **合并后 `ContentEnabled == true`** 的条目数（= 抽取池口径） |
+  | 覆盖面 | 仅 flags 适用类型（结构性恒启用类型不 emit——flags 对其本就不生效，emit 了对侧也不该用） |
+  | 基数 | **按被跑的基线逐份**，与证明中「基线 `appVersion`」同层级落；具体嵌套在启用批内与证明结构一并定 |
+
+  计数由打包工具在既有的逐基线 `LoadAll()` 运行里顺手产出，零新增校验路径。读数面（min 口径、未知前缀兜底、阈值合成）与启用触发判据归对侧，本库不复述。
+
+**② 在架版本的基线内容快照。** 同一份 overlay 会被多个在架客户端版本消费、各自基线不同；只对最新基线跑过，**老版本玩家启动即 `PushError`——恰是闸要防的事发生在闸的盲区里**。故：
+
+- **每次客户端发版归档一份基线快照**，并须**归档到发布侧可达处**——否则闸对老基线根本跑不了。存放形态与生命周期归本库自决，可达性是硬约束。
+- **打包工具不自持「在架版本清单」。** 跑哪几个基线由发布侧按其兼容矩阵决定并作为输入喂进来；工具只负责「给我一份基线，我跑一遍」。
+- **这与下方「客户端不持有兼容矩阵的任何副本」不冲突**：那句话说的是**运行时客户端**（设备上跑的那个二进制），不含构建期的打包工具；而即便是打包工具，也只被动接收发布侧给出的基线，不自己维护矩阵。
+
+### 内容发版纪律（基线 `Id` 超集不变式）
+
+**客户端发版对随包基线只增不删——跨发版的基线 `Id` 集合单调不减。** 推论：更高版本基线恒为更低版本基线的 **`Id` 层超集**。**精确表述（承重）：超集只在 `Id` 集合层面成立；字段值与 `ContentEnabled` 取值不承诺跨版本不变**——发版可以自由改值，这正是退役路径的载体。
+
+- **承重理由：** 删除一个随包条目会精确重演「只改不增」要防的那个事故，只是换了通道与方向——云端权威档里躺着被删条目的持有实例，玩家升级客户端后拉档 → `Get(id)` → `PushError` + 抛 → **升级即废档**。上方「存档引用未知内容的风险从根上消失、无需任何兼容规则」以「已发布的 `Id` 永远可解析」为前提；允许删除就得为发版通道发明一整套本库明确庆幸不需要的兼容规则。另两条独立支撑：图鉴统计走 `AllIncludingDisabled()`，删条目让全体玩家的图鉴分母跳变；结构类型（地域图顶点、剧本节点、档位表行）删一条即结构空洞，而图的稳定性是对玩家的隐性承诺。
+- **改名 = 删 + 增，同样禁止**——与「`Id` 稳定唯一、成员名与 code 冻结、永不复用」纪律同构（`systems/common-properties.md`）。
+- **剧本类型不开删除例外。** 剧本条目不被存档引用、key points 悬空已有降级处置，理论上可删；但开例外会把超集不变式从全称命题降为带类型白名单的命题，发版闸与对侧回链都要跟着带条件，换来的只是 KB 级文本的包体。统一不删，废弃 arc 用 `ContentEnabled = false` 退役（arc 参与放量，禁 arc 合法）。
+
+**退役路径按类型三分，全部落在「只改不删」内：**
+
+| 类型 | 退役形态 |
+|---|---|
+| 抽取池成员（卡 / 事件 / 敌人 / 法则 / 神通 / 古宝 / 法宝 / 功法 / `PlotArcData` / 文案候选） | 基线里置 `ContentEnabled = false`（永久禁用）。条目留存、`Get(id)` 照常解析、不再被新抽到 |
+| 结构性查表类型（`PlotNodeData` / `LocationData` / `HiddenStatBandData` / 一切 `ISingletonContent`） | **没有退役一说**——恒启用且删除即结构空洞；只能演进字段值 |
+| 合规级移除（法务 / 商店审核要求某条内容消失） | **掏空而非删除**：字段值改为中性内容（`zh` 文本须留非空的中性句——空串会触发强校验）、`Artwork` 置空并**在同版删除其不再被引用的贴图资产**（回收包体）、`ContentEnabled = false`。`Id` 壳留存，存档解析不断。**命中结构性恒启用类型时只掏空字段值、不置 `ContentEnabled = false`**——恒启用类型置 false 即启动期 `PushError`（见下方「放量开关」节），本行与上一行的合成 |
+
+- **包体代价有界：** 不删条目 ≠ 不删资产。退役条目的 `Artwork` 可置空（可空是常态，占位回落已有），其贴图从包内移除是合法的——`.tres` 文本壳是 KB 级，长期累积可忽略。这与「不预埋空壳 `Id`」（见下节）不冲突：那条否决的是**从未发布过**的假条目（校验放不宽 + 审核灰区），退役条目是曾经完整发布过、且已被禁用不进池的真条目，校验不放宽。
+
+**机械闸落在基线快照归档步**（选级判据：删条目「能上线、线上不可见」——症状在老档玩家升级后才炸，见 `decisions/ADR-0013-discipline-enforceability-ladder.md`）：
+
+- 每次客户端发版归档基线快照时，枚举新快照的 `Id` 全集，与**上一份已归档快照**比对；出现「上一版有、本版无」的 `Id` → **非零退出，归档与发版闸失败**，报出缺失 `Id` 清单。
+- **「上一份」按 semver 版本序取**——比对对象是版本号低于本版的**最大**已归档快照，不按归档时间序。老版本线补丁（如 1.1.5 晚于 1.2.0 归档）按时间序会误拿 1.2.0 当基准而误报缺失；semver 三段逐段整数比较与 `minAppVersion` 同一口径（见下方「manifest 契约对位」）。
+- 只比上一版即可——超集关系传递，逐版通过则全链成立。
+- 顺带把「快照形态须**可枚举 `Id` 集**」立为快照形态（归本库自决那一项）的一条硬要求。
+- 这道闸使超集不变式对发布侧成为**被机械保证的事实**而非口头纪律——对侧打包闸基线口径的前提句以此为回链锚点（`backend-design-documents/operations/content-delivery-ops.md` C6）。
+
+**超集成立不弱化任何客户端义务——打包闸仍逐基线各跑，产包证明仍按被跑的每个基线逐份产出。** 「只跑最新」不健全且方向反了：打包闸的存在性判据（overlay 触到的 `Id` 必须存在于基线）在 **`Id` 最少的最旧在架基线**上最严——overlay 若改了一个新版本才有的条目，对老基线它就是非法新增 `Id`，只跑最新恰好漏掉闸要防的事；且合并校验含值敏感断言（`BandIndex` 连续性等），其结果依赖各基线自身字段值，`Id` 层超集不能使任何单基线运行覆盖其余（见 `decisions/ADR-0141-overlay-packer-proof-and-baseline-snapshot.md`）。
+
 ### 放量开关 `ContentEnabled`：不预埋占位 Id
 
 **否决「预埋空壳 `Id`、日后用 overlay 填充数值文案」。** 两条理由：① 与「合并后强校验」直接冲突——空壳条目要么迫使校验放宽（丢掉启动期早失败这条纪律），要么携带假数值被抽中；② 属应用商店审核灰区（随包发的是不可玩的壳）。
@@ -210,12 +271,12 @@ user://overlay.staging/         下载落地区，允许脏，失败即清空
 - **`files[].path` 落盘前校验路径穿越**（禁 `..` 与绝对路径）——这是内容分发里唯一有实质危害的注入面。
 - **`files[].size` 用于下载前的磁盘空间预检**，使「磁盘空间」这类失败提前判定，而非写到一半才失败（对上 `CheckAndUpdateAsync` 已定的磁盘分支）。
 - **拒绝 `contentVersion` 小于本地已生效版本的 manifest**（防回放）。**不做绝对时间 TTL**——设备时钟不可信，会误伤离线玩家。
-- **`minAppVersion`（manifest 内 · 内容维度）由客户端自行比对**，规则 = **semver 三段逐段整数比较**，不做字典序（字典序会判 `1.10.0 < 1.9.0`，且这类 bug 发版后才显形、无法在设备上复现）。低于它 → **跳过本次 overlay、照常用基线，永不阻塞**。**它与协议维度的强更闸门互不兼职**：后者由服务端判定、以 `client.version_unsupported` 在登录 / 启动点硬阻塞，客户端**不比较** `X-Min-App-Version`、也不持有兼容矩阵的任何副本。内容太新只是不更新内容；协议不兼容才拦人。
+- **`minAppVersion`（manifest 内 · 内容维度）由客户端自行比对**，规则 = **semver 三段逐段整数比较**，不做字典序（字典序会判 `1.10.0 < 1.9.0`，且这类 bug 发版后才显形、无法在设备上复现）。低于它 → **跳过本次 overlay、照常用基线，永不阻塞**。**它与协议维度的强更闸门互不兼职**：后者由服务端判定、以 `client.version_unsupported` 在登录 / 启动点硬阻塞，**运行时客户端不比较** `X-Min-App-Version`、也不持有兼容矩阵的任何副本（构建期打包工具的口径见上方「打包工具的两项产出」）。内容太新只是不更新内容；协议不兼容才拦人。
 
 ### 防篡改：manifest 签名
 
 - 后端**私钥签 manifest**（ES256 detached），客户端**内置公钥验签**；逐文件完整性由**已签名 manifest 内的 hash**（SHA-256）保证（一次验签 + N 次 hash，近乎零成本）。
-- **客户端内置的是一组 `keyId → publicKey` 映射，不是一把公钥。** 轮换靠先发内置新旧两把的客户端版本、覆盖率足够后服务端再切私钥；没有 `keyId` 则轮换只能靠强更，且事后无法补救。信任根是**固定公钥（pinned）**，不引入证书链 / PKI——威胁模型只到「防误 / 防随手改」。
+- **客户端内置的是一组 `keyId → publicKey` 映射，不是一把公钥。** 轮换靠先发内置新旧两把的客户端版本、覆盖率足够后服务端再切私钥；没有 `keyId` 则轮换只能靠强更，且事后无法补救。**首个客户端版本即内置 active + standby 两把公钥**——这项的全部价值在「首版就做」：等到需要轮换时才想起来加第二把，就已经晚了。它是**报文零改动**的一项，只关乎随包内置了几条映射。信任根是**固定公钥（pinned）**，不引入证书链 / PKI——威胁模型只到「防误 / 防随手改」。
 - 校验不过 → `GD.PushError` **拒绝该 overlay、回退 `res://` 基线**、上报一次事件。
 - **明确边界：** 客户端完整性做到「**防误 / 防随手改**」为止，**不承诺防作弊**（改内存 / 改二进制不在防御范围）。纯 PvE + PlayerPower 已被接受为「轻度提升、影响平衡可容忍」，反作弊无收益。
 
@@ -370,7 +431,7 @@ public interface ISingletonContent { }
 | **ContentRegistry** | 合并 overlay + 基线，按 `Id` 建立索引，暴露泛型仓储接口；合并后统一校验 |
 | **ContentUpdateManager** | 读本地 manifest、比对云端 `contentVersion`、**manifest 验签**、逐文件下载进 `overlay.staging/` 并校验 hash、事务性搬入 `overlay/`、断网降级 |
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-22-singleton-balance-resource-registry.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-23-flags-version-client-gate.md` · `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-22-singleton-balance-resource-registry.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-23-flags-version-client-gate.md` · `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-baseline-superset-and-pack-proof.md`
 
 ## API 面（契约）
 
@@ -426,6 +487,7 @@ public interface IContentRepository<T> where T : Resource
 
 - **内容载体形态（随包基线 + `user://overlay/` + flags 三层覆盖 + 云端版本校验）** → `decisions/ADR-0007-local-content-layer-and-overlay.md`（Accepted）。**已一并纳入两条**：全部内容属本地内容层（不设云端剧本服务）· overlay「只改不增」的唯一例外 = 剧本内容，由合并期 `newIds` 双闸机械保证。
 - **overlay 增量下载**仍依赖 **强制在线 · 云端权威** → `decisions/ADR-0003-online-cloud-authority.md`（Accepted）。其适用面**只剩启动期的 manifest 比对与下载**——运行时内容读取全程本地。
+- **随包基线条目永不删除；退役 = 永久禁用 + 掏空，基线快照归档步机械核对 `Id` 超集** —— ADR 候选，待 `/write-adr` 立档（见上方「内容发版纪律」节）。
 
 ## 待决问题
 

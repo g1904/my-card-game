@@ -164,6 +164,49 @@
 - **否决「购买入口在轮回内可用 + 为它设计冲突合并」**——等于为一个可以靠时机纪律消除的问题引入字段级三路合并，而那已被 `ADR-0003` 明确排除。
 - **这条纪律同时是一条 UX 结论**：礼包入口在轮回内 / 战斗内 / 结算流程内**不存在**——不是观感取舍，是同步模型的结构要求（因此「重试耗尽时提示购买」在结构上就不可行，见 `ux/screen-flow.md`）。
 
+### 购买段的两条腿：渠道封装 `IStoreChannel`（平台 SDK）与第四个后端接口 `IPurchaseBackend`（HTTP）
+
+> 唤起内购与购买域的三个 HTTP 调用都住本服务：唤起段的生命周期归账号级、消费方是 Store 流程，与购买段既有的后端腿（购后强制 pull、待兑现态）内聚最高。**不新开服务**（七服务清单既定，唤起段只有一个 manager 的体量，且它的上下游——下单 / 验票 / 待兑现态——全在本服务）；**否决放 account-service**——「共用微信 SDK」是原生打包层事实，不构成职责归属理由，登录与支付两条职责不塞进一个封装。SDK 选型方向表见 `systems/monetization.md`。
+
+- **`StoreChannelManager`（manager 级，`internal sealed`）持渠道封装的窄接口：**
+
+  ```csharp
+  internal interface IStoreChannel
+  {
+      StorePlatform Platform { get; }
+      // order：仅需商户侧下单的渠道非空（微信，来自下单端点应答的 channelOrderParams）
+      Task<OpResult<ChannelReceipt>> PurchaseAsync(string productId, ChannelOrderParams? order, CancellationToken ct);
+      // 仅 AppStore 有实义（StoreKit finish()）；其余渠道 no-op 成功
+      Task<OpResult> FinishAsync(string transactionToken, CancellationToken ct);
+  }
+  ```
+
+  - `ChannelReceipt` 是逐渠道凭据的**客户端投影**（以 `StorePlatform` 为判别式的三分支联合）：**分支字段与 `backend-design-documents/contracts/purchase.md` §3a 三表逐字对位，取形态一律回链、本库不另立语义**。`ChannelOrderParams` 是下单应答里交给渠道 SDK 唤起支付的参数对象，同按 `platform` 判别。`StorePlatform` 枚举成员名与契约 `platform` 取值逐字相同（`GooglePlay` / `AppStore` / `WeChatPay`，`envelope.md` §2 纪律，两侧同批冻结）；三个类型登记于 `systems/architecture.md`「共享核心类型」。
+  - `FinishAsync` 把「Apple `finish()` 是流程内显式步骤、不挂 UI 回调」落成接口上的显式方法，**返回非泛型 `OpResult`**（架构共享类型无 `Unit`）。**调用点 = verify 成功或 `deduplicated = true` 之后**，由购买流程显式调用。
+  - **实现选择 = 运行时探测，不走 `#if`。** 每渠道一个实现（内部经 `Engine.HasSingleton` / 平台特性探测取原生插件单例）；插件缺席 → `UnavailableStoreChannel`（一律返回失败 → 既定「唤起失败回主菜单、无痕迹」路径）。渠道可用性是**运行时事实**——同一份 Android 包在无 Play 服务的设备上也会缺插件——条件编译表达不了它，`#if` 清单也因此零新增位点。「当前平台存在可用渠道」是购买入口前置条件表的一行（不满足 → 入口不渲染，见 `systems/monetization.md`）。微信渠道实现随资质开通后置，接口分支先占位。
+
+- **verify / order / receipt 三个 HTTP 调用走本服务持有的第四个窄接口 `IPurchaseBackend`**（不挂进 `IProfileBackend`——「档案同步」与「支付」是两个语义无关的边界，失败语义完全不同，且 `OfflineProfileBackend` 不兼任假支付网关；判据与否决记录见 `systems/architecture.md` 总则 7）：
+
+  ```csharp
+  internal interface IPurchaseBackend
+  {
+      Task<OpResult<VerifyAck>>        VerifyPurchaseAsync(string receiptId, ChannelReceipt receipt, CancellationToken ct);
+      Task<OpResult<OrderAck>>         CreateOrderAsync(StorePlatform platform, string productId, CancellationToken ct);
+      Task<OpResult<ReceiptStatusAck>> GetReceiptAsync(string receiptId, CancellationToken ct);
+  }
+
+  internal sealed record VerifyAck(long BundleGrantOrdinal, long Revision, bool Deduplicated);
+  internal sealed record OrderAck(string ReceiptId, ChannelOrderParams Params);
+  internal sealed record ReceiptStatusAck(ReceiptStatus Status, long? BundleGrantOrdinal, long? Revision, string? Code);
+  internal enum ReceiptStatus { Unknown, Verified, Rejected }   // 成员名与契约 status 取值逐字相同
+  ```
+
+  报文与语义的权威在 `backend-design-documents/contracts/purchase.md`，本库只定调用形状。`ReceiptStatusAck.Code` 只在 `Rejected` 时非空（取值域权威在对侧 §4），客户端处置照 `src/Core/` 既有的 `code` 映射表，**不为它建逐 `code` 表**。两份实现 `HttpPurchaseBackend` / `OfflinePurchaseBackend`，后者整类 `#if DEBUG`（条件编译清单的第 6 处），由 `BackendSelector.CreatePurchase()` 产出——唯一选择点纪律原样覆盖；错误映射与请求头处理共用 `src/Core/` 的同一处，`purchase.*` 域按既定规则映入 `OpError.Purchase`。
+- **`DebugStoreChannel` 挂在 `BackendSelector` 同一选择点**——选中 Offline 后端时才启用，返回确定性假凭据；`OfflinePurchaseBackend` 对任意假凭据 `+1` 序号并回幂等语义。编辑器里因此可离线跑通「唤起 → 验票 → pull → 兑现」全链；它与 `OfflinePurchaseBackend` **同文件、同一个 `#if DEBUG` 区**，不另增 `#if` 位点，「离线后端不得发到线上」的第 1 级防线顺带覆盖它。
+- **封装层的终点 = 交出 `ChannelReceipt`。** 此后验票、购后强制 pull、兑现循环、`Immediate` push 全部走上一节的既有形态，**兑现段完全不经封装层**。
+- **待兑现态的进入时刻：** 商店渠道 = `PurchaseAsync` 成功返回凭据的那一刻；微信 = 下单应答返回 `receiptId` 的那一刻（`receiptId` 随待兑现态持久化，既定）。此前任何失败（取消 / SDK 错误 / 下单失败）都不进待兑现态——与「唤起失败回主菜单、无痕迹」逐字一致。微信侧「已下单未支付」的残留本地待兑现态不需要专门的退出机制：正确性由 `/entitlement` 两字段之差承载（Grant 未推进即无兑现义务、不触发阻塞），残留态由后续补查 / verify 得到终态失败后按既定处置解除。
+- **补查键的本地推导：** 商店渠道的 `receiptId` 按对侧 §3a 的前缀规则由本地凭据机械推导、随待兑现态持久化；微信取下单应答下发值。**取值规则单一来源在对侧 §3a，客户端不另立取值表**；既有兜底不变——正确性由 `/entitlement` 两字段之差承载，本地态只是加速补查的优化。
+
 ### `Immediate` flush 的失败语义
 
 > **flush 是一次「尝试」，闸门是一个「状态」。** `Immediate` 只声明「这一批不等防抖窗口，立刻发」，**不声明「发不出去就停下」**。它对软阻塞的**唯一**影响是：成功则清空闸门（待发队列空、滞留计时归零），失败则闸门计数**不变**。阻塞与否始终只由闸门在**既定时机**判定——下一次 AdventureEvent 选择前。
@@ -221,7 +264,7 @@
 - **为什么它比普通重构危险：** 把某个字段挪个位置、改个名，在客户端侧是纯重构（老档靠迁移无损通过），但**在后端侧会静默变成「这个字段消失了」**——复算退化为空操作，**且两侧都不会报错**。后端对缺失的透明路径记告警级台账、不拒绝上行，使这类漂移在线上可见，但那是事后发现，不是防线。
 - **先按人工清单执行，暂不机械化。** 落在「纪律的可执行化」阶梯的低档是有意的——不为一条**尚无实例**的纪律先行造工具。**留一条触发条件：首次真的发生透明路径漂移（后端告警台账记到第一条）时，回头把它升级为机械检查**，而不是等它攒够教训。
 - **diff 的序列化形态须与契约的顶层键浅合并逐字对齐**：`PlayerProfileDiff` 中出现的顶层键即整键替换、未出现的保持不变、空对象 = 无变化、**不表达删除**（`PlayerProfile` 只增不删，无需删除语义）。`CharacterProfileDiff` 同理，整体替换该 `characterId` 下的值。键值以下的结构对后端完全不透明——**本服务因此不得依赖后端做任何逐元素合并**。
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-echo-validation-scope-client-half.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-03-schema-bump-ledger-authority.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-echo-validation-scope-client-half.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-09-06-iap-channel-integration.md`
 
 ## 管理器
 
@@ -230,6 +273,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 | **ProfileSyncManager** | Pull / Push（5 秒防抖 + Immediate 直通）、`CharacterProfile` 粒度 diff、冲突以云端为准、断线缓冲队列与重试 |
 | **LocalCacheManager** | 本服务名下 `user://` 文件的读写与失效（同步信封、待发队列 `user://cache/pending/` 的持久化）。**原子写本身不由它实现**——它调用共享静态工具 `AtomicJsonFile`（见 `systems/architecture.md`），与 `user://cache/` 的其余写入方同用一份 |
 | **MigrationManager** | 存档 schema 版本校验、逐版迁移路径、无法迁移时的清晰拒绝 |
+| **StoreChannelManager** | 平台内购的渠道封装：`IStoreChannel` 实现的运行时探测与选择、唤起支付、Apple `finish()`；渠道缺席以 `UnavailableStoreChannel` 兜底（见「购买段的两条腿」） |
 
 ## API 面（契约）
 
@@ -262,7 +306,7 @@ public enum SyncState       { Idle, Syncing, Buffered, Offline, Failed }
 - **`reason` 保留**，它同时驱动日志、重试策略与合并窗口；`policy` 决定是否受 5 秒防抖约束（`Immediate` 直通）。
 - **信封仍带** `contentVersion` / `appVersion` / `revision`——传输信封走 HTTP 头、负载信封留 body，见「传输信封的字段对位」。
 
-**后端接口（总则 7）：** 本服务持有 `IProfileBackend`（`PullAsync` / `PushAsync`），两份实现 `HttpProfileBackend` / `OfflineProfileBackend`（内存回显）。两个方法的返回类型**都带 `revision`**——否则客户端无从得到基线值：
+**后端接口（总则 7）：** 本服务持有两个后端接口——`IProfileBackend`（`PullAsync` / `PushAsync`，两份实现 `HttpProfileBackend` / `OfflineProfileBackend` 内存回显）与购买域的 `IPurchaseBackend`（三方法，形态见上方「购买段的两条腿」）。`IProfileBackend` 两个方法的返回类型**都带 `revision`**——否则客户端无从得到基线值：
 
 ```csharp
 internal interface IProfileBackend

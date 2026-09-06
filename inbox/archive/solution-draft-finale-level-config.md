@@ -4,7 +4,9 @@ date: 2026-09-04
 question: Finale（天劫）的等级来源应否从硬编码的「相对角色等级 +1」改为一张按篇章分格的配置值，从而给 Finale 难度补上一个专属旋钮？
 source: systems/balance.md → 「⚠ Finale 的难度不再有专属旋钮（明写，避免有人去找一个不存在的旋钮）」 · open-questions/deferred-content.md → 「ante / 篇章缩放…blind / ante 缩放曲线本身尚未陈述」
 targets: systems/balance.md · systems/adventure-event/combat/_index.md · systems/services/future-event-service.md
-status: awaiting-review
+status: distilled
+reviewed: 2026-09-05 —— 取值域收窄为 `[末级+1, 末级+Upper]`（下界常量 1，由「天劫必然越阶」定死）；字段改相对 `FinaleDiff`（初值三章恒 `+1`）；本稿「与既有决策的张力：无」不成立 —— 收窄 `systems/balance.md` 与 `systems/adventure-event/combat/_index.md` 两处承重原话的作用域至剧本 / 内容侧；实际档位 ch1 / ch2 各 2 档、ch3 恒为单值，如实写入设计库
+distilled-to: handoffs/2026-09-05-finale-level-config.md
 ---
 
 # 方案草稿 — Finale 等级改配置表（值取当前行为）

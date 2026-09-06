@@ -42,6 +42,6 @@
 ## 后果
 
 - 约束了七份服务文档的「API 面（契约）」小节形态：统一四列表（方法 | 形态 | 完整签名 | 失败语义），形状依赖未答问题的写 `⟨待定：链接⟩`，不留空白也不臆造。
-- 条件编译的使用清单被钉为穷举的 **5 处**（`BackendSelector` · 三个 `Offline*Backend` · EventBus 审计块），服务与 manager 内部一律不得出现 `#if`；商业化落地时有一次已预告的、有边界的扩张（5 → 6）。
-- 三个后端接口是客户端 ↔ 后端**协议契约的客户端一侧投影**；本库只定调用形状，报文字段的权威在 `backend-design-documents/contracts/`。
+- 条件编译的使用清单被钉为穷举的 **6 处**（`BackendSelector` · 四个 `Offline*Backend` · EventBus 审计块；第 6 处 = 购买域第四个窄接口 `IPurchaseBackend` 的 `OfflinePurchaseBackend`），服务与 manager 内部一律不得出现 `#if`。
+- 四个后端接口是客户端 ↔ 后端**协议契约的客户端一侧投影**；本库只定调用形状，报文字段的权威在 `backend-design-documents/contracts/`。
 - 影响文档：`systems/architecture.md`（权威）· `systems/services/*.md`（七份的 API 面）· `system-overview.md` 第四节 · `ux/error-and-blocking-ux.md`（`code` → 文案表）。

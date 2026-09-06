@@ -6,6 +6,14 @@
 
 | 草稿 | 类型 | 日期 | 去向 handoff | answer log |
 |------|------|------|--------------|------------|
+| `solution-draft-iap-channel-integration.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-iap-channel-integration.md` | `answer-logs/log-iap-channel-integration.md`（移出 1 全条 · 新增 0 条） |
+| `solution-draft-baseline-superset-and-pack-proof.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-baseline-superset-and-pack-proof.md` | `answer-logs/log-baseline-superset-and-pack-proof.md`（移出 2 全条 · 新增 0 条） |
+| `solution-draft-run-end-and-chapter-completion-screens.md` | solution-draft | 2026-09-05 | `handoffs/2026-09-05-chapter-end-screen.md` | `answer-logs/log-run-end-and-chapter-completion-screens.md`（移出 2 全条 · 新增 1 条） |
+| `solution-draft-barter-grayed-event-key.md` | solution-draft | 2026-09-05 | `handoffs/2026-09-05-barter-grayed-state-keys.md` | `answer-logs/log-barter-grayed-event-key.md`（移出 1 全条 · 新增 0 条） |
+| `solution-draft-sync-schema-bump-ledger.md` | solution-draft | 2026-09-05 | `handoffs/2026-09-05-schema-ledger-v1-coverage.md` | `answer-logs/log-sync-schema-bump-ledger.md`（移出 1 全条 · 新增 0 条） |
+| `solution-draft-currency-acquisition.md` | solution-draft | 2026-09-05 | `handoffs/2026-09-05-currency-acquisition-and-pricing.md` | `answer-logs/log-currency-acquisition.md`（移出 4 全条 · 新增 0 条） |
+| `solution-draft-backend-batch-client-obligations.md` | solution-draft | 2026-09-02 | `handoffs/2026-09-05-backend-batch-client-obligations.md` | `answer-logs/log-backend-batch-client-obligations.md`（移出 3 全条 · 新增 2 条） |
+| `solution-draft-finale-level-config.md` | solution-draft | 2026-09-04 | `handoffs/2026-09-05-finale-level-config.md` | （无 · 移出 0 条，裁决记录落 handoff 的 Clarifications） |
 | `solution-draft-lifespan-cost-chapter-tiers.md` | solution-draft | 2026-09-03 | `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` | `answer-logs/log-lifespan-cost-chapter-tiers.md`（移出 2 全条 + 1 部分 · 新增 0 条） |
 | `solution-draft-character-power-mechanics.md` | solution-draft | 2026-09-03 | `handoffs/2026-09-03-character-power-mechanics.md` | `answer-logs/log-character-power-mechanics.md`（移出 1 条 · 新增 0 条） |
 | `solution-draft-plot-eventbus-broadcast.md` | solution-draft | 2026-09-03 | `handoffs/2026-09-03-plot-eventbus-broadcast.md` | `answer-logs/log-plot-eventbus-broadcast.md`（移出 1 条 · 新增 0 条） |

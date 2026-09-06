@@ -16,7 +16,7 @@
 - **扣减来源恰两个**：事件 `lifeSpanCost`，以及战斗 / 修炼失败时的 `(敌人道念 − 角色道念) × lossPerMomentum[篇章]`。新增 `lossPerMomentum` 住 `balance.md`，**ch1 锁定为 10**，ch2 / ch3 先框形状锚「一次最坏失败恒落在本章预算的 8%–12%」。**一维（篇章），不加 `combatTier` 第二维。**
 - **完全显性**：明文常驻角色状态条、恒显示精确余量（低于本章预算 10% 转红字，纯视觉强调）；`selectCost` / 回寿数字 / 道具描述 / 结算面板一律恒精确展示。**Band 门控三行表与两段式告警（30% 定性叙事 / 10% 红字倒数）整体退役。**
 - **寿元退出隐藏属性体系**：`HiddenStat` 去掉 `LifeSpan`，隐藏属性收敛为**道心 / 煞气**两项。
-- **结构收缩**：`DefeatReason` 四值 → 三值 · `CostKey` 16 → 15 · `ResourceElements` 删 `LifeTotal` 行 · `OutcomeDirection` 五 key → 四 key · `Status` 25 → 22 格（删 `lifeTotal` / `LifeSpanBand` / `ChapterLifeSpanBudget`）。
+- **结构收缩**：`DefeatReason` 四值 → 三值 · `CostKey` 16 → 15 · `ResourceElements` 删 `LifeTotal` 行 · `OutcomeDirection` 五 key → 四 key · `Status` 删 `lifeTotal` / `LifeSpanBand` / `ChapterLifeSpanBudget` 三格。
 - **Research 的 `Recuperate` 整条删除**，六类操作 → 五类，Research 收敛为纯构筑事件；回复只留三通道（回寿事件 outcome / 补天丹类法宝 / 商店购入）。
 
 逐格字段面、预算表、两个扣减来源的完整表述与呈现位置见 `systems/character-profile/life-span.md`。
@@ -47,6 +47,6 @@
 - **合并值不常驻战斗屏**：战斗屏只呈现道念对比与差值，结算面板如实展示本次扣减量与扣后余量。
 - **六处依据失效的既有权威一律保结论、改理由**（`ADR-0016` 减档禁令射程 · `ADR-0081` 管辖收窄并把「战斗内不读写寿元」升为资源纪律 · `plot-manager.md` 的「1:1 不得分档」射程 · 境界基线公式删除但赋级带取值不变 · `ADR-0066` 的战斗内回寿禁令换新理由 · `profile-service.md` 两条组装纪律）。`ADR-0022` 的篝火式二选一整条退役。
 - **后端零影响 · `content/` 与 `requirements/` 零命中**，迁移成本为零。
-- **删除流程第 ⑤ 步（`systems/architecture.md`「删除一个资源 element 同样恰好五步」）在本条上的执行结果：首发前删除 ⇒ 不进任何版本行、无老档可处置。** `Status` 的首发形状（22 格、不含这三格）登记在 `schemaVersion` 1 那一行；本项纪律的落点见 `systems/services/profile-schema-versions.md` 的说明区。
+- **删除流程第 ⑤ 步（`systems/architecture.md`「删除一个资源 element 同样恰好五步」）在本条上的执行结果：首发前删除 ⇒ 不进任何版本行、无老档可处置。** `Status` 的首发形状（不含这三格）登记在 `schemaVersion` 1 那一行；本项纪律的落点见 `systems/services/profile-schema-versions.md` 的说明区。
 - 文档落点：`systems/character-profile/life-total.md` 退役，新建 `systems/character-profile/life-span.md`。落笔面覆盖 30 余份主题文档（清单见来源 handoff 的 `distilled-to`）。
 - **仍未答**：`lossPerMomentum` 的 ch2 / ch3 取值 · 回寿量三档的绝对点数 · 赋级带 `±2` 与层数散布 `±1 档` 是否可放宽 · 失败螺旋的容错量验收口径（N 次典型失败仍能在预算内升满）。

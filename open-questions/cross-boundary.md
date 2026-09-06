@@ -20,13 +20,14 @@
 
 ## 待承接
 
-- `backend-design-documents/operations/content-delivery-ops.md`#内容签名私钥的保管 · #`keyId` 轮换 | 2026-09-03 | 本库需改：`systems/services/content-service.md`（或发版纪律所在文档） | **首个客户端版本即内置 active + standby 两把内容签名公钥**。对侧的紧急轮换形态以此为前提；契约面本就写的是「一组 `keyId → publicKey` 映射」，**报文零改动**。另两项同源承接（产包证明的字段形态 · 基线内容快照的归档形态）已收在 `inbox/solution-draft-backend-batch-client-obligations.md`，**三项须成对采纳**——单侧采纳则发布侧校验闸与轮换机制各留一个洞。形态与取舍权在本库。
-
-- `backend-design-documents/contracts/envelope.md`#6 · `contracts/purchase.md`#3a #3b | 2026-09-03 | 本库需改：`systems/services/sync-service.md`（`OpError` 枚举）· `systems/monetization.md`（购买流程呈现） | **新增五条 `purchase.*` 错误码**，其中四条需要一个 `OpError` 现有八个成员都不承载的处置轴，对侧台账按 **`OpError.Purchase`** 登记；`purchase.payload_invalid` 仍映 `Validation`。本库需裁决：是否新增该成员、五条码各自的呈现与处置（含「渠道未开通」这类玩家尚未付款的分支）。`code → (OpError, 处置)` 在本库是数据表，加成员是纯追加。
-
-- `backend-design-documents/contracts/compliance.md`#10 #11 · `contracts/envelope.md`#6 | 2026-09-03 | 本库需改：`ux/screen-flow.md` · `systems/services/account-service.md` | **合规域六端点的报文字段表与端点自身的三条错误码已落笔**（`compliance.ticket_invalid` / `verification_failed` / `deletion_irrevocable`）。三条码的 `ERR_*` 键、处置与呈现已于 2026-09-03 承接完毕（见 `../handoffs/2026-09-03-compliance-client-surface.md`）；**仍欠两项**：`playtimeRemainingSeconds` 的剩余时长呈现 · `nicknameChangeRequired` 为真时的改名流程落屏——二者归 `../inbox/solution-draft-backend-batch-client-obligations.md` 的 A / B 项，数据源与调用点已由本次的 `GET status` 单点提供。
+*（空）*
 
 ## 对账基线（不是待办）
+
+- **2026-09-05 登记的两条内容分发承接项（基线超集纪律 · 产包证明条目计数）已于 2026-09-06 成对落笔关闭。** 本库落 `systems/services/content-service.md` 的内容发版纪律节（只增不删 · 退役三分 · 归档步 `Id` 超集闸）与 `entryCountsByType` dormant 附注、`ADR-0141` 后果句订正；对侧落 C6 前提句改写与 A4' 读数面 / 采纳触发，见 `backend-design-documents/handoffs/2026-09-06-baseline-superset-and-pack-proof.md`。「只跑最新」简化经推演不成立，逐基线各跑为长期形态。**两侧无遗留欠账。** 移出记录见 `../answer-logs/log-baseline-superset-and-pack-proof.md`。
+
+- **后端 2026-09-02 批量评审落给本库的三条承接项已于 2026-09-05 全部落笔关闭。** 内容分发三项（首版内置 active + standby 两把公钥 · 产包证明的字段形态 · 基线内容快照的归档形态）成对采纳完成，落 `systems/services/content-service.md`；购买域五条 `purchase.*` 的承接完成——`OpError` 加 `Purchase` 成员落 `systems/architecture.md`（**未开逐 `code` 表**），四情形呈现与待兑现态联动落 `systems/monetization.md`；合规域欠的两项（剩余时长呈现 · 须改名落屏）落 `systems/services/account-service.md` 与 `ux/screen-flow.md`。**两侧无遗留欠账。** 移出记录见 `../answer-logs/log-backend-batch-client-obligations.md`。
+  > 关闭时顺手订正了购买域那条的落点登记：原写「本库需改 `systems/services/sync-service.md`（`OpError` 枚举）」，而该枚举实际住 `systems/architecture.md`。
 
 - **两条跨边界空档（flags 是否落客户端本地缓存 · 二进制资产能否经 overlay / blob 通道下发）已于 2026-08-30 成对落笔关闭。** 本库落 `systems/services/content-service.md` 的 flags 落盘纪律（`schemaVersion` · 写入时点 · 三条失效语义 · 不设 TTL）与非 `.tres` 的两道处置、`systems/common-properties.md` 的资产引用格 overlay 收口；对侧落 `no-cache` 的层次澄清、后端零义务表、B 组第 7 条依赖登记与 blob 通道的能力中立声明，见 `backend-design-documents/handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md`。**两侧无遗留欠账。** 移出记录见 `../answer-logs/log-client-flag-cache-and-binary-overlay.md`。
 - **后端契约面五份全部成文**，客户端侧的对位落笔已于 2026-08-16 同批完成：`Source` 上行走成员名的边界映射 · `profile-sync` 的两个新字段与写入约定 · `accountSeed` 的 hex 序列化 · 透明路径稳定性纪律 · 随机源换 SplitMix64 · diff 与顶层键浅合并对齐 · `bundleGrantOrdinal` 的 JSON path 与购买契约回链。移出记录见 `../answer-logs/log-cross-library-alignment.md`。
