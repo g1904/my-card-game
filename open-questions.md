@@ -8,7 +8,7 @@
 > 此清单**只跟踪仍待答的问题**（不留已解决区），是导航 / 拾取清单，**权威归属在各主题文档**；
 > 一旦答定就从分片中移除、归档进对应主题文档，并在 `answer-logs/log-<draftSuffix>.md` 记一笔。
 >
-> **最近更新：2026-09-03b** —— `schemaVersion` 矩阵输入与登记流程（移出 1 条 · 新增承接 1 条 · 详见 `open-questions/update-log.md`）。
+> **最近更新：2026-09-06** —— 凭据托管与打包闸两对跨库落笔（详见 `open-questions/update-log.md` · `answer-logs/log-iap-channel-integration.md` · `log-0906.md`）。
 > （逐次更新摘要见 `open-questions/update-log.md`；答结归档见 `answer-logs/`。）
 
 ## 分片导航
@@ -18,7 +18,7 @@
 | `open-questions/update-log.md` | 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身。 |
 | `open-questions/01-contracts.md` | **① 协议契约**：展开见表下 |
 | `open-questions/02-account-compliance.md` | **② 账号与合规**（现焦点之首）：展开见表下 |
-| `open-questions/04-content-delivery.md` | **④ 内容分发（CDN）**：展开见表下 |
+| `open-questions/04-content-delivery.md` | **④ 内容分发（CDN）**（余一条）：展开见表下 |
 | `open-questions/06-platform-stack.md` | **⑥ 技术栈 · 托管 · 运维**（栈已落定）：外部服务商与灾备、可信时钟、合规域存储与产物、渠道凭据托管、成本模型。 |
 | `open-questions/cross-boundary.md` | **跨边界承接**：客户端已定案、本库尚未落笔的条目。**不是待答问题**——答案已有，等的只是落笔；形态与关闭条件见分片抬头，机制设计见客户端库同名分片。 |
 
@@ -28,8 +28,9 @@
   余下一条——三条机检断言的工程承载位置（部署形态已具备承接能力，欠的是「挂不挂、挂在哪」）。
 - **`02`** —— 余下一条：合规能力的上线分级（含从属项「第三方昵称审核首版是否启用」）。
   身份模型、合规落地与多设备裁决、昵称审核口径、存量扫描、风控落地形态均已答结（→ `contracts/auth.md`、`contracts/compliance.md`、`operations/moderation.md`、`systems/account.md`）。
-- **`04`** —— 协议四条与运维三条均已答结（→ `contracts/content-manifest.md`、`operations/content-delivery-ops.md`）；
-  余下两条——**剧本内容的体积与分包**、多区域一致性与传播窗口 T。
+- **`04`** —— 协议四条与运维三条均已答结（→ `contracts/content-manifest.md`、`operations/content-delivery-ops.md`），
+  **剧本分包边界已由对侧答结**（不分包 → 客户端 `ADR-0029`，本库零机制增量）；
+  余下一条——多区域一致性（**仅 CDN 侧**，服务侧已定单区域）与传播窗口 T 的数值。另附一节条件化核对项（不是待办）。
 - **`06`** —— 技术栈与托管形态**已落定**（C# / 腾讯云托管容器 / PostgreSQL 单主 / Redis / KMS / CDN，→ `systems/`、`operations/`）；
   余下的都不取决于栈：可信服务端时钟、合规域的存储与产物、外部服务商选型与灾备、两条待体量定的数值、成本模型。
 
@@ -59,8 +60,8 @@
    数据导出已定首版必做，其余三项的过审时点与国内渠道要求耦合，需与备案排期一并定。从属项：第三方昵称审核首版是否启用。
 2. **`06` 余下各条** —— 共同点是**不取决于栈**：可信服务端时钟的数据源 · 合规域的存储与产物 ·
    外部服务商选型与灾备（含微信开放平台资质，**首个玩家建号前必须完成**）· 渠道验票凭据的托管形态 ·
-   两条待真实体量才能定的数值（收据记录的冷存归档、对账信号阈值）· 成本模型。
-3. **`04` 内容分发** —— 协议与运维形态均已成文；余下剧本分包边界（待内容规模）与多区域一致性 / 传播窗口 T。
+   待真实体量才能定的数值（收据记录的冷存归档、对账信号阈值、**合规域三个旋钮初值**）· 成本模型（含剧本下载量上界）。
+3. **`04` 内容分发** —— 协议与运维形态均已成文，**剧本分包边界已由对侧答结**（不分包）；余下多区域一致性（仅 CDN 侧）与传播窗口 T 的数值。
 4. **`01` 余下一条** —— 三条机检断言的工程承载位置。部署形态已具备承接能力，欠的只是「挂不挂、挂在哪」。
 
 ## 判据：一个问题落在哪一侧
@@ -97,7 +98,6 @@
 - **本库欠对侧：一条（未变）。** `contracts/compliance.md` 的六端点报文字段表与合规域错误码未落笔。对侧 `game-design-documents/open-questions/cross-boundary.md`「待承接」区的**唯一条目**（`ComplianceManager` 覆盖面切分，登记日 2026-08-16）因此写不出验收标准，对侧 `systems/services/account-service.md` 亦把该切分挂在自己的 Open questions 上并指回本库。**这是全库唯一一处「客户端在等后端」。** 其「对侧台账偏窄」的根因未消：`compliance.md` 有**两处**未落笔，故凡触及合规端点请求 / 应答体的部分（ticket 兑付 · 冷静期状态呈现 · 导出任务轮询与 `taskId`）在本库同样无字段表；**真正 settled 的只有拦截路径**（搭 `signin` 的车、不需要任何合规端点报文）。**但可给对侧一条更精确的口径**：§5 的四条 `compliance.*` **拦截**码与各自 `reasonKey` 取值表已封定 ⇒ 对侧 `ux/error-and-blocking-ux.md` 只需排除「合规域端点自身」那一批 `ERR_*` 的验收断言，拦截路径那一批可以写全。
 - **对侧欠本库的落笔：零。** 本库 `cross-boundary.md`「待承接」为空。**08-30 的两条空档已成对关闭**（blob 是否向二进制资产开放 · flags 是否落地客户端本地缓存），两侧各记一条对账基线、互相回链、**无一处复述对侧设计**；对侧同批固化 `ADR-0125` / `ADR-0130` 与之逐条对位。`envelope.md`「跨库待办」五项对侧已于 08-11b 落笔，该段文字滞后未清理，**不是欠账**。
 - **客户端 08-28 后新增的 8 份 handoff（`2026-08-30-*`）逐份核对：7 份对后端零义务**（各自 handoff 明写「不落存档 / 不进上行负载 / 不 bump `schemaVersion`」或「全在客户端进程内」，并经本库全量检索核实；`life-lifespan-merge` 的对侧库检索零命中复核成立）。**第 8 份 `exchange-barter-support` 有一条既有机械义务**：`Source.ExchangeBarter = 10` 落 `characterDiffs` 不透明段且本库不复制 `Source` 成员清单 ⇒ **契约零改动**（正是 `ADR-0017` 通则覆盖的场景）；但它明写「`EventOption` 增一格 ⇒ bump 存档 schema」，新 `schemaVersion` 须进 `envelope.md` §7e 兼容矩阵——**每次 bump 都存在的既有机械义务**，由 §7e 通则唯一承接、矩阵落 `operations/` 而栈未定故当前空置，**不改契约、不改判定**。**⚠ 但本库零留痕**（全库检索「barter」零命中），而 08-25 的同类 bump 是记了 handoff 的 ⇒ 对账基线出现一次不一致的处置，见下方漂移清单第 7 条。
-- **一处对侧新识别的薄弱点（须带回本库）：** `profile-sync.md:187` 把 schema bump 清单的权威**指回**客户端 `sync-service.md`，而对侧本次评估发现**那张自称「只有一份」的清单已漏三批**（`pastItemUse` / 两个新 spec 列 · `StatusChanges` · `Status` 删三格 · 栈条目 `itemId`）。本库不记、对侧的唯一清单三批未更新 ⇒ **两侧都以为对方在记。** 它不改本库任何一行判定（判据 6 要的是「协议在本库已定案」——已定案），但对侧 derive 存档 / 同步切片前必须先补齐。
 - **预警仍未触发**（两侧均已登记，现在无需任何一侧动手）：`characterProfile` 的资源字段一旦提进透明档，必须同批把钳制语义与 `AppliedChange` 累加语义写进 `profile-sync.md`，否则后端复算会在正常账号上误报。08-30 的寿元合并属这一类字段，但它落在不透明段、未提透明档，故仍不触发。
 
 | 文档 | 判定 | 卡点 / 就绪切片 |
@@ -146,8 +146,7 @@
 5. **半修 + 新生一处孤儿指路** —— ① **已修的半**：「flags 是否落客户端本地缓存」已登记进 `open-questions/04-content-delivery.md` 的「已推给别处」表（标为「已答（2026-08-30 · 客户端裁决）」+ 客户端权威回链 + 「本库对该缓存的义务为零」），`update-log.md` 亦有完整留痕。② **未修的半**：「blob 通道是否向二进制资产开放」**至今未在 `04-content-delivery.md` 出现任何一行**——它现在只活在 `content-manifest.md` 正文与 handoff / `cross-boundary.md`「对账基线」里。③ **由此新生一处孤儿路径**：`content-manifest.md` 的 blob 一节写「若日后开放，本库须核对三点……**展开见 `open-questions/04-content-delivery.md`**」，而该文件里**没有这三点的任何展开**——契约正文向一个不存在的落点指路。**建议处置**：或在 `04` 补一行「条件化核对项（不是待办）」承接三点，或把该指路改为自足陈述（三点已在同段列全，删指路即可闭合）。
 6. **仍在（第三次记录）** —— `vision/scope.md` 的 In scope 四条仍未列付费验票域（见上）。
 7. **新增（轻）** —— 客户端 `2026-08-30-exchange-barter-support.md` 的存档 schema bump 在本库**零留痕**。属既有机械义务（新 `schemaVersion` 进 `envelope.md` §7e 兼容矩阵，矩阵待 `06` 故当前无可落之处），**不改任何判定**，但 08-25 同类情形本库是记了 handoff 的 ⇒ 对账基线出现一次不一致的处置。建议由 `/summarize-open-questions backend` 在 `open-questions/cross-boundary.md`「对账基线」补一行留痕。
-8. **新增（须带给对侧）** —— `profile-sync.md` 把 schema bump 清单的权威指回客户端 `sync-service.md`，而那张自称「只有一份」的清单**已漏三批**（详见上方跨边界核对）。两侧都以为对方在记。本库无需改动，但对侧 derive 前必须补齐。
-9. **无失真** —— `decisions/_index.md` 17 行 ⇔ 17 份 ADR 逐条一致且全 Accepted；`handoffs/_index.md` 21 行 ⇔ 21 份 handoff、全部 `distilled`；`inbox/` 顶层为空且如实标注；`requirements/_index.md` 如实写「当前尚无 FR」并把就绪度权威指回本小节。
+8. **无失真** —— `decisions/_index.md` 17 行 ⇔ 17 份 ADR 逐条一致且全 Accepted；`handoffs/_index.md` 21 行 ⇔ 21 份 handoff、全部 `distilled`；`inbox/` 顶层为空且如实标注；`requirements/_index.md` 如实写「当前尚无 FR」并把就绪度权威指回本小节。
 
 ## 下一阶段
 

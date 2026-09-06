@@ -23,6 +23,9 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-0906.md` | 2026-09-06 | 用户直接指示（无草稿来源）· 对侧权威 `game-design-documents/handoffs/2026-09-03-compliance-client-surface.md` | 1（`cross-boundary.md` 待承接：`envelope.md` §6 四条 `compliance.*` 拦截码处置列改回链） |
+| `log-iap-channel-integration.md` | 2026-09-06 | `inbox/archive/solution-draft-iap-channel-integration.md` → `handoffs/2026-09-06-iap-channel-integration.md` | 1（`06` 托管形态整条；另同批裁决 `Rejected` 原因取值与 `status` PascalCase） |
+| `log-0905.md` | 2026-09-05 | `/summarize-open-questions backend` 全库对账整理（无草稿来源） | 1（剧本分包边界——答案落在对侧库 `ADR-0029`，本库零机制增量；残余的下载量与成本转 `06`） |
 | `log-schema-bump-ledger-authority.md` | 2026-09-03 | `inbox/archive/solution-draft-schema-bump-ledger-authority.md` → `handoffs/2026-09-03-schema-bump-ledger-authority.md` | 1（`schemaVersion` 集合的输入与登记流程；跨库成对关闭。同批裁决两项：告警按大小关系二分 · 矩阵本批即登 `1`。未新增待答项） |
 | `log-backend-stack-and-hosting.md` | 2026-09-03 | `inbox/archive/solution-draft-backend-stack-and-hosting.md` → `handoffs/2026-09-03-backend-stack-and-hosting.md` | 10（9 条整条：`06` 八条 + `01` 一条；另 1 条部分答结——`receiptId` 幂等记录的存储已定，冷存归档与对账阈值仍留 `06`） |
 | `log-nickname-moderation-and-risk-control.md` | 2026-09-03 | `inbox/archive/solution-draft-nickname-moderation-and-risk-control.md` → `handoffs/2026-09-03-nickname-moderation-and-risk-control.md` | 4（`02` 三条主项 + 一条从属项；「合规能力的上线分级」仍留） |

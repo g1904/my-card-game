@@ -2,6 +2,42 @@
 
 > 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序。不含问题条目本身——条目在各分片。
 
+## 2026-09-06b — 渠道凭据托管形态 + `Rejected` 原因取值 + C6 / A4' 定案 + envelope 拦截码措辞承接（`/batch-analyze-new-ideas` 跨库两对 · 后端半）
+
+- **移出 2 条。** ① `06` 的「三渠道验票凭据的托管形态（部分答结）」整条答结：托管载体 = 云 Secrets（SSM）条目、渠道 × 环境粒度、`credentials[]` 数组承载新旧并存、启动拉取 + 周期刷新（旋钮初值 5 min）、第三条独立审计线，落 `operations/purchase-ops.md` §1；连带 `contracts/purchase.md` §4 补「`Rejected` 时附 `code`（⊂ { `purchase.receipt_invalid`, `purchase.receipt_claimed` }）与可选 `detail`」——零新码、零台账行。→ `../answer-logs/log-iap-channel-integration.md`。② `cross-boundary.md` 待承接仅有的一条（`envelope.md` §6 四条 `compliance.*` 拦截码「客户端处置」列改回链客户端库）已机械落笔关闭。→ `../answer-logs/log-0906.md`。
+- **裁决落笔（草稿批量评审已定）：** `status` 三值统一 PascalCase `{ Unknown, Verified, Rejected }`（`ADR-0013` 一行 + `ADR-0019` 四处 + `purchase.md` §3b §4 §6 + `purchase-ops.md` 字面值，全库小写残留清零）· C6「超集成立可只跑最新」经推演**不成立**，逐基线各跑定为长期形态、不再是待优化项；A4' 优化路径改写为「已定形态、未采纳」+ 读数面 / 采纳触发两表（`operations/content-delivery-ops.md`，数值初值 +2 行）。
+- 两对 counterpart handoff（`2026-09-06-iap-channel-integration` · `2026-09-06-baseline-superset-and-pack-proof`）与客户端侧互链；客户端半摘要见 `game-design-documents/open-questions/update-log.md`。零新增契约面、零报文改动（§4 的 `code` 字段属应答体普通字段，客户端处置零新增、仅知会）。
+
+## 2026-09-06 — 09-03 那批定案集中立档：新增 `ADR-0018` ~ `ADR-0027` 十份（`/write-adr backend`）
+
+一次专职立档，不引入任何新设计。**候选清单侧零变动**——`open-questions.md` 的 `## 下一阶段` 本就不含 ADR 候选条目，`decisions/_index.md` 的「ADR 候选」表已于 08-19 整节删除。本次候选全部来自**六份 `2026-09-03-*` handoff 里散落的已定案方向**（它们晚于 `ADR-0017`，此前在 `decisions/` 无落点），逐条按「台账绝不领先于事实」核对过主题文档后才建档。
+
+- **购买域 2 份**（来源 `2026-09-03-purchase-channel-integration.md`，该 handoff 自陈两条候选）：`ADR-0018` 验票请求的判别式在请求根 · `ADR-0019` 微信下单端点不改写入权威分配。
+- **合规域 1 份**（`2026-09-03-compliance-endpoint-payloads.md` 自陈一条候选）：`ADR-0020` ticket 兑付的 60 秒回放窗口（pillar #2 的第四次兑现，与 `ADR-0004` 互为回链）。
+- **技术栈与登记权威 5 份**（`-backend-stack-and-hosting.md` 与 `-schema-bump-ledger-authority.md`，两份 handoff **全文零次出现 "ADR"**——既未表态有候选、也未表态无候选，属簿记漏项而非已判定）：`ADR-0021` 单主运行时形态与读路径拓扑（栈 + 拓扑合成一份，两者互相牵动、不能独立推翻）· `ADR-0022` refresh token 派生串 · `ADR-0023` KMS 不进签发热路径 · `ADR-0024` `schemaVersion` 登记权威与发布顺序 · `ADR-0025` 未知取值宽容的判据边界（`ADR-0017` 的反面，两条一起才是完整判据）。
+- **昵称与风控 2 份**（`-nickname-moderation-and-risk-control.md` 自陈两条候选）：`ADR-0026` 处置只落 `status` 侧 · `ADR-0027` 自动处置止步工单 + 全局熔断。
+- **识别为候选但本次未建档**（交用户裁决，全部**已落地**、不缺事实依据）：昵称 accept-then-review（该 handoff 只自陈两条候选，第三条未列）· 发布侧校验闸 C1 的分工切法 · 首版即内置 active/standby 两把公钥（后两条出自 `-content-delivery-ops.md`，该 handoff **明确自陈「无 ADR 候选」**，故不越过它的自评建档）。
+- **未处理的相邻漂移**（属主题文档，不在本技能写入面）：六份契约的 `## 决策(-> ADR)` 段仍指向已删除的「ADR 候选」登记处，且 `auth.md` 与 `content-manifest.md` 本地编号互撞（都称候选④）；`ADR-0017` 的回链仍是单向的，现 `ADR-0025` 落笔后更值得一并收。
+
+## 2026-09-05 — 全库对账整理：剧本分包由对侧答结、多区域条收窄、两处对账基线补齐（`/summarize-open-questions backend`）
+
+一次专职整理，不引入新想法。范围 = 全部主题文档（`vision/` · `contracts/` · `systems/` · `operations/`）+ `handoffs/`（21 份全 `distilled`，无未采集意图面）+ `inbox/` 顶层（空）+ 五份分片。**移出 1 条，新并入 1 条，改写 1 条，新增待答 0 条。**
+
+- **移出 1 条（`04`）**：**剧本内容的体积与分发形态** —— 答案落在**对侧库**：客户端裁定剧本树**不按篇章分包**，整体随 `res://` 基线发布、更新走 overlay 文件级增量（`game-design-documents/decisions/ADR-0029-plot-tree-single-baseline-package.md`，**Accepted**）。对本库是**零机制增量**（manifest 不加字段 · `manifestSchema` 不提升 · 报文无变化），原条目「契约形态由本库定」那一半无需落笔即闭合。**残余换归属而非未答**：首包 / 增量下载量上界与 CDN 成本 → `06` 的成本模型条。对应 answer log：`answer-logs/log-0905.md`。
+- **新并入 1 条（`06`）**：`contracts/compliance.md` 的 `## Open questions` 里挂着**三个旋钮初值待实测校准**（实名提交次数上限 · 导出申请限流 · `pollAfterSeconds`），此前**任何分片都未跟踪**。作为「合规域的存储与产物」的从属项并入，与 `receiptId` 冷存 / 对账阈值同属「需真实体量才能定」。
+- **改写 1 条（`04` 多区域一致性）**：后端服务侧那一半已被 `operations/environments.md` 答定（主区在中国大陆境内 · **单区域部署、不做跨区域多活** · 个人信息不出境），条目据此收窄为只承载 **CDN 侧**的三问（`contentRoot` 按区域下发是否启用 · 跨区 `contentVersion` 是否同步推进 · 区域间时序差）**+ 传播窗口 T 的数值**。仍待答，不移出。
+- **`04` 新增「条件化核对项（不是待办）」一节** —— 关闭 08-30 就绪度评估记录的**孤儿指路**（漂移清单第 5 条第 ③ 项）：`content-manifest.md` 的 blob 一节写「展开见 `04-content-delivery.md`」，而该文件里此前**没有这三点的任何一行**。现由 `04` 承接三点并注明「条件化于日后开放、不构成待办」，**不复述契约正文的判据**。契约正文未动（主题文档非本技能写入面）。
+- **`cross-boundary.md`「对账基线」补两条**（均**只回链不复述**、均**不改任何就绪度判定**）：
+  ① **剧本不分包** —— 客户端定案、本库零义务，与上方移出条对位；
+  ② **`2026-08-30-exchange-barter-support.md` 的存档结构未产生新 `schemaVersion`** —— 关闭 08-30 漂移清单第 7 条（「本库零留痕」）。核实结论**比原判断更干净**：对侧登记表 `profile-schema-versions.md` **只有 `1` 一行**，Exchange 物化字段与 `Source.ExchangeBarter = 10` 均折入 **v1 首发形状**（v1 清单第 25 条），**根本不是一次 bump** ⇒ 「常规触发源」条件未成立、无条目可开；本库矩阵已于 09-03 登入 `1`。故它不是欠账，只是处置不一致（08-25 同类记了 handoff、08-30 未记），现补留痕闭合。
+- **`derive 就绪度` 小节原样未动**（由 `/assess-derive-readiness` 独占写入）。但需注意它**成文于 2026-08-30、早于 09-03 的两批落笔**，其中「`systems/` 目录下仍只有 `_index.md`」「`operations/` 尚无文档」「矩阵落 `operations/` 而栈未定故当前空置」等描述均已过时——`systems/`（3 份）与 `operations/`（8 份）现已成文。**结论请以一次新的 `/assess-derive-readiness` 为准。**
+- **主题文档滞留项 5 条已清理（用户当场授权，超出本技能默认写入面）** —— `auth.md` / `profile-sync.md` / `purchase.md` 的 `## Open questions` 里 5 条已于 09-03 答结却未清理的条目。**逐条只删已答部分、保留仍开放的残余**，并把被删条目里承重的约束就地迁进正文（不是丢弃）：
+  - `auth.md` 删 2 条（refresh 限流形态 · token 签名密钥保管与会话存储与限流实现）。**承重约束迁入 §8 refresh 错误清单段**：「刻意不给 `rate.limited` · 网关侧也不得静默加 · 日后若限流须回改本节并同时给客户端第三条处置路径」，回链 `operations/deployment.md` G-1。另修一处**同源失真**：§8 旋钮表下的「限流实现与阈值归 `06`（栈落定后进 `operations/`）」改指 `operations/environments.md` 的「旋钮清单」与「限流的实现分层」，并点明**昵称改名频次阈值是该表唯一未定值项**。保留的 1 条 = 改名频次阈值与第三方审核服务商。
+  - `profile-sync.md` 删 2 条，**该节现为「无待答项」** + 一张四行「原待答项 → 现落点」对照表（`operations/moderation.md` · `systems/profile-store.md` · `operations/environments.md` ×2）。契约当初即写明「归 `06`、落 `operations/`、不回头改契约」，故**契约语义一字未改**。
+  - `purchase.md` 删 1 条**并改写为其真实残余**：存储选型与事务实现已落 `systems/profile-store.md` + `operations/purchase-ops.md`；仍开放的是**冷存归档形态与对账信号阈值 N**（本就在 `06` 跟踪，此前契约侧未如实反映）。
+  - **溯源补齐**：`auth.md` / `profile-sync.md` 的 `Source:` 行补入 `handoffs/2026-09-03-backend-stack-and-hosting.md`（与 `-nickname-moderation-and-risk-control.md`），并注明这两份**只落实现侧、契约未改**——按「活文档不留考古、溯源由 `Source:` 承载」的根约定，删掉的内容由它兜住。
+  - **本次清理不改任何报文面**：不新增 / 删除 / 改动字段、端点、错误码 ⇒ 不 bump `openapi.yaml` 的 `info.version`，不触发 `contracts/_index.md` 的三条机检断言。待答总数因此**净减 5**（分片侧不变——这 5 条本就只滞留在主题文档，分片早已不跟踪）。
+
 ## 2026-09-03b — `schemaVersion` 兼容矩阵的输入、登记流程与漏登告警（跨库成对 · 后端半）
 
 `/batch-analyze-new-ideas` 的一个分片（另一半在客户端库同批落笔）。**移出 1 条，新增 0 条。**

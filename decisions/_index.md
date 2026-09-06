@@ -4,6 +4,16 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| `ADR-0027` | 风控自动处置止步于观察与工单，并配全局熔断 | Accepted | 2026-09-03 | `operations/moderation.md`, `systems/account.md`, `contracts/profile-sync.md` |
+| `ADR-0026` | 未过审昵称的处置只落 `status` 侧，后端绝不改写或置空云端昵称 | Accepted | 2026-09-03 | `operations/moderation.md`, `systems/account.md`, `contracts/auth.md`, `contracts/compliance.md` |
+| `ADR-0025` | 未知取值宽容的判据边界：有判定权的字段不适用 | Accepted | 2026-09-03 | `contracts/profile-sync.md`, `operations/observability.md` |
+| `ADR-0024` | `schemaVersion` 兼容集合的登记权威落本库矩阵，顺序恒为「矩阵先加、客户端后发」 | Accepted | 2026-09-03 | `operations/version-matrix.md`, `operations/_index.md`, `contracts/envelope.md` |
+| `ADR-0023` | 签名密钥的保管边界：KMS 只保管被包裹私钥，不进签发热路径 | Accepted | 2026-09-03 | `operations/environments.md`, `systems/account.md` |
+| `ADR-0022` | refresh token 取 `<tokenId>.<mac>` 派生串：内部键不外泄、宽限回放靠重算 | Accepted | 2026-09-03 | `systems/account.md`, `operations/environments.md` |
+| `ADR-0021` | 后端运行时形态：单主关系库承载全部权威状态，玩家读路径全走写入区 | Accepted | 2026-09-03 | `systems/_index.md`, `systems/profile-store.md`, `operations/environments.md`, `operations/deployment.md` |
+| `ADR-0020` | 一次性凭据的兑付带 60 秒回放窗口：回放不消费、无副作用 | Accepted | 2026-09-03 | `contracts/compliance.md` |
+| `ADR-0019` | 微信渠道引入下单端点，但写入权威分配逐字不变 | Accepted | 2026-09-03 | `contracts/purchase.md`, `operations/purchase-ops.md` |
+| `ADR-0018` | 验票请求的判别式发生在请求根，`receipt` 逐渠道成形 | Accepted | 2026-09-03 | `contracts/purchase.md`, `contracts/envelope.md` |
 | `ADR-0017` | 零判定权字段的取值清单不是校验闸：未知取值宽容接收，清单增量不 bump 契约版本 | Accepted | 2026-08-28 | `contracts/profile-sync.md` |
 | `ADR-0009` | flags 规则集不可变版本化：`flagsVersion` 严格单调 + 同版本结果恒定 | Accepted | 2026-08-23 | `contracts/content-manifest.md`, `operations/content-delivery-ops.md` |
 | `ADR-0008` | 后端写入路径在上行侧只接受回声，不等即整批拒绝 | Accepted | 2026-08-22 · 08-23 | `contracts/profile-sync.md`, `contracts/envelope.md` |

@@ -31,7 +31,7 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
                                                     └─▶ blueprint → implement (backend-feature-branch/)
 ```
 
-**当前状态：后端尚未开工。** 推导就绪度以 `open-questions.md` 的「derive 就绪度」小节为唯一权威（由 `/assess-derive-readiness` 全量评估后写入），此处不另作断言。契约面**六份全部成文且再无取值留白**；下一步是**技术栈落定**（`open-questions/06-platform-stack.md`）——`systems/` 与 `operations/` 的展开、以及 `requirements/` 的推导都以它为前置。合规路线（`02-account-compliance.md`）余下的是运营口径与风控，可与之并行。见 `open-questions.md` 的「下一阶段」。
+**当前状态：后端代码尚未开工，但设计的结构性前置已清空。** 推导就绪度以 `open-questions.md` 的「derive 就绪度」小节为唯一权威（由 `/assess-derive-readiness` 全量评估后写入），此处不另作断言。契约面**六份全部成文且再无取值留白**；**技术栈与托管形态已落定**——C# / ASP.NET Core · 腾讯云托管容器 · 云数据库 PostgreSQL（单主）· 云 Redis · 云 KMS · CDN（Source: `handoffs/2026-09-03-backend-stack-and-hosting.md`），`systems/` 与 `operations/` 因此已展开。焦点下移到外部与排期：合规能力的上线分级（`02-account-compliance.md`）、外部服务商选型与资质（`06-platform-stack.md`）、成本模型。见 `open-questions.md` 的「下一阶段」。
 
 > `.claude/` 下的设计流水线技能（`/analyze-new-ideas`、`/provide-solution-draft`、`/summarize-open-questions`、`/write-adr`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）**对本库与客户端库通用**：调用时加 `--lib=backend`，或直接给 `backend-design-documents/` 开头的路径；判不出时技能会询问，不会静默默认。解析顺序、跨库纪律与两库结构差异见 `.claude/rules/design-library-routing.md`。其中 `/analyze-new-ideas` 与 `/provide-solution-draft` 另有批量版（`/batch-analyze-new-ideas`、`/batch-provide-solution-draft`），同样覆盖两库；`/write-adr` **不接受跨库运行**——两库 ADR 编号各自独立。
 > `/blueprint` 与 `/implement` 仍只面向客户端（`game-feature-branch/`）——后端技术栈未定，无从设计实现形态。
@@ -51,8 +51,8 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
 |--------|------|--------|
 | `vision/` | 北极星：`scope.md`（范围与边界、in/out of scope、硬约束）、`pillars.md`（取舍原则）。 | 稳定，极少编辑。 |
 | `contracts/` | **本库的核心产出**：客户端 ↔ 后端协议契约的单一事实来源。**六份全部成文**：`envelope.md`（边界层：表达形式 · 序列化约定 · `/v1/` 信封 · 错误码台账 · 版本协商）· `content-manifest.md`（内容分发、签名、flags）· `auth.md`（七端点、身份主体自建与 account↔identity 模型、双 token、渠道分形 credential、会话裁决与三处 `reasonKey` 取值表）· `profile-sync.md`（pull / push、diff 浅合并、CAS + 幂等、后端可见字段白名单与后端写入字段封闭表、SplitMix64 掷骰复算）· `purchase.md`（验票 + 收据幂等读、写入只由 verify 承担）· `compliance.md`（六端点、`complianceTicket`、拦截只在 `signin`、防沉迷复用 `session_revoked`）。另有 `vectors/`：机器可读的对表产物（当前 `splitmix64.json`）。契约表达形式为 **OpenAPI 3.1 + JSON Schema 单点**；`openapi.yaml` 与 `schemas/*.json` 待任一侧首个端点进入实现时落笔。 | 持续更新；**只保留最新契约**（兼容性靠版本化字段，不靠保留旧形态）。 |
-| `systems/` | 各后端服务的内部设计意图，文件名与它所服务的客户端成分对齐。 | 持续更新；**只保留最新设计**。当前空置（栈未定）。 |
-| `operations/` | 运行时形态：环境分层、部署与回滚、可观测性、合规运维。 | 持续更新。当前空置（栈未定）。 |
+| `systems/` | 各后端服务的内部设计意图，文件名与它所服务的客户端成分对齐。`_index.md` 另载**三份服务文档的公共前提**（单库 PostgreSQL · 并发单元 = `account` 行 · profile 走 `jsonb` · Redis 只做限流 · 三条落为数据库不变式的契约条款 · 明确不引入的四项）。已建立 `account.md`（`account-service` 对位）与 `profile-store.md`（`sync-service` 对位）；`content-delivery.md` 待 `open-questions/04-content-delivery.md` 的两项，按「先有设计再建文件」不预先占位。 | 持续更新；**只保留最新设计**。 |
+| `operations/` | 运行时形态：环境分层、部署与回滚、可观测性、合规运维。已建立 `environments.md` · `deployment.md` · `observability.md` · `version-matrix.md` · `content-delivery-ops.md` · `moderation.md` · `purchase-ops.md`；`compliance-ops.md` 待合规侧的存储与产物形态落定（`open-questions/06-platform-stack.md`）。 | 持续更新。 |
 | `handoffs/` | 原始的时间线输入——大多是你的文字，每个 handoff 一个文件。 | 持续更新（时间线日志，最新置顶；可自由编辑 / 修正，非仅追加）。 |
 | `decisions/` | ADR 风格的已定决策。**编号与客户端库各自独立**，引用另一侧一律写全路径。**唯一写入者是 `/write-adr`**；ADR 形状、台账约定与「ADR 候选」表见 `decisions/_index.md`。 | 可修改（后端开发尚未开始；直接更新 ADR，不必新开 ADR 取代）。 |
 | `requirements/` | 从详细设计推导出的功能需求规格（`FR-*`）——通往实现的桥梁。含 `_index.md` 与两份骨架模板；**当前尚无 FR**。 | 持续更新；随设计深化而重新生成 / 扩展。 |
@@ -95,4 +95,4 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
 | 分支 | 本地文件夹 | 内容 |
 |------|-----------|------|
 | `game-design` | `game-design-documents/` | 客户端设计意图（含客户端侧的边界服务门面） |
-| `backend-feature` | `backend-feature-branch/` | 后端活跃开发（尚未开工） |
+| `backend-feature` | `backend-feature-branch/` | 后端活跃开发（代码尚未开工；栈已落定） |

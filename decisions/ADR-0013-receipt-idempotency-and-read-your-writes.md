@@ -15,7 +15,7 @@
 **以 `receiptId` 作全局唯一幂等键，永久保留；并把「读己所写」升格为服务端的读路径一致性要求。**
 
 - 幂等键**不带 `accountId` 前缀**——跨账号可查重，因为「已被其他账号核销」是 `contracts/purchase.md` §3 的既定失败面。
-- 幂等记录**永久保留、不设 TTL**；形态为 `receiptId → { accountId, bundleGrantOrdinal, revision, verifiedAtUtc, status }`，`status ∈ { unknown, verified, rejected }`。
+- 幂等记录**永久保留、不设 TTL**；形态为 `receiptId → { accountId, bundleGrantOrdinal, revision, verifiedAtUtc, status }`，`status ∈ { Unknown, Verified, Rejected }`。
 - 该记录与 `bundleGrantOrdinal += 1`、`cloudRevision += 1` **写在同一次事务内**。
 - 同一 `receiptId` 在**任意时间跨度**（含远超 `pushId` 窗口）重复提交，仍回 `deduplicated = true`，序号与 `revision` **逐位相同**。
 - **读己所写：** verify 应答返回后，同账号后续的 `GET /v1/profile/pull` 与 `GET /v1/purchase/receipt/{receiptId}` 必须**不早于**该次写入的结果。

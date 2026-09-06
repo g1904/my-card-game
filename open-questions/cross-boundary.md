@@ -16,9 +16,15 @@
 
 ## 待承接
 
-- `game-design-documents/ux/error-and-blocking-ux.md` · `game-design-documents/systems/services/account-service.md` | 2026-09-03 | 本库需改：`contracts/envelope.md` §6 | **四条 `compliance.*` 拦截码的「客户端处置」列改为回链客户端库。** 该列现写作「阻塞屏 + XX 动作」，而对侧已定四条拦截码一律在**登录屏就地呈现**、一条也不进阻塞屏变体表（呈现形态的裁决权在客户端库，本库不代为决定）。**语义不变，只消除措辞不一致**——照现列实现会造出第三处由 `code` 触发的硬阻塞。改法：该列写「呈现形态见 `game-design-documents/ux/error-and-blocking-ux.md`」。对侧 handoff：`game-design-documents/handoffs/2026-09-03-compliance-client-surface.md`。
+*（空）*
 
 ## 对账基线（不是待办）
+
+- **四条 `compliance.*` 拦截码的「客户端处置」列已于 2026-09-06 改为回链客户端库**（`contracts/envelope.md` §6：呈现形态见 `game-design-documents/ux/error-and-blocking-ux.md`，仅保留凭 ticket / 供数字段等契约事实）。语义不变、只消除措辞不一致；对侧 handoff `game-design-documents/handoffs/2026-09-03-compliance-client-surface.md`。**两侧无遗留欠账。** 移出记录见 `../answer-logs/log-0906.md`。
+
+- **剧本树不按篇章分包，本库零机制增量**（客户端 2026-09-05 核对确认已定案 · 本库无落笔义务）：客户端裁定三篇章剧本树整体随 `res://` 基线发布、更新走 overlay 文件级增量热更，权威 `game-design-documents/decisions/ADR-0029-plot-tree-single-baseline-package.md`（Accepted）与 `game-design-documents/systems/services/plot-manager.md`（**本库不复述判据**）。对本库的采纳结果是**零机制增量**：manifest 不加字段 · `manifestSchema` 不提升 · 服务端不感知内容类别故报文无变化。本库 `04-content-delivery.md` 的同题条目据此移出（记录见 `../answer-logs/log-0905.md`），余下的下载量上界与 CDN 成本转 `06`。**两侧无遗留欠账。**
+
+- **客户端 `2026-08-30-exchange-barter-support.md` 的存档结构未产生新 `schemaVersion`，本库无待登记项**（2026-09-05 核对留痕，补齐此前的零留痕）：对侧登记表 `game-design-documents/systems/services/profile-schema-versions.md` **只有 `1` 一行**，Exchange 物化字段（`ExchangeStock` · `BarterStock` · `RerolledCount`）与 `Source.ExchangeBarter = 10` 均折入 **v1 首发形状**（v1 清单第 25 条），**不是一次 bump**。本库 `operations/version-matrix.md` 的 `schemaVersion` 子表已于 09-03 登入 `1` ⇒ 上方「常规触发源」的条件未成立，**无条目可开**。`Source` 成员落 `characterDiffs` 不透明段且本库不复制该清单 ⇒ 契约零改动（`ADR-0017` 通则覆盖）。**两侧无遗留欠账**；此条只为消除对账基线的处置不一致（08-25 同类情形记了 handoff、08-30 这次未记），**不改任何就绪度判定**。
 
 - **`contracts/content-manifest.md` 的两条 Open question（blob 是否向二进制资产开放 · flags 是否落地客户端本地缓存）已于 2026-08-30 成对落笔关闭。** 本库落 `no-cache` 的层次澄清（回链 `envelope.md` §3，不复制）、后端对客户端缓存的**零义务**、B 组第 7 条的依赖方登记与「blob 通道不承载二进制资产」一节；对侧落 flags 落盘纪律与资产引用格的 overlay 收口，见 `game-design-documents/handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md`。**报文零改动**（`flagsSchema` / `manifestSchema` 均不提升）。**两侧无遗留欠账。** 移出记录见 `../answer-logs/log-client-flag-cache-and-binary-overlay.md`。
 

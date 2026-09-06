@@ -164,10 +164,10 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 | `auth.identity_already_bound` | `Fatal` | `Auth` | 绑定屏呈现冲突：**必须说明那个渠道下有另一份进度、绑定不会合并两份存档**（`auth.md` §1a） | `{ channel }` | 冲突的渠道 |
 | `auth.identity_required` | `Fatal` | `Auth` | 拒绝解绑并说明理由 | `{ channel }` | 「这是最后一个登录方式」 |
 | `auth.nickname_rejected` | `Fatal` | `Auth` | 按 `code` 出文案；`reasonKey` 驱动二级措辞（取值表见 `auth.md` §10），**未知取值须有兜底** | `{ reasonKey }` | 拒绝理由标识（敏感词 / 频次 / 格式） |
-| `compliance.realname_required` | `Fatal` | `Compliance` | 阻塞屏 + 「去实名」动作，凭 ticket 走实名流程 | `{ reasonKey, complianceTicket, ticketExpiresAtUtc }` | 触发的合规规则标识（**不含**姓名 / 证件号任何片段） |
-| `compliance.playtime_blocked` | `Fatal` | `Compliance` | 阻塞屏 + 展示 `resumeAtUtc`，**无重试动作** | `{ reasonKey, resumeAtUtc }` | 触发的时段规则与解除时间 |
-| `compliance.account_restricted` | `Fatal` | `Compliance` | 阻塞屏 + 申诉入口（申诉走站外，不占端点） | `{ reasonKey }` | `status` 值与置入时间 |
-| `compliance.account_deleting` | `Fatal` | `Compliance` | 阻塞屏 + 「撤销注销」动作，凭 ticket | `{ reasonKey, deletionEffectiveAtUtc, complianceTicket, ticketExpiresAtUtc }` | 冷静期起止时间 |
+| `compliance.realname_required` | `Fatal` | `Compliance` | 呈现形态见 `game-design-documents/ux/error-and-blocking-ux.md`；凭 ticket 走实名流程 | `{ reasonKey, complianceTicket, ticketExpiresAtUtc }` | 触发的合规规则标识（**不含**姓名 / 证件号任何片段） |
+| `compliance.playtime_blocked` | `Fatal` | `Compliance` | 呈现形态见 `game-design-documents/ux/error-and-blocking-ux.md`（解除时间由 `resumeAtUtc` 供数，**无重试动作**） | `{ reasonKey, resumeAtUtc }` | 触发的时段规则与解除时间 |
+| `compliance.account_restricted` | `Fatal` | `Compliance` | 呈现形态见 `game-design-documents/ux/error-and-blocking-ux.md`（申诉走站外，不占端点） | `{ reasonKey }` | `status` 值与置入时间 |
+| `compliance.account_deleting` | `Fatal` | `Compliance` | 呈现形态见 `game-design-documents/ux/error-and-blocking-ux.md`；「撤销注销」凭 ticket | `{ reasonKey, deletionEffectiveAtUtc, complianceTicket, ticketExpiresAtUtc }` | 冷静期起止时间 |
 | `compliance.ticket_invalid` | `Fatal` | `Compliance` | 回登录屏重新 `signin` 以取得新 ticket；`reasonKey` 驱动二级措辞（取值表见 `compliance.md` §11） | `{ reasonKey }` | ticket 的**前缀截断**、签发与过期时间、被判定的情形（**不含** ticket 原值全串） |
 | `compliance.verification_failed` | `Fatal` | `Compliance` | 呈现失败原因并允许重填表单（受 `rate.limited` 约束）；`reasonKey` 驱动二级措辞 | `{ reasonKey }` | 失败的校验项标识（**不含**姓名 / 证件号任何片段，同 `compliance.realname_required` 那行的脱敏纪律） |
 | `compliance.deletion_irrevocable` | `Fatal` | `Compliance` | 呈现「注销已生效 / 已不可撤销」，**无重试动作** | `{ deletionEffectiveAtUtc }` | `deletionEffectiveAtUtc` 与服务端当前时刻两值、账号前缀 |

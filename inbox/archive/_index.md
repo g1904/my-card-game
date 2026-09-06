@@ -6,6 +6,8 @@
 
 | 草稿 | 对应 handoff | 日期 |
 |------|--------------|------|
+| `solution-draft-iap-channel-integration.md` | `handoffs/2026-09-06-iap-channel-integration.md` | 2026-09-06 |
+| `solution-draft-baseline-superset-and-pack-proof.md` | `handoffs/2026-09-06-baseline-superset-and-pack-proof.md` | 2026-09-06 |
 | `solution-draft-schema-bump-ledger-authority.md` | `handoffs/2026-09-03-schema-bump-ledger-authority.md` | 2026-09-03 |
 | `solution-draft-backend-stack-and-hosting.md` | `handoffs/2026-09-03-backend-stack-and-hosting.md` | 2026-09-03 |
 | `solution-draft-compliance-endpoint-payloads.md` | `handoffs/2026-09-03-compliance-endpoint-payloads.md` | 2026-09-03 |

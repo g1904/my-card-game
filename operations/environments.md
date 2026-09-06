@@ -40,6 +40,7 @@
 | `pushId` 记忆条数 · 保留时长 | `contracts/profile-sync.md` §9 · §12（条数为观测阈值，见 `systems/profile-store.md`） |
 | 单账号 profile 体积软告警 | `contracts/profile-sync.md` §12 |
 | 版本兼容矩阵 | `version-matrix.md`（矩阵数据本身即旋钮表的一员） |
+| 渠道验票凭据的刷新间隔 | `operations/purchase-ops.md` §1 |
 
 昵称改名频次阈值尚未定值（`open-questions/06-platform-stack.md`），定值后落本表。
 
@@ -109,6 +110,10 @@ verify  ≈ 每账号个位数 / 年
 
 内容签名密钥的保管、CI 签名步骤与 `keyId` 轮换形态的权威在 `_index.md` 的内容分发运维面，本文件不复述。
 
+### 渠道验票凭据（第三把钥匙）
+
+托管形态的权威在 `operations/purchase-ops.md` §1「托管形态」（云 Secrets 条目 · 渠道 × 环境 · 第三条审计线），本文件不复述；三把钥匙不共用托管配置。
+
 ### 本地 feature 环境
 
 本地不接 KMS，用**开发专用密钥与开发专用 `kid`**，与线上 `kid` 空间**隔离、永不共用**。轮换演练在非生产环境用新 `keyId` 走完整条流水线后再上生产。
@@ -117,4 +122,4 @@ verify  ≈ 每账号个位数 / 年
 
 当前只有两个轻量周期任务：幂等记录的分区滚动、profile 体积扫描。托管容器形态天然能承接它们。**合规侧的注销冷静期是一条跨天长时状态机**，会追加对可靠调度的要求——出口已预留，形态待合规侧落定（`open-questions/06-platform-stack.md`）。
 
-Source: `handoffs/2026-09-03-backend-stack-and-hosting.md`。
+Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-06-iap-channel-integration.md`（旋钮清单一行 · 密钥保管指路）。

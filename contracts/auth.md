@@ -2,7 +2,7 @@
 
 > 覆盖 `/v1/auth/…` 七个端点的报文本体。**边界层不在此重复**：序列化与命名约定、`/v1/` 主版本、传输信封、错误体形状、错误码台账、版本协商——全部见 `envelope.md`，本文件只写 auth 域**相对它的差异与例外**。
 > 客户端侧门面见 `game-design-documents/systems/services/account-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-13-auth-endpoint-contract.md` · `handoffs/2026-08-16b-account-identity-model.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` · `handoffs/2026-08-23-refresh-lifetime-cap.md` · `handoffs/2026-09-03-nickname-moderation-and-risk-control.md`（§8 的判定链与两条承重口径）。
+> Source: `handoffs/2026-08-13-auth-endpoint-contract.md` · `handoffs/2026-08-16b-account-identity-model.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` · `handoffs/2026-08-23-refresh-lifetime-cap.md` · `handoffs/2026-09-03-nickname-moderation-and-risk-control.md`（§8 的判定链与两条承重口径）· `handoffs/2026-09-03-backend-stack-and-hosting.md`（§8 的限流实现分层与旋钮落点 · refresh 不限流的网关守则 · token 签名密钥与会话存储形态——**契约语义未因此改动**）。
 
 ## 1. 端点集：七个
 
@@ -357,6 +357,7 @@ QQ      → { "authCode": "<同上>" }
 
 错误：**只有两条**——`auth.session_revoked`（refresh token 已失效 / 被吊销 / 超出宽限窗口的重放 / **链达到绝对寿命上限**，四者靠 `reasonKey` 分辨）· `server.unavailable`。**绝对寿命上限不新增第三条错误码**——客户端「刷新失败按有无明确应答分两条路径」的判据靠报文层面只有两种可能才无歧义（§10、ADR-0004 后果段），而复用 `session_revoked` + `reasonKey` 拿到完全相同的表达力。
 **永不返回 `client.version_unsupported`**（§5）；**永不返回 `auth.token_expired`**（那会让客户端递归刷新）。
+**本端点刻意不给 `rate.limited`**：滥用面靠记账 + 告警承接，**网关侧也不得静默加一条限流**（实现与网关两侧的守则、逐次上线核对项见 `operations/deployment.md` G-1）。日后若认定必须限流，须回改本节**并同时给客户端第三条处置路径**。
 
 > 只给两条是刻意的：客户端对 refresh 失败的两条处置路径（§10）以「收到的是不是 `auth.session_revoked`」为判据，报文层面只有两种可能才使这个判据无歧义。
 
@@ -414,7 +415,7 @@ QQ      → { "authCode": "<同上>" }
 | 验证码重发间隔 | **60 秒** | 通行值；短信是**有成本且被刷**的通道 |
 | 单标识符验证码日上限 | **10 次** | 初值，待实测校准 |
 
-**这些是待实测校准的初值，落点是后端配置而非代码常量。** 具体限流实现与阈值归 `open-questions/06-platform-stack.md`（栈落定后进 `operations/`）；契约层只声明语义，不指定实现。
+**这些是待实测校准的初值，落点是后端配置而非代码常量。** 具体限流的实现分层与旋钮落点见 `operations/environments.md`（「旋钮清单」与「限流的实现分层」）；契约层只声明语义，不指定实现。**昵称改名频次阈值是本表唯一尚未定值的一项**，归 `open-questions/06-platform-stack.md`。
 
 ## 9. auth 域新增的五个错误码
 
@@ -557,8 +558,6 @@ QQ      → { "authCode": "<同上>" }
 ## Open questions
 
 - **改名频次阈值与第三方审核服务商**归 `06`（后端配置，与 §8 的旋钮同处）。判定链与词表口径已在 §8 定下，取值表已封定（§10）。
-- **`refresh` 的滥用面与限流形态**——本文件把 `refresh` 的错误清单收紧为两条（§8），刻意不给 `rate.limited`，以保客户端两条路径在报文层面互斥。若 `06-platform-stack.md` 认定该端点必须限流，需回头松动这一条并同时给出客户端的第三条路径，**不能只在网关侧悄悄加**。
-- **token 签名密钥的保管与轮换**、会话存储形态、限流的实现与实际阈值——均归 `06`，落 `operations/`。契约层只声明语义。
 
 ## 跨库待办（客户端侧，本库不代为决定）
 

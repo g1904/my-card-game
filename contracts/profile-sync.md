@@ -2,7 +2,7 @@
 
 > 覆盖 `/v1/profile/…` 两个端点的报文本体。**边界层不在此重复**：序列化与命名约定、`/v1/` 主版本、传输信封、错误体形状、错误码台账、版本协商、Profile 三段可见性的分界——全部见 `envelope.md`，本文件只写 sync 域**相对它的差异与细化**。
 > 客户端侧门面见 `game-design-documents/systems/services/sync-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）、`handoffs/2026-08-23c-echo-validation-scope.md`（§5c 适用面恒等式 + 比较口径 + 追加字段刚性）、`handoffs/2026-08-25-codex-key-count-neutralization.md`（§5 排除清单去计数化）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§4 `reason` 宽容不适用于 `schemaVersion` 的不对称声明 · §5b 登记表回链）。
+> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）、`handoffs/2026-08-23c-echo-validation-scope.md`（§5c 适用面恒等式 + 比较口径 + 追加字段刚性）、`handoffs/2026-08-25-codex-key-count-neutralization.md`（§5 排除清单去计数化）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§4 `reason` 宽容不适用于 `schemaVersion` 的不对称声明 · §5b 登记表回链）、`handoffs/2026-09-03-backend-stack-and-hosting.md`（CAS 与两类幂等记录的存储 · 限流实现分层 · 单区域拓扑与读己所写的落地）、`handoffs/2026-09-03-nickname-moderation-and-risk-control.md`（§5c / §7a 风控事件的落地形态）——**后两份均只落实现侧，契约一字未改**。
 
 ## 1. 端点集：两个，封定
 
@@ -454,8 +454,16 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 
 ## Open questions
 
-- **风控事件的落地形态**（结构化事件的字段、累计频次的处置阈值）——归 `02` / `06`，落 `operations/`。契约层只声明「必须上报、不在热路径裁决」。
-- **CAS 的具体存储、幂等记录的存储、限流实现与实际阈值、跨区域拓扑**——全部归 `06`，落 `operations/`，**不回头改契约**。
+**无待答项。** 本契约此前挂在此处的实现侧问题已全部落定，**契约一字未因此改动**（当初即写明「归 `06`、落 `operations/`、不回头改契约」）：
+
+| 原待答项 | 现落点 |
+|---|---|
+| 风控事件的落地形态（结构化事件字段、累计频次的处置阈值） | `operations/moderation.md`（字段表 · `kind` 八值 · 阈值分档 · 全局熔断 · 自动化止于工单） |
+| `revision` CAS 的具体存储 · 两类幂等记录的存储 | `systems/profile-store.md` |
+| 限流的实现与实际阈值 | `operations/environments.md`（「限流的实现分层」；阈值本身是旋钮，初值权威仍在 §10 §12） |
+| 跨区域拓扑 | `operations/environments.md`「拓扑与副本」（单区域部署、不做跨区域多活；玩家读路径全走写入区） |
+
+契约层的口径不变：只声明语义（「必须上报、不在热路径裁决」），不指定实现。
 
 ## 客户端侧的对位
 

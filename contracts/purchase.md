@@ -155,13 +155,15 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 | ↓ | `receiptId` | 本次订单的幂等键（= `wx_` + `outTradeNo`）。**客户端须随待兑现态一并持久化**——它是补查的唯一入口 |
 | ↓ | `channelOrderParams` | 交给渠道 SDK 唤起支付的参数对象，形态**逐渠道不同**，同样按 `platform` 判别 |
 
-- **本端点不写入 `bundleGrantOrdinal`**，§2 的权威分配逐字不变：它只创建订单并**预落一条 `status = unknown` 的幂等记录**。这也把 `GET /receipt/{receiptId}` 的 `unknown` 态从理论值变成微信渠道的常规态。
-- **未支付订单的清理：记录本身不删。** 预落的 `unknown` 记录若在订单有效期后仍未转 `verified`，由对账任务标记为关单（运维侧字段，`operations/purchase-ops.md`）。删除会让同一 `outTradeNo` 的迟到查询查不到记录，正是 §7 拒绝设 TTL 所要堵的那条路径。
+- **本端点不写入 `bundleGrantOrdinal`**，§2 的权威分配逐字不变：它只创建订单并**预落一条 `status = Unknown` 的幂等记录**。这也把 `GET /receipt/{receiptId}` 的 `Unknown` 态从理论值变成微信渠道的常规态。
+- **未支付订单的清理：记录本身不删。** 预落的 `Unknown` 记录若在订单有效期后仍未转 `Verified`，由对账任务标记为关单（运维侧字段，`operations/purchase-ops.md`）。删除会让同一 `outTradeNo` 的迟到查询查不到记录，正是 §7 拒绝设 TTL 所要堵的那条路径。
 - **渠道未开通时回 `purchase.channel_disabled`（`Fatal`），不复用 `receipt_invalid`。** 未开通发生在下单、玩家**尚未付款**：对他呈现「收据无效 + 客服入口」是错的话，且会让线上「无效收据」曲线被未开通渠道的调用污染。渠道开通时只需删掉实现分支，**契约面零变更**。`platform` 取值域仍封闭为三条渠道——**不实现 ≠ 从契约删除**（`auth.md` §3 的登录渠道先例逐字适用；删掉再加回是破坏性契约变更，追加实现不是）。
 
 ## 4. `GET /v1/purchase/receipt/{receiptId}`
 
-回 `status ∈ {unknown, verified, rejected}`；`verified` 时附 `bundleGrantOrdinal` 与 `revision`，`rejected` 时附原因。**纯读、幂等、不产生任何写入。**
+回 `status ∈ { Unknown, Verified, Rejected }`（取值与客户端 C# 成员名逐字相同，`envelope.md` §2）；`Verified` 时附 `bundleGrantOrdinal` 与 `revision`；`Rejected` 时附 `code`（取值 ⊂ { `purchase.receipt_invalid`, `purchase.receipt_claimed` }，即该收据**最近一次 verify 的终态 `code`**）与可选 `detail`（形状同 `envelope.md` §6 台账该 `code` 的 `detail` 列——只作日志，客户端不解析）。**纯读、幂等、不产生任何写入。**
+
+**`Rejected` 的原因是应答体普通字段，不是错误体**——本次请求本身是成功的，收据状态是数据不是错误。取值域是 §6 台账既有条目的**子集**而非新枚举：**只有这两条 `code` 能把记录置为 `Rejected`**（`receipt_pending` / `server.unavailable` 不写终态、`payload_invalid` 不落幂等记录、`channel_disabled` 发生在下单且无收据）——与 verify 失败面同源，**不新造取值集、不给 §6 台账加行**，客户端处置照既有 `code` 映射零新增。`receipt_claimed` 的脱敏纪律照 §3：**绝不含另一账号的任何标识**。
 
 **本端点同样受 §6 的读己所写要求约束**：它是「响应丢失」时的补查路径，读到滞后结果的后果与 pull 读到旧序号逐字相同——客户端据此判定「无待兑现」而不再重试。
 
@@ -179,7 +181,7 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 
 1. 同一 `receiptId` 提交 N 次，`bundleGrantOrdinal` 恰好 `+1`；第 2..N 次回 `deduplicated = true` 且序号与第 1 次逐位相同。
 2. `bundleGrantOrdinal` 与 `revision` 的自增**要么都发生、要么都不发生**。
-3. **读己所写（对读路径的一致性要求，不只是一条测试断言）**：verify 应答返回之后，同一账号的任何后续 `GET /v1/profile/pull` 与 `GET /v1/purchase/receipt/{receiptId}` 都必须读到该次写入的结果（`bundleGrantOrdinal` 与 `revision` 均不早于 verify 应答中的值）。**同一条约束覆盖 `POST /v1/purchase/order` 预落的 `status = unknown` 记录**：下单应答返回之后，`GET /receipt/{receiptId}` 必须立即读到它——否则客户端在阻塞态下读到「不存在」，与「下单失败」不可区分。
+3. **读己所写（对读路径的一致性要求，不只是一条测试断言）**：verify 应答返回之后，同一账号的任何后续 `GET /v1/profile/pull` 与 `GET /v1/purchase/receipt/{receiptId}` 都必须读到该次写入的结果（`bundleGrantOrdinal` 与 `revision` 均不早于 verify 应答中的值）。**同一条约束覆盖 `POST /v1/purchase/order` 预落的 `status = Unknown` 记录**：下单应答返回之后，`GET /receipt/{receiptId}` 必须立即读到它——否则客户端在阻塞态下读到「不存在」，与「下单失败」不可区分。
 4. `bundleGrantOrdinal` 账号级**严格单调递增、不清零**（与 `finaleWinOrdinal` 同一条纪律）。
 5. 上行 `playerDiff.entitlement.bundleGrantOrdinal` 与云端当前值不等 ⇒ 上行被拒（`sync.conflict`，`profile-sync.md` §5c），且 `bundleGrantOrdinal` / `bundleRedeemedOrdinal` / `cloudRevision` 三者皆不变。
 6. 同一 `receiptId` 在首次 verify 之后**任意时间跨度**（含 > 30 天）重复提交，仍回 `deduplicated = true`，序号与 `revision` 与第一次逐位相同。
@@ -232,11 +234,14 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 - **`receiptId` 超长时截断或改存哈希**（§3a） — 截断破坏唯一性；哈希使 `receiptId` 不再可由渠道值直接反查，抬高客服排障成本。
 - **做成三渠道统一的下单端点**（§3b） — 商店渠道的 `receiptId` 只在购买之后存在，预分配不成立；空转步骤只增加可失败的往返。
 - **让下单端点也参与权益写入**（§3b） — 与 §2 的写入权威分配正面相悖：写入面一旦有两个入口，「已付款但序号未涨」就重新变得无处排查。
+- **`Rejected` 原因新造独立取值集**（§4） — 同一事实两套取值集，与 §6 台账构成第二权威；客户端还要为它再建一张映射表。
+- **`Rejected` 原因放进错误体、让补查直接回错误**（§4） — 本次请求成功，收据状态是数据不是错误；且与端点「纯读、幂等」的定位相抵。
 - **退款回收权益 / 回退 `bundleGrantOrdinal`**（§7） — 与保证 4「严格单调不清零」直接冲突，且条目已写进玩家存档，回收比不发更糟。
 - **把「已退款」加进 §4 的 `status` 枚举**（§7） — 三值已封定，且客户端对它没有任何动作可做，下发只会诱导实现一条不存在的处置。
 
 ## Open questions
 
-- **幂等记录的存储产品选型与事务实现** —— 判据、分区与索引、不合表与 TTL 禁用断言已落 `operations/purchase-ops.md`；余下的「用哪个存储、事务域怎么划」随后端栈落定，归 `06-platform-stack.md`，**不回头改契约**（与 `profile-sync.md` §12 同一条处置）。§7 的语义（永不过期）本身不依赖选型。
+- **幂等记录的体量增长后的冷存归档形态**，以及对账信号「`bundleGrantOrdinal > bundleRedeemedOrdinal` 持续 N 天」的**阈值 N** —— 两者都需真实体量才能定，归 `06-platform-stack.md`，**不回头改契约**（与 `profile-sync.md` §12 同一条处置）。信号只作人工 / 工单入口，不驱动任何自动写入。
+  **存储选型与事务实现已不在此列**：关系库 `receipt_idem`、`receipt_id` 全局唯一主键、与序号 / `cloudRevision` 同一次事务、下单时预落未决态记录已落 `systems/profile-store.md`；判据、分区与索引、不合表与 TTL 禁用断言在 `operations/purchase-ops.md`。§7 的语义（永不过期）本身不依赖选型。
 
-Source: `handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 的失败面：verify 不返回 `compliance.*`）· `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§3 渠道取值域 · §4 与 §6 读己所写 · §5 判据 · §7 收据幂等窗口）· `handoffs/2026-09-03-purchase-channel-integration.md`（§1 三端点 · §3 判别式与失败面 · §3a 逐渠道形态与 `receiptId` 取值 · §3b 下单端点 · §6 保证 3 覆盖面 · §7 回链）。
+Source: `handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 的失败面：verify 不返回 `compliance.*`）· `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§3 渠道取值域 · §4 与 §6 读己所写 · §5 判据 · §7 收据幂等窗口）· `handoffs/2026-09-03-purchase-channel-integration.md`（§1 三端点 · §3 判别式与失败面 · §3a 逐渠道形态与 `receiptId` 取值 · §3b 下单端点 · §6 保证 3 覆盖面 · §7 回链）· `handoffs/2026-09-06-iap-channel-integration.md`（§4 `Rejected` 附 `code` · `status` 三值 PascalCase）。
