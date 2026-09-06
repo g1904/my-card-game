@@ -61,5 +61,19 @@ worker 判定该问题**不适合推演**（纯取向 / 信息不足）→ 不�
 ### 仍待用户
 - <未裁决项，按草稿分组>
 
-下一步：/batch-analyze-new-ideas 提炼已评审的草稿（或逐份 /analyze-new-ideas）。
+### 下一步（可直接复制运行）
+/batch-analyze-new-ideas <详细提示词，见下方构造规则>
+```
+
+**「下一步」提示词的构造规则（强制）——不要只给一行裸命令**，要产出一段**可直接复制运行**的完整 `/batch-analyze-new-ideas` 提示词（草稿全部裁决完毕时；仅一份草稿就绪则给 `/analyze-new-ideas`），包含：
+
+1. **全部就绪草稿的完整路径**（含库前缀，空格分隔）。**排除** `on-hold` / `rejected` 与仍有未裁决项的草稿——后者单列一句「<slug> 还差 <n> 项裁决，裁决后追加进本批或单独跑」。
+2. **裁决状态前提**：点明「裁决已以『→ 已裁决（<日期> · 批量评审）』写回草稿，视同用户拍板」，让下一步不再重问已答定的项。
+3. **counterpart 配对**：跨库成对的草稿点名「<n> 对 counterpart 草稿须成对提炼、两侧互相回链」。
+4. **写库授权**：涉及哪几个库就写哪几个——「授权本次对 <库清单> 写入」。
+5. **顺带事项**（有则写）：本批运行中浮出的、答案已定、纯机械的落笔项（待回链的台账行、待登记的跨库承接项等），逐条一句话：「顺带落笔：<事项>（纯机械落笔，答案已定）」。
+
+示例形态：
+```
+/batch-analyze-new-ideas game-design-documents/inbox/solution-draft-a.md backend-design-documents/inbox/solution-draft-a.md game-design-documents/inbox/solution-draft-b.md — 三份均已批量评审（裁决已以「→ 已裁决（<日期> · 批量评审）」写回草稿，视同用户拍板）；solution-draft-a 为一对 counterpart 草稿，须成对提炼、两侧互相回链。授权本次对 game-design-documents/ 与 backend-design-documents/ 两库写入。顺带落笔：<跨库承接项 / 台账回链>（纯机械落笔，答案已定）。
 ```

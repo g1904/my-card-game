@@ -20,4 +20,4 @@
 - 场景是**视图**。一个 `Card` node 绑定到某个 `CardData` 资源（通过 `Initialize(CardData)` 方法设置）并渲染它。`.tscn` 中不存放任何游戏数值。
 
 ## 主场景
-- **本作已定案采用引导场景模式：`main` = `BootstrapScreen.tscn`**，它按序驱动边界服务的 `InitializeAsync`（autoload 的 `_Ready` 不能 `await`），再移交 `LoginScreen` → `MainMenu`。目前 `project.godot` 尚未设置主场景——`BootstrapScreen.tscn` 一旦存在就设它。→ `.claude/knowledge/scenes/_index.md`。
+- **本作已定案采用引导场景模式：`main` = `BootstrapScreen.tscn`**，它按序驱动边界服务的 `InitializeAsync`（autoload 的 `_Ready` 不能 `await`），再移交 `LoginScreen` → `MainMenu`。目前 `project.godot` 尚未设置主场景——`BootstrapScreen.tscn` 一旦存在就设它。→ `game-design-documents/systems/architecture.md`「总则 4」、`game-design-documents/ux/screen-flow.md`。

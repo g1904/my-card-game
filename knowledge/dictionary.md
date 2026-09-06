@@ -14,7 +14,8 @@
 | **Deck** | 玩家本局拥有的全部卡牌。 | 构筑单位是**功法 `CultivationTechnique`**（整组入组 / 整组替换）。→ `systems/character-profile/deck/` |
 | **Draw pile / Hand / Discard pile** | 运行时卡牌区域，体裁通常是「弃牌重洗回流」的环流。 | **本作没有重洗**——抽空即**疲劳**。→ `terminology.md`、`systems/services/combat-service.md` |
 | **Energy / Mana** | 每回合用于打出卡牌的资源。 | 法力，归 `systems/character-profile/mana.md`。 |
-| **Currency** | 局内货币。 | **两层**：灵石 `spiritStone`（基础）· 仙玉 `immortalJade`（高阶），均轮回级、随轮回清；**不可兑换**。旧词 `jade` **整体退役、不改派**。→ `terminology.md`、`systems/character-profile/currency.md` |
+| **Currency** | 局内货币。 | **两层货币，均轮回级、彼此不可兑换**；定名与已退役的旧词见 `terminology.md`、`systems/character-profile/currency.md`。 |
+| **Potion / Consumable** | 一次性、主动花掉的消耗品。 | 轮回级**法宝 CharacterItem** / 账号级**古宝 PlayerItem**（两层共用 `ItemData`，古宝另受 `Charges > 0`）。→ `systems/character-profile/item/`、`systems/player-profile/player-item/` |
 | **Checkpoint** | 进度存档点与失败重试规则。 | 篇章通关后在所达境界落点，归 ChapterManager。→ `decisions/ADR-0004-realm-checkpoint-retry-model.md` |
 | **Relic / Joker** | 持久的被动修饰器，以触发式效果改变规则。 | 账号级**法则 PlayerPower** → `systems/player-profile/player-power/`；轮回级**神通 CharacterPower** → `systems/character-profile/power/`。 |
 | **Scoring** | 体裁两路：chips × mult（Balatro）或伤害 / HP（StS）。 | **两路都不采用**——计分模型 = **道念 / momentum**。→ `terminology.md`、`systems/scoring.md` |

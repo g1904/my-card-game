@@ -46,8 +46,8 @@
 - **允许一次运行同时写两库**，但仅当**输入本身横跨边界**（协议契约变更、客户端定案给后端新增义务、后端契约要求客户端改实现）。
   单侧意图仍只写单侧——不要因为「顺手」去动另一库。
 - **主库 / 对侧库。** 每次运行仍按解析顺序确定一个**主库**（`<LIB>`，技能的常规写入目标）；另一侧称**对侧库**，只写**归属判据判给它的那一半**。
-- **归属判据不变**（决定每一半写在哪侧）：由客户端代码实现、后端不感知 → 客户端库；由后端实现或需两侧约定报文 → 后端库；
-  客户端语义已定、只剩服务端如何兑现 → 后端库（注明「客户端侧已定」+ 日期 + 回链）。权威表见两库各自 README。
+- **归属判据不变**（决定每一半写在哪侧）：按判据表落位，判不出即停下询问——判错会把一侧的意图写进另一侧的库，而两库内容互不覆盖，写错即污染事实来源。
+  → `backend-design-documents/README.md`「跨库约定：一个东西写在哪一侧」（**判据表只在后端库这一份**）。
 - **回链而非复述（这条不放松，是防漂移的承重）。** 每一侧只写自己那一半的**权威内容**，需要对方的语义时写**指向另一库的路径引用**，
   绝不把对方的设计抄过来。抄一份 = 制造第二权威，两份各自漂移而无机制发现——这正是本项目已经踩过的那个坑。
 - **对称落笔。** 跨边界改动在两侧都要留下痕迹：主库写决策 / 契约本体，对侧库写**承接项**（一条待答项、或一份 handoff / 文档），
@@ -59,13 +59,13 @@
 
 ## 两库的结构差异（技能必须按库调整的部分）
 
-同名同形的部分：`handoffs/`、`inbox/`（含 `archive/`）、`decisions/`、`requirements/`（父 + 子模板 + `_index.md`）、`open-questions.md`（索引）+ `open-questions/`（分片 + `update-log.md`）、`answer-logs/`。**这些在两库中的约定完全一致**，技能无需分支处理。
+同名同形的部分：`handoffs/`、`inbox/`（含 `archive/`）、`decisions/`、`requirements/`（父 + 子模板 + `_index.md`）、`open-questions.md`（索引）+ `open-questions/`（分片 + `update-log.md`）、`answer-logs/`。**这些在两库中的约定完全一致**，技能无需分支处理（**分片编号与附加分片各库自定**；`content/` 只客户端库有）。
 
 差异：
 
 | | `game-design-documents/` | `backend-design-documents/` |
 |---|---|---|
-| 主题文档区 | `vision/` · `systems/` · `art/` · `ux/` | `vision/` · `contracts/` · `systems/` · `operations/` |
+| 主题文档区 | `vision/` · `systems/` · `content/` · `art/` · `ux/` | `vision/` · `contracts/` · `systems/` · `operations/`（**无 `content/`**） |
 | 根级横切文件 | `terminology.md` · `program-overview.md` · `system-overview.md` | 无（术语沿用客户端库的 `terminology.md`） |
 | 需求模板差异 | `Data & state touchpoints` | 另有 `Contract touchpoints` 与**强制**的 `Failure & retry semantics` |
 | 验收标准的可验证方式 | 在 Godot 编辑器里运行游戏观察 | 请求 → 应答 / 存储状态（后端栈未定前，只写可验证的断言形态，不指定测试工具） |

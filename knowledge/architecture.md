@@ -15,7 +15,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 | `data/*` | `systems/`（类定义：字段 / 内嵌类型）+ `content/`（条目实例层：一条内容一份文档 + 类型档案） |
 | `scenes/*` | `ux/`（screen-flow、combat-ux、onboarding） |
 | ViewModel 层（知识层无对应文件） | `systems/viewmodel.md`（呈现期对象的横切纪律：依赖方向 / 生命周期 / 组装源 / 重组装触发面 / 缓存归属） |
-| `autoloads/*` | `systems/services/`（七服务 + 层级词表 + 各服务 API 契约表） |
+| `autoloads/*` | `systems/services/`（七服务 + 层级词表 + 各服务 API 契约表；**另住一份非服务 / 非 manager 文档 `profile-schema-versions.md` —— 存档 `schemaVersion` 逐版登记表，宿主 sync-service**） |
 | 美术 / 音频（知识层无对应文件） | `art/`（`visuals/` · `soundtracks/`；只存 vision / 参考登记 / guide，**生成出的二进制资产归 `game-feature-branch/`**——目前一件都还没有） |
 | 协议契约（客户端只有投影） | `backend-design-documents/contracts/`——**报文形态的权威在后端库**，本库只定客户端的调用形状 |
 | 已定案决策 | `decisions/ADR-*` |
@@ -24,7 +24,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 
 ## 代码现状（知识层独有的真值）
 
-`game-feature-branch/` 目前**只有 Godot 脚手架**：`project.godot`、`icon.svg`、`.godot` 缓存、git 属性文件。**尚不存在任何场景、C# 脚本、autoload 或数据资源**，`project.godot` 无 `[autoload]` 段、未设主场景。设计文档里的一切都是**待构建的规划**——在代码里亲眼见到之前，不要假定某系统已存在。
+`game-feature-branch/` 目前**只有 Godot 脚手架**：`project.godot`、`icon.svg(.import)`、编辑器 / git 配置文件。**尚不存在任何场景、C# 脚本、autoload 或数据资源，也尚无 `.csproj`**（设计库多条护栏的落地时点挂在「首次生成 `.csproj`」上 → `game-design-documents/systems/services/profile-schema-versions.md`）；`project.godot` 无 `[autoload]` 段、未设主场景。设计文档里的一切都是**待构建的规划**——在代码里亲眼见到之前，不要假定某系统已存在。
 
 引擎与平台（读自 `project.godot`）：
 - **Godot 4.7** + **.NET/C#**，程序集名 `game-feature-branch`。
@@ -35,7 +35,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 
 ## 结构骨架（一句话版，细节见权威）
 
-- **层级：service ⊃ manager ⊃ module ⊃ processor ⊃ handler**（现有实例止于第三级 `DeckModule`）。 七个服务以 autoload 存在，各自命中「①自有状态机 / ②事务性跨字段写 / ③外部 I/O 边界」三判据之一；manager 是服务内部的普通 C# 对象。清单见 `autoloads/_index.md`。
+- **层级：service ⊃ manager ⊃ module ⊃ processor ⊃ handler**（**五级各有现有实例**，第四 / 五级不再是预留；层级链允许跳过中间级）。 七个服务以 autoload 存在，各自命中「①自有状态机 / ②事务性跨字段写 / ③外部 I/O 边界」三判据之一；manager 是服务内部的普通 C# 对象。清单见 `autoloads/_index.md`。
 - **拆分轴 = 生命周期层 + 行为边界，不是数据类型。** 不按 power / item / card 各开服务，也不为五类 AdventureEvent 各开服务——只有 Combat 真有状态机，其余差异在**数据**而非代码。
 - **两条唯一入口 + 一个编排顶点：** 内容读取 = `content-service.ContentRegistry`；档案写入 = `profile-service.ProfileManager.TryApply(spec)`；编排顶点 = game-progression（非服务，串联核心循环）。
 - **展示层三层：** 静态文案留在 `XxxData : Resource`（类型 `LocalizedText`）→ 运行时 / 存档态只带 `Id` + 可变状态 → 呈现期 ViewModel 组装（不落存档、不进云端负载）。三层并列定义在 `systems/architecture.md`「展示层契约」，**第三层的展开权威已单列 `systems/viewmodel.md`**。

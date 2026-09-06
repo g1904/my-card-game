@@ -14,10 +14,9 @@
 - 启动时把每种类型的全部 `.tres` 加载并按 `Id` 建立索引的是 **`ContentRegistry`**——它**不是 autoload**，而是 autoload `ContentService` 内部持有的 manager（服务是 autoload、manager 不是）。玩法代码通过它查找内容，而非到处散落 `ResourceLoader.Load` 调用。
   写成 `DataRegistry` 或把它注册成 autoload，都与既定的服务 / manager 形态相抵。
   → `game-design-documents/system-overview.md`「三、注册」、`game-design-documents/systems/services/content-service.md`
-- **从内容集合抽取一律经仓储的 `AllEnabled()` 取池**——仓储上没有中性名 `All()`（全量口径叫 `AllIncludingDisabled()`）。
+- **从内容集合抽取一律经仓储的 `AllEnabled()` 取池**（仓储上没有中性名 `All()`）。
   漏写过滤 = 线上放量开关失效，且**能上线、线上不可见**。
-  `ContentEnabled` 的语义、读取侧不过滤的理由、校验与编译闸形态见
-  `game-design-documents/systems/services/content-service.md` 与 `game-design-documents/systems/common-properties.md`。
+  → `game-design-documents/systems/services/content-service.md`
 - **坏数据必须在启动期大声失败**：注册表加载时全量校验，违规项以 `GD.PushError` 报出其 id / 路径（参见 `null-check-rules.md`）。
   漏校验的数据会在轮回中途才崩，届时现场已丢、玩家进度已废。
   校验口径见 `game-design-documents/systems/services/content-service.md`。
@@ -28,6 +27,5 @@
   → `game-design-documents/systems/balance.md`
 - **平衡资源也经 ContentRegistry，用 `Content.Single<T>()` 取，调用方不写 `Id` 字面量。**
   直读 `res://content/balance/*.tres` 会绕过 overlay 覆盖层与合并后强校验——「平衡数值可热更而不发版」当场失效。
-  `ISingletonContent` 标记接口、编译闸与加载期条数校验见
-  `game-design-documents/systems/services/content-service.md`。
+  → `game-design-documents/systems/services/content-service.md`
 - 让内容保持可加性：新增一张卡牌 = 新增一个 `.tres`，而不是编辑某个 switch 语句。在可行处，优先使用数据驱动的效果定义，而非逐卡编码。

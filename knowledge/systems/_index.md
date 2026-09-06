@@ -36,7 +36,7 @@
 | └ 游戏设置 | `player-profile/game-setting.md` | TODO | 音频 / 显示 / 辅助功能等玩家设置。 |
 | 服务层 | `services/_index.md` | TODO | 层级词表 + 七服务；各服务文档带 API 契约表。**服务清单见 `autoloads/_index.md`。** |
 | 计分 | `scoring.md` | TODO | **计分模型 = 道念（momentum）**：既是胜利点数，也**就是战斗的胜负判据**。 |
-| 商业化 | `monetization.md` | TODO | premium bundle —— **唯一付费点、买断式一次授予**（授予内容与「只在首次购买生效、不叠加」的限定见权威）；法则闸门配额。 |
+| 商业化 | `monetization.md` | TODO | premium bundle —— **唯一付费点、可重复购买**：能力 / 道具项每次都给，重试上限项只在首购生效、不叠加；授予按账号级序号水位**逐次兑现**（授予内容、三道空池闸与序号形态见权威）。法则闸门配额。 |
 
 ## 承重纪律
 
@@ -49,6 +49,7 @@
 - **疲劳是一等栈条目（`StackEntryKind.Fatigue`），不是抽牌循环里的一段内联扣分**：照常压栈、LIFO 结算、可被监听 / 可被响应、扣减量可经 `ModifierTarget.FatigueAmount` 削到 0。写进抽牌流程即在结算之外开第二个后门。→ `decisions/ADR-0088-fatigue-as-stack-entry.md`
 - **收口前的重算走只读投影 `profile-service.Project(spec)`，不开第二个写入面**：新一批 eventOptions 必须依**更新后的** profile 算出，故先投影、再把结果以 `with` 派生回同一份 spec、**一次** `TryApply`。投影只在该段同步代码内用，不存字段、不跨 `await`。→ `decisions/ADR-0108-profile-readonly-projection.md`
 - **集合字段名与元素类型名恒为单数形态对应，且二者不得逐字相同**（`RealmArtworks : RealmArtwork[]`）——同名会让类内成员查找遮蔽同名类型，`new RealmArtwork()` 当场无法解析。→ `decisions/ADR-0105-singular-collection-field-naming.md`
+- **一个效果该做成卡牌 / 法宝 / 神通，按「每次生效要付什么代价」第一命中即定型**：重付代价（mana + 打出）→ 卡牌；有次数上限、玩家主动花 → 法宝；存在即生效、无代价、一局内不消耗 → 神通。**推论：`PowerData` 同时缺 mana 与 `Charges` 两格 ⇒ 任何随对局延长而累积的效果一律不得写成神通，回寿元恒不得写成神通；而战斗外的全局改写只能写成神通。** → `systems/character-profile/power/_index.md`
 - **灵根修习准入不进 `DrawPool<T>`**：它要读 `Profile` 的 `Affinities`，故由调用方在 `PickMany` 之前筛掉，**玩家侧四处取池点各叠一层**（闭关 / 开局构筑 / 商店功法族 / 战后奖励功法族）——漏一处即放出学不了的功法。→ `decisions/ADR-0123-affinity-technique-learning-gate.md`
 
 > 横切的引擎层关注（存档 / 读档、UI / 屏幕、输入 / 触摸、音频）不在 `systems/` 内单列——代码承载形式见 `autoloads/_index.md`、`scenes/_index.md` 与 `standards/*`。

@@ -55,7 +55,7 @@ D:\MyCardGame\
 - **两条彼此独立的提升线：** `game-feature → game-testing → game-production`（Godot 客户端）与 `backend-feature → backend-testing → backend-production`（云端后端）。从不互相合并——唯一真实的进程边界就在这两侧之间，两者的部署节奏与技术栈都不同。提升用根级 `promote.cmd -Line game -To testing`（在目标分支自己的目录里 `--no-ff` 合并 + push；目标工作区不干净就拒绝执行，绝不 force-push）。
 - **只在两个 feature 文件夹中编辑。** 四个 testing/production 文件夹是并行快照，用于把一个稳定构建与进行中的工作交叉对比（在不切换分支的情况下映射 dev/test/prod 分支模型）。
 - `settings.json` 的 permission **deny 规则**会拦截对这四个快照目录的 Edit/Write（无需钩子、不依赖 python）。Bash 写入由 PreToolUse 钩子 `hooks/check-bash-readonly-dir.sh` 拦截（依赖 python）。
-- 后端目前**尚未开工**：`backend-feature-branch/` 只有一份 README，技术栈待定。客户端的边界服务先以离线 stub 实现。
+- 后端**代码尚未开工**：`backend-feature-branch/` 只有一份 README。技术栈与托管形态已落定（C# / ASP.NET Core · 腾讯云托管容器 · PostgreSQL 单主 · Redis · KMS · CDN，权威在 `backend-design-documents/`）。客户端的边界服务先以离线 stub 实现。
 - **`.claude/` 自身也是一个 worktree**（分支 `claude-config`，分支根 = 本文件夹根）。它与其余九个目录一样受 `push-all.cmd` 覆盖。`.gitignore` 排除 `.idea/`、`plans/`、`blueprints/`、`batch-runs/`、`session-tags.json`。
 
 ### 设计意图

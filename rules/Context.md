@@ -18,7 +18,7 @@
 - **日志。** 使用 `GD.Print` / `GD.PushWarning` / `GD.PushError`，并带上 `[System-Method]` 标签，例如 `GD.Print($"[Combat-PlayCard] start card={card.Id}");`。在关键状态转换处（轮回开始/结束、遭遇战开始、卡牌结算、存档/读档）做有意义的日志记录。
 - **贯穿整条链路的类型一致性。** 让参数/返回类型在整个流程中保持对齐：UI/输入 → 系统/管理器 → 数据资源 → 存档模型。层与层之间不做隐式装箱/转换。
 - **空值 / 结果校验是强制的。** 在每一次 `GetNodeOrNull`、`ResourceLoader.Load`、注册表/字典查找或存档读取之后：必需但缺失 → `GD.PushError`（或抛异常）并带上定位上下文（id/路径）；可选但缺失 → `GD.PushWarning` + 安全默认值。绝不把未经检查的 null 向下游传递。参见 `.claude/rules/null-check-rules.md`。
-- **轮回状态与确定性。** roguelike 的轮回必须能从存储的种子（seed）复现；存档写入必须是原子的且带版本。参见 `.claude/rules/state-save-rules.md`。
+- **轮回状态与确定性。** roguelike 的轮回必须能从存储的种子（seed）复现；存档写入必须是原子的且带版本。参见 `.claude/rules/state-save-rules.md` 与 `game-design-documents/systems/common-properties.md`「带种子的 RNG」。
 - **移动优先、竖屏、触控。** 每个屏幕都以竖屏触控优先来设计；桌面/网页为次要目标。参见 `.claude/rules/ui-input-rules.md`。
 - **测试/验证。** 默认不要求单元测试。验证通过运行 Godot 项目（编辑器或导出版本）完成，而非通过 CLI 编译。参见 `.claude/rules/environment-rules.md`。
 
@@ -40,21 +40,21 @@
 
 Godot **4.7**，渲染器 **GL Compatibility**（`renderer/rendering_method = gl_compatibility`，`.mobile` 亦然；Windows 编辑器中使用 `d3d12` 驱动）。已启用 **.NET/C#**（`[dotnet] project/assembly_name = "game-feature-branch"`）。显示：`stretch/mode = canvas_items`、`stretch/aspect = expand`。目标平台：**Android/iOS（主要）、桌面、网页**。**强制在线 · 云端权威**：进度实时同步云端、以**云端为权威**；本地 `user://` 仅作缓存 / 临时态。范围、平台约束与登录设计见 `game-design-documents/vision/scope.md` 与 `game-design-documents/ux/screen-flow.md`。
 
-客户端代码位于 `game-feature-branch/`。它是一个全新的脚手架 —— 大多数玩法系统尚未构建。知识文件描述的是**预期的**架构，会随着系统落地而逐步填充；在你于代码中亲眼见到某个系统之前，不要假定它已存在。
+客户端代码位于 `game-feature-branch/`。它目前**只有 Godot 工程骨架**（`project.godot` + `icon.svg`），**零 C# 脚本、零场景、零 `.tres`、尚无 `.csproj`**。知识文件描述的是**预期的**架构，会随着系统落地而逐步填充；在你于代码中亲眼见到某个系统之前，不要假定它已存在。
 
 后端代码位于 `backend-feature-branch/`，**尚未开工**（只有 README，技术栈待定）。在后端就绪前，客户端的边界服务（`account-service` / `content-service` / `sync-service`）以**离线 stub** 实现，使整个游戏可先端到端跑起来。权威：`game-design-documents/systems/architecture.md` 的「总则 7 —— 后端接口化」与 `game-design-documents/system-overview.md` 第四节。
 
 ## 知识导航（按需加载）
 
 - **设计意图 / 交接（内容 + 技术结构的双重事实来源）** → `game-design-documents/`（`handoffs/`、类模型化的 `systems/`、`art/`、`ux/`、`content/`、`decisions/`）。**`systems/` 持有类定义、平级的 `content/` 持有条目实例**；`.claude/knowledge/*` 是**指向本库的引用层**。库内布局、状态词汇与维护约定见 `game-design-documents/README.md`。
-- **功能需求（设计→代码的桥梁）** → `game-design-documents/requirements/`（带验收标准的 `FR-*` 规格）。流水线：详细的 `systems` + `ux` 文档 → `/derive-requirements` → 片区级 `requirements/FR-*` → `/breakdown-requirements` → 同名文件夹内的**可执行子需求** `FR-*/FR-*-NN-*` → `/blueprint` → `/implement`。**父 FR 签核（`draft → ready`）即覆盖其子需求**；两层结构与覆盖核对见 `requirements/_index.md`。derive 就绪度由 `/assess-derive-readiness`（用户手动调用、全量扫描）**独占**判定并写入 `open-questions.md` 的「derive 就绪度」小节；FR 状态词汇与签核流程见 `game-design-documents/requirements/_index.md`。
+- **功能需求（设计→代码的桥梁）** → 写 / 改需求前先读 `requirements/_index.md`：`FR-*` 是片区级规格、`FR-*/FR-*-NN-*` 是可 blueprint 的子需求，`draft → ready` 由用户签核。跳过这一层直接 blueprint 会做出没有验收标准、无法核对覆盖的实现。→ `game-design-documents/requirements/_index.md`
 - **后端设计意图** → `backend-design-documents/`（`backend-design` 分支）。后端待答清单在 `backend-design-documents/open-questions.md`，与客户端清单互不覆盖。
-- **跨 session 待答清单（客户端）** → `game-design-documents/open-questions.md`（索引：分片导航 + derive 就绪度 + 下一阶段）与 `game-design-documents/open-questions/`（按主题分片的问题条目 + `update-log.md`），**只跟踪仍待答的问题**（无「已解决」区）；答定即移出并记入 `game-design-documents/answer-logs/`。写入者：`/analyze-new-ideas`、`/summarize-open-questions`。待答项可由 `/provide-solution-draft <问题>` 推演出提案式方案草稿 → `inbox/solution-draft-<slug>.md` → 人工评审 → `/analyze-new-ideas` 提炼并移出。归档命名与文件夹约定见 `game-design-documents/README.md`。
-- **系统 / 架构概览** → `.claude/knowledge/architecture.md`
+- **跨 session 待答清单（客户端）** → 只跟踪**仍待答**的问题（无「已解决」区），答定即移出并记入 `answer-logs/`；写入者只有 `/analyze-new-ideas` 与 `/summarize-open-questions`。绕过它们手改会让分片与归档台账对不上。→ `game-design-documents/open-questions.md`
+- **系统 / 架构概览** → `game-design-documents/systems/architecture.md`（权威）；导航与代码现状 → `.claude/knowledge/architecture.md`
 - **游戏术语表**（轮回、ante、blind、deck、relic/joker、energy、计分……）→ `.claude/knowledge/dictionary.md`；本作专有领域术语（中文 ↔ 代码标识符）的权威在 `game-design-documents/terminology.md`
-- **玩法系统** → `.claude/knowledge/systems/_index.md`，然后 `systems/<system>.md`
-- **数据定义**（卡牌、道具、敌人、修行事件、剧本、平衡）→ `.claude/knowledge/data/_index.md`（引用层；权威在 `game-design-documents/systems/`）
-- **内容条目（实例层）** → `game-design-documents/content/`（`content/<类型>/<id>.md` 一条内容一份文档；`content/<类型>/_index.md` 是类型档案，持有字段核对清单与条目台账）。流水线：`/scaffold-content-type <类型>` 开张 → `/author-content <类型> <草稿>` 写条目 → 签核 `draft → ready` → **直接 `/blueprint`（不经 FR）** → `/implement` → `.tres`；条目一多用 `/audit-content` 对账。**硬边界：`content/` 只写「填了什么值 + 权威回链」，绝不复述字段的类型 / 取值域 / 枚举 / 校验语义**——那会制造第二权威，两份表各自漂移而本库无机制发现。类型登记表、依赖链与 id 约定见 `game-design-documents/content/_index.md`。
+- **玩法系统** → `game-design-documents/systems/_index.md`（权威）；导航 → `.claude/knowledge/systems/_index.md`
+- **数据定义**（卡牌、道具、敌人、修行事件、剧本、平衡）→ `game-design-documents/systems/common-properties.md` + `game-design-documents/content/_index.md`（权威）；导航 → `.claude/knowledge/data/_index.md`
+- **内容条目（实例层）** → 写条目只填「值 + 权威回链」，字段的类型 / 取值域 / 枚举 / 校验语义一律留在 `systems/`。在 `content/` 复述字段定义即制造第二权威，两份表各自漂移而本库无机制发现。→ `game-design-documents/content/_index.md`
 - **美术 / 音频方向与资产生成指导** → `game-design-documents/art/_index.md`。该库只存 vision 文本、参考登记与 art / audio guide（prompt）；**生成出的二进制资产归 `game-feature-branch/`**——写进设计库会让它变成二进制仓库。**二进制资产也不经 overlay 下发**（换图随版本发布）→ `game-design-documents/decisions/ADR-0125-no-binary-over-overlay.md`。
 - **场景目录** → `.claude/knowledge/scenes/_index.md`
 - **自动加载 / 单例** → `.claude/knowledge/autoloads/_index.md`
