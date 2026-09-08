@@ -39,7 +39,7 @@ worker 拿 `answers.md` 执行单会话技能第 5–8 步：写 handoff、提�
 1. `handoffs/_index.md` 补行（最新置顶）。
 2. `open-questions/` 分片：应用全部 worker 的移出与新增（同一分片多个 worker 有增删时在此合并）；`update-log.md` 顶部追加**一条**本批摘要；索引「最近更新」一行（守 ≤1 行硬上限）。
 3. `answer-logs/_index.md` 补行。
-4. 草稿归档：对满足单会话技能第 9 步三前置条件的草稿，改 frontmatter → `git mv` 进 `inbox/archive/` → 更新 `inbox/_index.md` 两张表；不满足的留顶层并在「下一步」列写清还差什么。
+4. 草稿归档：对满足单会话技能第 9 步三前置条件的草稿，改 frontmatter → 移进 `inbox/archive/`（`git ls-files --error-unmatch` 判跟踪：已跟踪 `git mv`、未跟踪 `mv`）→ 更新 `inbox/_index.md` 两张表；不满足的留顶层并在「下一步」列写清还差什么。
 5. **不碰「derive 就绪度」小节。**
 
 ## 输出形态

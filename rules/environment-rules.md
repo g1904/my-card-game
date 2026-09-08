@@ -42,6 +42,10 @@
 >
 > `python` 曾经指向 Windows 应用商店的应用执行别名桩并失败（旧的 python 编辑守卫钩子因此被移除）。现已装上真实的 Python，那条限制**不再成立**；若要恢复基于 python 的钩子，见下方「钩子」一节——目前仍无任何钩子配置。
 
+## PowerShell 脚本
+
+- **`.ps1` 一律以带 BOM 的 UTF-8 写出**——Windows PowerShell 5.1 对无 BOM 的 UTF-8 按 ANSI 误读，中文与特殊字符当场变乱码（新写的脚本曾因此返工数轮）。新脚本写完先跑一次 `powershell -NoProfile -ExecutionPolicy Bypass -File <脚本>` 实测，再宣告可用。
+
 ## 不可用 —— 不要依赖
 
 - 假定 `docker`、`gh` **不**在 PATH 上，除非已核实。如果某个步骤需要它们，跳过并告知用户手动运行。

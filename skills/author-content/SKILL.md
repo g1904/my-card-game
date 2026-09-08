@@ -153,7 +153,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 
 - **类型档案的条目台账**：`content/<类型>/_index.md` 追加一行（最新置顶）`id | 标题 | status | blueprint | 备注`。
 - **类型档案的 Open questions**：本次暴露出的**类型级**缺口追加进去（条目级的留在条目文档里）。
-- **归档草稿**（输入来自 `inbox/` 时强制，与 `/analyze-new-ideas` 同一套）：草稿 front matter 的 `status` 改 `distilled` + `distilled-to:` 指向本次条目文档 → `git mv` 进 `inbox/archive/` → 更新 `inbox/_index.md` 两张表。
+- **归档草稿**（输入来自 `inbox/` 时强制，与 `/analyze-new-ideas` 同一套）：草稿 front matter 的 `status` 改 `distilled` + `distilled-to:` 指向本次条目文档 → 移进 `inbox/archive/`（`git ls-files --error-unmatch` 判跟踪：已跟踪 `git mv`、未跟踪 `mv`）→ 更新 `inbox/_index.md` 两张表。
   **前置条件**：条目文档已写就、草稿 `status` 已改。有未决项导致条目仍是半成品 → **草稿留在顶层**，在待处理行的「下一步」列写清还差什么。
 - **不碰** `open-questions.md` / `open-questions/` / `answer-logs/`——那是设计意图流水线的台账，内容条目的未决项归条目文档与类型档案。若本次恰好答定了一条 `open-questions/` 里的**类型级**问题，只在报告中点名，让用户走 `/analyze-new-ideas` 或 `/summarize-open-questions` 归档。
 - **不评估 derive 就绪度**，不建议跑 `/derive-requirements`（内容不走 FR，见 `content/_index.md` 流水线图）。

@@ -31,6 +31,8 @@
 17. **集合字段名与类型名恒为单数**（边界 = 两层 Profile 及其子对象的存档字段名）——字段名机械映射为 JSON path，改名即破坏性契约变更。→ `systems/character-profile/_index.md`
 18. **改了两层 Profile 的序列化形状 = 登记表上必须有一行**，护栏是 `ProfileShapeCheck`（序列化形状 ⟷ 该版 golden JSON 快照逐字比对，打包管线不通过不产包 + `#if DEBUG` 启动期兜底）；golden 快照签入 `game-feature-branch/`，是生成物不是规格。分界：**引入一个顶层键要进版本行，已登记顶层键内向对象追加字段不一定**。→ `game-design-documents/systems/services/profile-schema-versions.md`
 19. **`SavePointReason` 另有批次层的储物袋通道**：战斗外道具使用 / 随售是**即时提交**（一次 `TryApply` + 一次本地原子写），**不是事件内决策点、不触发 `RefreshAfterEvent`、不计软阻塞闸门**，但**照跑终态判定**（否则会出现「资源触底而角色仍 `ongoing`」）。→ `decisions/ADR-0122-batch-layer-inventory-commit-and-trace.md`
+20. **后端主动写入只有购买段一处，靠时机纪律关闭冲突窗口**：购买只能在主菜单（轮回外）发起、进入付费前待发队列须为空，购后强制一次 pull、pull 失败即阻塞在主菜单重试。否则后端 `+1` 会让云端 revision 领先本地基线、CAS 判 `Conflict` ⇒ 丢掉玩家刚打完的战斗。→ `game-design-documents/systems/services/sync-service.md`
+21. **一个角色恒为存档里的一条 `characterProfile` 记录**，原地跨三篇章推进；「清理」分三层——运行时拆解 / 运行态字段清空两条出口都做，**角色实体状态只在 `defeated` 处置（留墓碑）、`completed` 保留（= 境界存档）**；`pastEvent` / `pastItemUse` **跨篇章只追加，不在篇章边界清空、不随重试回滚**（本篇章切片由篇章起始 `Seq` 锚点求差得出）。→ `decisions/ADR-0165-cycle-exit-three-layer-teardown.md`、`decisions/ADR-0166-trace-append-only-across-chapters.md`
 
 ## 存什么（判据，不是字段表）
 

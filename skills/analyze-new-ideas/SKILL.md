@@ -196,7 +196,7 @@ grep -c "Source:" <改动的活文档>   # 应 ≤ 该文档的 ## 小节数
 - 在 `<LIB>/handoffs/_index.md` 中新增/更新对应行（最新的置顶）：`id | date | topic | status | distilled-to`。一旦折进主题文档，就把 `status` 设为 `distilled`，并在 `distilled-to` 填上你改动过的文件。
 - **归档本次处理的 inbox 草稿（输入来自 `inbox/` 时强制）。** `inbox/` 的**顶层只放待处理草稿**，这样一眼扫过去就是当前积压：
   1. 把草稿 front matter 的 `status` 改为 `distilled`（`solution-draft-*` 另需 `reviewed:` 一行记录用户的评审裁决，`distilled-to:` 指向本次写就的 handoff）。
-  2. 用 `git mv`（无 git 时用 `mv`）把文件移进 `<LIB>/inbox/archive/`（目录不存在则创建）。**不要删除草稿**——留档用于回溯原始措辞。
+  2. 把文件移进 `<LIB>/inbox/archive/`（目录不存在则创建）：先用 `git ls-files --error-unmatch <路径>` 判断是否被跟踪——已跟踪用 `git mv`，未跟踪（或无 git）用普通 `mv`（`git mv` 对未跟踪文件直接报错）。**不要删除草稿**——留档用于回溯原始措辞。
   3. 更新 `<LIB>/inbox/_index.md`：从「待处理（ongoing）」表删掉该行，在「已归档」表补一行 `文件 | 类型 | 日期 | 去向 handoff | answer log`。待处理表清空后保留一行 `*（空）*` 占位，别把表头也删了。
   - **归档的前置条件是三条同时成立**：handoff 已写就且 `status: distilled`、草稿 front matter 已改 `distilled`、由它答定的问题已移出 `open-questions/` 并记入 `answer-logs/`。有任一条不成立（例如用户只评审了一半、仍有取向待定）→ **草稿留在顶层**，并在 `_index.md` 的待处理行「下一步」列写清还差什么。
   - 输入是粘贴文本或已在 `handoffs/` 的文件 → 无草稿可归档，跳过本步。

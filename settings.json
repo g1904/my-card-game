@@ -20,7 +20,8 @@
       "WebFetch",
       "WebSearch",
       "TodoWrite",
-      "Skill"
+      "Skill",
+      "Edit(.claude/batch-runs/**)"
     ],
     "deny": [
       "Edit(game-testing-branch/**)",

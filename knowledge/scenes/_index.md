@@ -8,13 +8,13 @@
 
 ## 屏幕流程
 
-**Bootstrap（`main` 场景）→ 登录屏（条件步）→ 主菜单 →（切换篇章）→ 角色选择屏 → 轮回。**
+**Bootstrap（`main` 场景）→ 登录屏（条件步）→ 须改名模态（条件步，非屏）→ 主菜单 →（切换篇章）→ 角色选择屏 → 轮回。**
 
 - **`main` 场景是 `BootstrapScreen.tscn`，不是 `LoginScreen.tscn`。** autoload 的 `_Ready` 不能 `await`，故由它按序驱动边界服务的初始化并把进度喂给启动画面；**完整启动顺序见权威，别在此复述**。→ `autoloads/_index.md`、`systems/architecture.md`「总则 4」
 - **登录屏是条件步**：启动期静默续期成功即跳过它直接进主菜单——**别把它接成必经的一屏**。→ `ux/screen-flow.md`
 - **强制账号登录，无游客（Guest）入口。** **渠道入口按「本版本实现了哪些」呈现，不遍历 `LoginChannel` 枚举**（首版只实现两个入口，照枚举渲染会画出点不了的按钮）。→ `ux/onboarding.md`
 - **主菜单**核心操作是**切换篇章以开始一次轮回**（仅已解锁者可见；首玩者只能从炼气开始）。门禁细节 → `ux/onboarding.md`。
-- **轮回内主导航是月圆之夜式的 eventOptions 横向滑动菜单**，不是传统地图屏。**一批只有一次操作：择一进入**——跳过通道已整体移除（08-06c），不存在「跳过」按钮、不显示 `skipCost`、不标注「可跳过 / 必做」。
+- **轮回内主导航是月圆之夜式的 eventOptions 横向滑动菜单**，不是传统地图屏。**一批只有一次操作：择一进入**——跳过通道已整体移除，不存在「跳过」按钮、不显示 `skipCost`、不标注「可跳过 / 必做」。→ `decisions/ADR-0046-skip-channel-removal.md`
 - **`locationMap` 在轮回内对玩家不可见**——没有俯瞰地图屏。它的显影通道是账号级的 `LocationCodex`。
 - **美术挂点占位。** 循环视频、图标、卡面等 TBA；组合场景时保留可轻松替换的挂点。
 
@@ -25,7 +25,8 @@
 |-----------------|---------|
 | `BootstrapScreen.tscn` | **`main` 场景**（`scenes/screens/`）：启动画面 + 按序驱动三个边界服务的初始化与登录后的 flags 拉取。非服务、非 autoload。 |
 | `LoginScreen.tscn` | 第一个交互屏：T&S、`VideoStreamPlayer` 循环视频背景、渠道登录入口。**无游客入口。** |
-| `MainMenu.tscn` | 篇章选择 + 入口按钮列（PlayerProfile / PlayerPower / Achievement / **Codex** / Settings / **Store**）。**不写死入口个数**——判据是「**Store 恒排末位、安静呈现**」。另有未成年剩余时长常驻指示与「建议更新」可关闭横幅。→ `ux/screen-flow.md`「主菜单入口按钮」 |
+| `MainMenu.tscn` | 篇章选择 + 入口按钮列（PlayerProfile / PlayerPower / Achievement / **Codex** / Settings / **Store**）。**不写死入口个数**——判据是「**Store 恒排末位、安静呈现**」。另有未成年剩余时长常驻指示与「建议更新」可关闭横幅。**「切换篇章」面上每行 `ongoing` 角色带一个常驻的次级动作「放弃」**（就地二段确认，**不新增屏 / 不新增弹层 / 不新增主菜单入口**；只对 `ongoing` 开放）——它是玩家主动终结角色的**唯一入口**，轮回内没有第二个。→ `ux/screen-flow.md`「主菜单入口按钮」、`decisions/ADR-0162-active-character-discard.md` |
+| `PlayerProfileScreen.tscn` | **玩家档案屏 = 账号级低频操作的唯一落点**：绑定列表（只列本版本已实现的渠道）· 昵称编辑（**与启动链「须改名」模态共用同一套输入与提交路径**）· 持有的古宝（只读，不可售出 / 不可使用）· 账号注销（就地二段确认 + 冷静期内「撤销注销」）· 数据导出（申请 → 轮询 → 打开下载链接，**轮询离屏即停、不进 `_Process`**）。**这些一律不新增主菜单入口、不落设置屏。** → `ux/screen-flow.md` |
 | `RealNameScreen.tscn` | **实名屏**：登录流程内的一屏、**未登录态可达**，由登录屏「去实名」凭 ticket 进入，提交成功后回登录屏重走登录。客户端**只做长度 / 字符集约束，判定权在后端**；失败内联呈现且不清空已输入内容。→ `decisions/ADR-0155-compliance-client-split-criterion.md` |
 | `CycleEndScreen.tscn` | **轮回结束屏 = 一屏三变体**（`DefeatReason`）：角色终结后、回主菜单前的一屏，**不进屏幕栈、无返回、非弹层**。**借 `BlockingNoticeScreen` 的形态，不借它的屏。** → `decisions/ADR-0148-cycle-end-screen.md` |
 | `ChapterEndScreen.tscn` | **篇章结束屏 = 一屏三变体**（按 `chapter`）：**ch3 变体即元婴通关证书，不另立一屏**；与轮回结束屏合成**轮回收尾族两屏**。→ `decisions/ADR-0143-chapter-end-screen.md` |
@@ -38,10 +39,10 @@
 | `PreCombatConfirm.tscn` | **战前确认页**：事件流程内的一屏全屏，事前知识（含已解锁敌人图鉴词条）在此兑现——**战斗屏内没有任何图鉴入口**。→ `decisions/ADR-0094-pre-combat-confirmation-page.md` |
 | `Exchange.tscn` | 交易屏：纵向滚动网格，**形状与其余非战斗事件不同构**；灰态判据、二段确认与占位规则见 `ux/screen-flow.md`「Exchange（交易）屏」。 |
 | `Store.tscn` | 礼包详情与购买入口；另有购买处理中与兑现结果两个**结果态**（不是两屏）。 |
-| `BlockingNoticeScreen.tscn` | 三种硬阻塞态共用一屏（变体表见权威）。**准入判据：由已知后端 `code` 触发 且 玩家无任何自愈路径——二者缺一即不进**（合规七条 `code`、轮回结束、等待态全部卡在判据外）。→ `ux/error-and-blocking-ux.md` |
-| `EventOptions.tscn` | **横向滑动选择**；每项显示 `SelectCost` 与 `Priority`。消费物化出的定稿 `EventOption`，**只读**（字段清单 → `systems/adventure-event/common-properties.md`）。轮回内主导航面。**付不起 `SelectCost` 不设灰态**——须如实展示并允许选择（照付 → 判定 → 可能判负）。 |
-| `Combat.tscn` | 战斗视图，三个 `combatTier` 档复用。**主视觉 = 双方道念位 + 剩余回合数**；**无意图区**（08-15d 整条移除）。两条形状硬要求：**战报 `combatLog` 收起态固定预留高度且双方回合都常驻有内容**；**持有物按「可操作 / 只读」分两层**。**阵法条目的启动式异能入口 = 长按条目升起 bottom sheet，「详情 + 启动」合一**（→ `decisions/ADR-0149-enchantment-activated-ability-host.md`）。其余区名与排版见 `ux/combat-ux.md`。 |
-| `CombatReward.tscn` | 战后奖励屏（参照 StS）：强制自动计入项 + 候选项**逐项领取 / 跳过**（**不是三选一**，到手数由玩家定）。奖励预先算定落存档、退出重进同一组、不重抽；但**每一次领取 / 跳过都是决策点 `D6`**，中途进度落 `activeCombat.reward`。→ `decisions/ADR-0082-itemized-combat-rewards.md` |
+| `BlockingNoticeScreen.tscn` | **三种终局态共用一屏 + 一张数据驱动的变体表**（需更新 / 被挤下线 / 存档读取失败；**三个变体 ≠ 三处硬阻塞**——由 `code` 触发的硬阻塞点仍是既定两处，「存档读取失败」变体由本地迁移器判定、不由任何 `code` 触发）。**准入判据：由已知后端 `code` 触发 且 玩家无任何自愈路径——二者缺一即不进**（合规七条 `code`、轮回结束、等待态全部卡在判据外）。→ `ux/error-and-blocking-ux.md` |
+| `EventOptions.tscn` | **横向滑动选择**；每项恒精确显示 `SelectCost`，**`Priority` 不作为数字呈现**（哪些可选由产出侧算好的 `EffectivePriority` 决定，呈现层只做呈现 → `systems/services/future-event-service.md`）。消费物化出的定稿 `EventOption`，**只读**（字段清单 → `systems/adventure-event/common-properties.md`）。轮回内主导航面。**付不起 `SelectCost` 不设灰态**——须如实展示并允许选择（照付 → 判定 → 可能判负）。 |
+| `Combat.tscn` | 战斗视图，三个 `combatTier` 档复用。**主视觉 = 双方道念位 + 剩余回合数**；**无意图区**（意图机制整条移除 → `decisions/ADR-0059-no-enemy-intent-telegraph.md`）。**剩余回合数由本场遭遇的配置驱动，绝不把 10 写死进 UI**（10 只是 `Standard` 档标准值）。两条形状硬要求：**战报 `combatLog` 收起态固定预留高度且双方回合都常驻有内容**；**持有物按「可操作 / 只读」分两层**。**阵法条目的启动式异能入口 = 长按条目升起 bottom sheet，「详情 + 启动」合一**（→ `decisions/ADR-0149-enchantment-activated-ability-host.md`）。其余区名与排版见 `ux/combat-ux.md`。 |
+| `CombatReward.tscn` | 战后奖励屏（参照 StS）：强制自动计入项 + 候选项**逐项领取 / 跳过**（**不是三选一**，到手数由玩家定，已处置不可反悔）。奖励预先算定落存档、退出重进同一组、不重抽；**每一次领取 / 跳过都是一个决策点**（落点与存档形态见权威，别在此复述）。→ `decisions/ADR-0082-itemized-combat-rewards.md`、`systems/services/combat-service.md` |
 | `Settings.tscn` | 音频、显示、辅助功能。 |
 
 > **非战斗四类不共享同一个屏幕形状。** 「差异只在数据」这条只对**代码分层**成立（两个 `IEventResolver`），**不对呈现成立**：Exchange 是滚动网格屏、Research 是复数决策槽的构筑面板、Explore 另有一层全屏揭示转场、Travel 无自有面板。别照着「一个通用事件屏」去搭。
@@ -54,7 +55,7 @@
 | `CharacterCard.tscn` | 角色选择屏横滑区的条目。 |
 | `Enemy.tscn` | 绑定到 `EnemyInstance`（**非 `EnemyData`**——等级是物化产物）的敌人视图；显示境界名 + 层级（**全局序不上 UI、不做方向标记**），**不显示任何行动预告**。**不挂图鉴入口**——战斗内一律不可查。 |
 | `PlayerPowerIcon.tscn` | HUD / 主菜单中的一个玩家能力，带开关。 |
-| `EventOptionCard.tscn` | 事件选项条目：静态文案 + 成本 + `Priority`。**无「可跳过 / 必做」状态**——跳过通道整体不存在。 |
+| `EventOptionCard.tscn` | 事件选项条目：静态文案 + 成本（`Priority` 不作数字呈现）。**无「可跳过 / 必做」状态**——跳过通道整体不存在。 |
 | `BottomSheet.tscn` | **半屏弹层是全局统一的控件语言**（先例：随身抽屉、战前确认页的功法词条、`Power` 详情、**阵法条目的「详情 + 启动」弹层**、**图鉴非敌人本的词条**）——需要「升起一层」时复用它，不另造控件。 |
 | `CodexCell.tscn` | 图鉴网格格：已收录 = `Artwork` + 名称（**只有功法本恒无视觉资产**，用统一占位图）；未收录 = 灰态占位格，点按给「尚未收录」提示。→ `ux/screen-flow.md`「图鉴族的三层浏览结构」 |
 | `PlotBranchButton.tscn` | 剧本分支按钮：**纵向堆叠全宽**、每条一行、承载 `BranchLabel` 全文不截断；**不复用横滑区语汇**（横滑是 eventOptions 与角色选择的语言）。→ `decisions/ADR-0150-plot-segment-in-outcome-panel.md` |
@@ -74,9 +75,10 @@
 - **战斗内一律没有图鉴入口**（含点按敌人立绘）：事前知识集中在战前确认页兑现，事中可读性由飘字 + 战报独占承担。→ `decisions/ADR-0094-pre-combat-confirmation-page.md`
 - **战斗持有物按「可操作 / 只读」分两层，不按数据归属分**；**禁用判据一句话：看它是否与决策面争抢屏幕或语义**——**纯只读不是豁免理由**。→ `decisions/ADR-0099-combat-holdings-two-tiers.md`
 - **固定预留高度的容器本身不参与布局变化**（变的是子节点淡入淡出）⇒ 动画不触发 `Container` 重排。这条防的是手牌区跳位干扰拖拽出牌的肌肉记忆，是「拖出手牌区 = 打出」的前提。→ `ux/combat-ux.md`
-- **付费入口只有主菜单那一个**：轮回内 / 战斗内 / 结算流程内**不存在第二条通往付费的路径**；永不带红点 / 角标 / 倒计时，已购不隐藏。→ `ux/screen-flow.md`
+- **付费入口只有主菜单那一个**：轮回内 / 战斗内 / 结算流程内**不存在第二条通往付费的路径**；永不带红点 / 角标 / 倒计时，已购不隐藏。**前置条件不满足 → 置灰 + 一行说明；但非商店平台（桌面 / 网页）→ 入口不渲染、不置灰**——「暂不可用、会恢复」的灰态语义在那两端永不成立。→ `ux/screen-flow.md`、`decisions/ADR-0181-hide-store-entry-off-channel-platforms.md`
 - **设置滑条：拖动实时预览、释放才提交，离屏时强制提交一次**——一次提交 ⇒ 一次本地原子写。→ `ux/screen-flow.md`
 - **「离线 · 待同步 N」指示在战斗屏内必须可见**：它是「进入战斗前同步失败不额外提示」那条静默纪律成立的前提，藏起来静默就变成失联。**该指示有三取值，`UpgradeRequired == true` 时必须换掉「离线」二字**。→ `ux/screen-flow.md`
+- **Exchange 的 barter 格：不持有支付物则灰显、支付要求保持可见，且不按持有面过滤呈现**——按持有面过滤会让同一个 `EventOption` 在两次进入之间呈现不同内容，与「产出即定稿、恢复即读结果」正面冲突。→ `ux/error-and-blocking-ux.md`「灰态判据」、`decisions/ADR-0126-exchange-barter-payment.md`
 - **不在最高频操作上加模态弹层**——这是裁决「要不要再加一次确认」的通用判据。→ `ux/combat-ux.md`
 - **选目标态必须自解释**：唯一合法目标时不进入该态，单点即确认，挂起后恢复回到该选择点、不允许反悔。→ `ux/combat-ux.md`
 - **灰态是视觉降级，不是引擎级禁用——灰格必须继续接收触控。** Godot 的 `Button.Disabled = true` 不发按下信号，说明通道会静默消失，症状是「点了没反应」且**测不出来**；触控接收位与目标尺寸一律不缩水。对灰态判据表**全部**项成立。→ `decisions/ADR-0142-grayed-state-is-visual-only.md`

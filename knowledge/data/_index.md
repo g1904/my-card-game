@@ -26,7 +26,7 @@
 | `locationMap`（地域图） | `LocationMapData` | `game-progression.md`（**单份全局邻接表资源**，不由各 location 各持边；`ISingletonContent`） |
 | 隐藏属性档位 | `HiddenStatBandData` | `services/plot-manager.md` |
 | 遭遇参数 | `EncounterSpec`（`sealed record`，非 `Resource`） | **类定义在 `services/combat-service.md`**；`adventure-event/combat/` 是消费方 |
-| 平衡配置（单例） | 若干 `ISingletonContent` 资源（**逐份切、无兜底大表**；切分判据 = 消费者 + **是否接受 `EncounterSpec` 覆写**，覆写纪律不同的表不得合并） | `balance.md`；清单与注册形态 → `services/content-service.md` |
+| 平衡配置（单例） | 若干 `ISingletonContent` 资源（**逐份切、无兜底大表**；切分判据是**三问**——① 消费者是谁 ② 覆写纪律（相反 ⇒ 必须分开）③ 有无跨字段不变式（有 ⇒ 必须同住）） | 三问判据与逐份落点 / 清单 → `balance.md`；注册形态与加载期校验 → `services/content-service.md` |
 | 剧本线 / 剧本节点 | `PlotArcData` / `PlotNodeData` | `services/plot-manager.md`（**本地内容层**，随 overlay 分发） |
 
 **内容条目有一组顶层共有字段**（含 `ContentEnabled` · `LocalizedText` · `Rarity` · `SourceCode` + `Source` · `ExclusiveSource` · **`Artwork`**），**定义只在最小公共祖先一层**，权威见 `systems/common-properties.md`「内容共有字段」——各落点只写投影，此处不复制字段表。
@@ -35,23 +35,24 @@
 
 1. **`Id` 是稳定唯一的字符串，也是唯一的交叉引用键**——绝不按名称、数组下标或场景路径引用内容。**`Id` 内不含 `#` / `:`**（这两个字符已被战斗内 counters 键语法占用，混入即让键空间失去可解析性）。→ `systems/services/combat-service.md`
 2. **抽取走 `AllEnabled()`，读取侧 `Get(id)` 不过滤**（存档引用不能悬空）；**仓储上没有中性名 `All()`**，全量走 `AllIncludingDisabled()`，写下 `All()` 会编译失败。漏写过滤即线上事故：能上线、线上不可见。→ `systems/services/content-service.md`
-3. **抽取代码全库只有两处落点**：`DrawPool<T>`（content-service，只认内容侧过滤）与 `GrantPoolManager`（profile-service，读 `Profile` 的排重与稀有度锚定；**不叫 `GrantPoolPicker`**——`Picker` 后缀不在层级词表内），**不设第三级原语**；其余调用方都是「构造 `DrawPool<T>` 再 `PickOne`」的三五行。**`DrawPool<T>` 排期在第二阶段开工前落地**（此前 `AllEnabled()` 仍返回 `IReadOnlyList<T>`），但不可再往后拖——抽取侧写完再改返回类型就从纯加法退化为改调用方。→ `systems/services/content-service.md`
+3. **抽取代码全库只有两处落点**：`DrawPool<T>`（content-service，只认内容侧过滤）与 `GrantPoolManager`（profile-service，读 `Profile` 的排重与稀有度锚定；**不叫 `GrantPoolPicker`**——`Picker` 后缀不在层级词表内），**不设第三级原语**；其余调用方都是「构造 `DrawPool<T>` 再 `PickOne`」的三五行。**`DrawPool<T>` · `LocalizedText` · `ISingletonContent` + `Single<T>()` 是同一次 `XxxData` / 注册表面的纯加法改造，同批排在第二阶段开工前、第一份 `.tres` 之前**（此前 `AllEnabled()` 仍返回 `IReadOnlyList<T>`），不可再往后拖——写完再改就从纯加法退化为改全部调用方 / 全部资产。→ `systems/services/content-service.md`
 4. **`XxxData : Resource` 是模板不是成品，运行时绝不写它**——它是注册表里的共享只读单例，写回会污染同一轮回的后续批次与其他角色；**服务签名里传实例，不传 `Resource`**。→ `systems/architecture.md`
 5. **「内容定义 + 情境 / 轮回内状态」恒是两个类型**：`AdventureEventData` ↔ `EventOption`（定稿不可变、落存档）、`EnemyData` ↔ `EnemyInstance`（同左，等级即物化产物）、`CardData` ↔ `CardInstance`（运行态可变）。→ `systems/architecture.md`「总则 6」
 6. **静态展示文案留在 `XxxData` 上、类型是 `LocalizedText` 而非裸 `string`**，`Get()` 只读、绝不把解析结果写回条目（那会污染注册表共享单例）；`LocalizedText` 不落存档、不进上行负载。→ `systems/common-properties.md`
 7. **校验点在合并之后**：overlay + 基线合并完再统一校验重复 `Id` 与悬空引用，启动期 `GD.PushError` 早失败；**`ContentEnabled == false` 的条目照常参与全量校验**。→ `systems/services/content-service.md`
 8. **可调数值存导出字段 / 单例平衡资源**，绝不硬编码在系统逻辑里；**不散落 `ResourceLoader.Load`**，一切内容经 ContentRegistry——**平衡表也走同一条路**（直读 `res://content/balance/*.tres` 即当场失去 overlay 热更与合并后强校验）。唯一例外是消费点早于 `LoadAll()` 的管线旋钮，写死为代码常量。→ `systems/services/content-service.md`
 9. **单例平衡资源用 `Content.Single<T>()` 取，调用方不碰 `Id`**；单例身份由标记接口 `ISingletonContent` 声明，`where T : ISingletonContent` 是编译闸（对 `CardData` 调 `Single<T>()` 编译不过），条数 `!= 1` 或 `ContentEnabled == false` 在加载期 `PushError` + 抛。写 `Id` 字面量去查单例即引回一个可拼错的字符串键。→ `systems/services/content-service.md`
-10. **敌人与玩家共用 `CardData` 体系但不共用卡池**：`Pool` 是必填、无默认值，漏填即坏数据；**卡组规模两侧皆不设硬限**（代价由疲劳承接）。→ `systems/enemies/_index.md`
+10. **敌人与玩家共用 `CardData` 体系但不共用卡池**：`Pool` 是必填、无默认值，漏填即坏数据（默认值会让敌方内容悄悄进玩家奖励池）；**卡组规模两侧皆不设硬限**（代价由疲劳承接）。→ `systems/character-profile/deck/_index.md`（`Pool` 定义与卡池划分）、`systems/enemies/_index.md`（敌方卡组规模）
 11. **敌人池归属的唯一权威是 `EnemyData` 上的作用域字段**（`LocationData` 不持敌人清单）；地域 / arc 专属条目是**叠加而非替代**——通用敌人恒可在任何地域出现。取池是叠在 `AllEnabled()` 之后的三层过滤，**各层「空」的语义不对称是有意的，别当漏写去「修正」**。→ `systems/enemies/_index.md`、`systems/enemies/common-properties.md`
 12. **`MoveCardEffect` 只有一格 `Side`，`From` 与 `To` 恒同侧——跨方搬牌在结构上写不出来，这是有意的**（闭集不变式按侧成立）；别拆成 `FromSide` / `ToSide`。配套校验：`Selection == Chosen` 且 `Side != Self` → `PushError`。→ `systems/character-profile/deck/common-properties.md`
-13. **本作不存在多敌人场景**——敌人实例单数，嵌在 `EventOption.Encounter` 内，不要预留 `List<EnemyInstance>`。→ `systems/adventure-event/combat/_index.md`
+13. **本作不存在多敌人场景**——敌人实例单数，嵌在 `EventOption.Encounter` 内，不要预留 `List<EnemyInstance>`。→ `systems/adventure-event/combat/common-properties.md`、`systems/enemies/_index.md`
 
 ## 三层覆盖来源与热更边界
 
 `res://content/` 基线 < `user://overlay/` 热更 < **flags**（只覆盖 `ContentEnabled` 一个布尔），合并后统一校验 → ContentRegistry 按 `Id` 索引。**完整形状、校验闸与下载事务见 `systems/services/content-service.md`，此处只留边界纪律：**
 
 - **热更范围 = 只改不增；剧本内容是唯一例外**，且该例外已是合并期硬校验、不再是约定。→ `systems/services/content-service.md`
+- **发版通道的反方向同样封死：随包基线只增不删——跨发版的基线 `Id` 集合单调不减。** 超集**只在 `Id` 集合层面**成立（字段值与 `ContentEnabled` 可自由改，那正是退役路径的载体）；退役 = 置 `ContentEnabled = false` / 合规移除**掏空而非删除**；**改名 = 删 + 增，同样禁止**。机械闸在基线快照归档步，按 semver 版本序与上一版比对，出现「上一版有、本版无」的 `Id` → 非零退出。删一条 = 老档 `Get(id)` 抛错 ⇒ **升级即废档**。→ `decisions/ADR-0182-baseline-id-superset-invariant.md`
 - **flags 只能覆盖 `ContentEnabled`，不得携带任何数值 / 文案 / 新 `Id`**——它能秒关正因为被限制得足够窄；作用点唯一 = `AllEnabled()` 取池。→ `systems/services/content-service.md`
 - **结构性查表类恒启用**（`LocationData` / `LocationMapData` / `HiddenStatBandData`）：`ContentEnabled == false` 即加载期 `PushError`，flags 对它们不生效——线上关掉若干地域会让邻接集合为空、轮回死锁。→ `systems/services/content-service.md`
 - **不冻结轮回的 `contentVersion`**：overlay 更新对进行中的轮回立即生效，已放弃跨内容版本的 seed 可复现。→ `standards/rng-determinism.md`

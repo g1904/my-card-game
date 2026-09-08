@@ -11,10 +11,10 @@
 | 架构总览 | `architecture.md` | 参考 | 结构与边界的权威：API 契约总则、物化模型、EventBus 负载契约、共享核心类型。 |
 | 系统层共有属性 | `common-properties.md` | 参考 | 所有系统共享的字段 / 约定。 |
 | ViewModel 层 | `viewmodel.md` | 参考 | 呈现期对象的横切纪律（依赖方向 / 生命周期 / 组装源 / 重组装触发面 / 缓存归属 / 永不渲染清单）。非服务、非 autoload。 |
-| 平衡 | `balance.md` | TODO | 花费、伤害、掉落权重、ante 缩放。 |
-| 游戏进程 | `game-progression.md` | TODO | eventOptions 循环推进、location（地域）、travel 路由、blind/ante 缩放。**编排顶点**。 |
+| 平衡 | `balance.md` | TODO | 花费、伤害、掉落权重、篇章 / 等级维度的缩放曲线。 |
+| 游戏进程 | `game-progression.md` | TODO | eventOptions 循环推进、location（地域）、travel 路由、难度与数值缩放的**分格轴**。**编排顶点**。 |
 | 修行事件（顶层） | `adventure-event/_index.md` | TODO | 顶层 + 顶层共有属性；下含**五个**子类型（ADR-0002）。 |
-| ├ 战斗 | `adventure-event/combat/` | TODO | 回合结构、敌人 AI、胜负结算。**`combatTier` 三档共用同一套代码，差异只在遭遇参数**——档位成员与各档 `TurnLimit` 取值去权威文档看。 |
+| ├ 战斗 | `adventure-event/combat/` | TODO | 回合结构、敌人 AI、胜负结算。**`combatTier` 三档共用同一套代码，差异只在遭遇参数**——档位成员与各档 `TurnLimit` 取值去权威文档看。**唯一的族级例外：战后奖励候选池四族中 `PowerData` 只进 `Standard` / `Finale`，`Practice` 整族排除**（`decisions/ADR-0169-combat-reward-four-family-pool.md`）。 |
 | ├ 交易 | `adventure-event/exchange/` | TODO | 交易 / 商店机制；**社交语境并入本类**。 |
 | ├ 闭关 | `adventure-event/research/` | TODO | 钻研 / 潜修；开局的强制构筑事件归本类。 |
 | ├ 探索秘境 | `adventure-event/explore/` | TODO | **唯一的元类型**：遮罩一个固定事件，进入即揭示真身。 |
@@ -50,6 +50,9 @@
 - **收口前的重算走只读投影 `profile-service.Project(spec)`，不开第二个写入面**：新一批 eventOptions 必须依**更新后的** profile 算出，故先投影、再把结果以 `with` 派生回同一份 spec、**一次** `TryApply`。投影只在该段同步代码内用，不存字段、不跨 `await`。→ `decisions/ADR-0108-profile-readonly-projection.md`
 - **集合字段名与元素类型名恒为单数形态对应，且二者不得逐字相同**（`RealmArtworks : RealmArtwork[]`）——同名会让类内成员查找遮蔽同名类型，`new RealmArtwork()` 当场无法解析。→ `decisions/ADR-0105-singular-collection-field-naming.md`
 - **一个效果该做成卡牌 / 法宝 / 神通，按「每次生效要付什么代价」第一命中即定型**：重付代价（mana + 打出）→ 卡牌；有次数上限、玩家主动花 → 法宝；存在即生效、无代价、一局内不消耗 → 神通。**推论：`PowerData` 同时缺 mana 与 `Charges` 两格 ⇒ 任何随对局延长而累积的效果一律不得写成神通，回寿元恒不得写成神通；而战斗外的全局改写只能写成神通。** → `systems/character-profile/power/_index.md`
+- **随进度变化的数值，分格轴只有两条**：全局等级序 1–22（相对量）与篇章 ch1–ch3（绝对量纲吸收）。新增任何缩放旋钮，其分格列必须是这两条之一；**需要第三条轴（章内进度 / 已走过 location 数一类）须先立 ADR**——本作不设 ante 式章内难度阶梯。→ `decisions/ADR-0163-no-ante-intra-chapter-difficulty-ladder.md`
+- **轮回出口的「清理」分三层，两条出口不对称**：L1 运行时拆解 / L2 运行态字段清空两条出口都做；**L3 角色实体状态处置只在 `defeated` 做——`completed` 保留（那就是境界存档本身）**。`chapterRetry` 必须归第三类字段，否则重试计数永远停在 1、上限静默失效；`TeardownCycle()` 收窄为纯运行时拆解、零存档语义。→ `decisions/ADR-0165-cycle-exit-three-layer-teardown.md`
+- **`pastEvent` / `pastItemUse` 跨篇章只追加**：不在篇章边界清空、不随篇章重试回滚；「本篇章事件数」由篇章起始 `Seq` 锚点求差得出，不另建篇章坐标系。→ `decisions/ADR-0166-trace-append-only-across-chapters.md`
 - **灵根修习准入不进 `DrawPool<T>`**：它要读 `Profile` 的 `Affinities`，故由调用方在 `PickMany` 之前筛掉，**玩家侧四处取池点各叠一层**（闭关 / 开局构筑 / 商店功法族 / 战后奖励功法族）——漏一处即放出学不了的功法。→ `decisions/ADR-0123-affinity-technique-learning-gate.md`
 
 > 横切的引擎层关注（存档 / 读档、UI / 屏幕、输入 / 触摸、音频）不在 `systems/` 内单列——代码承载形式见 `autoloads/_index.md`、`scenes/_index.md` 与 `standards/*`。

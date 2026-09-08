@@ -43,7 +43,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 - **物化模型：** `AdventureEventData`（模板）→ future-event-service（**唯一物化点**）→ `EventOption`（**产出即定稿、不可变、落存档**）。同一通则也适用于 `EnemyData` → `EnemyInstance`。→ `systems/architecture.md`「总则 6」。
 - **核心循环一批只有一次操作：择一进入。** 跳过通道整体不存在，别为「跳过」写任何分支；选择约束只剩 `Priority` 一条轴，future-event-service 独占置位。→ `systems/game-progression.md`
 - **内容三层覆盖来源：** 基线 < overlay < flags → 合并后统一校验 → ContentRegistry 按 `Id` 索引。→ `data/_index.md`
-- **一切内容都在本地，没有云端内容通道**：跨进程边界收敛为**鉴权 · 进度同步 · 内容分发**三处窄接口，玩法回路全程零网络请求。**已预告第四个 `IPurchaseBackend`（商业化落地时）；把支付方法挂进 `IProfileBackend` 已被明确否决。** → `systems/architecture.md`「总则 7」；「剧本纯本地」这一条 → `systems/services/plot-manager.md`
+- **一切内容都在本地，没有云端内容通道**：跨进程边界收敛为**四个窄接口**（鉴权 · 内容分发 · 进度同步 · **购买**），由**三个边界服务**持有——`IPurchaseBackend` 与 `IProfileBackend` **同宿主 sync-service、接口分立**（挂进 `IProfileBackend` 已被否决）；运行时内容零网络请求。条件编译清单穷举、不得扩张。渠道封装 `IStoreChannel` 不是后端接口（运行时探测选实现，不占 `#if` 位点）。 → `systems/architecture.md`「总则 7」、`decisions/ADR-0180-purchase-backend-fourth-interface.md`、`decisions/ADR-0179-store-channel-wrapper-in-sync-service.md`；「剧本纯本地」这一条 → `systems/services/plot-manager.md`
 - **启动契约：** `main` 场景 = `BootstrapScreen.tscn`，按序驱动**三个**边界服务的 `InitializeAsync`，并在登录之后插入一次 `RefreshFlagsAsync`。→ `autoloads/_index.md`。
 
 ## 承重纪律（写代码时会改变写法的那几条）

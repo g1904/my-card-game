@@ -4,7 +4,7 @@
 
 ## 代码现状
 
-**尚未注册任何 autoload。** `game-feature-branch/project.godot` 无 `[autoload]` 段。下表是**规划**。
+**尚未注册任何 autoload、也未设主场景。** `game-feature-branch/project.godot` 无 `[autoload]` 段，`run/main_scene` 未设（设计上主场景应是 `BootstrapScreen.tscn`）。下表是**规划**。
 
 ## 七个服务（规划中）
 
@@ -12,7 +12,7 @@
 |------------------|------|------|
 | **account-service** | 登录渠道、token / 会话、实名合规。**无游客入口。** | `services/account-service.md` |
 | **content-service** | 基线 + overlay 合并、按 `Id` 索引、flags 通道。**唯一内容读取入口。** | `services/content-service.md` |
-| **sync-service** | 启动 Pull、存档点 Push、原子写、schema 迁移。 | `services/sync-service.md` |
+| **sync-service** | 启动 Pull、存档点 Push、原子写、schema 迁移；**购买段两条腿**（渠道封装 `IStoreChannel` + 后端 `IPurchaseBackend`）。 | `services/sync-service.md` |
 | **profile-service** | **两个 Profile 的唯一写入面**；capability 聚合；成就；图鉴收录；能力抽取。 | `services/profile-service.md` |
 | **life-cycle-service** | 轮回生命周期、篇章边界与重试、具名 RNG 子流。 | `services/life-cycle-service.md` |
 | **future-event-service** | 物化 AdventureEvent → eventOptions（**唯一物化点 / 唯一出口**）。 | `services/future-event-service.md` ⊃ `services/plot-manager.md` |
@@ -32,11 +32,11 @@
 - **边界措辞（精确版）：服务之间不读写对方字段、不伸手进对方 manager；跨服务的方法调用经 `Xxx.Instance.Method(...)` 是允许的。** 编排顶点 game-progression 负责「谁在什么时机调谁」，但**不是**一切跨服务调用的必经中转。
 - **`Instance` 为 null = 启动顺序配错** → 属「必需缺失」→ `GD.PushError` + 抛，**不做静默降级**。
 - **服务不返回内部可变集合** —— 一律 `IReadOnlyList<T>` / `IReadOnlyDictionary<,>`。
-- **后端错误一律以 `code` 为键查表映射成 `OpError`**，不写 switch、不按 HTTP 状态码分支、不解析 `message`；请求头组装 / 应答头解析 / 映射表**收敛在一处**，三个 `HttpXxxBackend` 不各写一遍。→ `systems/architecture.md`「总则 7」
+- **后端错误一律以 `code` 为键查表映射成 `OpError`**，不写 switch、不按 HTTP 状态码分支、不解析 `message`；请求头组装 / 应答头解析 / 映射表**收敛在一处**（`src/Core/`），各 `HttpXxxBackend` 不各写一遍。→ `systems/architecture.md`「总则 7」
 - **`_Ready` 只装配，`InitializeAsync` 才做 I/O**（autoload 的 `_Ready` 不能 `await`，也别写 `async void`）：异步初始化经 `IBootstrappable`，由 `BootstrapScreen` 按序驱动。**装配顺序与初始化顺序的权威都在 `system-overview.md`「三、注册」与「Bootstrap 屏幕」两节，不在此复制。**
 - **两条唯一入口：** 内容读取经 `ContentRegistry`（不散落 `ResourceLoader.Load`；**抽取走 `AllEnabled()`**）；档案写入经 `ProfileManager.TryApply(spec)`，**收口前的重算走只读投影 `Project(spec)`，不开第二个写入面**。
 - **autoload 一律直接指向 `.cs`，无例外**（不为服务包一层 `.tscn`）⇒ **服务级配置走 ProjectSettings，`[Export]` 只留给场景组件**——没有场景实例，`[Export]` 既无存储处也无检视器落点。这是技术互斥，不是风格偏好。
-- **离线 stub 是「换一个实现」，不是在服务里插 `if (offline)`**：三个边界服务各持一个窄后端接口，两份实现经唯一选择点 `BackendSelector` 取得，`OfflineXxxBackend` 整类包在 `#if DEBUG` 内（Release 里不存在），开关走 ProjectSettings 而非 `[Export]`。→ `systems/architecture.md`「总则 7」、`system-overview.md` 第四节
+- **离线 stub 是「换一个实现」，不是在服务里插 `if (offline)`**：三个边界服务持**四个**窄后端接口（`IPurchaseBackend` 与 `IProfileBackend` 同宿主 sync-service），每个两份实现经唯一选择点 `BackendSelector` 取得，`OfflineXxxBackend` 整类包在 `#if DEBUG` 内（Release 里不存在；条件编译清单穷举、不得扩张），开关走 ProjectSettings 而非 `[Export]`。**渠道封装 `IStoreChannel` 不是后端接口**——渠道可用性是运行时事实，走运行时探测，不占 `#if` 位点。→ `systems/architecture.md`「总则 7」、`systems/services/sync-service.md`、`system-overview.md` 第四节
 
 ## 装配顺序（规划）
 

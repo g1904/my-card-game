@@ -16,7 +16,7 @@
 1. **EventBus 用 C# 泛型 `event` + `readonly record struct` 负载，不用 Godot `[Signal]`**——`[Signal]` 的自定义负载须继承 `GodotObject`，每次广播都分配 + 装箱，而核心循环与战斗内每步都在广播。EventBus 本身仍是 autoload `Node`（留在场景树里、可做泄漏检查）。→ `systems/architecture.md`「总则 5」
 2. **负载只带 `Id` + 值类型**——绝不带 `CharacterProfile` / `Resource` / `EventOption` 引用（那等于给每个订阅者开一条绕过唯一写入入口的旁路）。需要完整实例的订阅者按 `InstanceId` 去 future-event-service 取（**语境限于已物化的 `EventOption`**；剧本段另走门面只读查询，见纪律 8）。→ `systems/architecture.md`「EventBus 负载契约」
 3. **`_Ready` 订阅、`_ExitTree` 退订。** C# 事件上漏退订**不会报错**，直接变成泄漏（且让已释放的 node 被回调）。兜底是 EventBus 的 `#if DEBUG` 订阅审计（切屏后由 game-progression 触发一次，豁免 autoload 订阅）——**它只在开发期生效，不替代退订**。
-4. **广播 = 既成事实，不可否决。** EventBus 不承载「请求 / 询问」；需要返回值的一律是直接方法调用。
+4. **广播 = 既成事实，不可否决。** EventBus 不承载「请求 / 询问」；需要返回值的一律是直接方法调用。**推论：广播时点一律排在事务提交之后**——`TryApply` 全有或全无，提交中途广播会在回滚时留下一条已发出的假事实。→ `decisions/ADR-0157-plot-layer-outward-surface.md`
 5. **事件命名为过去时的事实**：`CycleStarted`、`EventResolved`、`CapabilitiesChanged`。命名为事实而非指令，正是这条纪律的体现。**完整事件清单与负载见权威，别在此复制。**
 6. **空负载 + 订阅者自查是通用形态，不是能力标记的特例。** `CapabilitiesChanged` 空负载、订阅者自行 `Has(flag)` 重查；同构实例还有 `PendingCount` 与 `UpgradeRequired`（**明确不为它新增 `SyncState` 值**，改为服务上加只读属性由 UI 单点查询）。把生效集塞进负载即制造第二份真值。→ `systems/services/sync-service.md`
 7. **战斗呈现事件是一条 `CombatFeedEntry` 流**（覆盖哪几类、有哪几个消费者见权威），**已取代 `CardResolved`——后者不再存在，两者并存的方案被明确否决**；消费者读同一条流、不各自组装。条目自带因果树、**不落存档**；**存结构化数据、渲染期才套翻译键**，绝不存已格式化字符串。→ `decisions/ADR-0087-action-result-and-combat-feed.md`、`systems/architecture.md`「EventBus 负载契约」
