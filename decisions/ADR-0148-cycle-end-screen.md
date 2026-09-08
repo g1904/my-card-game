@@ -13,7 +13,7 @@
 立 **`CycleEndScreen`，一屏三变体**（变体轴 `DefeatReason`），**只承载 `defeated` 三因**；篇章通关 `completed` 不走本屏。它**借 `BlockingNoticeScreen` 的形态（一屏 + 变体表），不借它的屏**。
 
 - **载体** = 一屏全屏（安全区内），不进屏幕栈、无返回路径、非弹层。
-- **时点** = `DefeatCharacter(reason)` 提交完成之后；点主按钮 → `TeardownCycle` → 成就结算 → 回主菜单，这一段既定顺序一格不动。**不新增存档点**。
+- **时点** = `DefeatCharacter(reason, characterId)` 提交完成之后；点主按钮 → `TeardownCycle` → 成就结算 → 回主菜单，这一段既定顺序一格不动。**不新增存档点**。
 - **数据源** = `DefeatCharacter` 内、清理之前组装的一份**只读值摘要**（值类型 + 内容 `Id` + 文案条目 `Id`，不持 `CharacterProfile` 引用）。
 - **出路只有「返回主菜单」**；残卷零呈现、商业化零入口零文字、无自动跳转 / 倒计时 / 二次确认；常驻同步指示照常可见。
 - **定性文案改按 `DefeatReason` 查表**、由本屏呈现（文案载体仍是内容层条目，只换定位键）；`Discarded` 变体不配文案。
@@ -42,4 +42,4 @@
 - 新增 `CYCLE_` 分区 / `cycle.csv`；不复用 `EVENT_` / `MENU_`、不占 `ERR_`（无后端 `code`，见 `decisions/ADR-0053-error-copy-client-owned.md`）。定性文案不进 `cycle.csv`——属内容层。
 - 相关文档因此这么写：`ux/screen-flow.md`（变体表与收敛门槛）· `ux/error-and-blocking-ux.md`（分区表 + 与 `BlockingNoticeScreen` 的边界）· `systems/services/life-cycle-service.md`（`DefeatCharacter` 组装只读结束摘要）· `systems/services/plot-manager.md`（死亡文案改按 `DefeatReason` 定位）。
 - **跨档叙事的 `BandNarrativeIds` 通道原样保留**，`Practice` 档战斗失败的定性文案照旧走 `ResolveOutcome`。
-- 待定项：主动弃置的发起入口全库无明文（不阻塞本屏——不论从哪里发起都经 `DefeatCharacter(Discarded)` 落到同一变体）。
+- **主动弃置的发起入口 = 主菜单「切换篇章」面上、`ongoing` 角色那一行的次级动作 + 就地二段确认**（形态见 `ux/screen-flow.md`），轮回内不设第二个入口。它经 `DefeatCharacter(Discarded, characterId)` 落到本屏的同一变体，**本屏一格不动**——不论从哪里发起，三因走完之后的结构完全相同。

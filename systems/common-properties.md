@@ -161,7 +161,7 @@ Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hie
 | `ContentEnabled` | 一切 `XxxData` | 顶层 | 留顶层 |
 | `LocalizedText` | `CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PowerData` / 档位条目 / 剧本 | 顶层 | 留顶层 |
 | `Rarity: RarityTier` | `PowerData` / `ItemData` / `CardData` / `CultivationTechniqueData` | 顶层 | 留顶层 |
-| `Artwork: Texture2D` | `CardData` / `EnemyData` / `PowerData` / `ItemData` / `CharacterData` / `LocationData` / `AdventureEventData` | 顶层（跨多棵子树） | 留顶层 |
+| `Artwork: Texture2D` | `CardData` / `EnemyData` / `PowerData` / `ItemData` / `CharacterData` / `LocationData` / `AdventureEventData` / `AchievementData` | 顶层（跨多棵子树） | 留顶层 |
 | `SourceCode` + `Source` | PlayerPower / PlayerItem / CharacterPower / CharacterItem 四类**持有条目** | 顶层 | 留顶层 |
 | `ExclusiveSource: Source?` | `PowerData` / `ItemData` | 顶层（跨两棵子树） | 留顶层 |
 
@@ -230,7 +230,7 @@ public partial class LocalizedText : Resource
 [Export] public Texture2D Artwork { get; set; }   // 可空；null = 尚未产出，呈现层回落占位资产
 ```
 
-- **挂载面 = 七类内容定义：** `CardData`（卡面插画）· `EnemyData`（敌人立绘）· `PowerData` / `ItemData`（法则 / 神通 / 古宝 / 法宝 图标）· `CharacterData`（角色形象；该类另有一格自有的稀疏境界覆写 `RealmArtworks`，见 `systems/character-profile/_index.md`）· `LocationData`（事件背景板）· `AdventureEventData`（事件插图）。资产规格与关键约束逐类目见 `art/visuals/_index.md`。
+- **挂载面 = 七类内容定义：** `CardData`（卡面插画）· `EnemyData`（敌人立绘）· `PowerData` / `ItemData`（法则 / 神通 / 古宝 / 法宝 图标）· `CharacterData`（角色形象；该类另有一格自有的稀疏境界覆写 `RealmArtworks`，见 `systems/character-profile/_index.md`）· `LocationData`（事件背景板）· `AdventureEventData`（事件插图）· `AchievementData`（成就徽记）。资产规格与关键约束逐类目见 `art/visuals/_index.md`。
 - **不挂载：** 任何运行时 / 存档态类型（`CardInstance` / `EnemyInstance` / `EventOption` / `CodexEntry`）——那一层只带 `Id` + 可变状态，见「展示字段的归属」。
 - **功法（`CultivationTechniqueData`）不挂：它没有独立的视觉资产。** 资产类目表里没有功法一行，`TechniqueCodex` 的词条构成也不含立绘；图鉴族的功法词条以名称 / 描述 / `Rarity` + 可选风味文案构成。日后确需一张功法图是纯加法。
 - **字段名取 `Artwork`（单数、类型中立），不取 `Portrait` / `Icon` / `Illustration`。** 同一格在敌人身上是立绘、在卡牌上是卡面、在法则上是图标；按判据卡上移到顶层的字段必须用**跨落点同义**的名字，落点差异由各层投影段的「本层语义」一行承载（同 `Rarity`）。**不拆成三个按用途分立的字段**：同一敌人在图鉴与战斗屏复用同一张资产，分立会让每个内容类都要回答「我该填哪几格」，且三格中至少两格恒空。
@@ -333,11 +333,11 @@ public partial class LocalizedText : Resource
   | 消费点 | 取池过滤（产出侧） | 残卷的 `x` |
   | 不填的含义 | `null` = 通用，任何渠道都能给 | 无「不填」——授予通道强制携带 |
 
-- **首个也是当前唯一的用例 = 成就限定条目**（`ExclusiveSource == Source.AchievementReward`）。成就奖励给的是**指定条目**而非抽取结果，把这些条目挡在全部抽取池之外，才使「成就奖励恒不落空」成为机械保证而非口头约定；完整论证与三条校验见 `systems/player-profile/achievement/_index.md`。
+- **首个也是当前唯一的用例 = 成就限定条目**（`ExclusiveSource == Source.AchievementReward`）。成就奖励给的是**指定条目**而非抽取结果，把这些条目挡在全部抽取池之外，才使「成就奖励恒不落空」成为机械保证而非口头约定；完整论证与四条校验（含奖励槽 ↔ 条目的双向唯一性）见 `systems/player-profile/achievement/_index.md`。
 - **选 `Source?` 而非新开一个布尔（如 `AchievementExclusive`）**：同一诉求日后必然重演（活动限定、剧情限定条目），复用既有枚举让「限定给谁」成为一次数据填写，而非每次新增一个布尔字段——与「新增内容 = 新增 `.tres`，不改 switch」同一条纪律。取值域随 `Source` 清单扩张而自然扩大。
 - **不落存档**（它是内容定义的属性，不是持有条目的属性），故不 bump schema。
 
-Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-14-common-properties-layering.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md`
+Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-14-common-properties-layering.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

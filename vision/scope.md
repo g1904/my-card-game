@@ -13,7 +13,7 @@
 - **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。见「平台与约束」。
 - **premium bundle 端到端。** 支付接入（Google Play Billing / App Store / 微信支付三渠道）+ Store 屏 + 购后兑现。它是客户端唯一必须引入第三方 SDK 的地方，牵动 Godot 导出配置与各平台构建。形态见 `systems/monetization.md`。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-09-06-iap-channel-integration.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md`
 
 ## 范围之外（暂时）
 > _明确推迟——先泊车，以免蔓延进来。_
@@ -21,7 +21,8 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-
 - 第 2、3 篇章（筑基→金丹、金丹→元婴）以及完整的**篇章衔接 / 延续**系统——先设计好衔接契约。
 - 支撑“Reigns”式平衡张力的完整**属性模型**。
 - 超出足以奠定 grimdark 基调之外的深度叙事/剧情内容。
-- 元进程解锁、外观装饰、每日/seeded-轮回分享。
+- 元进程解锁、每日/seeded-轮回分享。
+- **外观装饰 —— 架构预留、首批不做。** 它是付费面的唯一预留方向（零玩法影响）；预留的兑现物是三个加法窗口保持开启，**首批不新增任何字段、屏、内容类型或资产类目**。品类与落地形态见 `systems/monetization.md`。
 - **地区定价**——单一 SKU、单一价格档起步；价格与货币由平台商店按 SKU 返回，客户端不硬编码任何金额（见 `systems/monetization.md`）。多档 SKU 会立刻牵出「哪档给什么」的内容编排。**支付接入与商店 UI 本身已在 MVP 内。**
 - 本地化打磨（让展示字符串与 id 分离，以免日后受阻）。
 
@@ -68,8 +69,10 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-
 ## 时段形态
 > _目标轮回时长、存档/续玩、手机上一个“时段”的感觉。_
 
-- **一个篇章**是自然的时段单元——足够长以让人觉得是一次有意义的攀登，又足够短以便在移动端完成或存档。
-- **目标时长已量化：** 第一篇章（炼气→筑基）**30–40 分钟**、第二篇章（筑基→金丹）**35–45 分钟**、第三篇章（金丹→元婴）**45–55 分钟**——**口径为已掌握策略的熟练玩家**，新手更长。**寿元预算不变，靠调 `lifeSpanCost` 的分档把时长压进区间**——预算增量（1000 / +1000 / +3000 / +5000）是叙事阶梯的形式量，**事件定价才是时长旋钮**。**剩余寿元跨篇章结转**，故「省着花」有跨篇章回报。分档表见 `systems/balance.md`。
+- **一个篇章**是自然的时段单元——**一个长时段**，足够长以让人觉得是一次有意义的攀登；**中途可随时存档退出续玩**（存档点清单已覆盖状态机边界与事件推进中的每个决策点）。**已知代价如实写下：通勤 / 碎片时间不再是目标场景**——单次坐完一个篇章需要约一小时，碎片场景靠存档续玩承接。
+- **目标时长已量化：** 第一篇章（炼气→筑基）**45–55 分钟**、第二篇章（筑基→金丹）**50–60 分钟**、第三篇章（金丹→元婴）**60–70 分钟**——**口径为已掌握策略的熟练玩家**，新手更长。**寿元预算不变，靠调 `lifeSpanCost` 的分档把时长压进区间**——预算增量（1000 / +1000 / +3000 / +5000）是叙事阶梯的形式量，**事件定价才是时长旋钮**。**剩余寿元跨篇章结转**，故「省着花」有跨篇章回报。分档表见 `systems/balance.md`。
 - **三个篇章边界**是持久的存档/记录点（角色档案的史册记录）；最后一个（元婴）是已完成轮回的奖杯展示。
 - 在 AdventureEvent 边界自动存档，使被终止的应用能在合理的位置续玩（见 `.claude/rules/state-save-rules.md`）。
 - 轮回带 seed，**在同一 `contentVersion` 内可复现**。内容热更以 overlay 为准、不冻结轮回的 `contentVersion`，故**不承诺跨内容版本复现**；bug 复现与「数值突变」类反馈改以**存档记录的 `StartContentVersion` / `LastContentVersion` 归因**（二者不等 = 该轮回跨过内容更新）。见 `systems/services/content-service.md`、`systems/common-properties.md`。
+
+Source: `handoffs/2026-09-06-chapter-duration-rescale.md`

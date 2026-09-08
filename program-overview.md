@@ -212,8 +212,8 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 │      │    eventOptions → 与本次产出一并进同一次 TryApply            │
 │      │    （不提交 / 不广播 / 不落存档点；一次事务、一个存档点）    │
 │      └─ CycleStateManager 判定：                                     │
-│           寿元 ≤ 0 ─▶ DefeatCharacter()                   ─▶ 阶段 5 │
-│           Finale 失败 ─▶ DefeatCharacter(FinaleFailed) ─▶ 阶段 5   │
+│           寿元 ≤ 0 ─▶ DefeatCharacter(reason, id)         ─▶ 阶段 5 │
+│           Finale 失败 ─▶ DefeatCharacter(FinaleFailed, id) ─▶ 阶段 5 │
 │           Finale 通过          ─▶ CompleteChapter() ─▶ 阶段 5      │
 │           否则 ─▶ EventBus.Emit(EventResolved)                      │
 │                          ↓                                          │
@@ -227,8 +227,10 @@ MainMenu ── 读 PlayerProfile ──▶ ViewModel ──▶ 角色列表 / �
 
 ```
 completed ─▶ ChapterManager：在所达境界落存档点
+              清空轮回运行态（不处置角色实体状态 —— 保留即「境界存档」）
               解锁下一篇章的可挑战角色
-defeated  ─▶ 清理该角色数据；扣减该篇章重试次数
+defeated  ─▶ 清空轮回运行态与可回滚实体状态，保留身份与元进程格（墓碑）
+              扣减该篇章重试次数
               （上限读 ChapterRetryLimitsData 的两行之一，按 HasPremiumBundle 选行）
               无可挑战角色时该篇章重新锁定（隐藏）
    │
@@ -238,6 +240,8 @@ defeated  ─▶ 清理该角色数据；扣减该篇章重试次数
    ├─▶ profile-service.AchievementManager：结算成就进度
    └─▶ sync-service.Push() ─▶ 回主界面（阶段 2）
 ```
+
+两条出口的处置**不对称**：`TeardownCycle()` 只做运行时拆解、零存档语义；运行态清空对两条出口一视同仁；角色实体状态只在 `defeated` 上被处置。逐层与逐字段口径见 `systems/services/life-cycle-service.md`「轮回出口的三层处置」。
 
 ---
 

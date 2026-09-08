@@ -11,7 +11,7 @@
 
 **可机械检查的越界信号：** 条目文档 / 类型档案里出现枚举成员表、字段取值域穷举、`GD.PushError` 级校验语义的完整表述，或一段 C# 类型定义 ⇒ 违规，压回「值 + 回链」。
 
-Source: `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15-content-id-technique-shape-and-subtype-reset.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-22-singleton-balance-resource-registry.md`
+Source: `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15-content-id-technique-shape-and-subtype-reset.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-22-singleton-balance-resource-registry.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
 
 ## 三层结构
 
@@ -47,7 +47,8 @@ content/
 | `plot-arc/` | 剧本线（四级层级之一） | `PlotArcData` | `systems/services/plot-manager.md` | ⛔ 随事件类顺延 | ✗ |
 | `plot-node/` | 剧本节点（叙事 + 调制 + 出边） | `PlotNodeData` | `systems/services/plot-manager.md` | ⛔ 随事件类顺延 | ✗ |
 | `hidden-stat-band/` | 隐藏属性档位 | `HiddenStatBandData` | `systems/services/plot-manager.md` | 🟢 档位表 | ✗ |
-| `achievement/` | 成就 | Achievement 条目 | `systems/player-profile/achievement/` | 🟠 条目 schema 与进度模型未设计；奖励目录另依赖法则 / 古宝**条目**（类定义已齐备，欠的是条目本身） | ✗ |
+| `achievement/` | 成就 | `AchievementData`（内联 `AchievementConditionData`） | `systems/player-profile/achievement/` | 🟢 字段清单、条件表达与加载期校验均已定；奖励目录另依赖法则 / 古宝**条目**（类定义已齐备，欠的是条目本身） | ✗ |
+| `achievement-group/` | 成就组 | `AchievementGroupData` | `systems/player-profile/achievement/` | 🟢 字段清单齐备（两档奖励槽 + 排序）+ 四条加载期校验 + 组内启用成就数 ≥ 10 的编排下限 | ✗ |
 | `ability/` | 异能 / 效果 / 触发条件 | `AbilityData` / `EffectData` / `TriggerConditionData` | `systems/character-profile/deck/common-properties.md`「效果原语与定义体」 | 🟢 语法已定案 | ✗ **不独立开张** |
 | `card-subtype/` | 卡牌次类型 | `CardSubtypeData` | `systems/character-profile/deck/` | ⛔ **清单已归零**（机制保留） | ✗ |
 | `keyword/` | 效果关键字 | `KeywordData` | `systems/character-profile/deck/` | ⛔ **清单为空**（机制保留） | ✗ |
@@ -60,9 +61,10 @@ content/
 - **效果关键字 `keyword/`** —— **清单为空，但机制保留**：`KeywordData`、`KeywordRef`、`EntryFilter.RequiredKeywords`、加载校验与准入判据全部有效，只是**当前不建任何关键字条目**。正确的清单只能从「哪些效果组合真的重复了 ≥3 次」倒推，而当前卡牌条目数为零；与次类型同批处理即可。详见 `../systems/character-profile/deck/common-properties.md`「清单归零，机制保留」。
 - **卡牌次类型 `card-subtype/`** —— **清单已归零，但机制保留**：`CardSubtypeData`、`CardData.Subtypes`、加载校验与准入判据全部原样有效，只是**当前不建任何次类型条目**（唯一存活的 `enchantment.ambush` 是埋伏机制的定名，不是清单候选）。等内容有规模后按既有准入判据（① ≥3 个条目共享 ② ≥1 处筛选引用）自然长出来。详见 `../systems/character-profile/deck/_index.md`「清单归零，机制保留」。
 
-**不单开类型的两项：**
+**不单开类型的三项：**
 
 - **图鉴 Codex** —— 词条是**挂在宿主内容 `Resource` 上的静态文案**（`systems/player-profile/codex/_index.md`），故它是那六个宿主类型（敌人 / 神通 / 法则 / 法宝 / 古宝 / 地域）**条目文档里的一个字段块**，不建 `content/codex/`。单开等于给同一份文案造两个落点。
+- **成就条件 `AchievementConditionData`** —— 它几乎恒为某条成就的组成部分，照 `AbilityData` 的既定处置**内联在宿主成就条目文档里**，不建 `content/achievement-condition/`。
 - **平衡数值** —— 归 `systems/balance.md`，不是条目。「填了什么值」的权威已经在那里逐表写着，开一份类型档案会制造第二权威。
   - **不建 `content/` 类型 ≠ 不进 ContentRegistry。** 平衡资源仍是 `.tres`、仍按 `Id` 进注册表、仍受合并后强校验，只是它的取值权威在 `systems/balance.md` 而非条目文档。注册形态（`Id` 形态 · 单例读取面 · 条数校验 · 准入边界）见 `../systems/services/content-service.md`「单例内容的注册与校验」。
 
@@ -75,7 +77,7 @@ ability（效果原语）
    └─▶ card ─▶ cultivation-technique ─┬─▶ character
    └─▶ character-power ───────────────┘
    └─▶ character-item / player-power / player-item
-              └─▶ achievement（奖励目录指定条目）
+              └─▶ achievement-group（两档奖励槽各指定一个专属条目）─▶ achievement
    cultivation-technique ─▶ enemy（套牌 = 功法 Id + 层数，展开为样本卡组；另含游离散牌）
 enemy-ai（独立，权重向量；被 `EnemyData.AiProfile` 可空引用，可与 enemy 同批或后开）
 location（独立，可开张）

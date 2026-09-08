@@ -1,6 +1,6 @@
 # game-progression
 
-> 每个 ante 的进程推进、location（地域）、Travel 路由、节点类型路径导航、月圆之夜式菜单、横向滑动选择、篇章 / 境界推进、blind / ante 缩放。
+> 篇章内的进程推进（eventOptions 循环）、location（地域）、Travel 路由、节点类型路径导航、月圆之夜式菜单、横向滑动选择、篇章 / 境界推进、难度与数值缩放的分格轴。
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
@@ -16,7 +16,7 @@
   - 完整语义见 `systems/adventure-event/combat/_index.md`。
 - **篇章总数 = 四境三篇章。** 重试上限：第一章（炼气→筑基）无限、第二章（筑基→金丹）3、第三章（金丹→元婴）1。（重试 / 存档 / 篇章继承的完整生命周期语义归 `systems/services/life-cycle-service.md`。）
 - **篇章继承 = 全部继承。** 读档续入下一 chapter 时，角色带入**上一篇章的全部信息**（deck、法宝、属性、叙事标记等），无逐项筛选。
-- **每个篇章 = 一个移动端时段，时长由 `lifeSpanCost` 定价控制。** 目标时长（**熟练玩家口径**，新手更长）：第一篇章 **30–40 分钟**、第二篇章 **35–45 分钟**、第三篇章 **45–55 分钟**。**寿元预算增量是叙事阶梯的形式量，事件定价才是时长旋钮**；第三篇章预算 +3000 远多于前两章，靠**上调 `lifeSpanCost`** 把时长压回区间。**剩余寿元跨篇章结转**（下一篇章预算 = 该章增量 + 上一章剩余），故「省着花」有跨篇章回报，寿元是贯穿整个轮回的一条资源线。分档表归 `systems/balance.md`。**推论：时段被拉长到接近一小时**，故中途存档续玩比先前更承重（已由决策点存档覆盖）。
+- **每个篇章 = 移动端一个长时段，时长由 `lifeSpanCost` 定价控制。** 目标时长（**熟练玩家口径**，新手更长）：第一篇章 **45–55 分钟**、第二篇章 **50–60 分钟**、第三篇章 **60–70 分钟**（三章均值 ≈ 60 分钟，ch3 已接近主机 / PC 的单次会话长度）。**寿元预算增量是叙事阶梯的形式量，事件定价才是时长旋钮**；第三篇章预算 +3000 远多于前两章，靠**上调 `lifeSpanCost`** 把时长压回区间。**剩余寿元跨篇章结转**（下一篇章预算 = 该章增量 + 上一章剩余），故「省着花」有跨篇章回报，寿元是贯穿整个轮回的一条资源线。分档表归 `systems/balance.md`。**推论：单次坐完一个篇章约需一小时，中途存档退出续玩因此是承重承诺**（已由决策点存档覆盖，见 `vision/scope.md`）。
 
 ### 修行等级体系（realm + level）
 
@@ -46,15 +46,18 @@
   - 它与 `manaLimit` 同属一套「由事件 cost / reward 推拉」的成长体系，走同一条 `ProfileChangeSpec` → `TryApply` 链路（见 `systems/services/life-cycle-service.md`）。**经验值是战斗奖励中「强制自动计入」的那一类**（见 `systems/services/combat-service.md`）。
   - **阈值曲线 = 境界内递增 + 境界间重置量纲。** **重置的理由不是美观，而是「进阶即归位初期」**：等级在境界边界被重置，若经验阈值仍连续累加就出现「等级归零、阈值不归零」的语义割裂。**跨境界的难度阶梯已由 `baseMomentum` 跨度独占承载**（既定分工：等级序是一把简单直尺，跨境界有多难放进战斗数值里），**经验侧不叠第二条跨境界曲线**。具体阈值与给予量见 `systems/balance.md`。
   - **产出分档 = `ExperienceGrade { None / Minor / Standard / Major }` 枚举 + 平衡表映射**，`AdventureEventData` 上**不落裸数字**。**阈值与给予量同比放大**（ch1 标准产出 4 / ch2 12 / ch3 16），与 `baseMomentum` 跨境界放大的数值语言同构。
-  - **带经验的产出点约占事件总数 75%（初值）。** 全覆盖会让经验变成「时间的自动函数」、事件选择在成长维度上失去差异；覆盖率过低（< 50%）则玩家为了升级只挑带经验的事件，压扁事件池多样性。**75% 让「大多数路都在前进、但选得好前进得快」两件事同时成立。**
+  - **带经验的产出点约占事件总数 ≈55%（初值；ch1 参考构成实算 54.3%）。** 全覆盖会让经验变成「时间的自动函数」、事件选择在成长维度上失去差异；覆盖率过低（< 50%）则玩家为了升级只挑带经验的事件，压扁事件池多样性。**≈55% 贴着下限取**——它是「参考构成自洽 · 供给 / 需求比落 1.15–1.20 · 覆盖率不破 50% 下限」三者能同时成立的取值（对账见 `systems/balance.md`）：过半的路都在前进，而选得好前进得快。
   - **档位偏置 = 「产出对位成本」的一致化（内容编排口径）**：Combat `Standard` 档胜利 `Major` · `Practice` 档胜利 `Standard`（低风险 ⇒ 产出对位低一档）· **`Finale` 档 `None` / `Minor`**（见下）· Research 闭关 `Major`（`lifeSpanCost` 在玩家可自由比价的各行中最高）· Explore `Standard` / `Minor` · Exchange `None`（社交风味条目可给 `Minor`）。
     - **「最高」的作用域 = 玩家可自由比价的行之间。** `Finale` 以 `eventPriority = 1` 收窄整批出场，玩家没有替代选项、根本不参与比价，故它的 `lifeSpanCost` 高于 Research 不影响这条对位（它的产出档同样落在对位之外）。可机械校验的形式是 `Research ≥ Combat/Standard`，定价表见 `systems/balance.md`。
     - **它与 location 的事件类型概率修正自然咬合**：荒野多 Combat = 经验更密但风险更高，坊市多 Exchange = 经验稀疏但资源丰——**地域由此自带成长节奏的风味，不需要为 location 再加一个经验修正字段**（与「敌人物化两条轴正交」同款克制）。
   - **失败产出 = 一条 reward 两个字段，不是两套内容**：`ExperienceGrade`（成功档位）+ `FailureRatio`（**百分比整数，默认 50**，逐条可覆写，留给「这场输了才真正学到东西」的特例）。折算在 `ProfileChangeSpec` 组装时完成（**向下取整、下限 1**，见 `systems/balance.md`），`TryApply` 收到的已是最终整数。**取百分比整数而非 `float`**：`AppliedChange` 要求可重放，整数百分比 + `floor` 是可复算的，浮点在跨平台重放上不是。字段面见 `systems/adventure-event/common-properties.md`。**50% 而非更低**：失败已经付了寿元的硬代价（归 0 即角色终结，且这笔扣减同时压缩本章还能做的事件数），靠反复失败刷经验天然不是优势路线。
-  - **承重推论：经验的目标点不是「篇章结束」，而是「Finale 之前」。** 「天劫的 `diff` 恰为 +1」这条自洽性验证隐含一条硬约束——**角色必须在进入 Finale 之前就已升满本境界**，否则 `±2` 带会给出一个更低的天劫等级，「渡劫 = 突破到下一境界」的叙事随之破裂。**推论 ①：全部升级所需经验必须由篇章的常规事件段供满**，Finale 本身不承担经验供给。**推论 ②：Finale 的出现条件 = 角色已达本境界巅峰**——不需要新机制，`eventPriority = 1` 已能表达（与 `eventCountLimit` 达成后 Travel 封锁同批的用法同构）。
-  - **供给 / 需求 ≈ 1.15–1.20；满级后经验直接丢弃**（不结转、不开兑换通道，与「进阶即归位初期」同向）。**阈值曲线是事件数的从属量**：目标时长或事件定价一改，事件数随之变，曲线必须重算——ch1 的当前对账（25 事件 / 阈值合计 55）见 `systems/balance.md`。**卡级的实际后果 = 寿元耗尽而等级未满 → `defeated`**，这是**有意保留的失败面**。
-    - **验收项（因合并而扩充）：** `lifeSpanCost` · `eventCountLimit` · `lossPerMomentum` 三个旋钮的反推**必须验证「即使发生 N 次典型失败，按标准路线走仍能在预算内升满」**——不是「零失败时能升满」。理由：战斗失败既直接扣寿元、又经 `FailureRatio` 折半经验 ⇒ 输一场同时减少本章可做的事件数与每个事件的经验产出，两者叠成一条**正反馈螺旋**：输 → 少事件 → 少经验 → 卡级 → 更打不过。**这条螺旋是被接受的设计取向**（一次惨败真的会滚雪球），它要的不是机制补丁而是一个明确的容错量标定。N 的取值与验收口径归平衡阶段。
-  - **承重推论：ch2 / ch3 的升级稀疏是一个必须补偿的节奏缺口。** ch1 每 2 个事件升一级，ch2 / ch3 每 9–11 个事件才升一级——**中段会出现连续十几分钟毫无等级反馈**，这直接撞上「中长期规划感的来源」那条长期待答。**补偿 = 经验进度条常驻于 EventOption 选择界面的角色状态条**（`当前 / 本级阈值`）：玩家读到「还差 12 点到筑基中期」就有了跨越十来个事件的中期目标。它在 ch1 是锦上添花，**在 ch2 / ch3 是唯一的连续进度感来源**。**经验从未被定为隐藏属性**。配套：**eventOption 卡片不标注该事件的经验产出档位**（保留探索感，与「给方向不给数字」一致）——这条保护的是**隐藏的**经验档位映射，与寿元恒精确展示不是同一件事，两者各自独立成立。见 `ux/screen-flow.md`。
+  - **承重推论：经验的目标点不是「篇章结束」，而是「Finale 之前」。** 「天劫的 `diff` 恰为 +1」这条自洽性验证隐含一条硬约束——**角色必须在进入 Finale 之前就已升满本境界**，否则 `±2` 带会给出一个更低的天劫等级，「渡劫 = 突破到下一境界」的叙事随之破裂。**推论 ①：全部升级所需经验必须由篇章的常规事件段供满**，Finale 本身不承担经验供给。**推论 ②：Finale 的出现条件 = `level == 该境界末级`（全局序 13 / 17 / 21）**，即角色已达本境界巅峰——不需要新机制，物化时以 `eventPriority = 1` 抬升即可表达（与 `eventCountLimit` 达成后 Travel 封锁同批的用法同构）。判定式、抬升条件与置位口径的权威在 `systems/services/future-event-service.md`。
+  - **供给 / 需求 ≈ 1.15–1.20；满级后经验直接丢弃**（不结转、不开兑换通道，与「进阶即归位初期」同向）。**阈值曲线是事件数的从属量**：目标时长或事件定价一改，事件数随之变，曲线必须重算——ch1 的当前对账（35 事件 / 阈值合计 79）见 `systems/balance.md`。**卡级的实际后果 = 寿元耗尽而等级未满 → `defeated`**，这是**有意保留的失败面**。
+    - **验收项（因合并而扩充）：** `lifeSpanCost` · `eventCountLimit` · `lossPerMomentum` 三个旋钮的反推**必须验证「即使发生 2 次典型失败，按标准路线走仍能在预算内升满」**——不是「零失败时能升满」。理由：战斗失败既直接扣寿元、又经 `FailureRatio` 折半经验 ⇒ 输一场同时减少本章可做的事件数与每个事件的经验产出，两者叠成一条**正反馈螺旋**：输 → 少事件 → 少经验 → 卡级 → 更打不过。**这条螺旋是被接受的设计取向**（一次惨败真的会滚雪球），它要的不是机制补丁而是一个明确的容错量标定。**容错量已标定：N = 2、三章统一**——「典型失败」的五格口径、反推式与两层验收断言见 `systems/balance.md`「失败容错量 N 的反推台账」。
+  - **承重推论：ch2 / ch3 的升级稀疏是一个必须补偿的节奏缺口。** ch1 约每 3 个事件升一级，ch2 / ch3 每 12–14 个事件才升一级——**中段会出现连续十几分钟毫无等级反馈**，而轮回内除等级外没有第二个量能表达中长期进度。**补偿 = 经验进度条常驻于 EventOption 选择界面的角色状态条**（`当前 / 本级阈值`）：玩家读到「还差 12 点到筑基中期」就有了跨越十来个事件的中期目标。它在 ch1 是锦上添花，**在 ch2 / ch3 是唯一的连续进度感来源**。**经验从未被定为隐藏属性**。配套：**eventOption 卡片不标注该事件的经验产出档位**（保留探索感，与「给方向不给数字」一致）——这条保护的是**隐藏的**经验档位映射，与寿元恒精确展示不是同一件事，两者各自独立成立。见 `ux/screen-flow.md`。
+  - **承重取向：轮回内不提供任何「还有几步到 Finale / 距圆满还差几级」的读数——三章一律不显示。** 玩家在轮回内读得到「我在长多快」（经验条 `当前 / 本级阈值`）与「我还能走多远」（寿元明文恒精确），**读不到「我还需要走多远」**。这是**被接受的取向而非待补的缺口**：保住「一步一步走下去」的未知感，代价明写——ch2 / ch3 中段那条节奏缺口只补了「长多快」这一半，且失败螺旋只能事后发觉（玩家在寿元见底那一刻才发现自己卡级）。
+    - **篇章进度条（`x / N` 形态）另有一条独立的否决理由：分母在轮回进行中不存在。** 篇章事件总数 ≈ 途经各 location 的容量之和，而往后途经哪些 location 由玩家自己在 Travel 闸门处选（各地域 `EventCountLimit` 取值不同）⇒ 运行中算不出 N；给一个 N 只能拿平均值编。**且事件数并非 Finale 的闸门**——闸门是等级（推论 ②），进度条会把注意力引向一个不是闸的量。
+    - **也不给「预计还需约 M 个事件」的估算读数。** 要算 M 必须暴露隐藏的经验档位映射，直接撞「eventOption 卡片不标注经验产出档位」；且算出的是会被两次失败打脸的期望值。与「寿元恒精确、但否决『大限将至』一类预警文案」同调——**给一个不会错的数，不给一个会错的估**。
   - **已知风险**：反推链是脆的（事件总数一变，整条阈值曲线失效）——**缓解是把「供给 / 需求比」做成一份可算的校验表**，每次调时长旋钮时重算，而不是死记数字；ch1 的 12 次升级可能让升级感变廉价（若实测如此，收口方向是**提高 ch1 阈值 + 降低覆盖率**，**不动炼气 13 层**）；**溢出即弃**会让后半章的经验奖励对已满级玩家毫无价值 → 缓解为满级后 UI 标注「已圆满」，并保证带经验的事件同时带其他产出（**不做纯经验事件**）。（阈值曲线 / 分档 / 分布 / Finale 前满级 / 经验条常驻）。
 
 ### 进程形态与节点呈现
@@ -107,7 +110,7 @@
     - **本作 location 是平坦集合，无层级、无区域分组，也不预留分组字段。** 层级没有承重消费方：难度不由换图承载（由赋级带承载）、图三章不变、`LocationCodex` 记的是连边而非分组。**在有消费方之前，分组字段是一个无人读的字段**；日后确需分组时加一个可空的纯风味字段即可，不改结构。
     - **内嵌类型一律是 `Resource` 派生**（`EventTypeModifierData` / `LocationEdgeData`），因为 `[Export]` 只接受 Variant 兼容类型与 `Resource`；`EventOption` / `PastEventEntry` 那类**不导出**的运行时定稿实例照旧用 `sealed record`。
   - **推论（承重）：敌人物化的两条轴至此正交。** **当前 location 影响「派谁来」**（经敌人条目的 `PoolScope` 叠加该地域的专属条目），**相对角色等级的赋级带决定「有多强」**（三章统一 `±2`，见 `systems/services/future-event-service.md`）。地域的生态与风味不需要另设机制。
-  - **具体数值归内容制作阶段**：各 location 的类型修正取值与 `eventCountLimit` 的数字均在内容阶段定；哪些敌人属于该地域，在敌人条目一侧编写。
+  - **具体数值归内容制作阶段**：各 location 的类型修正取值与 `eventCountLimit` 的数字均在内容阶段定；哪些敌人属于该地域，在敌人条目一侧编写。**类型修正的编排建议区间已定**：单条 location / 单条 arc 的修正落 `[0.5, 2.0]`，乘完全部修正并归一化后任一类型的占比落 `[5%, 55%]`——由 `/audit-content` 汇总、只报告不阻断，不加运行期钳制（依据与工作示例见 `systems/balance.md` 的 `BaseTypeWeights` 条目）。
 - **`locationMap`（地域图）= 一张全局不变的连通图（承重）。** 地域之间的连边由一份**独立的 `locationMap` 数据**承载——**既不挂在 Travel 事件的内容条目上，也不在运行时算**；Travel 的目的地从当前 location 在图上的**邻接集合**中取。
   - **三个篇章共用同一张图 ⇒ location 不随篇章 / 境界变化。** **难度的篇章差异不由「换一张更难的图」承载，而由敌人赋级带（相对角色当前等级）承载**——同一张图在三个篇章重走，敌人强度自动跟着角色走。这与「全局等级序是一把简单的直尺、境界鸿沟由 `baseMomentum` 承载」是同一种分工：**结构保持简单，难度放进数值。**
   - **推论：熟悉度成为跨轮回的资产。** 图不变 ⇒ 不同轮回走的是**同一片世界**，地名、地域的事件倾向、哪片区域出什么敌人都会被记住并复用。**这是把「重复游玩」转化为「越玩越懂」的结构基础**，也正是 `locationCodex` 的存在理由。
@@ -178,10 +181,29 @@
   - **推论：`CurrentLocationId` 是跨篇章持久的存档字段**，不随 chapter 边界清零（篇章重试时随该篇章起始存档一并回滚）。
 - **归属划分。** location 抽象、字段语义与路径导航归本文档（game-progression）；Travel 作为**事件类型**的呈现 / 数据（含非常驻出场与 80 / 20 掷定）归 `adventure-event/travel/`；二者通过「Travel 刷新 location → location 框定 eventOptions」协作。
 
-### blind / ante 缩放
-- blind / ante 的**要求、奖励与 scaling** 归本文档（进程侧）；缩放曲线为可调数值，存入 `.tres` 并归 `systems/balance.md`（ante 曲线）。**具体 blind 要求 / 奖励 / 缩放曲线尚未陈述**，见待决问题。
+### 难度与数值缩放的分格轴
 
-Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-13.md` · `handoffs/2026-07-15-adventure-event-profiles.md` · `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md`
+- **本作不设 Balatro ante 式的章内绝对难度阶梯，也没有逐关抬高的过关阈值。** 三个构成要件一个都不成立：胜负是双方道念的相对比较，没有可被抬高的静态阈值（见 `systems/scoring.md`）；难度缩放是相对量且自动跟随——敌人赋级恒落角色等级 `±2` 带、「越往后越难」由 `baseMomentum` 跨度放大内生兑现，再叠一条随进度递增的绝对阶梯等于在唯一可见的难度刻度（等级）之外开一条不可见的强度轴，且任何「按进度加压」的实现都必须产出带外 `diff`、直接撞 `±2` 硬规则；进程是「location 串联 + 逐批择一」，没有固定节律的循环单位（Finale 只在篇章边界出现一次）。**章内的推进感由等级成长（`baseMomentum` 上升 + 经验条常驻）与越阶只出现在境界末两级这两条既有机制承载**；「篇章」是量纲吸收的分格单位，不需要第二个名字。若实测发现章中段太平，补救手段是调既有曲线（`BatchSizeWeights` / 赋级权重的剧本乘性调制 / `eventCountLimit` 序列），不是加一条新阶梯——这条约束力是有意的。
+- **一切随进度变化的数值，分格轴只有两条（承重纪律）：`①` 全局等级序（1–22，相对量、逐级）与 `②` 篇章（ch1 / ch2 / ch3，绝对量纲吸收）。** 轴 ① 承载「谁比谁强」（相对，敌人跟随角色），轴 ② 承载「数字量纲膨胀多少」（绝对，吸收 `baseMomentum` 的百倍膨胀）。新增任何缩放旋钮，其分格列必须是这两条之一；需要第三条轴（「章内进度」「已走过的 location 数」「已完成事件数」一类）**须先立 ADR**——那等于引入一条既有分工之外的难度轴。本条与「代码侧只读『当前篇章的那一行』、不为分章写分支」的三处既有约束同型，只是上收为一条通则；落点是设计评审（新写按进度分格的数值表时检查其分格列），不进任何自动校验——零成本、零保证，如实标注。
+- **既有缩放曲线登记表（形态归本文档，取值权威留各处——本表只指路与记状态，不复制数字）：**
+
+  | # | 曲线 | 分格轴 | 权威 | 状态 |
+  |---|---|---|---|---|
+  | 1 | `baseMomentum`（战斗起跑线 · 强度主刻度） | 全局等级 1–22 | `systems/balance.md` | 已定，表已完整 |
+  | 2 | 敌人赋级带 + 带内权重 + `FinaleDiff`（`EnemyLevelingData`） | 篇章（三行，当前同值）× 相对 `diff` | `systems/balance.md` | 已定（含加载期校验） |
+  | 3 | `combatTier` 遭遇参数（`TurnLimit` / `WinMargin`，落 `EncounterSpec`） | 档（三档） | `systems/adventure-event/combat/_index.md` | 已定 |
+  | 4 | 负侧 `lossPerMomentum` | 篇章 | `systems/balance.md` | ch1 锁定；ch2 / ch3 候选值待定 |
+  | 5 | 胜侧 `rewardPerMomentum`（支路 A 单价） | 篇章 × element | `systems/balance.md` | 已定 |
+  | 6 | 胜侧 `advantage` 三档（支路 B） | 归一化道念差 | `systems/balance.md` | 形态已定；各档稀有度权重待取值 |
+  | 7 | 灵石给予量 `S(c)` + `combatTier` 偏置（书写口径） | 篇章 × 档 | `systems/balance.md` | 已定 |
+  | 8 | `lifeSpanCost` 21 格（`t × λ`，`LifeSpanCostTableData`） | 篇章 × 事件类型 | `systems/balance.md` | 已定 |
+  | 9 | `experiencePoint` 阈值曲线 + `ExperienceGrade` 给予量 | 境界内递增 + 境界间重置量纲 | `systems/balance.md` · 本文档 | 已定 |
+  | 10 | `BatchSizeWeights` | 篇章 | `systems/balance.md` | 初值已给（三章同值） |
+  | 11 | `RealmBreakthroughManaBonus` | 境界边界（单值） | `systems/balance.md` · `systems/character-profile/mana.md` | 形态已定，取值待校准 |
+
+  十一条曲线逐条都能归入两条轴之一、无例外——这是分格轴纪律不是臆造的证据。战斗档位的取值缺口（三档 `BaseReward` / `RewardPoolId` 厚薄、战后奖励池各档权重）已各自在 `systems/scoring.md` 与 `systems/balance.md` 的待决问题登记，本表不重复登记。
+
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-13.md` · `handoffs/2026-07-15-adventure-event-profiles.md` · `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-09-06-finale-trigger-and-foresight-declined.md` · `handoffs/2026-09-06-chapter-duration-rescale.md` · `handoffs/2026-09-06-failure-spiral-tolerance.md` · `handoffs/2026-09-06-event-type-mix-ratios.md` · `handoffs/2026-09-06-blind-ante-scaling-curve.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -192,11 +214,7 @@ Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handof
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **中长期规划感的来源。** 进程是**逐批择一的线性推进**，既无俯瞰地图也无前方预告。**地理方位感这一半已落地**：`LocationCodex` 记连边，玩家因此能**提前两步规划路线**——跨轮回的知识增长直接转化为轮回内的决策质量。**仍待定的是进度感那一半**：图鉴不回答「还有几步到 Finale」，是否还需轮回内的补充（篇章进度条？前瞻提示？）。→ 亦见 `ux/`、`systems/player-profile/codex/`。
-- **「可用结束点」已明确**：到达下一境界所落的**存档点**即结束点，可读档开始下一 chapter。**chapter 途中死亡 → 从该 chapter 起始存档重试**；炼气（第 1 chapter）近乎无限重试，后续 chapter 有限重试（数值见 `systems/services/life-cycle-service.md`）。
 - **选择区的呈现与导航手感**：月圆之夜式菜单 + 横向滑动选择，但**每批 eventOptions 的选项数量 / 排布 / 滑动手感**尚未落定。注意进程形态是**逐批择一的线性推进**（每次从当前 eventOptions 中选一个，选完重算下一批），**不是可俯瞰、可回溯的分支地图**。
-- **eventOptions 的五类配比未定。** 生成 / 加权的**运算形态已定**（十步管线、类型修正是乘性系数、多 arc 权重相乘 / 白名单取并、批次规模由 `BatchSizeWeights` 掷定，见 `systems/services/future-event-service.md`）；仍待定的是**基础类型权重表 `BaseTypeWeights` 每格填多少**。→ `systems/balance.md`。
-- **blind / ante 缩放（未陈述）：** 具体 blind 要求 / 奖励 / ante 缩放曲线**尚未陈述**；缩放数值最终归 `systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/game-progression.md`（引用层，待建）。

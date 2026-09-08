@@ -343,7 +343,9 @@ Source: `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12-
 
 ## 待决问题
 
-- **多设备并发登录的云端裁决规则。** 后登录挤下线？拒绝？归**后端库**。客户端侧的表现已定（被挤下线 → 硬阻塞重登 → 先 pull 后 flush，见「意图」），仅剩裁决策略本身待后端定。
+> **多设备并发登录的裁决规则已于 2026-08-16 由后端答结**，本条不再待决 → `backend-design-documents/contracts/auth.md` §4a（`(accountId, deviceId)` 唯一约束 · **活跃会话上限 1** · **同设备重登替换** · `sid` claim 精确吊销 · `signin` 的 60 秒幂等回放窗口）。客户端侧的表现本就已定且与之一致（被挤下线 → 硬阻塞重登 → 先 pull 后 flush，见「意图」；最坏生效延迟 = access token TTL，窗口内旧设备的 push 由 `revision` CAS 拒绝）。**本库只对位不复述裁决规则本身。**
+
+**本文档当前无待决项。**
 
 ## 对应
 提炼至：`.claude/knowledge/systems/account-service.md`（引用层，待建）。

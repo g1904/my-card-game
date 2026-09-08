@@ -27,6 +27,16 @@
   | `Artwork : Texture2D` | **共有字段**（本层 = 敌人立绘），可空、默认 `null`。类型定义与校验语义见 `systems/common-properties.md`，本层投影见 `common-properties.md` |
 
 - **敌人与玩家同源构筑。** 敌方卡组由**功法（`CultivationTechnique`）+ 层数**展开，敌我共用同一套 `CultivationTechniqueData` 与同一注册表；玩家在敌人身上观察到的功法强度，就是自己习得后能拿到的强度。战斗内照旧不感知功法——组装时展开为卡牌集合，与玩家侧同一条纪律（`systems/character-profile/deck/_index.md`）。收益：图鉴知识可验证且可迁移、「击败后习得其招」有天然载体、敌我共用一套功法条目使内容产能减半。**被接受的代价**：散牌不属任何功法，故「敌人卡组 = 玩家可习得内容」这一承诺留有一小块例外。
+- **敌人样本卡组的规模区间（内容编排口径 · 初值 · 核对落 `/audit-content` 汇总，只报告不阻断）。** 敌我同源构筑使规模天然按「功法数 × 每门 5 张」成格（每门功法的卡牌数见 `systems/character-profile/deck/_index.md`）：
+
+  | 档 | 规模 | 编排含义 |
+  |---|---|---|
+  | 常用区间 | **10–25 张** | 2–4 门功法 + 0–5 张散牌 |
+  | 常态 | **15–18 张** | 3 门功法，与玩家起始卡组对称 |
+  | 轻量档 | **10–12 张** | 2 门功法、少散牌。`Standard` 一场流入 14 张 ⇒ **从第 4 个己方回合起稳定失血**——它正是「牌少而精的对价」在敌人侧的显影处，也是疲劳在常规遭遇里的主要现身点 |
+  | 天劫（`Finale`）定制卡组 | **20–25 张** | 12 回合流入 16 张 ⇒ 恒不疲劳；绝境感由定制卡组强度与 `FinaleDiff` 承担 |
+
+  - **规模是编排旋钮而不是难度旋钮**：它调的是失血时机，不是产出上限——后者由 `baseMomentum` 与逐条编排的卡组承载，与层数护栏同属一条纪律。
 - **两段式（功法 + 散牌）而非纯功法列表**：与玩家侧的「卡组 = 功法展开的牌 ∪ 游离散牌」保持同构，并保住「卡组规模是一条疲劳编排旋钮」——纯功法列表会让规模只能按「功法数 × 每层卡数」整组增减。
 - **`TechniqueRef` = 带两个具名字段的内嵌 `Resource`**（内嵌类型一律 `Resource` 派生，同 `PoolScope`）：`TechniqueId : string`（须存在于 `CultivationTechniqueData` 仓储）+ `Tier : int`（须落在 `[1, 该功法的 MaxTier]`；`MaxTier` 的定义在 `systems/character-profile/deck/_index.md`）。
 - **敌方专用内容的表达面唯一**：`EnemyData` 引用的功法不得 `Pool == Character`；`Pool` 的枚举与卡池划分语义见 `systems/character-profile/deck/_index.md`「卡池划分」节。天劫这类条目的定制性由 `Pool == Enemy` 的敌方专用功法承担，**不为它开第二条构筑通道**——恒无对象的伸缩位只会让每个消费点都要处理一个永不发生的分支。
@@ -35,7 +45,7 @@
 - **敌人持有道念、行为，并持有自己的卡组**；**敌人侧的战斗内量与玩家侧对称**，也是道念，不设独立的血量池。
 - **敌人的战斗强度以 `baseMomentum` 为主刻度**：等级 → 起始道念 → 开局领先量，这是越级压迫感的直接来源。**卡组保持强度中立，不叠第二条强度曲线**（否则 `±2` 带的数值安全性推导立刻失效）。
 - **层数在 `EnemyData` 上逐条编排为固定值，随赋级只动 `baseMomentum`。** 同一个敌人不因赋级变强变弱，强度中立**在同一条目内**成立；「强敌 = 更高层数」成立于内容层而非物化层，`EnemyLevelRange` 与层数**不建立机械对应关系**。理由：层数是严格升级，按定义就是第二条强度曲线——让它随赋级浮动会使难度曲线失去可控性（同一条目在两次遭遇中强度不同，且强度差不体现在玩家唯一能读到的刻度上），而「无隐藏乘数、观察即所得」这个诉求不需要靠层数浮动来兑现。连带收益：层数固定 ⇒ 展开在加载期即唯一确定 ⇒ `KeyCardIds` 的加载期校验与图鉴的静态性一字不改。
-- **条目之间的层数散布须有护栏（承重 · 本文件是它的权威）。** 层数固定只解决了同一条目内的浮动；条目**之间**的散布仍是一条与 `diff` 同量纲的旋钮——一档 `TechniqueTier` 差在标准 10 回合内累计 ≈ 一档 `diff` 的 `baseMomentum` 落差（追分锚点见 `systems/balance.md`），而赋级带只框住了起跑线那一维，对层数这一维**不给任何约束**。不设护栏就等于在唯一可见的难度刻度（等级）之外再开一条不可见的强度轴。故：**敌人功法层数按篇章给一个基准档**（对齐玩家在该阶段的典型层数），**逐条目偏离 ≤ ±1 档**。这是**内容编排口径**——「典型层数」随内容扩充而漂移，焊进加载期只会让每次内容调整都撞一次 `PushError`；核对落 **`/audit-content` 汇总（只报告不阻断）**，与「负向 `OnFailureRules` 占比」同款处理。
+- **条目之间的层数散布须有护栏（承重 · 本文件是它的权威）。** 层数固定只解决了同一条目内的浮动；条目**之间**的散布仍是一条与 `diff` 同量纲的旋钮——一档 `TechniqueTier` 差在标准 10 回合内累计 ≈ 一档 `diff` 的 `baseMomentum` 落差（追分锚点见 `systems/balance.md`），而赋级带只框住了起跑线那一维，对层数这一维**不给任何约束**。不设护栏就等于在唯一可见的难度刻度（等级）之外再开一条不可见的强度轴。故：**敌人功法层数按篇章给一个基准档**（对齐玩家在该阶段的典型层数），**逐条目偏离 ≤ ±1 档**。**基准档取值 ch1 = 2 · ch2 = 3 · ch3 = 4**，故实际支撑集为 1–3 / 2–4 / 3–5，恰落在 `MaxTier` 设计上界 5 之内。推导即「对齐玩家典型层数」：玩家三门底盘功法起手恒为第 1 层、主升阶通道是闭关（ch1 参考构成含 4 次 `Research`），一章约升 1 档 ⇒ 玩家典型层数 ch1 中段 2 / ch2 中段 3 / ch3 中段 4，末段各再高 1 档。这是**内容编排口径**——「典型层数」随内容扩充而漂移，焊进加载期只会让每次内容调整都撞一次 `PushError`；核对落 **`/audit-content` 汇总（只报告不阻断）**，与「负向 `OnFailureRules` 占比」同款处理。
 - **产出缩放与玩家同因**：敌人各等级的道念产出**不设敌方专属的隐藏数值乘区**，决定因素与玩家完全一致；同一门功法同一层数，敌我两侧展开出的是同一批卡牌条目。
 
 ### `EnemyInstance` —— 物化定稿实例
@@ -214,7 +224,7 @@ public partial class AiWeight : Resource             // 内嵌 Resource + 两个
 - **不另加带数字的胜率口径**（如「定制相对兜底的基准胜率偏差 ≤ ±5pp」）：该数字在量纲基准与首批 starter deck 成型之前无法测量，写下即是一条无人执行的条款。日后确有需要时它是纯加法。
 - 取值域住平衡资源，故可随 overlay 热更收紧，不必发版。
 
-Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md`
+Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-09-07-combat-scale-baseline.md`
 
 ## 决策(-> ADR)
 
@@ -225,7 +235,7 @@ Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/
 
 ## 待决问题
 
-- **敌人各等级的道念产出缩放：** 起始值已由 `baseMomentum` 给定，产出能力的缩放曲线未定 → `systems/balance.md`（留待内容扩充后的统计校准）。
+- 无。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/enemies.md`（待建）

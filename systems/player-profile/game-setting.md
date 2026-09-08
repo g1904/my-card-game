@@ -6,7 +6,7 @@
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
 - **设置 ⊃ `GameSetting`（包含关系，承重）。** 玩家可调的设置分落两侧：**账号级**一半落 `PlayerProfile.gameSetting`（`GameSetting` 类），**设备本地**一半落 `user://cache/device-settings.json`。`GameSetting` 不是「全部设置」，故本文档承担的是一张**两侧对照表**，而不是一张账号级清单——不写清这层包含关系，设备本地那一半会无处登记。
-- **形态 = 具名类，不是字典 / 键值表。** 与「`CapabilityFlag` 用 `enum` 而非字符串 key」「`PlayerEntitlement` 用具名字段而非集合」同一条纪律：开放容器把「拼错了」从编译期推迟到运行时，还会让「哪些项是账号级」这个真问题被悄悄绕过。
+- **形态 = 具名类，不是字典 / 键值表。** 与「`CapabilityFlag` 用 `enum` 而非字符串 key」「`PlayerEntitlement` 不用以付费点种类为 key 的开放容器」同一条纪律：开放容器把「拼错了」从编译期推迟到运行时，还会让「哪些项是账号级」这个真问题被悄悄绕过。**逐品类一个具名字段，绝不用一个 `Dictionary<Slot, string>` 收纳同族的多项。**
 - **随账号云端持久。** 账号级那一半与其他账号级字段一致，写入经 `profile-service.ProfileManager`、同步经 `sync-service`，云端为权威。
 - **本子系统为独立 markdown。** 结构轻，不成文件夹。
 
@@ -93,6 +93,7 @@ public sealed class GameSetting     // 不被任何规则读，也不是统计�
 | **帧率上限（30 / 60）** | 不收（但最有可能第一个被补上） | 移动端省电确有价值，且本库在意电量；但当前无任何实测证据说明本作需要它 | 真机功耗实测给出可观差值 ⇒ 补**设备本地** `frameRateCap: int` |
 | **二次确认开关** | 不收，且明确否决 | 它同时踩两条：① 「不做二次确认」是**规则层的手感取向**，不是可由玩家切换的偏好；② 已定的两处二次确认（解绑 · 绑定冲突）是**安全性必需、不可关**。一个总开关必然要么关不掉那两处（名不副实），要么关得掉（削弱一条安全纪律） | 无。若日后确需，应是逐处的产品决策，不是一个总开关 |
 | **辅助功能（字号 / 色盲 / 减少动效）** | 不收 | 字号与色盲当前没有任何既有陈述可依，凭空定即臆造；「减少动效」与已收的 `FastCombatAnimation` 高度重叠，两个开关会互相解释不清。至于「无 hover-only 可供性」，它已是全局设计通则——由通则承担的东西不该退化成一个可关的选项 | 无障碍专场；或战斗 UX 专场确认动效强度确实需要独立于速度的第二个旋钮 |
+| **外观的选用项**（当前穿哪一套皮肤 / 卡背） | 不收（**归属已判定为账号级**，只是外观首批不做） | 外观付费点是架构预留、首批不做（`systems/monetization.md`），故当前没有可选用的对象；收它 = 又一个不控制任何东西的空开关。**归属先答定以免落地时重议**：按切分判据的自检反问——玩家换新手机登录同一账号，会觉得这一项理应还是上次调好的样子 ⇒ **账号级**，落 `PlayerProfile.gameSetting`；它**不能**落 `PlayerEntitlement`（那里只放付费凭证与兑现水位，选中项是纯偏好），也不落设备本地 | 外观品类落地 ⇒ **逐品类补一个账号级具名字段**（形如 `EquippedCharacterSkin : string?`，取值域 = 已持有外观条目 `Id` 或 `null` = 默认外观，默认 `null`），走既定的四步加项成本并入同一次 bump。三条随之成立：**`null` 就是默认外观、不设第二个「是否使用默认」布尔**（与不设 `IsMuted` 逐字同判据）；**持有校验不落在读档钳制里**——读到一个未持有的 id ⇒ `PushWarning` + 回落 `null`（呈现层降级），**不改写字段、不上行纠正**，因为 `entitlement` 侧是后端权威，客户端拿本地判断去覆写选用值只会在权益尚未 pull 到时误清玩家的选择；**它进 `GameSetting` 这个类但不进设置屏**，换装的呈现落点是角色选择屏（设置屏语义已钉死为三段 + 一行只读诊断） |
 | **内容语言（与界面语言分离）** | 明确否决 | 「语言开关只有一个」逐字点名过这个形态：玩家能把界面切成英文而卡面留在中文 | 无 |
 | **「同步版本 #N」** | **它不是设置项，不进 `GameSetting`** | 它是 `SyncService.BaseRevision` 这个只读属性在设置屏上的一次呈现，UI 直读即可。写成字段 = 制造第二份真值，且会把一个传输层元数据卷进存档 schema——与「`baseRevision` / `schemaVersion` 不进 Profile，进去会自指」同一条判据。**明写这条排除**，因为「设置屏上看得见的东西 = `gameSetting` 的字段」是一个非常自然的误读 | 无 |
 | **已关闭的推荐版本号** | 保持既定落点 `user://cache/dismissed-recommended-version.json` | **不并入** `device-settings.json`——一个是玩家显式偏好、一个是一次性呈现去重状态，生命周期不同，合并只换来一次改动、不换来任何收益 | 无 |
@@ -107,7 +108,7 @@ public sealed class GameSetting     // 不被任何规则读，也不是统计�
 - **不进透明段、后端零配合。** 后端不读它、不复算、不据它发放任何东西 ⇒ `/gameSetting/**` 不出现在透明路径白名单里（白名单权威在 `backend-design-documents/contracts/profile-sync.md` §5，本库不复制）。**但它仍受字段名机械映射为 JSON path 的约束**：改字段名仍要 bump `schemaVersion`，只是**不需要后端配合**。这两件事必须分开说，否则「Profile 字段都受路径稳定性纪律约束」会被读成「改个音量字段名也要与后端同批改」。
 - **离线改设置可能被云端覆盖，代价照录。** 玩家离线改了音量、另一台设备写入，恢复时补提交前先 pull 发现云端 `revision` 领先 ⇒ 以云端为准丢弃本地缓冲，那次改动回滚，玩家会看到既定的「另一设备的进度已生效」提示。**不为设置做任何补偿**——字段级三路合并正是 `ADR-0003` 排除的东西，为一个滑条位置削弱云端权威不成比例。
 
-Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-09-02-architecture-services-reconcile.md`
+Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-09-02-architecture-services-reconcile.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

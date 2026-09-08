@@ -6,6 +6,22 @@
 
 | 草稿 | 类型 | 日期 | 去向 handoff | answer log |
 |------|------|------|--------------|------------|
+| `solution-draft-achievement-schema-and-rewards.md` | solution-draft | 2026-09-07 | `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md` | `answer-logs/log-achievement-schema-and-rewards.md`（移出 3 全条 + 1 部分 · 记 interview 裁决 2 项 · 新增 0 条） |
+| `solution-draft-combat-scale-baseline.md` | solution-draft | 2026-09-07 | `handoffs/2026-09-07-combat-scale-baseline.md` | `answer-logs/log-combat-scale-baseline.md`（移出 5 全条 · 记 interview 裁决 2 项 · 新增 2 条复核项） |
+| `solution-draft-cosmetic-monetization-shape.md` | solution-draft | 2026-09-07 | `handoffs/2026-09-07b-cosmetic-monetization-shape.md` | `answer-logs/log-cosmetic-monetization-shape.md`（移出 1 条收窄为事实确认 · 记 interview 裁决 2 项） |
+| `solution-draft-chapter-duration-rescale.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-chapter-duration-rescale.md` | `answer-logs/log-chapter-duration-rescale.md`（移出 0 条 · 记 interview 裁决 5 项） |
+| `solution-draft-failure-spiral-tolerance.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-failure-spiral-tolerance.md` | `answer-logs/log-failure-spiral-tolerance.md`（移出 1 全条 · 新增 1 条） |
+| `solution-draft-event-type-mix-ratios.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-event-type-mix-ratios.md` | `answer-logs/log-event-type-mix-ratios.md`（移出 1 全条） |
+| `solution-draft-blind-ante-scaling-curve.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-blind-ante-scaling-curve.md` | `answer-logs/log-blind-ante-scaling-curve.md`（移出 0 全条 · 撤半句 + 三处索引登记） |
+| `solution-draft-ability-loss-frequency-budget.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-ability-loss-frequency-budget.md` | `answer-logs/log-ability-loss-frequency-budget.md`（移出 1 全条 · 附带收口 1 项矛盾） |
+| `solution-draft-mechanism-contradiction-roundup.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-mechanism-contradiction-roundup.md` | `answer-logs/log-mechanism-contradiction-roundup.md`（移出 0 条 · 记五项矛盾裁定，其一为反裁定） |
+| `solution-draft-stale-wording-roundup.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-stale-wording-roundup.md` | `answer-logs/log-stale-wording-roundup.md`（移出 0 条 · 记六项失真裁定 + 选项 A 裁决） |
+| `solution-draft-completed-data-retention.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-completed-data-retention.md` | `answer-logs/log-completed-data-retention.md`（移出 1 全条 · 新增 0 条） |
+| `solution-draft-status-vs-ownership-encoding.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-status-vs-ownership-encoding.md` | `answer-logs/log-status-vs-ownership-encoding.md`（移出 1 部分条 · 新增 0 条） |
+| `solution-draft-character-discard-entry.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-active-discard-entry.md` | `answer-logs/log-character-discard-entry.md`（移出 1 全条 · 新增 0 条） |
+| `solution-draft-third-hidden-stat.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-third-hidden-stat.md` | `answer-logs/log-third-hidden-stat.md`（移出 1 部分条 · 新增 0 条） |
+| `solution-draft-finale-distance-foresight.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-finale-trigger-and-foresight-declined.md` | `answer-logs/log-finale-distance-foresight.md`（移出 1 全条 · 新增 0 条 · **主体提案 A–G 被否，仅落触发条件核实与待答项关闭**） |
+| `solution-draft-enemy-momentum-scaling.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-enemy-momentum-scaling-closure.md` | （无 · 移出 1 条但不新建 log —— 该问题已由 `answer-logs/log-0823b.md` 答结归档，本次系清理误重复登记） |
 | `solution-draft-iap-channel-integration.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-iap-channel-integration.md` | `answer-logs/log-iap-channel-integration.md`（移出 1 全条 · 新增 0 条） |
 | `solution-draft-baseline-superset-and-pack-proof.md` | solution-draft | 2026-09-06 | `handoffs/2026-09-06-baseline-superset-and-pack-proof.md` | `answer-logs/log-baseline-superset-and-pack-proof.md`（移出 2 全条 · 新增 0 条） |
 | `solution-draft-run-end-and-chapter-completion-screens.md` | solution-draft | 2026-09-05 | `handoffs/2026-09-05-chapter-end-screen.md` | `answer-logs/log-run-end-and-chapter-completion-screens.md`（移出 2 全条 · 新增 1 条） |

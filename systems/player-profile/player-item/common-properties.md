@@ -20,7 +20,8 @@ Source: `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **共有字段未定案。** 若走「数据即资源」，预期有稳定唯一 `Id`、显示名 / 描述、使用次数上限、效果定义、价格 / 库存权重（对齐 `data-resource-rules.md`）——但目前均为占位，无实质设计。
+- **共有字段部分未定案。** **已定案的部分不在本条范围内**：`SourceCode` 的合法取值与分域校验（见上方「意图」）· `Charges > 0` 是 `Scope == Player` 的硬约束（违反 → 加载期 `PushError`）· 两格使用效果面 `CombatUseEffects` / `OutOfCombatUseOutcome` 与本场配额 `MaxUsesPerCombat` · 必填 `Rarity: RarityTier`（缺失 → `PushError`）· **`ItemData` 上不加 `Price` / `Purchasable`**——权威见 `_index.md` 与 `../../character-profile/item/_index.md`。
+  **仍未设计**：次数上限的具体取值模型与次数如何补充、可购价格 / 库存权重、道具种类目录（对齐 `data-resource-rules.md` 的「数据即资源」形态）。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/player-item/`（待建）。

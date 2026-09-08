@@ -406,9 +406,9 @@ Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handof
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **五类之间的配比取值未定。** 生成规则的**运算形态已全部给出**（数量由 `BatchSizeWeights` 掷定、类型修正是乘性系数、多 arc 权重相乘 / 白名单取并、十步管线，见上与 `systems/services/future-event-service.md`）；仍待定的是**基础类型权重表 `BaseTypeWeights` 每格填多少**，以及 Combat 内 `combatTier` 三档的配比。→ `systems/balance.md`。
+- *（无。五类配比与 `combatTier` 配比——`BaseTypeWeights` 五格初值与 `Practice : Standard = 1 : 1`——见 `systems/balance.md`。）*
 
-Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md`
+Source: `handoffs/2026-09-06-event-type-mix-ratios.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md`
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/common-properties.md`（待建）

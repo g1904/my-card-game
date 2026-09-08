@@ -352,8 +352,16 @@ public sealed record ProfileChangeSpec                                    // 平
     public IReadOnlyList<CodexUnlock>          CodexElements   { get; }   // 图鉴解锁：按 (Kind, Id) 的幂等收录
     public IReadOnlyList<ItemChargeElement>    ItemElements    { get; }   // 道具次数：按 (Scope, ItemId) 选定实例后的带符号增量
     public IReadOnlyList<ItemUseEntry>         ItemUseElements { get; }   // 战斗外使用痕迹：序列尾部只追加
-}                                        // CodexUnlock / CodexKind / ItemChargeElement 的定义见 systems/services/profile-service.md
+    public IReadOnlyList<AbilityStatusAssignment> AbilityStatusChanges { get; } // 能力启用开关：按 (Kind, Scope, AbilityId) 的绝对置值
+    public IReadOnlyList<AchievementProgressElement> AchievementElements { get; }    // 成就进度：按 AchievementId 的带符号增量，按 Target 钳制
+    public IReadOnlyList<AchievementTierAward>       AchievementTierElements { get; } // 成就档位水位：按 GroupId 的绝对置值
+}                                        // CodexUnlock / CodexKind / ItemChargeElement / 两条成就 element 的定义见 systems/services/profile-service.md
                                          // ItemUseEntry 的定义见 systems/character-profile/_index.md
+public readonly record struct AbilityStatusAssignment(  // 绝对置值：把已持有条目的 Status 置为 Enabled
+    AbilityCarrierKind Kind,                            // Power | Item
+    AbilityScope       Scope,                           // Character | Player
+    string             AbilityId,
+    bool               Enabled);
 public readonly record struct ChangeElement(   // 负 = 消耗，正 = 产出（仅 Add 时有向）
     CostKey Key,
     int     BaseValue,
@@ -467,7 +475,7 @@ public enum DefeatReason    { Discarded, LifeSpanExhausted, FinaleFailed }
 public enum CapabilityFlag  { RevealHiddenStats, ShowExploreType }
 // 成员名 = 动词 + 宾语，动词取自封闭三词表 {Reveal, Show, Unlock}；禁 Hide* / No* / Disable* / Suppress* / Prevent*
 // —— 全部 flag 恒为增益向是「union 即全部叠加规则」这条不变式的前提，见 systems/services/profile-service.md
-public enum HiddenStat      { Faith, Bloodlust, LifeSpan }
+public enum HiddenStat      { Faith, Bloodlust }
 public enum RngStream       { Map, Combat, Shop, Reward }
 public enum EventType       { Combat, Exchange, Research, Explore, Travel }
 public enum CombatTier      { Practice, Standard, Finale }   // 仅 EventType.Combat 携带
@@ -497,9 +505,9 @@ public readonly record struct HiddenStatGrant(
 
 **`HiddenStatGrant` 自带方向格，方向不落档位表（承重）。** `HiddenStatGrade` 的平衡表映射值恒为**正量**，而隐藏属性需要双向推拉——道心是双臂属性（一个条目推高、一个条目压低），煞气虽以上行为主但可被净化类事件下拉。方向是**单次变更的属性**：同一个 `Faith` key，这个条目推高、那个条目压低 ⇒ 按上方三级判据落不进配表（配表只装「同一个 key 的**每一次**变更都取同一个值」的性质），只能落在内容作者可逐条书写的那一格。符号在物化组装时由 `Direction` 取负，与 `SelectCost` 的 `lifeSpanCost` 取负、`OutcomeRule.Direction` 取负同处 ⇒ element 层、`AppliedChange` 层、存档层一格未动，**存档 schema 零增量、不 bump、无迁移**。
 
-- **`HiddenStatDirection` 与 `OutcomeDirection` 分立，不复用。** `Gain` / `Loss` 是价值判断词，其既有唯一用法绑在 `LifeSpan` / `ManaLimit` / `SpiritStone` / `ImmortalJade` 四个 key 上——那里「得到 = 数值升」两轴重合。移到隐藏属性上两轴当场分离：`(Bloodlust, Major, Gain)` 有「煞气 +10」与「玩家获益 ⇒ 煞气 −10」两个自洽读法，`.tres` 里读不出作者想的是哪一种。`Raise` / `Lower` 沿**数值轴**命名，对三个属性一律无歧义。过载的第二笔代价是「见到 `OutcomeDirection` ⇒ 它作用在一个 `FixedResource` 资源量上」这条恒真句失效。
+- **`HiddenStatDirection` 与 `OutcomeDirection` 分立，不复用。** `Gain` / `Loss` 是价值判断词，其既有唯一用法绑在 `LifeSpan` / `ManaLimit` / `SpiritStone` / `ImmortalJade` 四个 key 上——那里「得到 = 数值升」两轴重合。移到隐藏属性上两轴当场分离：`(Bloodlust, Major, Gain)` 有「煞气 +10」与「玩家获益 ⇒ 煞气 −10」两个自洽读法，`.tres` 里读不出作者想的是哪一种。`Raise` / `Lower` 沿**数值轴**命名，对两个属性一律无歧义。过载的第二笔代价是「见到 `OutcomeDirection` ⇒ 它作用在一个 `FixedResource` 资源量上」这条恒真句失效。
 - **枚举二值且封闭，不设 `Unset` 哨兵。** 依据：`OutcomeRule.Direction` 同为二值方向枚举，全库无哨兵。**代价明写：** 内容作者忘填 `Direction` 时会静默落成枚举 0 值 `Raise`，而 `Raise` 对煞气（累积物、以上行为主）恰是常见方向，比一般字段更难在测试中显形。
-- **`Stat` 保持宽类型 `HiddenStat`，取值域由加载期校验收窄为 `{ Faith, Bloodlust }`**，照 `OutcomeRule.PoolKind` 用宽的 `ExchangeGoodsKind` + 校验收窄的既有先例。一条 `PushError` 比一个近同义枚举便宜——`HiddenStat` 正被 `HiddenStatBandData.Stat`、`PlotCondition.Kind == HiddenStatBand`、EventBus 的 `PlotThresholdReached` 三处使用，多一个近同义枚举会让「该用哪个」成为每次新增字段都要回答一遍的问题。
+- **`Stat` 就取 `HiddenStat` 本身，不另立 `PushableHiddenStat` 一类子枚举。** 枚举成员即全部可推拉的属性，取值域无需再由校验收窄；`HiddenStat` 正被 `HiddenStatBandData.Stat`、`PlotCondition.Kind == HiddenStatBand`、EventBus 的 `PlotThresholdReached` 三处使用，多一个近同义枚举会让「该用哪个」成为每次新增字段都要回答一遍的问题。
 
 模板侧的产出格与加载期校验见 `systems/adventure-event/common-properties.md`；物化展开与组装后断言见 `systems/services/future-event-service.md`；档位映射值见 `systems/balance.md`。
 
@@ -538,6 +546,8 @@ public readonly record struct HiddenStatGrant(
 **反判据（决定「配表」还是「逐条带」）：** 同一个 key 的**不同次**变更可能取不同值 ⇒ 必须**逐条带**在 element 上（`BaseValue`、`Tier`、`StatusAssignment` 的值、`ApplyOp`）。**唯一恒成立的例外是「谁有权改写它」永远是类型属性、永远配表、绝不逐条带**——逐条带会把一条纪律降级为调用方选项，且 `AppliedChange` 重放时同一 key 可能带不同配置。`ChangeElement` 不自带 `ModifierKey?` 正是这条的应用；而 `Op` 描述的是**这一次发生了什么**（事实，逐次不同），准入仍留在 `ElementSpec.AllowedOps` 里，故两者并存不冲突。
 
 **为什么逐条按施加语义分列，而不是给 `ChangeElement` 加可空字段（承重判据）。** **施加语义根本不同就分列**——列表数不是这条判据的一部分，它随字段族增长，故此处不把数字写进承重表述。当前各列的语义：资源是**标量值**（可钳制、`Add` 时可加且带符号分向、`Set` 时是已算好的绝对值、**按 `ResourceElements` 表逐行决定是否走 modifier pipeline**），能力是集合成员操作（幂等增删、无量纲、**绝不走 modifier pipeline**），统计是纯计数（不钳制、失败不阻断、**绝不走 modifier pipeline**），Status 规则字段是**绝对置值**（赋一个已算好的值、不累加、按 key 的声明类型可为 id、**绝不走 modifier pipeline**），卡组是**带层数的构筑变更与多重集增删**（层数不可加、散牌可同名多张、无 `Source`、**绝不走 modifier pipeline**），剧本是**按 `ArcId` 的带载荷键值 upsert**（整条替换、无量纲、不钳制、**恒不走 modifier pipeline**），事件态是**整块绝对置值**（赋一份已算好的结构块或置空、无量纲、不钳制、**恒不走 modifier pipeline**），RNG 子流是**按子流枚举键的双标量 upsert**（幂等置值、无量纲、不钳制、**恒不走 modifier pipeline**），履历是**序列尾部追加一个大结构块**（**不幂等**、无量纲、不钳制、**恒不走 modifier pipeline**），账号级设置是**按固定枚举键的绝对置值**（要钳制、无量纲、双可空标量载荷格、**恒不走 modifier pipeline**）。把它们压进一个带符号 `int` 是**让类型说谎**；分开还使 `ApplyResult.MissingElement: CostKey` 的语义保持完好（它只对资源列表有意义）。**事务性不受影响**——各列表在同一次 `TryApply` 内提交，「全有或全无、单点提交」不变。否决的两个替代：`ChangeElement` 加可空 `TargetId` / 把 `Duration` 塞进 `BaseValue`（破坏带符号约定）；多态 element（`abstract record` + 子类，破坏 `readonly record struct` 的零分配与 diff / 序列化的简单形态）。
+
+**`AbilityStatusChanges` 承载四类持有条目上的 `Status` 开关，语义是按 `(Kind, Scope, AbilityId)` 的绝对置值。** 它按三级判据的 ① 分列，与 `AbilityElements` 的差别落在五面上：**施加语义**（集合成员增删 vs 已有成员上的字段置值）· **`Source`**（前者强制携带并校验合法子集、`Unknown` 即整批拒绝，后者无落点——开关不是一次授予，没有来源可言）· **`PairKey` / `Duration`**（前者承载置换配对与禁用时长，后者两格恒空）· **幂等的含义**（重复 `Grant` 是空操作，重复置值是覆盖）· **键与载荷的形状**（三元组键 → 单个 `bool`）。把一个不改变持有、无 `Source`、无 `Duration`、无 `PairKey` 的操作塞进 `AbilityElements`，等于让该列的载荷有一半字段对某个 `Op` 恒空——正是 `ChangeElement` 拒绝加可空字段时否决过的形状。**同族先例是 `SettingChanges`**：玩家自己拨的开关 · 按固定键绝对置值 · 恒不走 modifier pipeline，三面逐字同构；两者仍分列，因为作用对象与键空间不同（一个是 `GameSetting` 的固定枚举键，一个是持有条目的三元组键）。**恒不走 modifier pipeline**：一条法则若能改写玩家自己拨的开关，等于内容替玩家做主。**它与 `StatusChanges` 无关**——后者绑定 `CharacterProfile.Status` 上的数值型规则字段，名字撞车、语义无交集。施加与失败语义见 `systems/services/profile-service.md`，四类 record 的 `Status` 形态见 `systems/player-profile/_index.md`。
 
 **`StatusChanges` 的取值域同样是逐行一张封闭表（`StatusFields`），与 `ResourceElements` 同款判据。** 每行给出该 key 的**值类型**（`Int` / `Id`）与取值域（逐行取值见上方 `StatusFields` 表）：band 的区间来自档位表，`LocationEventCount` 的区间来自计数语义——没有通则能给出这些区间，也没有通则能判断某个 key 该填哪一格。**`Id` 型的值须能经 `ContentRegistry` 解析**，解析不到即坏档。`StatusChanges` 恒不走 modifier pipeline，理由与统计层同源且更重：`CurrentLocationId` 若可被一条法则改写，等于让内容改写玩家的地图位置；band 若可被改写，等于让法则伪造隐藏属性档位。逐行取值与施加 / 失败语义见 `systems/services/profile-service.md`。
 
@@ -592,6 +602,7 @@ public static class AtomicJsonFile          // 无状态；不持有任何服务
 | `PlotThresholdReached` | `(string CharacterId, HiddenStat Stat, int BandIndex)` | future-event（代 PlotManager） |
 | `CapabilitiesChanged` | **空负载** | profile |
 | `AchievementTierReached` | `(string GroupId, int TierPercent)` | profile |
+| `AchievementCompleted` | `(string AchievementId)` | profile |
 | `CombatTurnStarted` / `CombatTurnEnded` | `(int TurnIndex)` | combat |
 | `CombatFeedEntry` | `(CombatFeedKind Kind, Side Side, string EntryId, string CauseEntryId, string SourceId, string SourceInstanceId, string SourceCardId, int FizzledSlots, MomentumDelta CharacterMomentum, MomentumDelta EnemyMomentum)` | combat |
 | `CombatFinished` | `(CombatOutcome Outcome, int CharacterMomentum, int EnemyMomentum, int RemainingLifeSpan)` | combat |
@@ -603,7 +614,7 @@ public static class AtomicJsonFile          // 无状态；不持有任何服务
 2. **`CapabilitiesChanged` 空负载。** 订阅者收到后自行 `ProfileService.Instance.Has(flag)` 重查——这正是既定的「一个 flag ↔ 一处消费点 · 单点查询」；把生效集塞进负载反而制造第二份真值。
 3. **广播 = 既成事实，不可否决。** EventBus 不承载「请求 / 询问」；需要返回值的一律是直接方法调用。
 
-**剧本层只广播 `PlotThresholdReached` 一条。** 分支揭示走宿主服务门面的只读查询 `TryGetPlotSegment`（`PlotSegment` 是完整实例、进不了负载；且揭示的目的是等玩家输入 = 纪律 3 的「询问」）；分支选择与 key point 推进零跨系统消费方，不广播。日后成就采集面若定为 EventBus 被动订阅且确有剧本条件，按 `PlotArcAdvanced`（广播者 future-event 代 PlotManager）补一行 —— **它当前不在本表内**，形状与触发条件见 `systems/services/plot-manager.md`「事件面」。
+**剧本层只广播 `PlotThresholdReached` 一条。** 分支揭示走宿主服务门面的只读查询 `TryGetPlotSegment`（`PlotSegment` 是完整实例、进不了负载；且揭示的目的是等玩家输入 = 纪律 3 的「询问」）；分支选择与 key point 推进零跨系统消费方，不广播。成就采集的 EventBus 那一支若确有剧本条件，按 `PlotArcAdvanced`（广播者 future-event 代 PlotManager）补一行 —— **它当前不在本表内**，形状与触发条件见 `systems/services/plot-manager.md`「事件面」。补一行是正确加法；另开一条上报旁路不是。
 
 #### API 书写规范
 
@@ -678,7 +689,7 @@ Input (touch, 横向滑动选择)
                                    (SeedManager 的具名子流驱动全部随机性)
 ```
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-02-architecture-services-reconcile.md` · `handoffs/2026-09-03-plot-eventbus-broadcast.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-11b-contract-boundary-and-flags-client-side.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-14c-content-authoring-layer.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-02-architecture-services-reconcile.md` · `handoffs/2026-09-03-plot-eventbus-broadcast.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

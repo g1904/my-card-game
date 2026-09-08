@@ -41,7 +41,9 @@ public readonly record struct BoundIdentity(LoginChannel Channel, DateTime Bound
 
 报文形态、绑定端点与错误码的权威在 `backend-design-documents/contracts/auth.md`；`Identities` / `CreatedAtUtc` 由后端写入 profile 的路径见 `backend-design-documents/contracts/profile-sync.md` §5。
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-22-echo-validation-scope-client-half.md`
+- **合规域一格也不落 `AccountInfo`（已收口）。** 合规态没有任何下行通道，「随 `AccountInfo` 下行」这一形态被对侧显式否决（`backend-design-documents/contracts/compliance.md`「不下发」与被否决项 · `contracts/auth.md` §1a）；客户端侧的承载是 `ComplianceManager` 的独立 status 读取且**只在内存持有**（见 `systems/services/account-service.md`「合规域的客户端覆盖面」）。⇒ **本字段表不因合规增行。**
+
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-22-echo-validation-scope-client-half.md` · `handoffs/2026-09-06-stale-wording-roundup.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -51,7 +53,7 @@ Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **合规字段的归属：** 实名 / 未成年人限制等合规要求落在客户端还是纯后端，权威在 `backend-design-documents/open-questions.md`。字段表因此仍可能增行。
+- 无。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/account-info.md`（待建）。

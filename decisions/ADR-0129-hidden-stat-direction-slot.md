@@ -16,7 +16,7 @@
 
 **符号在物化组装时产生**：读平衡表取正量、按 `Direction` 取负，展开成一条 `ChangeElement(key, ±v, Add)`，与 `SelectCost` 的 `lifeSpanCost` 取负、`OutcomeRule.Direction` 取负在同一处。element 层、`AppliedChange` 层、存档层**一格都不用动**。
 
-**不加 `Unset = 0` 哨兵。** `Stat` 保持宽类型 `HiddenStat`，由加载期校验收窄为可推拉的那几项，不另立近同义枚举。物化展开伪码与逐条校验 / 断言见 `systems/architecture.md`、`systems/adventure-event/common-properties.md` 与 `systems/services/future-event-service.md`。
+**不加 `Unset = 0` 哨兵。** `Stat` 就取 `HiddenStat` 本身，不另立近同义枚举。物化展开伪码与逐条校验 / 断言见 `systems/architecture.md`、`systems/adventure-event/common-properties.md` 与 `systems/services/future-event-service.md`。
 
 ## 理由
 
@@ -25,7 +25,7 @@
 - **档位表条目数不变**：平衡表仍是 3 行，`HiddenStatGrade` 仍是 4 成员，`ExperienceGrade` ↔ `HiddenStatGrade`「形态同构而非同一张表」的关系不受扰动。
 - **沿数值轴命名而非价值轴**：`Raise` / `Lower` 对每个属性一律无歧义。价值判断词（`Gain` / `Loss`）在煞气这类累积物 / 负面属性上有两个自洽读法，`.tres` 里读不出作者想的是哪一种。
 - **不设哨兵**：`OutcomeRule.Direction` 同为二值方向枚举、全库无哨兵；本库对「为一个常态设一个必须显式置位的成员」判为反向的负担。
-- **不收窄 `Stat` 的类型**：照 `OutcomeRule.PoolKind` 用宽枚举 + 校验收窄的既有先例——一条 `PushError` 比一个近同义枚举便宜；`HiddenStat` 正被 `HiddenStatBandData.Stat`、`PlotCondition.Kind`、EventBus 的 `PlotThresholdReached` 三处使用，多一个近同义枚举会让「该用哪个」成为每次新增字段都要回答一遍的问题。
+- **不另立 `Stat` 的子枚举**：`HiddenStat` 的成员即全部可推拉的属性，取值域无需再收窄；`HiddenStat` 正被 `HiddenStatBandData.Stat`、`PlotCondition.Kind`、EventBus 的 `PlotThresholdReached` 三处使用，多一个近同义枚举会让「该用哪个」成为每次新增字段都要回答一遍的问题。
 - **方向位不引入任何新的钳制点**：逐步落位全部是既有形态（物化产生符号 → 存档记未截断值 → `Op == Add` 分支 → 两个 key 的两个修正列恒 `null`，pipeline 不介入 → `Clamp(raw, 0, 100)`）。截断不构成 `ApplyResult.Fail`。
 - **既有校验已把「方向互相抵消」封死**：同一 `HiddenStat` 出现两条本就被拒 ⇒ 不需要为方向位新增任何去重校验。
 

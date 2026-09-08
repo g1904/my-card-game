@@ -34,7 +34,7 @@ if (!result.Success)
 - **它是已定 `selectCost` 复合成本类型的唯一消费点。**（它是 **`ProfileChangeSpec`**——由若干 `ChangeElement` 组成，`lifeSpanCost` 是其中一个 element；见 `systems/adventure-event/common-properties.md`。）**成本与产出用同一个类型**：`ChangeElement.BaseValue` 带符号（负 = 消耗，正 = 产出），使一次结算的扣减与收益天然落在同一事务内。
 - **modifier pipeline 在此生效，但对 `Elements` 是 opt-in 白名单、缺省豁免（承重）。** 只有在 `ResourceElements` 表中显式登记了 `ModifierKey` 的那一行才走 `ApplyModifier(key, baseValue)`；`AbilityElements` / `Stats` 永不走。凡走的那一条，PlayerPower 的全局数值修正**不需要任何消费层写 `if (hasPowerX)`**——新增一个修正 = 新增一条数据，受影响系统零改动。缺省方向与分向规则见下方 `ResourceElements` 小节。
 - **道统残卷占资源族的七个成员。** `PlayerPowerFragment` 的 7 个字段与 7 个 `CostKey` 一一对应——`PowerFragmentAccumulated`（累加 / 置值）、`PowerFragmentFinaleWinOrdinal`（自增）、`PowerFragmentCh1/Ch2/Ch3FirstWinDone`（置位）、`PowerFragmentLastRoll` / `PowerFragmentLastEffectiveChance`（置值），以及**授予法则**（复用 `GrantPower` 语义，但作为 `Spoils` 的一个 element 提交；**该 element 必须携带 `Source`，残卷这一路取 `Source.FinaleWin`**——凡授予 power / item 的 element 一律强制带来源，见 `systems/common-properties.md`）。它们与 `baseReward` / `lifeSpanCost` 落在 Finale 的**同一次 `TryApply`** 内，符合「一个事件的收口是一次事务、一个存档点」。**`Accumulated` 是万分比整数、施加后钳制到 `[0, 10000]`**——上界来自它自己的万分比语义，是钳制必须逐 element 配表（见下）而非定通则的例证之一。
-- **`ProfileChangeSpec` = 平级只读列表，逐条按施加语义分列（承重）。** 判据是**施加语义根本不同就分列**，**列表数不进承重表述**——它随字段族增长，把数字写死等于每加一列就要改一次这条纪律。当前各列：`Elements`（资源，**标量值**：可钳制、`Add` 时可加且带符号分向、`Set` 时是已算好的绝对值、**按 `ResourceElements` 表逐行决定是否走 modifier pipeline**）· `AbilityElements`（能力，集合成员操作：幂等增删、无量纲、**绝不走 modifier pipeline**）· `Stats`（统计计数，纯计数：不钳制、失败不阻断、**绝不走 modifier pipeline**）· `StatusChanges`（Status 规则字段，**绝对置值**：赋一个已算好的值、不累加、按 key 的声明类型可为 id、**绝不走 modifier pipeline**）· `DeckElements`（卡组，**带层数的构筑变更与多重集增删**：层数不可加、散牌可同名多张、无 `Source`、**绝不走 modifier pipeline**）· `PlotElements`（剧本，**按 `ArcId` 的带载荷 upsert**：整条替换、不钳制、无量纲、**绝不走 modifier pipeline**）· `EventStateChanges`（事件态，**绝对置值**：三个事件态字段共用一列）· `RngElements`（RNG 子流，**按子流枚举键的双标量 upsert**：幂等置值、不钳制、无量纲、**绝不走 modifier pipeline**）· `TraceElements`（履历，**序列尾部只追加**：**不幂等**、无键、载荷是一整个 `PastEventEntry`、**绝不走 modifier pipeline**）· `SettingChanges`（账号级设置，**绝对置值**：按 key 配表钳制、无量纲、双可空载荷格、**绝不走 modifier pipeline**）· `CodexElements`（图鉴解锁，**按 `(Kind, Id)` 的幂等收录**：零 `Op`、只增不删、无量纲、不钳制、**绝不走 modifier pipeline**）· `ItemElements`（道具次数，**按 `(Scope, ItemId)` 选定一份实例后施加带符号增量**：有量纲、**不幂等**、按内容条目的 `Charges` 钳制、**绝不走 modifier pipeline**）· `ItemUseElements`（战斗外使用痕迹，**序列尾部只追加**：**不幂等**、无键、载荷是一整个 `ItemUseEntry`、**绝不走 modifier pipeline**）。压进一个带符号 `int` 是让类型说谎。类型定义、以及「一条新语义该落在哪一层（分列 / 加 `Op` / 配表加列）」的三级判据见 `systems/architecture.md`「共享核心类型」。**各列表在同一次 `TryApply` 内提交，「全有或全无、单点提交」不变。**
+- **`ProfileChangeSpec` = 平级只读列表，逐条按施加语义分列（承重）。** 判据是**施加语义根本不同就分列**，**列表数不进承重表述**——它随字段族增长，把数字写死等于每加一列就要改一次这条纪律。当前各列：`Elements`（资源，**标量值**：可钳制、`Add` 时可加且带符号分向、`Set` 时是已算好的绝对值、**按 `ResourceElements` 表逐行决定是否走 modifier pipeline**）· `AbilityElements`（能力，集合成员操作：幂等增删、无量纲、**绝不走 modifier pipeline**）· `Stats`（统计计数，纯计数：不钳制、失败不阻断、**绝不走 modifier pipeline**）· `StatusChanges`（Status 规则字段，**绝对置值**：赋一个已算好的值、不累加、按 key 的声明类型可为 id、**绝不走 modifier pipeline**）· `DeckElements`（卡组，**带层数的构筑变更与多重集增删**：层数不可加、散牌可同名多张、无 `Source`、**绝不走 modifier pipeline**）· `PlotElements`（剧本，**按 `ArcId` 的带载荷 upsert**：整条替换、不钳制、无量纲、**绝不走 modifier pipeline**）· `EventStateChanges`（事件态，**绝对置值**：三个事件态字段共用一列）· `RngElements`（RNG 子流，**按子流枚举键的双标量 upsert**：幂等置值、不钳制、无量纲、**绝不走 modifier pipeline**）· `TraceElements`（履历，**序列尾部只追加**：**不幂等**、无键、载荷是一整个 `PastEventEntry`、**绝不走 modifier pipeline**）· `SettingChanges`（账号级设置，**绝对置值**：按 key 配表钳制、无量纲、双可空载荷格、**绝不走 modifier pipeline**）· `CodexElements`（图鉴解锁，**按 `(Kind, Id)` 的幂等收录**：零 `Op`、只增不删、无量纲、不钳制、**绝不走 modifier pipeline**）· `ItemElements`（道具次数，**按 `(Scope, ItemId)` 选定一份实例后施加带符号增量**：有量纲、**不幂等**、按内容条目的 `Charges` 钳制、**绝不走 modifier pipeline**）· `ItemUseElements`（战斗外使用痕迹，**序列尾部只追加**：**不幂等**、无键、载荷是一整个 `ItemUseEntry`、**绝不走 modifier pipeline**）· `AbilityStatusChanges`（能力启用开关，**按 `(Kind, Scope, AbilityId)` 三元组键的绝对置值**：幂等、无量纲、不钳制、**无 `Source`**、**绝不走 modifier pipeline**）· `AchievementElements`（成就进度，**按 `AchievementId` 的带符号增量**：累加不幂等、有量纲、按内容条目的 `Target` 钳制、**绝不走 modifier pipeline**）· `AchievementTierElements`（成就档位水位，**按 `GroupId` 的绝对置值**：幂等、无量纲、取值域 `{60, 90}`、**绝不走 modifier pipeline**）。压进一个带符号 `int` 是让类型说谎。类型定义、以及「一条新语义该落在哪一层（分列 / 加 `Op` / 配表加列）」的三级判据见 `systems/architecture.md`「共享核心类型」。**各列表在同一次 `TryApply` 内提交，「全有或全无、单点提交」不变。**
   - **`AbilityChangeElement` 只承载已定稿的 `Id`。** 「随机挑一条来移除」「限定只能动神通」都是**结算侧的选取规则**，在 spec 组装之前就已掷完——把随机性留在 spec 里等于让同一份 spec 重放两次得到不同结果，而 `PastEventEntry.AppliedChange` 正要求它可重放。这与「`EventOption` 产出即定稿、落存档不重算」是同一条纪律。
   - **置换 = `Remove` + `Grant` 两条 element，由 `PairKey` 配对，不是一条 `Replace`。** ① 原子性已由「全有或全无」免费提供，复合 element 等于在类型层重复实现事务；② `Grant` / `Remove` 各有独立用途（残卷授予法则是纯 `Grant`，事件负向条目是纯 `Remove`），一条 `Replace` 会让「给予半边」与独立 `Grant` 分裂成两条施加路径；③ `PairKey` 保住可读性（履历与 UI 要显示「你用 A 换了 B」，`AppliedChange` 重放时因果还原得出来）；④ **代价明写**：列表形态约束不了配对，故需一条入口校验。
   - **三类移除的表达就此闭合：** 置换型剥夺 = `Remove` + `Grant`（同 `PairKey`）· 三档禁用 = `Disable` 带 `Duration` · 不强制剥夺 = **不表达**（缺省，没有 element）· 战斗内 `IgnoresProtection` = **仍不进 spec**（只动战场条目，不写 Profile）。
@@ -112,6 +112,21 @@ if (!result.Success)
     | 同一批 `ItemUseElements` 出现两条 | 必需缺失（组装缺陷） | `PushError` + 整批拒绝（一次使用恰一条痕迹） |
     | `ItemUseElements` 条目的 `AppliedChange.ItemUseElements` 非空 | 必需缺失 | `PushError` + 整批拒绝（自指防呆：一条痕迹的账里不该再装着一条痕迹） |
     | `ItemUseElements` 出现在 `SelectCost` 内 | 必需缺失 | `PushError` + 整批拒绝（不变式，同上款、独立成行） |
+    | `AbilityStatusAssignment` 的 `(Kind, Scope, AbilityId)` 不在对应持有列表 | 可选缺失 | `PushWarning` + 该 element 空操作，**不使整批失败**（与 `Remove` / `Disable` 同档） |
+    | 同一批 `AbilityStatusChanges` 内出现两条同 `(Kind, Scope, AbilityId)` | 必需缺失（组装缺陷） | `PushError` + 整批拒绝（绝对置值下两条同键 = 调用方自己也不知道该落哪一份；与 `EventStateChanges` / `SettingChanges` 同款） |
+    | `AbilityStatusChanges` 出现在 `SelectCost` 内 | 必需缺失 | `PushError` + 整批拒绝（不变式，与 `AbilityElements` / `DeckElements` / `PlotElements` / `EventStateChanges` 同款、独立成行。理由同构：成本侧只放**可如实计价的量**，而「把一个开关关掉值多少寿元」无法回答） |
+    | `EventOutcomeSpec` 任一侧的 `AbilityStatusChanges` 非空 | 必需缺失 | `PushError` + 整批拒绝。判据同 `Stats` / `StatusChanges` 那一行：内容作者能如实声明的量才进 `OutcomeSpec`，而**内容不得代替玩家拨开关** |
+    | `AchievementProgressElement.AchievementId` 经 `ContentRegistry` 解析不到 | 必需缺失 | `PushError` + 整批拒绝（悬空 `Id` 写进 Profile 会污染存档；与 `CodexUnlock.Id` 同档、同读写不对称） |
+    | `AchievementProgressElement.Delta <= 0` | 必需缺失 | `PushError` + 整批拒绝（进度单调不减；`0` 是空操作 element = 组装缺陷） |
+    | 同一批 `AchievementElements` 内出现两条同 `AchievementId` | **正常** | **先求和、再一次钳制**，不告警。同一批里同一信号命中多次是常态（与 `Elements` 那条例外同款判据、同款「先求和再钳制」语义） |
+    | 目标成就的 `Completed` 已为 `true` | **正常** | 该 element **空操作，不告警**（重复命中是常态，与 `CodexUnlock` 重复收录同款） |
+    | `AchievementTierAward.GroupId` 经 `ContentRegistry` 解析不到 | 必需缺失 | `PushError` + 整批拒绝 |
+    | `AchievementTierAward.TierPercent ∉ {60, 90}` | 必需缺失 | `PushError` + 整批拒绝 |
+    | `AchievementTierAward.TierPercent` **小于等于**该组现有水位 | 必需缺失（组装缺陷） | `PushError` + 整批拒绝（水位单调递增；回退或重发都是缺陷。**一次提交跨两档时只提交最高档一条**，两档的两条 `Grant` 照常各一条） |
+    | 同一批 `AchievementTierElements` 内出现两条同 `GroupId` | 必需缺失（组装缺陷） | `PushError` + 整批拒绝（绝对置值下两条同键 = 调用方自己也不知道该落哪一份；与 `EventStateChanges` / `SettingChanges` 同款） |
+    | `AchievementElements` 出现在 `SelectCost` 内 | 必需缺失 | `PushError` + 整批拒绝（不变式，独立成行。理由同构：成本侧只放**可如实计价的量**，而「推进一格成就进度值多少寿元」无法回答） |
+    | `AchievementTierElements` 出现在 `SelectCost` 内 | 必需缺失 | `PushError` + 整批拒绝（同上款、独立成行） |
+    | `EventOutcomeSpec` 任一侧的 `AchievementElements` / `AchievementTierElements` 非空 | 必需缺失 | `PushError` + 整批拒绝，**逐列各自独立判定、不合并成通则**。判据同 `Stats` / `CodexElements` 那两行：内容作者能如实声明的量才进 `OutcomeSpec`，而**内容不得自己发成就** |
     | 表内登记的 `ModifierKey` 无任何法则注册修正 | 正常，非失败 | `ApplyModifier` 原值返回 |
 
   - **可追溯性日志（非告警）：** 施加任一 `AbilityChangeElement` 时打一行 `[ProfileManager-TryApply] ability op=Remove kind=Power scope=Player id=xxx pair=yyy`。能力得失是玩家最在意、也最容易被投诉的一类变更，必须在日志里留痕。
@@ -231,6 +246,73 @@ if (!result.Success)
   - **`ItemUseElements` 在 `SelectCost` 内恒为空**，与其余各列同款不变式、独立成行（见上表）。
   - **可追溯性日志（非告警）：** 追加时打一行 `[ProfileManager-TryApply] itemUse seq=<Seq> afterEvent=<AfterEventSeq> id=<ItemId> scope=<Scope>`。
   - **本列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`。
+- **能力启用开关经 `AbilityStatusChanges` 写入，语义是按 `(Kind, Scope, AbilityId)` 的绝对置值（承重）。** 四类持有条目 record 上的 `bool Status`（`characterPower` / `magicPack` / `playerPower` / `playerItem`）不提供 setter，**唯一写入路径是 `AbilityStatusChanges` 列表经 `TryApply`**，与其余各列**同批、同事务**提交。在此之前这一格**没有任何写入通道**——`AbilityChangeOp` 的三个语义面（`Grant` / `Remove` / `Disable`）没有一个能表达「把已持有条目的 `Status` 置为 X」。
+
+  ```csharp
+  public readonly record struct AbilityStatusAssignment(
+      AbilityCarrierKind Kind,        // Power | Item
+      AbilityScope       Scope,       // Character | Player
+      string             AbilityId,   // PowerData / ItemData 的稳定 Id
+      bool               Enabled);    // 绝对置值：true = 启用
+  ```
+
+  - **语义六面：** 键是 `(Kind, Scope, AbilityId)` 三元组 → 载荷是单个 `bool`；**不钳制** · **无量纲** · **幂等绝对置值** · **恒不走 modifier pipeline** · **无 `Source`**。
+  - **必须分列，不是给 `AbilityElements` 加一个 `Op`。** 该列明文定位「改变**持有**」且 `Source` 强制携带（`Unknown` 即整批拒绝），而开关不改变持有、没有来源可言，`Duration` / `PairKey` 对它恒空——塞进去即让载荷有一半字段对某个 `Op` 恒空，正是 `ChangeElement` 拒绝加可空字段时否决过的形状。**同族先例是 `SettingChanges`**：同样是玩家自己拨的开关、按固定键绝对置值、恒不走 pipeline。
+  - **`StatusChanges` 不承载本维（反向澄清）。** 那一列绑定 `CharacterProfile.Status` 上的**数值型规则字段**（`CurrentLocationId` · `LocationEventCount` · 两个 band），与本列名字撞车、语义无交集。不写下这一句，「`Status` 的变更走 `StatusChanges`」是一个几乎必然会被写出来的误推。
+  - **恒不走 modifier pipeline** 的理由与 `StatusChanges` / `SettingChanges` 同源：一条法则若能改写玩家自己拨的开关，等于内容替玩家做主。
+  - **`AbilityStatusChanges` 在 `SelectCost` 内恒为空**，与 `AbilityElements` / `DeckElements` / `PlotElements` / `EventStateChanges` 同款不变式、独立成行，同样落为物化组装后的断言 + 内容模板加载期校验。理由同构：成本侧只放**可如实计价的量**，而「把一个开关关掉值多少寿元」无法回答。
+  - **`CapabilityManager.Recompute()` 的触发源清单不变**——「`status` 开关」本就在列，本列只是把它变得可实现。
+  - **本列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`；四条 record 的 `Status` 与四个持有列表顶层键的形状**零改动**，故**零迁移、后端零配合**。
+- **成就进度与档位水位经两条新列写入，各自独立分列（承重）。** `PlayerProfile.achievement` / `achievementGroup` 不提供 setter，**唯一写入路径是 `AchievementElements` / `AchievementTierElements` 列表经 `TryApply`**，与其余各列**同批、同事务**提交。
+
+  ```csharp
+  // 列 1：按 AchievementId 的带符号增量（首批只开正向）
+  public readonly record struct AchievementProgressElement(string AchievementId, int Delta);
+
+  // 列 2：按 GroupId 的档位水位置值
+  public readonly record struct AchievementTierAward(string GroupId, int TierPercent);
+  ```
+
+  - **六面核对（为何必须分列）：**
+
+    | 面 | `AchievementElements` | `AchievementTierElements` | 最接近的既有列 |
+    |---|---|---|---|
+    | 键 | `AchievementId` | `GroupId` | — |
+    | 载荷 | `int Delta` | `int TierPercent` | — |
+    | 幂等 | **否**（累加） | 是（置值） | `ItemElements` 否 / `SettingChanges` 是 |
+    | 量纲 | 有 | 无 | — |
+    | 钳制 | `[0, Target]`，按内容条目逐条 | 无（取值域 `{60, 90}` 由校验兜住） | `ItemElements` 按 `ItemData.Charges` |
+    | pipeline | **恒不走** | **恒不走** | — |
+
+  - **不塞进 `Elements`。** `CostKey` 是枚举、按标量索引，装不下一个字符串键；给它加成员会破坏它与两层 Profile 字段表的**双向满射**，并留下一行填不出 `(Min, Max, DepletionDefeat)` 的配表条目（上界是逐条目的 `Target`，不是常量）——与 `ItemElements` 拒绝并入时逐字相同的论证。
+  - **两列彼此也不合并**：施加语义根本不同（累加 vs 置值）、键不同（条目 vs 组），按「施加语义根本不同就分列」直接分列。合并即让载荷有一半字段对某个 `Op` 恒空，正是 `ChangeElement` 拒绝加可空字段时否决过的形状。
+  - **恒不经 modifier pipeline。** 一条法则若能放大成就进度，等于让内容自己刷出成就奖励；与 `BundleRedeemedOrdinal` 两个修正列必须为空同源同重。
+  - **`Completed` 由钳制机械置位，不由组装方声明。** 施加时 `Progress = Clamp(Progress + Delta, 0, Target)`，`Progress == Target ⇒ Completed = true`（**单向、永不回落**）。这不违反「本 manager 不做加减」——`ItemElements` 已是「按内容条目的 `Charges` 钳制」的同款先例，读内容做钳制是既有形态。
+  - **可追溯性日志（非告警）：** 施加时各打一行
+
+    ```
+    [ProfileManager-TryApply] achievement id=<AchievementId> delta=<Delta> after=<Progress>/<Target> completed=<bool>
+    [ProfileManager-TryApply] achievementTier group=<GroupId> tier=<TierPercent>
+    ```
+
+    成就发放是一次性、不可补发的回报，「我到底有没有拿到」是必然会被问到的一类变更。
+  - **本两列属 `schemaVersion` 1**，登记见 `systems/services/profile-schema-versions.md`。
+
+- **`AchievementManager` 的采集面 = 与 `CodexManager` 逐字同构的第三形态（承重）。** 触发采集与去重归 `AchievementManager`；**写入仍组装 `AchievementElements` / `AchievementTierElements` 经 `ProfileManager` 单点提交**；每一条采集都搭在一次已经存在的提交上，**不新增存档点、不新增 push、不新增决策点**。信号来源分两支，**分界判据 = 该信号是不是一次落档变更**：
+
+  | 支 | 信号类型 | 采集形态 | 举例 |
+  |---|---|---|---|
+  | **(a) 服务内 spec 旁听** | 一切经 `TryApply` 的落档变更 | `AchievementManager` 与 `ProfileManager` **同住本服务**，提交成功后由服务内部回调把命中的信号入 pending 队列——**同服务内、不经 EventBus、不构成任何反向依赖** | 获得一条法则 · 收录一条图鉴 · 习得一门功法 · 使用一次古宝 |
+  | **(b) EventBus 被动订阅** | 不落档的过程量 | `AchievementManager` 自订阅，`_Ready` 订阅 / `_ExitTree` 退订 | 战斗胜负 · 回合数 · 剧本阈值触发 |
+
+  - **pending 队列的冲刷点 = 下一次由 life-cycle-service 组装的收口 `TryApply`**，经门面 `CollectAchievements(draft)` 一次取走。它在收口组装里落在**投影之前**（与 `CodexElements` 同批同位）——成就奖励授予会改变持有列表，落在投影之前正是它该在的位置。
+  - **不由 `ProfileManager` 自动派生成就 element。** 与图鉴那条逐字同理：自动派生会让 `AppliedChange` 记的账与组装方提交的 spec 不一致，违反「提交的是已算好的整块，本 manager 不做合并 / 增量」。(a) 支读的是**已提交**的 spec、产出**下一批**的 element，不改变任何一次 spec 的内容。
+  - **纯 EventBus 被动订阅不够用。** 广播发生在 `TryApply` **之后**，在回调里再提交即新开一个存档点，与「零新增提交点」正面相抵；且 EventBus 负载只带 `Id` + 值类型，落档类信号所需的量大半不在负载表里，逐个补广播会把负载契约表撑成 profile 的镜像。**(b) 支保留了它真正管用的那一半。**
+  - **纯主动上报同样不够用。** 一个 `void` 门面的漏调**能上线且线上不可见**（成就进度少了一点，没有任何一侧会报错），按纪律阶梯的选级判据这要求第 1 或第 2 级，而门面方法给不出任何强制；且要给每个服务开第二条指向本服务的、不写档的调用边。(a) 支相反：信号从**已提交的 spec** 里读出来，「忘了报」在结构上写不出来（第 1 级）。
+  - **可执行护栏（第 3 级，与图鉴那条同款）：** 一批变更中出现已登记为成就信号的 element（`AbilityElements[Grant]` · `CodexElements` · `DeckElements[LearnTechnique]` …），而 pending 队列在该批提交后仍为空 → `#if DEBUG` `PushWarning`。
+  - **代价明写：** pending 队列是内存态，进程崩溃会丢失**至多一个事件内**尚未随收口提交的成就进度（收口必然发生在同一事件内，故丢失窗口是一次事件而非一次轮回）。已达成并已提交的里程碑不受影响。**不为它引入 pending 的持久化**——那等于新开一处存档点，代价与它挡住的窗口失配。
+  - **确需剧本条件时按 `systems/architecture.md` 的 `PlotArcAdvanced` 预案补一行负载**，而不是另开一条上报旁路。
+
 - **只读投影 `Project(spec)`：先算后提交，不新增写入面（承重）。** 收口时新一批 eventOptions 必须依**更新后的** profile 重算（`pastEvent` 是 future-event-service 的一等输入），而收口又必须是**一次**事务、一个存档点——两条承重纪律都不放松，故本服务提供一个**施加 spec 后返回未提交只读视图**的方法：life-cycle-service 用它算出新一批，再把批一并放进同一次 `TryApply`。
   - **它不是第二个写入点。** 投影不改任何字段、不触发 `CapabilitiesChanged`、不产生存档点；「一切写入经 `TryApply`」原样成立。
   - **本模型内已有两处同形的先例**：`AppliedChange` 是可直接重放的账（重放即一次纯施加）；`CanAfford` 与 `TryApply` 共用 `Evaluate(spec)`（先算、只有后者提交）。
@@ -333,9 +415,12 @@ capability flag 体系归本服务。
 - **消费侧收敛为「一个 flag ↔ 一处消费点」：** 受影响的 UI 组件**自己订阅**并查询 `Has(flag)`，业务逻辑层完全不知道该 power 存在。散落条件的根因是把呈现决策写进了业务层；把决策点归位，条件自然只剩一处。
 - **两条启动期断言（`#if DEBUG`，纪律阶梯第 3 级）：** ① 反射遍历 `CapabilityFlag` 成员名，首个词须落在 `{Reveal, Show, Unlock}` 内且不含禁用词 → 违规 `PushError`；② 内容加载期 `PowerData.GrantedFlags` / `Modifiers` 中出现枚举外的值 → `PushError` + `Id`（`.tres` 上的枚举序号会因枚举重排而错位）。
   - **「每个 flag 至少有一处消费点」无法机械检查**（消费点是一段 UI 代码），**如实停在纪律阶梯第 4 级（评审清单）**——不为它造一张必须手工同步的注册表。
-- **`status`（启用 / 禁用）与「拥有 / 失去」是正交两维：** 列表成员表达「拥有哪些」，`status` 表达「拥有的这些里哪些当前生效」。失去 = 移出 `List<PlayerPower>`，不是置 `status = 禁用`。详见 `systems/player-profile/player-power/common-properties.md`。
+- **`status`（启用 / 禁用）与「拥有 / 失去」是正交两维：** 列表成员表达「拥有哪些」，`status` 表达「拥有的这些里哪些当前生效」。失去 = 移出持有列表，不是置 `status = 禁用`。详见 `systems/player-profile/player-power/common-properties.md`。
+  - **持有条目 record 的形态权威在 `systems/player-profile/_index.md`**（四类共有 `bool Status`，true = 启用、默认 true），本文件不复述。
+  - **写入通道 = `AbilityStatusChanges`**（见上方该列），门面是 `SetAbilityStatus`。**`StatusChanges` 不承载本维**——它绑定 `CharacterProfile.Status` 上的数值型规则字段，名字撞车、语义无交集。
+  - **本维之外还有第三、第四维**：轮回级外部抑制落 `CharacterProfile.disabledAbility`（经 `AbilityElements` 的 `Op == Disable`），内容侧运营开关 `ContentEnabled` 不落存档。**生效 = 拥有 ∧ `status == 启用` ∧ 不在 `disabledAbility` 内**，三者互不覆盖，不需要任何优先级或裁决表。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
 
 ## 管理器
 
@@ -343,7 +428,7 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-se
 |---------|------|
 | **ProfileManager** | 两个 Profile 的唯一写入面；`TryApply(spec)` 原子施加成本 / 产出；modifier pipeline 生效点 |
 | **CapabilityManager** | capability flag 聚合 + 具名 modifier 表；`CapabilitiesChanged` 广播 |
-| **AchievementManager** | 成就进度累计（组内加权）、60% / 90% 两档一次性奖励发放 |
+| **AchievementManager** | 成就信号的触发采集（服务内 spec 旁听 + EventBus 被动订阅两支）与去重、组内加权进度求值、60% / 90% 两档一次性奖励的组装；写入仍组装 `AchievementElements` / `AchievementTierElements` 交 ProfileManager 单点提交 |
 | **CodexManager** | 图鉴族的收录触发采集、连锁展开与同批去重；写入仍组装 `CodexElements` 交 ProfileManager 单点提交 |
 | **GrantPoolManager**（`internal`） | 账号级 / 轮回级能力条目的**唯一抽取处**：取池（`AllEnabled()` → `(CarrierKind, Scope)` → 去成就限定 → 排除已持有 → 可选锚定 `Rarity`）+ 按 `RarityTier` 加权 seeded 抽取。残卷 · 礼包 · 置换三条渠道共用；见 `systems/player-profile/player-power/_index.md`。**置换经具名方法 `TryPickReplacement` 进入，而不是给既有方法加一个可空 `anchorRarity` 形参**——可空默认值会让「忘了锚定稀有度」成为最短路径，而忘了锚定的置换会把 Tier1 换成 Tier5，**能上线、线上不可见**；名字里带 `Replacement` 则调用方必须显式选择语义。这与「删掉中性诱饵名 `All()`」是同一条纪律 |
 
@@ -360,7 +445,7 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-se
 | 能力查询 | A | `bool Has(CapabilityFlag flag)` | 未授予 = `false`，非错误 |
 | 能力持有查询 | A | `bool Holds(AbilityCarrierKind kind, AbilityScope scope, string abilityId)` | 未持有 = `false`，非错误。纯内存查询。消费点 = Exchange 的 barter 格灰显与 barter 提交路径的门面级前置 |
 | 数值修正 | A | `int ApplyModifier(ModifierKey key, int baseValue)` | 无修正 = 原值返回 |
-| 开关 | A | `ApplyResult SetPowerStatus(string powerId, bool enabled)` | 未拥有该 power → `ApplyResult.Fail` |
+| 开关 | A | `ApplyResult SetAbilityStatus(AbilityCarrierKind kind, AbilityScope scope, string abilityId, bool enabled)` | 未持有 → `ApplyResult.Fail`（业务失败，绝不抛），供 UI 灰显；内部组装单条 `AbilityStatusAssignment` 交一次 `TryApply` |
 | 授予 / 撤销 | A | `ApplyResult GrantPower(string powerId, Source source)` / `ApplyResult RevokePower(string powerId)` | 同上；**`source` 无默认值**——省略即产生来源未知的条目，而残卷的 `x` 直接读它。**`source` 须落在该条目 `(CarrierKind, Scope)` 的合法子集内且不为 `Unknown`**，否则 `PushError` + 拒绝。见 `systems/common-properties.md` |
 | 授予池 · 有无 | A | `bool HasGrantable(AbilityCarrierKind kind, AbilityScope scope)` | 池空 = `false`，非错误。**⟺ 残卷全局前置「尚未拥有的法则数 > 0」**（同一个判断，不是两个） |
 | 授予池 · 计数 | A | `int GrantableCount(AbilityCarrierKind kind, AbilityScope scope, RarityTier[] rarityFilter = null)` | 供礼包购买入口判「够不够 2 件」与 Exchange / Research 的取池期前置判定（闸 ②）。**`rarityFilter` 为 `null` / 空 = 不限**；给出时口径与 `RarityFilter` 过滤后的实际抽取链一致——闸的判据与抽取链不同口径，就会出现「总池非空、过滤后为空」而闸判过 |
@@ -370,7 +455,8 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-se
 | 置换取池 | A | `bool TryPickReplacement<TRng>(AbilityCarrierKind kind, AbilityScope scope, RarityTier anchorRarity, TRng rng, out string pickedId) where TRng : IRandomSource` | **可选缺失**（锚定档后池空）→ `PushWarning`，调用方按「整个置换成为空操作」处置 |
 | 消耗道具次数 | A | `ApplyResult ConsumeItem(AbilityScope scope, string itemId, int count = 1)` | 次数不足 → `ApplyResult.Fail`。**「只扣次数、无产出」的那条路径**（战斗内使用、随售的次数面）；内部组装 `ItemElements` 交 `TryApply` |
 | 战斗外使用道具 | A | `ApplyResult UseItemOutOfCombat(AbilityScope scope, string itemId)` | 业务失败（未持有 / 次数耗尽 / 被本轮回禁用）→ `ApplyResult.Fail`，绝不抛；供 UI 灰显「使用」键 |
-| 成就采集 | A | `void ReportProgress(AchievementSignal signal)` | — |
+| 成就批采集 | A | `AchievementBatch CollectAchievements(ProfileChangeSpec draft)` | 纯内存、**不提交、不广播、不落存档点**；返回值恒非 `null`（无成就时各列为空）。**消费点唯一 = life-cycle-service 的收口组装**，新增消费点须同批评审（与 `Project(spec)` 同款纪律） |
+| 组进度查询 | A | `int GroupProgressPercent(string groupId)` | 组不存在 → `PushWarning` + 返回 `0`（可选缺失）。它是组内加权进度公式的**唯一落点**，ViewModel 不自算；公式见 `systems/player-profile/achievement/common-properties.md` |
 | 只读快照 | A | `PlayerProfile Snapshot { get; }` | **只读视图**（非可变引用），供 sync / ViewModel 组装 |
 
 - **`CostSpec` / `RewardSpec` 已合并为单一 `ProfileChangeSpec`**（`ChangeElement.BaseValue` 带符号：负 = 消耗，正 = 产出）。两个类型会诱导出「先 `TryApply(cost)` 再 `TryApply(reward)`」这种半套写入，与「全有或全无、单点提交」直接冲突。
@@ -386,6 +472,7 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-se
     - **不把 barter 失败复用 `ApplyResult.MissingElement`**：它是 `CostKey`，装不下一个 `AbilityId`；UI 的「差哪一样」由 barter 格自己恒可见的支付要求承载，不新增字段（`UseItemOutOfCombat` 已有「返回 `Fail` 但无 `MissingElement`」的先例）。
     - **代价明写：** 保护落在门面而非 element 层 ⇒ 任何绕过门面直接组装 barter spec 的调用方都能触发白送。这与 `UseItemOutOfCombat` 承担的是同一类风险、同一种处置。
   - **两层用同一个门面，用 `AbilityScope` 选层。** 储物袋是跨两个持久层的呈现视图，同一个「使用」键要同时服务法宝与古宝；为法宝另开一个 `ConsumeCharacterItem` 会重演按类分裂的方法 / 枚举，而 `PowerScope` / `ItemScope` 合并为 `AbilityScope`、`Source` 不按类拆四个是同一条纪律的两个先例。
+- **`SetAbilityStatus` 一个方法覆盖四类，同款判据。** `Status` 在四类持有条目上都是**活字段**（道具两类同样对玩家开放开关——储物袋里可以关掉一件不想自动触发 / 不想误点的法宝；**关掉的法宝仍占储物袋位、`Charges` 不变**，与「禁用不影响持有、也不影响 `Charges`」逐字同构）。**`kind` / `scope` 不给默认值**——与 `GrantPower` 的 `source` 无默认值同款理由：省略即产生歧义调用，而两层可能存在同 `Id` 条目。
 - **四个授予池方法为何落在本服务：** 抽取需要**内容池**（content-service）与**已持有集合**（profile-service）两样东西。后者是本服务的自有状态，前者可经对方服务门面跨服务读取（跨服务方法调用允许，不触及对方 manager 私有字段）；反向（放 content-service）则要求它读 `PlayerProfile`，违反「服务之间不读写对方字段」。它们**纯内存查询、不跨边界，故为形态 A、不带 `Async`**。**随机源以泛型约束 `TRng : IRandomSource` 传入**，使账号级掷骰（`AccountRandom`，契约定义的 SplitMix64）与轮回级抽取（`GodotRandomSource`，子流薄适配）共用同一段取池代码而不装箱；类型定义见 `systems/common-properties.md`。**抽取结果在 spec 组装之前定稿** —— `AbilityChangeElement` 只拿到已定稿的 `Id`，与既定的「随机在 spec 组装前掷完」一致。置换候选池复用同一 picker（只多传一个 `anchorRarity`）⇒ 全库只有一处抽取能力条目的代码。
 - **`CapabilityFlag` 是 C# `enum` 而非字符串 key**：flag 的消费点必然是一段 UI 代码，新增 flag 本就要写消费代码；字符串只是把「拼错了」从编译期推迟到运行时。可加的是 `.tres` 里**谁授予哪个已定义的 flag**。
 
@@ -395,8 +482,16 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-25c-se
 |------|------|
 | `CapabilitiesChanged` | **空负载**——订阅者收到后自行 `ProfileService.Instance.Has(flag)` 重查（既定的「一个 flag ↔ 一处消费点 · 单点查询」；把生效集塞进负载反而制造第二份真值） |
 | `AchievementTierReached` | `(string GroupId, int TierPercent)` |
+| `AchievementCompleted` | `(string AchievementId)`——里程碑达成需要即时反馈（toast）；负载只带 `Id`，合规于三条负载纪律 |
 
-Source: `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md`
+```csharp
+public readonly record struct AchievementBatch(
+    IReadOnlyList<AchievementProgressElement> Progress,
+    IReadOnlyList<AchievementTierAward>       Tiers,
+    IReadOnlyList<AbilityChangeElement>       Grants);   // Op == Grant, Source.AchievementReward
+```
+
+Source: `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
 
 ## 与其他服务的关系
 
@@ -415,12 +510,11 @@ Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hie
 
 ## 待决问题
 
-- **AchievementManager 的触发采集面。** 成就进度靠订阅 EventBus **被动采集**（解耦但易漏），还是由各服务**主动上报**（可靠但反向依赖）？
-- **成就两档奖励内容。** 阈值 60% / 90%、一次性、目录 80% 可见已定；**各档发放何种奖励**待定。→ `ux/screen-flow.md`。
-- **元进程字段结构。** `Achievement` 条目 schema 未定；各账号级条目的解锁 / 获取 / 失去的具体触发未定。（`PlayerPower` / `PlayerItem` 的持有条目形态——含 `status` 与「拥有 / 失去」两个正交维度的存档编码——以及 `AccountInfo` 与 `GameSetting` 的字段面均已成文，见 `systems/player-profile/_index.md`。）→ `systems/player-profile/`。
-- **PlayerPower 的平衡边界。** 方向已定为「轻度提升、PvE-only 可容忍」；是否影响 cycle seed / 计分公平仍待定。
+- **元进程字段结构。** 各账号级条目的解锁 / 获取 / 失去的具体触发未定。→ `systems/player-profile/`。
+  - **以下四项不在本条待决范围内，已各有权威：** `PlayerPower` / `PlayerItem` 的持有条目形态（含 `Status` 与「拥有 / 失去」两个正交维度的存档编码，写入通道见上方 `AbilityStatusChanges`）→ `systems/player-profile/_index.md`；`Achievement` / `AchievementGroupState` 的条目形态与两条写入通道 → `systems/player-profile/achievement/common-properties.md` 与上方两列；`AccountInfo` → `systems/player-profile/account-info.md`；`GameSetting` → `systems/player-profile/game-setting.md`。
+- **PlayerPower 的平衡边界。** 方向已定为「轻度提升、PvE-only 可容忍」；具体在哪些 AdventureEvent 获取 / 失去仍待定。
 
-Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-09-02-architecture-services-reconcile.md`
+Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-09-02-architecture-services-reconcile.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
 
 ## 对应
 提炼至：`.claude/knowledge/systems/profile-service.md`（引用层，待建）。

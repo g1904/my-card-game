@@ -47,7 +47,7 @@
   - **失去恰三种形态，没有第四种。** 严重度阶梯**本场移除 < 本轮回禁用 < 账号移除（仅置换、需自愿）**逐档落到神通上：本场移除 = 战斗内 `IgnoresProtection` 效果结算（战场条目被移除、本场不再触发、**不写 Profile**）· 禁用 = `AbilityChangeSlot(Op = Disable, AllowDecline = false)` 写 `disabledAbility`（仍在持有列表、灰态可见、不进任何生效面）· 置换型剥夺 = `AbilityChangeSlot(Op = Remove, AllowDecline = true)` + 同 `PairKey` 的 `Grant`（真的移出 `characterPower`，换入同 `(Power, Character)` + 同 `Rarity` 的另一条）。**`DisableDuration` 的三档时长（下一事件 / 本篇章 / 本轮回）与这条严重度阶梯正交**，不要混作一维。
   - **不开「无同意的永久剥夺」**（`Op == Remove` + `AllowDecline == false` + 空 `GainAbilityId`）。它在结构上写得出来，但在轮回级上不产生额外表达力：神通本就随轮回清理，`ThisCycle` 档禁用与永久剥夺在这一局里的可玩后果逐格相同，差别只剩「持有列表里还在不在」与「置换池排不排它」两处次要语义。为这点差别开一条分支，代价是打破 `AbilityChangeSlot` 的 `Op ↔ AllowDecline` **既有约定**（`Remove` ⇒ `true` / `Disable` ⇒ `false`），而拒绝置换零代价正靠这条约定表达。
   - **失去侧无 `SourceCode` 表达，且神通买得到、卖不掉**：`ExchangeSell` / `PackSell` / `ExchangeBarter` 在 `(Power, Character)` 域是规则层封死（神通不进任何交易面），Exchange 的可售族恒为 `CharacterItem` 一族。
-  - **失去事件计入与法则共用的那一份频次预算，不另立一套。** 该预算的配平口径见 `../../player-profile/player-power/_index.md`。
+  - **失去事件计入与法则共用的那一份频次预算，不另立一套。** 神通侧的目标份额 **≈ 0.5 次 / 完整轮回**（置换 : 禁用 ≈ 2 : 1）——持久三支中份额最高，理由是它是**轮回级损失**（随轮回清理、`ThisChapter` 档禁用在篇章边界自动恢复）。预算的整体配平口径见 `../../player-profile/player-power/_index.md`。
 - **篇章突破随「全部继承」带入，不为它单列规则。** 「读档续章带入上一篇章的全部信息、无逐项筛选」这条条款就是答案——需要论证的是「不带入」而非「带入」；`CurrentLocationId`（跨篇章不清零）与剩余寿元（跨篇章结转）是同一条条款推出的两个先例，神通是第三例。**推论：`disabledAbility` 中 `Duration == ThisChapter` 的条目在篇章边界被剔除 ⇒ 一条在 ch1 被禁用的神通，进入 ch2 时自动恢复生效**，内容侧不需要任何恢复动作。篇章边界的既有职责表不增行、`TeardownCycle()` 不新增清理步骤。→ `systems/services/life-cycle-service.md`、`decisions/ADR-0004-realm-checkpoint-retry-model.md`。
 - **跨载体边界判据：什么该做成一张卡 / 一件法宝 / 一个神通（承重 · 三者共用一张表）。** 按**「这个效果要付什么代价才能生效」**排序，第一条命中即定型：
 
@@ -64,7 +64,7 @@
   - **本表是三者边界的唯一权威**，`../deck/_index.md` 与 `../item/_index.md` 各留一行回链、不复述。
 - **数量与强度的定性面（定量属【待内容】）。**
   - **单条神通的强度应显著高于单条法则**，而不是持平或更低。法则「轻度提升」这个定位的成因是它跨轮回单调累积、不可被针对、必须按老账号全开校准；神通这三条**一条都不成立**（随轮回清理、可被禁用 / 置换、每局从零起）。用同一档强度约束一个不累积的东西，等于让它在 build 三件套（卡组 / 法宝 / 神通）里成为最不值得关注的那一件。
-  - **法则的「ch1 前段只能是纯信息 / 便利类、道念贡献为 0」不适用于神通**——它不是账号级内容，新手期不存在「被账号级内容干扰」这个问题，起手绑定神通本就是 ch1 第一分钟就在手里的东西。但**「不得随对局延长而累积」照搬且更硬**（推论 ①）。战斗内强度上沿的刻度见 `systems/balance.md`。
+  - **法则的「ch1 前段只能是纯信息 / 便利类、道念贡献为 0」不适用于神通**——它不是账号级内容，新手期不存在「被账号级内容干扰」这个问题，起手绑定神通本就是 ch1 第一分钟就在手里的东西。但**「不得随对局延长而累积」照搬且更硬**（推论 ①）。**战斗内强度闸门初值 = 单条道念净贡献 ≤ 本方 `baseMomentum` 的 25%**——读法是「单条神通的上沿 ≈ 老账号全部法则合计的上沿」；它是评审参考上沿、不可机械校验，刻度与折成摆幅的换算见 `systems/balance.md`。**它同时是第三篇章越阶追分的承担面之一**（ch3 光靠卡组已追不平一次越阶，见同处的追分锚点回代）。
   - **不设持有数量的硬规则上限**，数量由内容侧的获取频次与稀缺纪律承担——与「储物袋不设条数硬上限、由 `Charges` 与内容编排天然封顶」同一条纪律。**代价明写：**战斗屏只读层的条目数因此无上限，竖屏呈现形状由 `ux/combat-ux.md` 的分区专场承接。
 - **内容编排口径（首批值 · 纯内容侧，日后要改是新增 `.tres`、零结构改动）。** `content/character-power/` 开张时，其字段核对清单从本子块回链取用。
 
@@ -74,7 +74,7 @@
   | 不编排的通道 | `EventOutcome`（**保留机制、零条目**——一条能在任意事件 outcome 里直接塞一个神通的通道会稀释「build 增长来自打与买」这条分工，且它在物化时就已定稿、玩家看不出是奖励还是白送）；Research 维持「暂不放」（其产出面已收窄为卡组 + `manaLimit` + 隐藏属性推拉，为神通破例要动那条边界） |
   | 恒不产出的事件类 | `Travel`（纯位移事件，不该成为 build 增长面）· `Explore`（揭示的是真身，产出归真身那一类） |
   | 失去形态 | 恰三种（本场移除 / 三档禁用 / 置换），无第四种 |
-  | 失去事件频次 | 计入与法则共用的那一份预算，不另立 |
+  | 失去事件频次 | 计入与法则共用的那一份预算（神通侧份额 ≈ 0.5 次 / 轮回），不另立 |
   | 效果形态禁令 | 不得随对局延长而累积 · 不得产 `LifeSpan`（硬校验）· 不得提供关于敌人 / 未来 / 世界的外部情报（`vision/pillars.md` 的支柱 9；玩家对自己牌堆 / 手牌的便利类不在此限） |
   | 条目数下限 | **≥ 5**（每个在册角色一条专属绑定神通，是下方 `PowerId` 唯一性校验的直接推论） |
 
@@ -88,7 +88,7 @@
 
   **明确不做**「全库 `Scope == Character` 条目数 < 在册角色数 → `PushError`」这条总量前置检查，理由必须留在文档里：它与上方退池那条的处置正面相抵（overlay 关掉一条绑定神通即抛异常打崩启动），且在「每个角色的 `PowerId` 都解析得到」的前提下恒真、永不触发——一条写下来永不响的警报，是「能上线、线上不可见」那一类的镜像。
 
-Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-22-combat-runtime-counter-persistence.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md`
+Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-22-combat-runtime-counter-persistence.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-06-ability-loss-frequency-budget.md` · `handoffs/2026-09-07-combat-scale-baseline.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -98,9 +98,8 @@ Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **获取 / 失去的内容口径未定量。** 机制面已闭合（四个合法 `Source` · `AbilityChangeSlot` 的三种失去形态 · 首批通道口径见上方「内容编排口径」）；**仍待定的是频次与分布**：每条开放通道在一次轮回里应出产几条、失去型事件在与法则共用的那份预算里各占多少——归 ch1 内容编排一并定。→ `systems/adventure-event/`、`../../player-profile/player-power/_index.md`。
-- **`status` 开关的存档表达。** **写入面已定**：持有列表落 `CharacterProfile.characterPower`（字段 14，`IReadOnlyList<CharacterPower>`），写入通道 = `ProfileChangeSpec.AbilityElements`，经 `profile-service.ProfileManager.TryApply(spec)`——见 `../_index.md` 的 25 字段表。**仍待定的只剩一条**：`status`（启用 / 禁用）与「拥有 / 失去」这两个正交维度如何编码进 schema。→ `systems/services/profile-service.md` 的同名待决项。
-- **强度尺度的定量三格。** 定性面已答（单条显著强于法则 · 不得累积 · 不设持有数量硬上限，见上方）；**仍待定的是数字**：一次轮回预期获得几条 · 单条相对同 `ManaCost` 法术的效果量系数 · 各 `RarityTier` 档应有多少条目。三者互相咬合，需 starter deck 与功法条目规模先落地才有分母。→ `systems/balance.md`。
+- **获取侧的内容口径未定量。** 机制面已闭合（四个合法 `Source` · `AbilityChangeSlot` 的三种失去形态 · 首批通道口径见上方「内容编排口径」）；**仍待定的是获取侧的频次与分布**：每条开放通道在一次轮回里应出产几条——归 ch1 内容编排一并定。（失去侧的频次份额见上方「失去事件计入共用预算」条与 `../../player-profile/player-power/_index.md` 的四支目标频次表。）→ `systems/adventure-event/`、`../../player-profile/player-power/_index.md`。
+- **强度尺度的剩余定量格。** 定性面已答（单条显著强于法则 · 不得累积 · 不设持有数量硬上限，见上方），**战斗内强度闸门已给出初值 25%**（单条道念净贡献 / 本方 `baseMomentum`，刻度与读法见 `systems/balance.md`）。**仍待定**：一次轮回预期获得几条 · 单条相对同 `ManaCost` 法术的效果量系数 · 各 `RarityTier` 档应有多少条目。三者互相咬合，需 starter deck 与功法条目铺开才有分母。→ `systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/power/_index.md`（待建）。

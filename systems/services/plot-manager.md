@@ -77,6 +77,17 @@
 
   **道心 faith：`[0, 100]`，轮回起始 `50`，双向推拉**（它是「状态」：心境澄明 ↔ 心魔渐生）。**煞气 Bloodlust：`[0, 100]`，轮回起始 `0`，以上行为主、可被净化类事件下拉**（它是「累积物」，既定的「累积到阈值触发煞气反噬」直接对应最高档）。**施加后截断到 `[0, 100]`，不构成终态**（与寿元不同——寿元触底即角色终结）——两者的区间与终态语义与其余资源 element 同形，逐条写在 `ResourceElements` 表里，见 `systems/services/profile-service.md`。
 
+  **隐藏属性清单为道心 / 煞气两项。** 本作的求生张力只有寿元一条压力线（见 `vision/pillars.md`），隐藏属性是**塑形**而非压力计；`vision/scope.md` 列在范围之外的「支撑 Reigns 式平衡张力的完整属性模型」，指的正是「运行时可推拉的资源条」这一类。两项已把两种形态占满：道心是**双臂状态轴**（心境澄明 ↔ 心魔渐生），煞气是**单臂累积物**。
+
+  **准入四问 —— 任何「新增一项隐藏属性」的提案须逐条通过，一条不成立即不加：**
+
+  1. **它落在 scope 之内吗？** 一条运行时可推拉的隐藏资源条**默认落在 `vision/scope.md` 的排除项内**，提案须先说明它为何不是那个被排除的东西。
+  2. **不可替代 —— 它的因果能不能由道心或煞气任一表达？** 能 → 不加。语义重叠的第三条轴会让内容编排随手互相替代、两条曲线一起漂，而 `systems/balance.md` 的**逐属性**验收带发现不了这种漂移。
+  3. **必须连续，且必须隐藏 ——** 不连续 → 不加，正确载体是 `PlotArcData` + `PlotKeyPoint.State`（「与某人 / 某势力的关系」「某条支线走到哪」「某个秘密是否被发现」「师门态度」全部落在这一侧）；**需要给玩家精确数值（哪怕只在一档）→ 不加，做成明文资源**——定性告警撑不住规划。
+  4. **消费方是调制 —— 它要驱动 eventOptions 调制，还是只想多一句旁白？** 只为旁白 → 不加。**档位表存在的首要理由是调制分辨率**；只为叙事而设的属性会造出一张没有首要消费方的档位表，而文案密度的正确旋钮是 `HiddenStatGrade` 的映射值与退让位顺序，不是属性数。
+
+  **举证责任在提案侧：** 新增项必须能给 eventOptions 调制带来一条**道心 / 煞气都表达不了的**新维度，而不只是新增一条叙事线。结构上加一项从来不需要今天预留什么（`HiddenStat` 是枚举、档位是内容条目、`Status` 字段可增）⇒ **不留占位枚举成员、不预留 band 字段**——占位成员会立刻污染 `ResourceElements` 表、`StatusFields` 封闭表与「每 `Stat` 须有常态档」那行校验。
+
   **有界的理由：** 无界属性的档位只能靠不断加新档追赶，而档位是内容条目、**overlay 只改不增** ⇒ 加档必须发版。有界 + 顶档吸收溢出，使档数在整条内容生命周期里是常量。
 
   **道心 —— 5 档，阈值 20 / 40 / 60 / 80**（唯一的双臂属性，带符号档号）
@@ -496,7 +507,7 @@
   - **煞气 / Bloodlust** —— 跨入 Band 3（75+）→ 触发 **「煞气反噬」** 剧情线（经 `PlotTriggerId`）。
   - **道心 / faith** —— 跨入 Band `−2`（0–19）→ 触发 **「心魔滋生」** 剧情线（经 `PlotTriggerId`）。**该档无叙事文案**，剧情线与调制是它唯一的显影通道。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-05-chapter-end-screen.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-third-hidden-stat.md`
 
 ## 管理器角色 / API 面（契约）
 > _总则与共享类型见 `systems/architecture.md`「API 契约总则」。**本 manager 纯本地，永不跨进程边界，故全部方法为形态 A**（剧本内容属本地内容层）。_
@@ -564,10 +575,10 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 
 ## 待决问题
 
-- **隐藏属性清单与推拉触发：** 现为 **道心 / 煞气** 两项且均隐藏，取值域、档位表、阈值与回滞见「意图」；仍待定：是否还有其他隐藏属性、**增减触发（哪些 AdventureEvent 推拉、各推哪一档 `HiddenStatGrade`）**、每条剧情线的具体内容与 key points。**Combat 三档已有默认口径**（`Practice` 推道心不推煞气 · `Finale` 胜负同推道心，见 `systems/adventure-event/combat/_index.md`），它是这条待答项的一个子集，其余四类与逐条目编排仍欠。（寿元不在本清单内，它已不是隐藏属性，见 `systems/character-profile/life-span.md`。）→ 亦见 `life-cycle-service.md`、`systems/balance.md`。
+- **隐藏属性的推拉触发：** 清单为 **道心 / 煞气** 两项且均隐藏（准入判据见「意图」的「取值域与档位表」小节），取值域、档位表、阈值与回滞见「意图」；仍待定：**增减触发（哪些 AdventureEvent 推拉、各推哪一档 `HiddenStatGrade`）**、每条剧情线的具体内容与 key points。**Combat 三档已有默认口径**（`Practice` 推道心不推煞气 · `Finale` 胜负同推道心，见 `systems/adventure-event/combat/_index.md`），它是这条待答项的一个子集，其余四类与逐条目编排仍欠。（寿元不在本清单内，它已不是隐藏属性，见 `systems/character-profile/life-span.md`。）→ 亦见 `life-cycle-service.md`、`systems/balance.md`。
 - **`HiddenStatGrade` 的三个映射值留待内容扩充后的统计校准。** 初值 `Minor 2 / Standard 5 / Major 10` 与「每属性每篇章跨档 2–4 次」是**反推验收项，不是死数字**，其校验依赖上一条的「增减触发」。**档位结构、阈值形态、文案形态、呈现形态均不被它阻塞**——它约束的是标定，不是结构。→ `systems/balance.md`。
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md`
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-09-06-third-hidden-stat.md`
 
 ## 对应
 提炼至：`.claude/knowledge/systems/plot-manager.md`（引用层，待建）。

@@ -200,7 +200,7 @@ public sealed record BarterOffer(            // 定稿实例：immutable，随 E
 
 一笔交易只动一种币 ⇒ 买卖两行各记**一个** `currency` + 一个 `balanceAfter`，不并列两个互斥的余额字段。**`[Exchange-Barter]` 一行连这两格都没有**——barter 一枚货币都不动。
 
-Source: `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
+Source: `handoffs/2026-09-05-currency-acquisition-and-pricing.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -210,7 +210,7 @@ Source: `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **各字段的数值取值**（定价表每格、刷新价参数、两档回收率、槽位总数上界）留待内容扩充后的统计校准。→ `systems/balance.md`。
+- **刷新价参数 `RerollBaseCost` / `RerollCostStep` · 单事件槽位总数上界的取值。** 形态均已定（本文件的字段面与校验表不变），留待内容扩充后的统计校准；刷新首批一律填 0 = 关闭。**定价表 25 格、每格币种与两档回收率已有初值**，见 `systems/balance.md`；其绝对数字仍归同一次校准复核。→ `systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/exchange.md`（待建）

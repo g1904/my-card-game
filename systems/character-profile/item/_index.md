@@ -1,6 +1,6 @@
 # item
 
-> **法宝 / CharacterItem** —— CharacterProfile 持有的、随单次轮回存在的道具（字段 `magicPack: List<CharacterItem>`），含道具设计内容。占位结构，细节待定。
+> **法宝 / CharacterItem** —— CharacterProfile 持有的、随单次轮回存在的道具（字段 `magicPack: List<CharacterItem>`），含内容定义 `ItemData` 的完整字段面、两格使用效果面与加载期校验。**三层分工（`ItemData` / `CharacterItem` / `magicPack`）见下表。**
 > **中文定名 = 法宝**；账号级的对应物是 **古宝 / PlayerItem**。**中文名不表达层级**。
 
 **三层分工（承重）。** 「`CharacterItem` 指哪一层」一次写死，杜绝单复数漂移再长回来：

@@ -88,7 +88,5 @@ Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoff
 ## 待决问题
 
 - **敌人台词的槽位清单（`LineSlot` 的成员）：** 字段形态已给出（见上方 `Lines`），成员清单待一次**战斗 UX 专场**——台词的呈现落点尚无表述。在它答定之前 `Lines` 只能是空数组。→ `ux/combat-ux.md`、`open-questions/01-combat.md`。
-- **敌人各等级的道念产出能力的缩放参数未定义。** → `systems/balance.md`。
-
 ## 对应
 提炼至：`.claude/knowledge/systems/enemies.md`（待建）

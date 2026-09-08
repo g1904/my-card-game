@@ -10,9 +10,9 @@
 |-----|---------|
 | [architecture](architecture.md) | 代码库如何运作的高层指南；系统结构总览、服务边界。 |
 | [common-properties](common-properties.md) | 系统层共有属性（所有系统共享的字段 / 约定）。 |
-| [balance](balance.md) | 平衡表：花费、伤害、掉落权重、ante 缩放。 |
+| [balance](balance.md) | 平衡表：花费、伤害、掉落权重、篇章 / 等级维度的缩放曲线。 |
 | [viewmodel](viewmodel.md) | 展示层第三层的结构契约：依赖方向、组装源、重组装触发面、只读消费与缓存归属、永不渲染清单。 |
-| [game-progression](game-progression.md) | 每个 ante 的进程推进（eventOptions 循环）、location（地域）、Travel 路由、blind/ante 缩放。 |
+| [game-progression](game-progression.md) | 篇章内的进程推进（eventOptions 循环）、location（地域）、Travel 路由、难度与数值缩放的分格轴。 |
 | [adventure-event/](adventure-event/_index.md) | 修行事件顶层：**5 个子类型** + 顶层共有属性。 |
 | &nbsp;&nbsp;├ [combat/](adventure-event/combat/_index.md) | 战斗事件；**`combatTier` 三档**（修炼 / 常规 / 境界突破）、mana + 道念模型、敌人 AI（**行动不作事前预告**，可读性归敌人回合的逐步执行呈现）、结算。 |
 | &nbsp;&nbsp;├ [exchange/](adventure-event/exchange/_index.md) | 交易机制，含社交语境（可购道具定义见 player-profile/player-item）。 |
@@ -42,7 +42,7 @@
 | &nbsp;&nbsp;├ [life-cycle-service](services/life-cycle-service.md) | 轮回生命周期：开始(seed)、推进、胜/负、清理。（CycleStateManager、ChapterManager、SeedManager） |
 | &nbsp;&nbsp;├ [future-event-service](services/future-event-service.md) | 依 characterProfile 产出 eventOptions；**eventOptions 的唯一出口**。 |
 | &nbsp;&nbsp;│&nbsp;&nbsp;└ [plot-manager](services/plot-manager.md) | **manager，隶属 future-event-service**：隐藏剧本（剧本层级、隐藏属性驱动、key points、eventOptions 调制）。 |
-| &nbsp;&nbsp;└ [combat-service](services/combat-service.md) | 战斗驱动：**固定 10 回合**循环、抽/弃/洗、敌人 AI 与意图（**三档揭示**）；**Practice / Finale 为其变体**。（TurnManager、CharacterManager、EnemyManager；`DeckModule` 为参战方内部第三级组件） |
+| &nbsp;&nbsp;└ [combat-service](services/combat-service.md) | 战斗驱动：**固定 10 回合**循环、抽/弃（**不重洗**，抽空即疲劳）、**敌人 AI（不作任何事前预告——意图机制已整条移除）**；**Practice / Finale 为其变体**。（TurnManager、CharacterManager、EnemyManager、**BattlefieldManager**、**StackManager**；`DeckModule` 为参战方内部第三级组件） |
 | [scoring](scoring.md) | **计分模型 = 道念（momentum）**：胜利点数，且**就是战斗的胜负判据**（**固定 10 回合**后道念高者胜；起始道念 = `baseMomentum`）。 |
 | [monetization](monetization.md) | 商业化：**premium bundle**（随机 1 PlayerPower + 2 PlayerItem + 篇章重试上限 3→9 / 1→3）。 |
 

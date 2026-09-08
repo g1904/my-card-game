@@ -41,8 +41,7 @@ Source: `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md`
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **子类型间的公平配比与出现频率：** 一段修行历程中各类事件的分布、权重、由 location（地域）与 AdventurePlot 如何调制，未定。分布维度是五类，且 Combat 内部另有一层 `combatTier` 配比要定。→ 亦见 `systems/game-progression.md`、`systems/services/future-event-service.md`、`systems/services/plot-manager.md`。
-- **`combatTier` 三档在一个篇章内的配比：** 每篇章一个 `Finale` 已定；`Practice` 与 `Standard` 的比例未定。→ `systems/balance.md`。
+- *（无。五类配比与 `combatTier` 配比的权威见 `systems/balance.md` 的 `BaseTypeWeights` 条目。）*
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/_index.md`（待建）

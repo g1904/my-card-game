@@ -10,7 +10,10 @@
   - **本层合法取值 =** `FinaleWin` / `PremiumBundle` / `AchievementReward`（+ 读档兜底 `Unknown`）。
   - **本层消费点：** 道统残卷的分档自变量 `x`（= `SourceCode == FinaleWin` 的法则数，见 `_index.md`）——**这是全库唯一的规则消费点**。
   - 枚举清单、分域校验表（入口严 / 读档宽）、授予通道的强制携带与置换继承规则见 `systems/common-properties.md`。
-- **`status` 与「拥有 / 失去」是两个正交维度。** PlayerProfile 的 `List<PlayerPower>` 表达**拥有哪些**；`status` 表达拥有的这些里**哪些当前生效**。「AdventureEvent 过程中可能失去 PlayerPower」是把条目**移出列表**，而非置 `status = 禁用`。存档需同时表达这两态。
+- **`status` 与「拥有 / 失去」是两个正交维度。** PlayerProfile 的 `playerPower` 列表表达**拥有哪些**；`status` 表达拥有的这些里**哪些当前生效**。「AdventureEvent 过程中可能失去 PlayerPower」是把条目**移出列表**，而非置 `status = 禁用`。
+  - **存档表达**：`status` 落持有条目 record 上的 `bool Status`（true = 启用，默认 true，老档缺格补 `true`），record 形态见 `../_index.md`；拥有 / 失去落 `playerPower` 的成员资格。
+  - **写入通道 = `ProfileChangeSpec.AbilityStatusChanges`**（`status`）与 `AbilityElements` 的 `Grant` / `Remove`（拥有 / 失去），门面 `SetAbilityStatus(kind, scope, abilityId, enabled)`；见 `systems/services/profile-service.md`。
+  - **第三维「本轮回禁用」不挤进这一格**——它落 `CharacterProfile.disabledAbility`（推论 ④，见 `_index.md`）。
 - **事件触发器 → 被动修正（共有机制）。** power / relic 挂接到游戏事件的**触发器**上，命中时施加**被动修正**。这与 `csharp-godot-rules.md` 的 EventBus / 信号解耦事件一致。
 - **内容定义 = `PowerData`（数据即资源）。** relic / joker 语义的条目是**数据**（`.tres`，带稳定唯一 `Id`，显示文案与 `Id` 分离、可本地化），**账号级与轮回级共用同一个 `PowerData` 类型**，由条目上的 `Scope: AbilityScope` 声明层。字段清单、`Abilities` 三档取值域、`GrantedFlags` / `Modifiers` 两条战斗外通道与各条加载期校验的权威在 `../../character-profile/power/_index.md`；触发条件与效果原语的表达形态（`TriggerConditionData` + 封闭时点常量表 · `EffectData` 子类树 · `KeywordData`）的权威在 `../../character-profile/deck/common-properties.md`。数值读自资源，不硬编码。
 
@@ -36,7 +39,7 @@
 
 两条通道均满足 `data-resource-rules.md` 的「内容保持可加性：新增 = 新增 `.tres`，而非编辑 switch 语句」。
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md`
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -47,7 +50,7 @@ Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **`status` 与「拥有 / 失去」两态的存档表达。** 两个正交维度如何编码进 schema 未定。→ `systems/services/profile-service.md` 的同名待决项。
+- 无。
 
 ## 对应
 提炼至：`.claude/knowledge/data/_index.md`（`PowerData`）；`.claude/knowledge/systems/player-profile/player-power/`（待建）。

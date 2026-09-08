@@ -4,6 +4,28 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| [ADR-0182](ADR-0182-baseline-id-superset-invariant.md) | 随包基线条目永不删除：`Id` 集合单调不减，退役 = 禁用或掏空，归档步机械核对超集 | Accepted | 2026-09-06 | systems/services/content-service.md, systems/common-properties.md, decisions/ADR-0141-overlay-packer-proof-and-baseline-snapshot.md |
+| [ADR-0181](ADR-0181-hide-store-entry-off-channel-platforms.md) | 非商店平台的 Store 入口不渲染，不引入「永久灰」语义 | Accepted | 2026-09-06 | systems/monetization.md, ux/screen-flow.md, ux/error-and-blocking-ux.md |
+| [ADR-0180](ADR-0180-purchase-backend-fourth-interface.md) | 购买域后端调用独立为第四个窄接口 `IPurchaseBackend`；条件编译清单扩至 6 处 | Accepted | 2026-09-06 | systems/services/sync-service.md, systems/architecture.md, system-overview.md |
+| [ADR-0179](ADR-0179-store-channel-wrapper-in-sync-service.md) | 购买段渠道封装落 sync-service：`StoreChannelManager` 持 `IStoreChannel`，运行时探测选实现 | Accepted | 2026-09-06 | systems/services/sync-service.md, systems/services/_index.md, systems/architecture.md, system-overview.md |
+| [ADR-0178](ADR-0178-iap-sdk-selection-and-ios-floor.md) | 三渠道内购 SDK 一律自维护插件；iOS 走 StoreKit 2，部署下限 15 | Accepted | 2026-09-06 | systems/monetization.md, vision/scope.md |
+| [ADR-0177](ADR-0177-no-finale-distance-foresight.md) | 轮回内不提供任何「距 Finale / 距圆满」前瞻读数，三章一律不显示 | Accepted | 2026-09-06 | systems/game-progression.md, systems/services/future-event-service.md |
+| [ADR-0176](ADR-0176-accept-tight-tolerance-no-knobs.md) | 失败容错的偏紧如实入账：A3 不达标不调阈值、ch3 最薄不加旋钮 | Accepted | 2026-09-06 | systems/balance.md, decisions/ADR-0175-failure-tolerance-n-equals-two.md |
+| [ADR-0175](ADR-0175-failure-tolerance-n-equals-two.md) | 失败容错量标定为 N = 2 三章统一，「典型失败」五格口径锁死 | Accepted | 2026-09-06 | systems/balance.md, systems/game-progression.md, systems/character-profile/life-span.md |
+| [ADR-0174](ADR-0174-type-modifier-guardrail-audit-only.md) | 类型修正的护栏咬归一化后占比、不咬系数；只审计不钳制 | Accepted | 2026-09-06 | systems/balance.md, systems/game-progression.md, systems/services/plot-manager.md |
+| [ADR-0173](ADR-0173-combat-tier-mix-authoring-only.md) | `combatTier` 配比是内容编排口径：`Practice : Standard = 1 : 1` 三章统一，管线不掷 tier | Accepted | 2026-09-06 | systems/adventure-event/combat/_index.md, systems/balance.md, systems/services/future-event-service.md |
+| [ADR-0172](ADR-0172-base-type-weights-resource-and-checks.md) | 五类事件基础权重落 `BaseTypeWeightsData`：三章各一行、三条校验、刻意不校验和为一 | Accepted | 2026-09-06 | systems/balance.md, systems/adventure-event/_index.md, systems/adventure-event/common-properties.md, systems/services/future-event-service.md |
+| [ADR-0171](ADR-0171-no-enemy-momentum-scaling-curve.md) | 敌人侧不设独立道念产出缩放曲线；敌我产出同因，等级只决定起跑线 | Accepted | 2026-09-06 | systems/balance.md, systems/enemies/_index.md, systems/enemies/common-properties.md, systems/adventure-event/combat/_index.md |
+| [ADR-0170](ADR-0170-cutscene-skip-scope-split.md) | 演出跳过权按作用域分档：战斗外可跳过 / 快进，战斗内不可跳过 | Accepted | 2026-09-06 | art/visuals/animations/_index.md, ux/combat-ux.md |
+| [ADR-0169](ADR-0169-combat-reward-four-family-pool.md) | 战后可选奖励候选池扩为四族，`Practice` 档整族排除 `PowerData` | Accepted | 2026-09-06 | systems/services/combat-service.md, systems/character-profile/power/_index.md, systems/balance.md |
+| [ADR-0168](ADR-0168-hidden-stat-roster-closure.md) | 隐藏属性清单永久收口为道心 / 煞气两项，并立准入四问 | Accepted | 2026-09-06 | systems/services/plot-manager.md, systems/architecture.md, systems/balance.md, systems/character-profile/_index.md |
+| [ADR-0167](ADR-0167-ability-status-changes-column.md) | 能力启用开关的写入通道：新开 `AbilityStatusChanges` 列 + 单一门面 `SetAbilityStatus` | Accepted | 2026-09-06 | systems/services/profile-service.md, systems/architecture.md, systems/player-profile/player-power/common-properties.md, systems/character-profile/item/common-properties.md |
+| [ADR-0166](ADR-0166-trace-append-only-across-chapters.md) | 痕迹序列跨篇章只追加：`pastEvent` / `pastItemUse` 不清空、不随重试回滚 | Accepted | 2026-09-06 | systems/services/life-cycle-service.md, systems/character-profile/_index.md, ux/screen-flow.md |
+| [ADR-0165](ADR-0165-cycle-exit-three-layer-teardown.md) | 轮回出口的三层处置：`completed` 保留实体状态，单记录 + `chapterStartSnapshot` | Accepted | 2026-09-06 | systems/services/life-cycle-service.md, systems/character-profile/_index.md, systems/services/profile-schema-versions.md, program-overview.md |
+| [ADR-0164](ADR-0164-chapter-duration-raised-to-sixty.md) | 篇章目标时长上移至三章均值约 60 分钟，整链沿 λ 层重算 | Accepted | 2026-09-06 | systems/balance.md, vision/scope.md, systems/game-progression.md |
+| [ADR-0163](ADR-0163-no-ante-intra-chapter-difficulty-ladder.md) | 不设 ante 式章内绝对难度阶梯；随进度的数值分格轴只有两条 | Accepted | 2026-09-06 | systems/game-progression.md, systems/balance.md, systems/_index.md |
+| [ADR-0162](ADR-0162-active-character-discard.md) | 主动放弃角色：入口落主菜单篇章行，就地二段确认，只对 `ongoing` 开放 | Accepted | 2026-09-06 | ux/screen-flow.md, systems/services/life-cycle-service.md, terminology.md, program-overview.md |
+| [ADR-0161](ADR-0161-ability-loss-budget-absolute-frequency.md) | 失去能力的频次预算取「每完整轮回期望次数」，百分比降为换算副本 | Accepted | 2026-09-06 | systems/player-profile/player-power/_index.md, systems/balance.md, systems/character-profile/power/_index.md, systems/services/future-event-service.md |
 | [ADR-0145](ADR-0145-schema-ledger-no-counts.md) | 逐版 schema 登记表不写任何计数（形态纪律第 ⑥ 条） | Accepted | 2026-09-05 | systems/services/profile-schema-versions.md, decisions/ADR-0127-life-merged-into-lifespan.md |
 | [ADR-0144](ADR-0144-finale-diff-balance-knob.md) | 天劫指派等级改为平衡资源上的旋钮 `FinaleDiff`（相对 diff，下界恒 1） | Accepted | 2026-09-05 | systems/balance.md, systems/adventure-event/combat/_index.md, systems/services/future-event-service.md |
 | [ADR-0143](ADR-0143-chapter-end-screen.md) | 新增 `ChapterEndScreen`：一屏三变体，ch3 变体即元婴通关证书 | Accepted | 2026-09-05 | ux/screen-flow.md, systems/services/life-cycle-service.md, systems/services/plot-manager.md, ux/error-and-blocking-ux.md |
@@ -22,6 +44,8 @@
 | [ADR-0154](ADR-0154-snapshot-facedown-viewer-filter.md) | 对侧 `faceDown` 战场条目整条排除出 `CombatSnapshot.Battlefield` | Accepted | 2026-09-03 | systems/services/combat-service.md, systems/character-profile/deck/common-properties.md, ux/combat-ux.md |
 | [ADR-0153](ADR-0153-character-power-strength-ceiling.md) | 单条神通的战斗内强度上沿取 `baseMomentum` 比例刻度，不设合计总闸 | Accepted | 2026-09-03 | systems/balance.md, systems/character-profile/power/_index.md |
 | [ADR-0152](ADR-0152-cross-carrier-boundary-criterion.md) | 跨载体边界判据：卡牌 / 法宝 / 神通共用一张按代价排序的表 | Accepted | 2026-09-03 | systems/character-profile/power/_index.md, systems/character-profile/deck/_index.md, systems/character-profile/item/_index.md, systems/balance.md |
+| [ADR-0160](ADR-0160-keystore-upgrade-triggers.md) | 平台密钥库升级：五条可机械判定的触发条件，且升级不引入平台分支 | Accepted | 2026-09-02 | systems/services/account-service.md, decisions/ADR-0080-refresh-token-client-custody.md, backend-design-documents/contracts/auth.md |
+| [ADR-0159](ADR-0159-move-card-effect-side-slot.md) | `MoveCardEffect` 补 `Side` 格：两端恒同侧，跨方转移结构上不可表达 | Accepted | 2026-09-02 | systems/character-profile/deck/common-properties.md, systems/character-profile/deck/_index.md, systems/services/combat-service.md |
 | [ADR-0151](ADR-0151-branch-label-iff-branch-chosen.md) | `BranchLabel` 非空 ⟺ `Condition.Kind == BranchChosen`，加载期焊成充要关系 | Accepted | 2026-09-02 | systems/services/plot-manager.md, ux/screen-flow.md |
 | [ADR-0150](ADR-0150-plot-segment-in-outcome-panel.md) | 剧本分支触发于 `eventEnd` 提交之后，呈现落在事件结算面板内的「剧本段」 | Accepted | 2026-09-02 | ux/screen-flow.md, systems/services/plot-manager.md |
 | [ADR-0149](ADR-0149-enchantment-activated-ability-host.md) | 阵法上启动式异能的 UI 宿主 = 战场区内该条目自身，零新增区 | Accepted | 2026-09-02 | ux/combat-ux.md |

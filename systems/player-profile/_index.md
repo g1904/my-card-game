@@ -14,18 +14,19 @@
   | 2 | `characterProfile` | `IReadOnlyList<CharacterProfile>` | 规则 | — | `../character-profile/_index.md` |
   | 3 | `playerPower` | `IReadOnlyList<PlayerPower>` | 规则（透明段） | `AbilityElements` | `player-power/_index.md` |
   | 4 | `playerItem` | `IReadOnlyList<PlayerItem>` | 规则 | `AbilityElements`（持有）+ `ItemElements`（次数） | `player-item/_index.md` |
-  | 5 | `achievement` | `IReadOnlyList<Achievement>` | 规则 | AchievementManager | `achievement/_index.md` |
-  | 6 | `enemyCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
-  | 7 | `characterPowerCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
-  | 8 | `playerPowerCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
-  | 9 | `characterItemCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
-  | 10 | `playerItemCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
-  | 11 | `locationCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
-  | 12 | `techniqueCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
-  | 13 | `statistics` | `PlayerStatistics`（2 字段） | **统计** | `Stats`（`StatDelta`，2 个 `StatKey`） | 本文档 |
-  | 14 | `playerPowerFragment` | `PlayerPowerFragment`（7 字段） | 规则（透明段） | `Elements`（7 个 `CostKey`） | 本文档 |
-  | 15 | `entitlement` | `PlayerEntitlement`（2 字段） | 规则（透明段） | `Elements`（客户端置值 `BundleRedeemedOrdinal`）；`BundleGrantOrdinal` 由后端写、经 pull 下行，无客户端通道、**受回声约束** | 本文档 · `systems/monetization.md` |
-  | 16 | `gameSetting` | `GameSetting`（4 字段） | —（既不被规则读，也不是统计计数） | `SettingChanges` | `game-setting.md` |
+  | 5 | `achievement` | `IReadOnlyList<Achievement>` | 规则 | `AchievementElements` | `achievement/common-properties.md` |
+  | 6 | `achievementGroup` | `IReadOnlyList<AchievementGroupState>` | 规则 | `AchievementTierElements` | `achievement/common-properties.md` |
+  | 7 | `enemyCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
+  | 8 | `characterPowerCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
+  | 9 | `playerPowerCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
+  | 10 | `characterItemCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
+  | 11 | `playerItemCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
+  | 12 | `locationCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
+  | 13 | `techniqueCodex` | `IReadOnlyList<CodexEntry>` | 规则 | `CodexElements` | `codex/_index.md` |
+  | 14 | `statistics` | `PlayerStatistics`（2 字段） | **统计** | `Stats`（`StatDelta`，2 个 `StatKey`） | 本文档 |
+  | 15 | `playerPowerFragment` | `PlayerPowerFragment`（7 字段） | 规则（透明段） | `Elements`（7 个 `CostKey`） | 本文档 |
+  | 16 | `entitlement` | `PlayerEntitlement`（2 字段） | 规则（透明段） | `Elements`（客户端置值 `BundleRedeemedOrdinal`）；`BundleGrantOrdinal` 由后端写、经 pull 下行，无客户端通道、**受回声约束** | 本文档 · `systems/monetization.md` |
+  | 17 | `gameSetting` | `GameSetting`（4 字段） | —（既不被规则读，也不是统计计数） | `SettingChanges` | `game-setting.md` |
 
   - **不进 `PlayerProfile` 的三样：** `baseRevision` / `revision`（传输层元数据）· `schemaVersion`（存档 / 传输的信封字段，见 `systems/services/sync-service.md`）。**三者共有的排除判据是「进 Profile 会自指」**——每次 push 都会改动被 push 的那样东西，且版本号会被卷进它自己的迁移路径。
     - **这是一条精确判据，不是「传输层元数据一律不进」。** 别的东西不进 Profile 可以有别的理由，那些理由各自记在自己的文档里，不并进本条——放宽成一条笼统的排除通则，会让「自指」这个可机械核对的判断退化为要读上下文。**设备维度的标识（`deviceId`）不进 Profile 走的就是另一条理由**：Profile 是账号级、云端权威、跨设备一致的主档，A 设备会读到 B 设备写的值，多设备裁决当场失效；它不自指，落点与理由见 `systems/services/account-service.md`。
@@ -67,7 +68,9 @@
 
   - **条目键名取 `<Kind>Id` 而非 `Id`**：`Id` 在本库指「本条目自身的稳定 Id」，而这一格指向的是内容条目；`DisabledAbilityEntry.AbilityId` / `PlotKeyPoint.ArcId` / `TechniqueEntry.TechniqueId` 已是同一形态，四类条目由此命名全族一致。
   - **`Charges` 只在 item 两类上**：内容侧 `ItemData.Charges` 是上限 / 初值，持有条目上的是**剩余次数**。允许取 `0`（储物袋的「已耗尽」筛选 chip 读它），无限法宝恒为 `-1`。
-  - **`Status` 落 `bool`（true = 启用）而非枚举**：它是二值开关；「本轮回禁用」是第三维、已落 `CharacterProfile.disabledAbility`，不挤进这一格。
+  - **`Status` 落 `bool`（true = 启用）而非枚举**：它是二值开关；「本轮回禁用」是第三维、已落 `CharacterProfile.disabledAbility`，不挤进这一格。**老档缺 `status` 格 → 补 `true`。**
+  - **`Status` 的写入通道 = `ProfileChangeSpec.AbilityStatusChanges`**（按 `(Kind, Scope, AbilityId)` 的绝对置值），门面 `SetAbilityStatus(kind, scope, abilityId, enabled)`；**「拥有 / 失去」走 `AbilityElements` 的 `Grant` / `Remove`**，两维各有通道、互不覆盖。**`StatusChanges` 不承载 `Status`**——它绑定 `CharacterProfile.Status` 上的数值型规则字段，名字撞车、语义无交集。见 `systems/services/profile-service.md`。
+  - **四类一律对玩家开放这个开关**（含 item 两类）：`Status` 在四条 record 上都是活字段。关掉的道具**仍占储物袋位、`Charges` 不变**。
   - **`magicPack` 的元素是「一份实例」而非「一条 Id 一行」**：同 `ItemId` 多份 = 多个元素，按 `ItemId` 堆叠是呈现层聚合。
   - **四者取 `readonly record struct`**（字段少、要落存档且进 diff），与 `StatusAssignment` / `DeckChangeElement` 同款。
 - **集合字段名恒为单数，且这是一条跨边界通则（承重）。** 集合字段名与类型名**一律单数**——`pastEvent` / `disabledAbility` / `achievement` / `playerPower` / `characterProfile` 同形。
@@ -173,14 +176,15 @@
 
     **`pushId` 与 CAS 都兜不住最后一行：** 第二次兑现是**另一批**变更、另一个 `pushId`，在 CAS 下是一次完全合法的推进，两侧都不报错——玩家凭一次付款拿到两份货。反过来，把待兑现态**只**放 `user://cache/` 则卸载重装 / 清缓存 / 换设备后它消失，而云端序号已推进 ⇒ 收了钱永不给货，且线上无痕迹。**本地缓存不是权威**在此正面生效：两个方向只有云端上的一个水位字段能同时闭合。
   - **不设第三个字段 `HasPremiumBundle` / `PremiumBundleCount`。** 三者是同一个数的三份拷贝：`HasPremiumBundle ⟺ BundleGrantOrdinal > 0`（一次带判断的派生读取，与 `x` 是「对 `List<PlayerPower>` 的一次带过滤计数」同构）；可重复购买下 `BundleGrantOrdinal` **就是**购买次数。这正是**合并判据**与 `FinaleWinOrdinal` 先例所指的形态——**让重复字段从一开始就不存在**，比任何注释可靠。**命名合规**：`Ordinal` 后缀 ⇒ 规则字段层；**类内禁用 `Total` 前缀 / `Count` 后缀**（出现即意味着有人复制了同一个数，可机械检查）。
-  - **为何是具名字段而不是 `List<EntitlementKind>` / 字符串集合**：与「`CapabilityFlag` 用 `enum` 而非字符串 key」同一条纪律；付费点在本作被刻意限窄（负面边界见 `systems/monetization.md`），可扩展集合的成本高于收益。日后真新增第二个付费点 = 本类加一个具名字段 + bump 一次 schema。
+  - **禁的是以付费点种类为 key 的开放容器；内容条目实例的持有集仍是 id 集合，与四类持有条目、七个 Codex 同形（承重 · 这条判据的准确边界）。** 与「`CapabilityFlag` 用 `enum` 而非字符串 key」同一条纪律：拦的是把「有哪些付费点」做成运行时可拼错的字符串枚举——付费点在本作被刻意限窄（负面边界见 `systems/monetization.md`），一个可扩展的**种类**集合成本高于收益。**但一个具名字段的类型可以是列表**：当元素是 `ContentRegistry` 可解析的内容 `Id`（不是自由 key）时，合法性校验由注册表接管，开放容器的原始风险不成立。日后真新增第二个付费点 = 本类加一个具名字段 + bump 一次 schema。
+  - **外观付费点落地时按此形态加一格（首批不落）：** `Cosmetic : IReadOnlyList<CosmeticEntry>`，元素 `readonly record struct CosmeticEntry(string Id)`，默认空列表，**写入方只有后端**（验票事务内追加，与 `BundleGrantOrdinal` 同形），客户端经 pull 读到。**不配兑现水位**——外观授予无随机、无内容抽取，客户端零兑现事务。**不加 `Status` / `Charges` / `SourceCode`**（外观零玩法影响、无启用开关、无使用次数、来源恒为购买）。**元素包一层 record 而非裸 `string[]`**，理由与七个 Codex 的 `CodexEntry(string Id)` 同款：日后加一格是在 record 上加字段（老档补默认值、零迁移），裸 `string` 则元素形状从标量变对象，是一次真实的破坏性变更。读档校验：非数组 / 元素缺 `Id` → `PushError` + `entitlement` 本次不进 diff + 触发一次 pull 重取权威值、**不钳制**（与 `BundleGrantOrdinal` 同口径）；`Id` 解析不到内容条目 → `PushWarning` + 保留条目（与 Codex 同口径，旧条目不该阻断登录）。JSON path `/entitlement/cosmetic` 是透明路径且后端写入 ⇒ 受回声约束，**与后端同批落笔并进版本行**。品类与落地全貌见 `systems/monetization.md`。
   - **不落成 `CapabilityFlag`，也不走 modifier pipeline**——两者都是由内容条目聚合出的**派生态**、且受轮回级禁用截断，而付费凭证是账号上的**原始事实**、必须是不参与 pipeline 的硬状态。完整判据见 `systems/monetization.md`。
   - **读档校验**：`BundleGrantOrdinal` `< 0` → `GD.PushError` + **`entitlement` 顶层键本次不进 diff** + 触发一次 pull 重取权威值，**不钳制**——它是回声路径，任何方向的改写都是客户端在改写一个只由后端写入的字段，而钳制出来的值一旦被回声上行就会稳定招致整批拒绝。`BundleRedeemedOrdinal` 的两向钳制**原样成立**：`< 0` → 钳制到 `0`、`> BundleGrantOrdinal` → **钳制到 `BundleGrantOrdinal`**（判定为「无待兑现」），两向皆 `GD.PushWarning`——它是客户端写入路径，且读 `Grant` 只是读、不写回。两者**都不由购买历史重建**（与三个首胜布尔同口径——它们是权威）。**钳制方向偏向不重复发放**：坏档下最坏是少发一次，而少发有后端对账信号可查，多发则是不可回收的发放侧漏洞。
   - **schema 影响**：`PlayerProfile.entitlement` 的两个字段属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`；老档缺字段 → `0`（未购买 / 从未兑现，无损）。
   - **两条 JSON path `/entitlement/bundleGrantOrdinal` 与 `/entitlement/bundleRedeemedOrdinal` 都是透明路径。** 前者是**后端会写入**的字段（验票通过时 `+1`），后者后端只读并可校验不变式；白名单、后端写入字段的封闭表与只读语义见 `backend-design-documents/contracts/profile-sync.md` §5，写入端点见同库 `contracts/purchase.md`——本库不复述。移动或重命名任一 path = 破坏性契约变更，须 bump `schemaVersion` 并与后端同批改。
 - **服务归属：profile-service。** 账号级行为——PlayerPower 的获取 / 失去与 `status` 开关持久化、PlayerItem 使用次数扣减、成就进度与奖励发放、capability flag 聚合——归 **`systems/services/profile-service.md`**。因 `PlayerProfile ⊃ List<CharacterProfile>`，该服务**同时是两层 profile 的唯一写入面**（`ProfileManager.TryApply(spec)`，全有或全无），使「扣账号级 PlayerItem 次数 + 扣轮回级灵石」天然落在同一事务内。登录归 `account-service`，云端同步归 `sync-service`。
 
-Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-echo-validation-scope-client-half.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md`
+Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-costkey-statkey-registry.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-device-id-provisioning.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-echo-validation-scope-client-half.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
 
 ## 子系统导航
 
@@ -201,7 +205,7 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **元进程持久化范围与平衡边界：** `achievement` 条目的 schema、以及各账号级条目的解锁 / 获取触发仍待定；PlayerPower 的平衡边界（防 pay/grind-to-win、是否影响 cycle seed / 计分公平）同样待定。→ 见 `systems/services/life-cycle-service.md`、`achievement/_index.md`。
+- **元进程持久化范围与平衡边界：** 各账号级条目的解锁 / 获取触发仍待定；PlayerPower 的平衡边界（防 pay/grind-to-win）同样待定。→ 见 `systems/services/life-cycle-service.md`、`player-power/_index.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/_index.md`（待建）。

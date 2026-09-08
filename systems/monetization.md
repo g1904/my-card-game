@@ -151,13 +151,38 @@
   | **体力 / 付费加速** | 本作无体力、无 grind、无等待——没有可被加速的对象 |
   | **广告变现（激励视频）** | 与买断式增值路线不冲突但稀释格调，且「看广告换重试」等价于付费续命的免费版本 |
 
-  - **唯一预留方向 = 纯外观**（角色皮肤 / 卡背 / 界面主题）：唯一零玩法影响、可无限扩展、不触及任何平衡讨论的付费面。**架构预留、首批不做**——首批不新增任何字段、不新增任何屏；落地时 = `PlayerEntitlement` 加一个具名字段 + bump 一次 schema，不需要该类之外的新机制。做成哪些外观仍待定。
+  - **唯一预留方向 = 纯外观**：唯一零玩法影响、可无限扩展、不触及任何平衡讨论的付费面。**架构预留、首批不做。**
+
+    **「预留」的兑现物 = 下列三个加法窗口保持开启，首批不为外观增加任何字段、屏、内容类型或资产类目（承重 · 明确否决占位字段）。**
+
+    | 加法窗口 | 依据 |
+    |---|---|
+    | `PlayerEntitlement` 可加具名字段 | 「日后真新增第二个付费点 = 本类加一个具名字段 + bump 一次 schema」（见 `systems/player-profile/_index.md`） |
+    | `GameSetting` 可加账号级具名字段 | 加项成本已是可预期的四步（见 `systems/player-profile/game-setting.md`） |
+    | Store 屏可容纳新结果态 / 新列表而不新增屏 | 一屏多结果态已是既定形态 |
+
+    - **否决「先加一个空的占位字段把位置占住」**，三条理由：① 占位字段会进 `profile-shape-v1.json` 的 golden 快照与 v1 清单，于是一个**永远为空**的结构成为契约的一部分；② `/entitlement/*` 是透明路径且后端写入面受回声约束，占位即要求后端此刻就在封闭表里为它开一行——**跨边界地固化一个尚未设计的形状**；③ 预留的成立只依赖那三个窗口开着，而它们都开着，占位不换来任何东西。**把这句话写下来是为了让「预留」有可核对的所指**，而不是一句无法证伪的承诺。
+    - **品类：角色皮肤为首个品类；卡背为第二品类；界面主题不做。**
+
+      | 品类 | 边际成本 | 既有承载 | 结论 |
+      |---|---|---|---|
+      | 角色形象皮肤 | 1 张基础 + ≤3 张境界覆写 / 套 | **最强**：`CharacterData.Artwork` + `RealmArtworks` 稀疏覆写已成形，零新机制 | **首个品类** |
+      | 卡背 | 1 张图 / 套 | **零**：资产类目表里没有「卡背」一行，卡牌资产只定义了 full art 正面 | **第二品类**，排入前须先确认牌堆背面在竖屏战斗屏上有稳定可见面（见待决问题） |
+      | 界面主题 | 全套 UI 元件（九宫格、状态变体、图标），且**对未来每一个新屏永久征税** | **最弱**：UI 元件明写「与插画分开、不适合整图生成」，不走 AI 流水线 | **明确不做**。将来若要做，须先答「主题覆盖到哪一层」——它不是一个可以事后收窄的承诺 |
+
+    - **落地时的形态（首批一格不落）：**
+      - **持有** = `PlayerEntitlement.Cosmetic : IReadOnlyList<CosmeticEntry>`，元素 `readonly record struct CosmeticEntry(string Id)`。**写入方只有后端**（验票事务内追加），客户端经 pull 读到。**不需要兑现水位**——礼包要水位是因为兑现要掷骰抽内容，外观授予无随机、无内容抽取 ⇒ 三道空池闸、`GrantPoolMargin`、`K` 一概不适用，客户端零兑现事务。**不加 `Status` / `Charges` / `SourceCode`**：外观零玩法影响，没有启用开关、没有使用次数，来源恒为购买。字段表与读档校验的权威在 `systems/player-profile/_index.md`。
+      - **选用**（当前穿哪一套）= `GameSetting` 的账号级具名字段，**不进 `PlayerEntitlement`**（那里只放凭证与兑现水位，选中项是纯偏好）。见 `systems/player-profile/game-setting.md`。
+      - **外观条目 = 一个内容类型**（`Id` + `LocalizedText` 名称 / 描述 + `Artwork`），走 `ContentRegistry`，id 形态 `<品类>.<snake_case_slug>`；`Artwork` 一格直接够用，角色皮肤另可复用 `RealmArtworks` 的稀疏覆写 ⇒ 一套皮肤 = 1 张基础 + 至多 3 张境界覆写，不需要任何新资产字段。**首批不建文件夹、不进类型登记表**（未开张的类型不预先建空文件夹），落地时走一次 `/scaffold-content-type` 并在 `art/visuals/_index.md` 的资产类目表加一行。
+      - **呈现落点 = Store 屏内，不新增屏、不新增主菜单入口。** Store 已是一屏多结果态 ⇒ 外观购买是它的又一个列表 / 结果态；主菜单入口预算已明确紧张（同一条理由否决过「逐本图鉴开七个入口」），为外观开一个 Wardrobe 入口撞的是同一条。**换装的落点是角色选择屏**（玩家已经会在那里看到角色形象，换装是就地操作而非一次跳转），**明确排除设置屏**。列表布局、预览方式、未持有项的呈现留给落地时的 UX 专场。
+      - **schema**：落地时一次 bump（持有 + 选用两格同批），并与后端同批落笔（后端 SKU 类别、验票后写入 `/entitlement/cosmetic`、封闭表与白名单加行）。登记是那一次落笔的义务，权威在 `systems/services/profile-schema-versions.md`。
+    - **上新节奏受「资产随发版」硬约束（承重）。** 二进制资产不经 overlay ⇒ **每上一套外观 = 一次客户端发版**（三渠道审核各一轮）。外观因此是**低频、成套发布**的付费面，不是可周更的上新面；SKU 与条目须同批发版。这与下条「通行证 / 赛季当前不做」同向且互相加固——**赛季式高频上新在本作结构上就不成立**，不只是产能问题。
   - **通行证 / 赛季：当前不做**——它要求先有赛季结构与持续内容产能，而本作当前没有赛季结构。若将来做，须先答「赛季是什么」，不能反过来。
 - **UX 观感 = 安静的一等入口 + 绝不在失败时刻推销。** 入口位置、三条呈现纪律与灰态判据的权威在 `ux/screen-flow.md` 与 `ux/error-and-blocking-ux.md`；此处只记本系统侧的两条结论：
   - **重试次数耗尽时不提示购买**，两条独立理由——① 那是玩家刚失去一个角色的时刻，此处推销正是「付费才玩得下去」观感的经典成因，且会把 ③ ④ 从「宽松化」在观感上变成「解锁继续游玩」；② **它在结构上本就不可行**（购买只在主菜单发起、待发队列为空，而重试耗尽是轮回内 / 结算流程内的时刻）。
   - **允许的全部呈现穷举为三处**：主菜单入口本身；礼包详情页内如实列出四项权益（及第二次起的删减说明）；**兑现结果态**（列出本次获得的 1 法则 + 2 古宝）。这句穷举约束的是**推销面**——兑现结果不是推销：它发生在付款之后、内容已定，且「付了钱看不到货」与本文件反复出现的诚实性纪律正面相悖，也是退款争议的常见诱因。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -170,7 +195,7 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 > _尚未解决，需要一次 handoff/决策。_
 
 - **`GrantPoolMargin` 的数值与 `K`。** 闸 ① 的口径已改写为「支撑 K 次重复购买 + 留给第 K+1 次的缓冲」，**结构已定、数值待内容规模明朗**。→ `systems/balance.md`。
-- **纯外观付费点做成什么。** 架构预留、首批不做已定；做成角色皮肤 / 卡背 / 界面主题的哪些、落成 `PlayerEntitlement` 的哪个具名字段形状，仍未定。通行证 / 赛季已明确「当前不做」。
+- **卡背品类的一项事实确认。** 品类顺序与字段形状均已给出（见上方「唯一预留方向」），**卡背排入前须先确认牌堆背面在竖屏战斗屏上确有稳定可见面**——`ux/` 当前未描述牌堆呈现形态。归入既已排期的竖屏分区 UX 专场。→ `ux/combat-ux.md`。
 - **合规。** 付费与实名 / 防沉迷 / 渠道分成 / 退款的交互归后端与合规侧；客户端不读年龄、不做任何本地拦截，只承接后端 `code` 展示对应 `ERR_*` 文案。→ `backend-design-documents/`。
 
 ## 对应

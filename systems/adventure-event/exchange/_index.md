@@ -162,7 +162,7 @@ Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` �
 - **支付币种是定价表格值的一部分（表驱动）；售出同币回收，交易两侧都不构成跨币种通道。**
 - **NPC / 势力为风味层，不建数据模型。**
 - **交易不产生统计依赖：不为「购买次数」设 `StatKey` 成员**（判据与代价见「交易不产生统计依赖」一节）。
-- **支付侧二选一：一条货币 element，或一件点名的轮回级法宝（定值以物易物）** —— ADR 候选，待 `/write-adr` 立档。
+- **支付侧二选一：一条货币 element，或一件点名的轮回级法宝（定值以物易物 / barter）** → `decisions/ADR-0126-exchange-barter-payment.md`（Accepted；含 `Holds(...)` 门面级前置拒绝与「不扩 `CanAfford`」）。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_

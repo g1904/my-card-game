@@ -140,6 +140,7 @@
   | 23 | `rng` | `RngState`（具名子类） | `RngElements`（`CycleSeed` 与子流初始化为 `—`） | `systems/common-properties.md` |
   | 24 | `startContentVersion` | `int` | — | `systems/services/content-service.md` |
   | 25 | `lastContentVersion` | `int` | — | `systems/services/content-service.md` |
+  | 26 | `chapterStartSnapshot` | `ChapterStartSnapshot`（具名子类） | —（`StartCycle`） | 本文档「篇章起始快照」 |
 
   **`CharacterProfile.Status`（具名子类 · 数值型运行状态）**
 
@@ -286,7 +287,7 @@
   sbyte BloodlustBand;         // 0..3
   ```
 
-  - **两个 band 落成两个具名字段而非字典** —— 与 `chapterRetry` 的「篇章数是固定的游戏结构，不用字典 / 索引数组」同款判据：隐藏属性清单虽仍待答，但**增删属性本就要动 schema**，字典只换来一层查找与一处可空。
+  - **两个 band 落成两个具名字段而非字典** —— 与 `chapterRetry` 的「篇章数是固定的游戏结构，不用字典 / 索引数组」同款判据：隐藏属性恰**道心 / 煞气两项**（清单已定稿），且**增删属性本就要动 schema**，字典只换来一层查找与一处可空。
   - **写入并入 `eventEnd` 那一次 `TryApply`**（band 在组装 spec 时按「前值 + `AppliedChange`」算出**绝对值**，不是相对增量；载体是 `ProfileChangeSpec.StatusChanges` 的 `StatusAssignment`，`sbyte` 存档字段在 spec 内以 `int` 承载）⇒「一个事件的收口是一次事务、一个存档点」原样成立，**不新增存档点、不新增结算阶段**。
   - **不进 `PastEventEntry`**：band 设值已在 `AppliedChange` 内、可重放，按判据「重算得出来的不存」⇒ 快照不加字段。
   - 档位表本身、阈值 / 回滞 δ 与跨档叙事规则归 `systems/services/plot-manager.md`。
@@ -351,16 +352,24 @@
   ```
 
   派生规则与恢复语义见 `systems/common-properties.md`；双 `contentVersion` 的诊断用途见 `systems/services/content-service.md`。
-- **角色状态是终态收敛的状态机。** `status` 收敛为 `ongoing | defeated | completed`（`defeated` 的三种原因：discarded / 寿元归 0 / 渡劫失败——前两种是资源触底，末一种是篇章闸门）；`defeated` 与 `completed` 数据都会在轮回结束时被清理。→ 见 `systems/services/life-cycle-service.md` 与 `decisions/ADR-0004-realm-checkpoint-retry-model.md`。
+- **篇章起始快照 `chapterStartSnapshot`：篇章重试的唯一回滚来源。** 它是**本篇章起始那一刻可回滚实体状态列的冻结拷贝**，外加一格**篇章起始 `Seq` 锚点**（该篇章第一条 `pastEvent` 的 `Seq`，用于把两屏摘要的「本篇章事件数」从跨篇章累计的 `pastEvent` 里切出来）。
+  - **写入通道 = `StartCycle` 直接赋值，只写一次**，不经 `ProfileChangeSpec`；`RetryChapter` 按它整份回滚。
+  - **它只装「可回滚实体状态」那一类格**：`technique` / `looseCard` · `magicPack` · `characterPower` · `disabledAbility` · `Status` 全部数值格（含两个 band、两个 location 格、`ChapterLifeSpanBudget`）· `spiritStone` / `immortalJade` · `plotKeyPoint` · `realm` / `level`。
+  - **⚠ 逐条排除的格（进 snapshot 即出错）：** `chapterRetry`（回滚后重试计数永远停在 1，**重试上限静默失效**）· `id` · `characterDataId` · `chapter` · `status` · `defeatReason` · `startContentVersion` / `lastContentVersion`（后者须跟随最新）· `pastEvent` / `pastItemUse`（只追加、`Seq` 不复用）· `chapterStartSnapshot` 自身（否则自嵌套）。
+  - **`defeated` 的墓碑保留本字段**——ch3 途中死亡后仍有重试次数，金丹存档必须活过这次死亡。**回收只发生在 ch1 墓碑上**（ch1 重试是新建角色档，该 snapshot 恒不可读）。
+  - 三层处置与逐字段三分表的权威在 `systems/services/life-cycle-service.md`「轮回出口的三层处置」；本字段属 `schemaVersion` 1，登记见 `systems/services/profile-schema-versions.md`。
+- **角色状态机有一个吸收态，不是两个。** `status` 取 `ongoing | defeated | completed`（`defeated` 的三种原因：discarded / 寿元归 0 / 渡劫失败——前两种是资源触底，末一种是篇章闸门）。**只有 `defeated` 是吸收态；`completed` 是可离开的存档态**——`completed → ongoing` 是一条合法转移，由续章的 `StartCycle(SourceCharacterId = 自身 id)` 触发。数据处置的口径：**轮回运行态在两条出口上都被清理；角色实体状态只在 `defeated` 上被处置，`completed` 保留下来即「境界存档」。**
+  - **保留理由（防这条被重新提出）：** 把状态机收敛成纯终态图的代价是必须另造一个「境界存档」对象来承载续章，而「篇章继承 = 全部继承、无逐项筛选」意味着该对象的字段面与 `CharacterProfile` **逐格相同**——那是换个名字复制一份第二权威，两份必然漂移。
+  - 三层处置、字段三分表、墓碑形态与 snapshot 回收口径见 `systems/services/life-cycle-service.md`「轮回出口的三层处置」；重试模型见 `decisions/ADR-0004-realm-checkpoint-retry-model.md`。
 
-Source: `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md`
+Source: `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-09-06-completed-data-retention.md`
 
 ## 子系统导航
 
 | 子系统 | 文件 | 内容 |
 |--------|------|------|
 | 卡组 deck | `deck/_index.md`、`deck/common-properties.md` | 抽牌堆 / hand / 弃牌堆、seeded 洗牌、deck 变更；**功法（构筑单位，带层数、整组替换式升阶）**；卡牌 / CardData 定义（费用、目标、效果流水线、触发器）；起始卡组等内容设计。 |
-| 法宝 item | `item/_index.md`、`item/common-properties.md` | **CharacterItem**：轮回级角色道具（含道具设计内容；细节待定）。 |
+| 法宝 item | `item/_index.md`、`item/common-properties.md` | **CharacterItem**：轮回级角色道具；含内容定义 `ItemData` 的字段面与两格使用效果面。 |
 | 轮回货币 currency | `currency.md` | 轮回货币 **灵石 `spiritStone`（基础）/ 仙玉 `immortalJade`（高阶）** 的获取 / 消耗；两者不可兑换。 |
 | 神通 power | `power/_index.md`、`power/common-properties.md` | **CharacterPower**：轮回级角色能力，**对标账号级 PlayerPower（法则）**（同一概念的两层，分界是生命周期）；随轮回清理，**可承载战斗内触发式效果**。 |
 | 寿元 lifeSpan | `life-span.md` | **角色唯一的资源命线**：两个扣减来源（每个事件的 `lifeSpanCost` · 战斗失败按道念差 × `lossPerMomentum`），战斗过程中不被读写；**归 0 → defeated**；回复走 outcome 侧三通道；炼气起始 1000；单值、无上限。 |
@@ -376,7 +385,6 @@ Source: `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-
 > _尚未解决，需要一次 handoff/决策。_
 
 - **全池指定下角色强度差是否仍塌缩为单一最优。** 灵根把差异推向「能修哪一路功法」，但仍可能存在一个综合最优的属性池；ch1 无限重试放大该效应。待实测。→ 本文档。
-- **隐藏属性完整清单是否还有第三项。** `Status` 上目前是道心 / 煞气两项；取值域、档位表与阈值见 `systems/services/plot-manager.md`。→ 见 `systems/services/plot-manager.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/_index.md`（待建）。

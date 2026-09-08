@@ -3,7 +3,7 @@
 参照标杆，以及哪些该借鉴、哪些该规避。要具体——“我们想要 X 的 Y 机制，但不要它的 Z。”
 
 ## Slay the Spire
-- **借鉴：** 节点地图式的轮回结构；以卡牌构筑为核心 build；回合制、意图预告（intent-telegraphed）的战斗；**战后奖励面板的形态**——部分奖励强制自动计入，另一部分逐项列出、由玩家逐项领取或跳过。
+- **借鉴：** 节点地图式的轮回结构；以卡牌构筑为核心 build；回合制战斗（**其意图预告一族本作不采用** → `decisions/ADR-0059-no-enemy-intent-telegraph.md`）；**战后奖励面板的形态**——部分奖励强制自动计入，另一部分逐项列出、由玩家逐项领取或跳过。
 - **规避：** 每个节点都战斗的节奏。在本作中，**并非每个 AdventureEvent 都是一场战斗**——许多是事件/抉择。
 
 Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-04-art-audio-library-scaffold.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`

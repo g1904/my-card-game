@@ -11,7 +11,7 @@
 - **被动修正 = 挂接到事件触发器。** PlayerPower 通过响应游戏事件（触发器）施加被动修正（relic / joker 语义）。
 - **数据定义 = `PowerData`。** relic / joker 的**设计意图、触发条件与效果**在本处陈述；**类型本身不在本文件**——法则与神通共用一个 `PowerData`（`AbilityScope` 声明层级），字段清单的权威在 `../../character-profile/power/_index.md`，异能语法（`AbilityData` 两格 XOR · `EffectData` 子类树 · `TriggerConditionData` / `TimingIds`）的权威在 `../../character-profile/deck/common-properties.md`（`ADR-0115`）。
 
-- **开关落为 `status` 字段（启用 / 禁用）。** 「带开关」不只是 UX 描述，而是 PlayerPower 类上的持久字段；它与「拥有 / 失去」是**两个正交维度**（失去 = 移出 `List<PlayerPower>`，而非置禁用）。
+- **开关落为 `status` 字段（启用 / 禁用）。** 「带开关」不只是 UX 描述，而是持有条目 record 上的持久字段 `bool Status`（true = 启用，默认 true；record 形态见 `../_index.md`）；它与「拥有 / 失去」是**两个正交维度**（失去 = 移出 `playerPower` 列表，而非置禁用）。**写入经 `ProfileChangeSpec.AbilityStatusChanges`**，门面 `SetAbilityStatus(kind, scope, abilityId, enabled)`，见 `systems/services/profile-service.md`。
 - **道统残卷 / `PlayerPowerFragment` = 焊在 Finale 上的 PlayerPower 掉落概率（元进程的失败侧产出 · 承重）。** 失败不是零推进：
   - **不发放账号级货币。** 累积的是**一个递增的概率**——获得新 PlayerPower 的掉落概率；**掷中并授予后即重置**。
   - **为何不是货币：** 可支配的货币会引入**第二套账号级经济**（获取 → 囤积 → 兑换 → 定价），而本作的元进程只想要「失败也在推进」这一条效果。递增概率给了同样的推进感，却不新增任何经济系统。因此它是一个**账号级的隐含状态**（一个概率值 + 重置规则），不是玩家可查看余额、可花费的资源。
@@ -56,7 +56,7 @@
   - **推论 ①（承重）：付费内容不会被游戏销毁。** 法则部分来自 premium bundle，**「花钱买到的东西可能被一个事件拿走」这条风险彻底关闭**——玩家点头才失去，且失去时拿到等价物。与既定付费边界（「花钱体验更好、不滑向 pay-to-win」）同向，并免去一整类客诉与退款争议。见 `systems/monetization.md`。
   - **推论 ②：三级严重度阶梯就此成形。** 本场移除 < 本轮回禁用 < 账号移除（仅置换、需自愿）。**「失去法则」不再是二元事件，而是一条有梯度的压力线**，内容侧可按事件分量选档。
   - **推论 ③：置换是正向设计，不是惩罚。** 「以一换一」本质是**卡组构筑式的取舍**（换掉不合本局流派的法则），把原本会激起挫败的机制转成一个有趣的决策点——**它把「失去法则」从风险面挪到了设计面**。
-  - **推论 ④：「本轮回禁用」需要一个轮回级的抑制表达。** `status` 开关是**账号级**持久字段，不能拿它承载本轮回禁用——否则轮回结束后忘了恢复即等同永久剥夺。**它必须落在轮回级状态上**（`CharacterProfile` 侧的一个被禁用 `Id` 集合），使轮回结束即自然失效，与「轮回状态在轮回结束时被干净拆解」的既定纪律一致。形态见待决问题。
+  - **推论 ④：「本轮回禁用」需要一个轮回级的抑制表达。** `status` 开关是**账号级**持久字段，不能拿它承载本轮回禁用——否则轮回结束后忘了恢复即等同永久剥夺。**它必须落在轮回级状态上**（`CharacterProfile` 侧的一个被禁用 `Id` 集合），使轮回结束即自然失效，与「轮回状态在轮回结束时被干净拆解」的既定纪律一致。**形态已定，见下一条**「『本轮回禁用』的承载与生效面」（`CharacterProfile.disabledAbility` + 三档 `DisableDuration`）。
   - **推论 ⑥：置换不改变 `SourceCode`。** 换来的条目**继承被换出条目的来源**，故置换对残卷的 `x` 完全中性——否则「换掉一条 `FinaleWin` 法则」就成了压低 `x`、刷回高掉率的通道。见 `systems/common-properties.md`。
   - **推论 ⑤：`Power` 的「受保护」语义是三层，不是两层。** `IsProtected`（战场上的可针对性）· 本轮回持有的有效性（可被禁用）· 账号持有权（**只有自愿置换能动**）。
 - **「本轮回禁用」的承载与生效面（承重）。** 禁用集合落 **`CharacterProfile.disabledAbility`**——与 `pastEvent` / `chapterRetry` / `activeCombat` 平级的新字段，**不落 `Status` 内**（`Status` 是数值型运行状态，禁用表是集合型 build 状态）。
@@ -64,7 +64,7 @@
   - **生效判据 = 截断在「进入生效面」那一步**（不入场 / 不进本场可用道具 / 不进 capability 聚合 / 不进 modifier 表 / 不注册触发器），与「`status` 关闭 = 不入场」同构；**`Power` 的入场由两条与门变三条与门**。完整生效面表见 `../../character-profile/power/_index.md`。
   - **一经写入即在全部生效面上立即生效，包括进行中的战斗**；但当前链路下该路径不可达（唯一写入点 `TryApply` × 唯一施加时机 `eventEnd`），故落地是**复用 `IgnoresProtection` 的战场移除路径 + `#if DEBUG` 大声失败**，不新写中途重算参战方的代码。
   - **对玩家可见**：元进程界面照常列出、灰态 + 徽标 + 三档文案、长按查看来源事件；施加时事件结算面板必须告知；战斗屏不呈现。
-  - **禁用不影响持有**：`Charges` 不动，残卷的 `x` 不受影响（生效维度 ≠ 持有维度）。**古宝同样开放到 `ThisCycle` 档**——与法则对称；不销毁、不扣次数、轮回结束即恢复，故不违反「付费内容不会被游戏销毁」。强度由**内容侧稀缺纪律**承担：**禁用古宝的事件应比禁用法宝显著更稀有，且一并计入既定的 1% 分子**（评审清单级，不加代码硬规则）。
+  - **禁用不影响持有**：`Charges` 不动，残卷的 `x` 不受影响（生效维度 ≠ 持有维度）。**古宝同样开放到 `ThisCycle` 档**——与法则对称；不销毁、不扣次数、轮回结束即恢复，故不违反「付费内容不会被游戏销毁」。强度由**内容侧稀缺纪律**承担：**禁用古宝的事件应比禁用法宝显著更稀有，且一并计入既定的「失去能力」频次预算分子**（评审清单级，不加代码硬规则）。
 - **置换的候选池与对价规则：排除已有 · 同稀有度 · 先看后决 · 拒绝无代价 · 四类通用但只同类型置换。**
   - **同池判据 = `(CarrierKind, Scope)` 全同** ⇒ 四个独立池（`PlayerPower ↔ PlayerPower` / `CharacterPower ↔ CharacterPower` / `CharacterItem ↔ CharacterItem` / `PlayerItem ↔ PlayerItem`）。跨 `Scope` 置换会把账号级资产换成轮回级（隐性剥夺）或反之（白嫖账号级内容）——`Scope` 本就是「决定持久层」的字段，跨层交换等于绕过它。
   - **抽取 = `AllEnabled()` 全池 → 过滤同 `(CarrierKind, Scope)` → 过滤同 `Rarity` → 排除已持有 → seeded 抽一条**，走 **`reward` 子流**（置换候选是一次奖励性质的内容抽取；不新增子流）。**必须走 `AllEnabled()`**，不得自写 `AllIncludingDisabled().Where(...)`。
@@ -97,16 +97,26 @@
 - **禁用与置换都不出现在 `selectCost`，只出现在 outcome / reward 侧（承重）。** `ProfileChangeSpec.AbilityElements` 在 `EventOption.SelectCost` 内**恒为空**。四条支撑：① **成本侧只放可如实计价的量**——能力得失不可计价，塞进去会让 `selectCost` 的展示从一列数字变成「数字 + 一段能力说明」；② **成本侧无条件施加，与「先看后决 · 拒绝无代价」正面冲突**——把置换塞进成本侧，兑现拒绝权只能靠「不选这个事件」，等于把一次独立的玩法决策折叠进事件选择；③ **能力得失始终是事件的后果，不是入场费**，挪到成本侧与推论 ③「置换是正向设计、是一个决策点」直接相悖；④ **它换来一条可机械检查的不变式**（`SelectCost.AbilityElements` 恒空 ⇒ 物化组装后断言 + 内容加载期校验，两处 `PushError`）。
   - **outcome 侧形态**（置换与禁用共用同一条链路）：候选在**结算时**（`eventEnd` 之前）走 `reward` 子流掷定 → 结算面板展示「失去 A · 得到 B」+ 接受 / 拒绝（禁用型只告知、无选择）→ 拒绝 = 零 element、零代价 → 接受则两条 element 并入 `eventEnd` 那一次 `TryApply`。**这是一个事件内决策点，形状与战后奖励面板完全同构，不新增机制**；**候选必须预先算定并落决策点存档**，否则退出重进可以重掷。
   - **`PastEventEntry.SelectCost` 的快照形状不受影响**（它只装资源 element）；`AppliedChange` 新增能力 element 与统计 element。
-- **失去 `Power` 的配额 ≈ 1% 的 event，且不限于战斗。** 「稀缺性归内容侧纪律」这条有一个量化口径：**「这次可能失去法则」的事件应约占玩家经历的全部 AdventureEvent（五类）的 1%**。**分子的构成**：置换型事件 + 本轮回禁用型事件 + 战斗内带 `IgnoresProtection` 的遭遇，三类合计约 1%，**概率控制归内容侧**（与「稀缺性归内容侧纪律、代码只留 `PushWarning`」一致）。
-  - **推论 ③：1% 是「出现频次」口径，不是「条目占比」口径**，故**无法被加载时机械化校验**。加载期的 `PushWarning` 逐条列举因此照做（作用是让清单始终可见、可人工审阅）；1% 落在**内容编排与抽取权重侧**，且校验面从战斗内容**扩到整个事件池**，落点主要在 `systems/services/future-event-service.md` 的物化与加权规则上。
-  - **战斗内 `IgnoresProtection` 那一支另有自己的分母（与上条嵌套不冲突）：** **分母 = 一次完整轮回中玩家进入并结算的战斗类遭遇总数**（`combatTier` 三档合计，按「进入」计不按胜负计）；**分子 = 其中至少发生过一次 `IgnoresProtection` 实际结算的遭遇数**；**目标 ≈ 5%**（编排规则只有两条硬准入，见 `systems/balance.md`）。
-    **「实际结算」而非「敌人持有」是关键**——带该效果的敌人若本场没打出那张牌，玩家没撞上，不计入分子。量级换算：一次轮回约 23 场战斗 ⇒ **5% ≈ 每 20 场撞上 1 次、一次完整轮回内约 1 次**（这个数字比百分比直观得多，是内容编排时唯一需要记住的口径）。编排规则（仅挂 boss 档载体 · 每篇章至多 1 个载体 · **一次轮回内至多结算一次** · **绝不挂在玩家可主动获取的内容上** · 保留 `PushWarning` + 人工核对表）见 `systems/balance.md`。**「一次轮回至多一次」需要一个轮回级布尔位落 `CycleState`** ⇒ **「1% 不落代码」的措辞微调为「1% 的分布归内容编排，仅一个轮回级布尔位落代码」**——它是「平均 1%」与「体感 1%」之间的唯一桥。
-  - **⚠ 连带：上一层的 1% 合计口径因此吃紧（须在内容编排时校准）。** 5% × 约 23 场战斗 ≈ **约 1 次 / 轮回**，单 `IgnoresProtection` 这一支就已**吃满**「合计 ≈ 全部事件的 1%」（约 84 个事件 ⇒ 不足 1 次）的全部预算。**且分子是四支不是三支**——神通（`CharacterPower`）侧的置换 / 禁用挤进的是**同一份预算**，不另立一套（见 `../../character-profile/power/_index.md`）。**两个口径都是内容编排侧的目标值、都不可机械校验**，故此处只如实记下张力，不预先拍板：**要么上层合计口径随之上调，要么置换型 / 禁用型各支相应收窄**——归 ch1 内容编排一并定。
-  - **推论 ④：量级坐实。** 一个篇章数十个事件，置换型 / 禁用型两支各自落在**一个篇章遇上一次或更少**的量级。「我的法则会不会被拆」因此是跨篇章尺度的稀有事件，与既定的「内容级稀缺保证而非类型级绝对保证」量级吻合。
+- **失去能力的频次预算：持久三支合计 ≈ 1 次 / 完整轮回，且不限于战斗。** 「稀缺性归内容侧纪律」这条量化口径的**承重表述取每完整轮回的期望次数，不取百分比**——百分比口径会被分母漂移静默重定价，而内容编排关心的是「玩家一局撞上几次」；百分比只作括号里的换算副本（**≈0.88%** 的全部 AdventureEvent（五类，含 Travel），分母 ≈114），分母变动时只重算括号、目标值本身不动。**分子 = 三支持久支**：法则置换型事件 · 法则禁用型事件 · 神通（`CharacterPower`）置换 / 禁用（挤进同一份预算，不另立一套，见 `../../character-profile/power/_index.md`）。**概率控制归内容侧**（与「稀缺性归内容侧纪律、代码只留 `PushWarning`」一致）。
+  - **推论 ③：这是「出现频次」口径，不是「条目占比」口径**，故**无法被加载时机械化校验**。加载期的 `PushWarning` 逐条列举因此照做（作用是让清单始终可见、可人工审阅）；预算落在**内容编排与抽取权重侧**，且校验面从战斗内容**扩到整个事件池**，落点主要在 `systems/services/future-event-service.md` 的物化与加权规则上。
+  - **战斗内 `IgnoresProtection` 一支不计入上层合计，单独持有自己的口径**（战斗类遭遇为分母，目标 ≈ 3%，3% × 约 37 场 ≈ **1.11 次 / 轮回**——这个数字比百分比直观得多，是内容编排时唯一需要记住的口径）。解除嵌套的三条依据：① **它不写 Profile**（`systems/services/profile-service.md`）——本场结束即恢复，上层口径保护的「构筑投入不被拿走」这条心理契约它根本不触碰；② **分母不同**（战斗类遭遇 vs 全五类事件）——子集百分比嵌进全集百分比，战斗占比一变内层目标就被静默重定价；③ **控制旋钮不同**——它由载体编排控制，三支持久支落在内容编排与抽取权重侧，两者不共享任何一个可调的数。分母 / 分子定义、两条硬准入（仅挂 boss 档载体 · 绝不挂玩家可主动获取的内容）与**无轮回内次数上限、`CycleState` 不设任何相关状态位**的权威在 `systems/balance.md`，本处不复述。
+  - **四支目标频次（次 / 完整轮回 · 待实测校准的初值）：**
+
+    | 支 | 目标频次 | 换算副本（分母 114 事件） | 口径归属 |
+    |---|---|---|---|
+    | 战斗内 `IgnoresProtection` | ≈1.11（= 3% × 37 场战斗类遭遇） | ——（自持战斗分母） | `systems/balance.md` |
+    | 神通置换 + 禁用合计 | ≈0.5（置换 : 禁用 ≈ 2 : 1） | ≈0.44% | 上层口径内 |
+    | 法则置换型 | ≈0.3 | ≈0.26% | 上层口径内 |
+    | 法则禁用型 | ≈0.2 | ≈0.18% | 上层口径内 |
+    | **上层口径 = 持久三支合计** | **≈1.0** | **≈0.88%** | **承重表述** |
+    | 四支合计（导出量 · 非闸门） | ≈2.11 | —— | 只作叙事密度 sanity check |
+
+    三支持久支之间按「持久度 × 是否经玩家同意」两条轴分配：频次与「持久度 × 无同意」反相关——轮回级的可以最常见（神通随轮回清理、`ThisChapter` 档篇章边界自动恢复），无同意的必须最稀有。**法则禁用是唯一取低值的一格**——禁用是无同意的施加、最伤「构筑投入」契约，让出的份额转给同等严重度但有同意的置换侧（置换是正向决策点）。频次的旋钮全落内容侧、零字段零校验零状态位：带 `AbilityChangeSlots` 的 `AdventureEventData` 条目数 + 各条目的 `SelectionWeight` 档（`Rare` 已是最低档 ⇒ 主旋钮实为条目数，典型每支 1–2 条 `Rare` 档条目）+ 既有 arc 系数（`systems/services/future-event-service.md` 管线 ⑦）；`IgnoresProtection` 的旋钮是带该效果的 boss 档载体条目数与出现权重。
+  - **推论 ④：量级坐实。** 法则置换 ≈0.3 / 轮回、法则禁用 ≈0.2 / 轮回——两支各自落在**一个篇章遇上一次或更少**的量级，两支合计每两个轮回一次。「我的法则会不会被拆」因此是跨篇章尺度的稀有事件，与既定的「内容级稀缺保证而非类型级绝对保证」量级吻合。
 
 > `status` 开关模型与 capability flag / modifier 的**声明面**见 `common-properties.md`（`ADR-0116`）；`PowerData` 字段清单见 `../../character-profile/power/_index.md`；触发器体系与效果原语语法见 `../../character-profile/deck/common-properties.md`（`ADR-0115`）。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md` · `handoffs/2026-09-06-chapter-duration-rescale.md` · `handoffs/2026-09-06-ability-loss-frequency-budget.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -118,7 +128,6 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adv
 - **获取触发未设计（残卷 / 礼包之外）。**（失去的语义见上方三形态表；剩余的是形态问题，已单列。）开关 UI 亦未细化。是否还有第三条获取渠道（事件 outcome 直接给予？）未陈述。→ `systems/adventure-event/common-properties.md`。
 - **`Rarity` 的分布与权重表。** 五档 `RarityTier` 已定名并挂上 `PowerData` / `ItemData` / `CardData`；**授予池（残卷 / 礼包）的权重表已给出结构与初值**（40/27/18/10/5，见 `systems/balance.md`）。仍待定：**战后奖励池**的各档权重（按优势档 `Tier` 三档各一张表），以及内容侧「每档应有多少条目」的编排口径。（**置换候选池不需要权重表**——它按锚定稀有度过滤后同档等概率。）→ `systems/balance.md`。
 - **relic / joker 的内容条目仍为空（属内容阶段，不是设计缺口）。** 类型面已闭合：`PowerData` 字段清单（`../../character-profile/power/_index.md`）· 触发条件与效果原语语法（`ADR-0115`）· capability flag / modifier 声明面（`ADR-0116`）均已定案；缺的只是条目目录本身，开张动作归 `/scaffold-content-type player-power`。
-- **「失去能力」四支的频次预算需重新配平（内容编排口径）。** `IgnoresProtection` 的目标频次为 **≈5%**（战斗类遭遇为分母）后，**单这一支就已接近「合计 ≈ 全部事件的 1%」的全部预算**（≈1~2 次 / 轮回 vs 上层预算约 1 次）；而分子共**四支**——置换型 · 禁用型 · 战斗内 `IgnoresProtection` · **神通侧的置换 / 禁用**（挤进同一份预算，不另立，见 `../../character-profile/power/_index.md`）。两个口径都是内容编排侧目标值、都**不可机械校验**，故未预先拍板：**上层合计口径随之上调，还是各支相应收窄**——归 ch1 内容编排一并定。→ `systems/services/future-event-service.md`、`systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/player-power/_index.md`（待建）；`PowerData` 见 `.claude/knowledge/data/_index.md`。

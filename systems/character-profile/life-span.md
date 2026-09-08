@@ -21,7 +21,7 @@
 - **扣减来源恰两个（承重）。**
   1. **事件成本 `lifeSpanCost`** —— 每完成一个 AdventureEvent 按该事件的 `lifeSpanCost` 扣减（内容侧为正数量值，物化时已取负）。它是 `selectCost` 的唯一 element，**支付先于结算、无条件施加、不因失败退还**。分档是控制篇章时长的主旋钮之一，见 `systems/adventure-event/common-properties.md` 与 `systems/balance.md`。
   2. **战斗 / 修炼失败的收口扣减** —— 战斗结束时若判负，损失量由「**敌人道念 − 角色道念**」的差值乘以该篇章的 `lossPerMomentum` 系数决定。**第一篇章的系数锁定为 10**，即「落后 8 点 = 掉 80 点」——一次乘 10，玩家在战斗屏上读到道念差即可当场折出寿元代价；后两章由系数吸收 `baseMomentum` 的量纲膨胀（表与形状锚见 `systems/balance.md`）。**不设上限截断**：换算就是全部规则。
-  - **这两个来源在同一次收口事务里落到同一个值上。** 一次战斗失败因此**同时**压缩「还能失败几次」与「本章还能做几个事件」——这是被接受的设计取向：一次惨败真的会滚雪球。内容侧的编排必须验证「即使发生若干次典型失败，按标准路线走仍能在预算内升满」，见 `systems/game-progression.md`。
+  - **这两个来源在同一次收口事务里落到同一个值上。** 一次战斗失败因此**同时**压缩「还能失败几次」与「本章还能做几个事件」——这是被接受的设计取向：一次惨败真的会滚雪球。内容侧的编排必须验证「即使发生 **2 次典型失败**，按标准路线走仍能在预算内升满」——「典型失败」的口径与 N = 2 的反推台账见 `systems/balance.md`「失败容错量 N 的反推台账」，验收项见 `systems/game-progression.md`。
   - **战斗失败的负向扣减由 combat-service 在代码侧组装进 `Spoils`**；内容侧的 `OutcomeSpec` **恒不得**写负向 `LifeSpan`。组装纪律与加载期校验见 `systems/services/profile-service.md`。
 - **战斗过程中不被读写，只在收口时刻被扣（资源纪律 · 承重）。** 战斗内的可读资源是**道念、mana** 两条；寿元既不被消耗也不被读取，胜负由**道念（momentum）**判定（见 `systems/scoring.md`）。
   - **理由：** 战斗内一旦能读写这条命，「留血打」「回血续航」这套以生命值为终止条件的战斗从后门回来，而本作的战斗终止条件是道念比拼。故**战斗内可用的道具与法则不得产出 `LifeSpan`**（加载期校验见 `systems/character-profile/item/_index.md` 与 `systems/character-profile/power/_index.md`）。
@@ -37,7 +37,7 @@
   - **它不是隐藏属性。** 隐藏属性收敛为**道心 / faith** 与**煞气 / Bloodlust** 两项，归 `systems/services/plot-manager.md`；寿元不在其列。
 - **履历上的寿元曲线。** `PastEventEntry` 带一格 `LifeSpanAfter`（逐事件的结算后余量），使修行历程能画出这条曲线——它现在就是角色的完整生命曲线，回升段与战斗失败的下跌段同图。读取算法见 `systems/character-profile/_index.md`。
 
-Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-09-06-failure-spiral-tolerance.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -51,7 +51,7 @@ Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handof
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **`lossPerMomentum` 的 ch2 / ch3 系数取值。** ch1 = 10 已锁定；后两章已由形状锚解出候选值 5 / 10，定案待反推，口径见 `systems/balance.md`。
+- **`lossPerMomentum` 的 ch2 / ch3 系数取值。** ch1 = 10 已锁定；后两章已由形状锚解出候选值 5 / 10（形状锚逐格校验已通过），定案待「典型道念差的实际分布」实测，口径见 `systems/balance.md`。
 - **回复的幅度与来源分布。** 「通过 outcome 侧恢复」已定；三档的绝对点数（按本章可用预算的 5% / 10% / 20% 折算，ch1 即 50 / 100 / 200）仍待定案，归内容扩充后的统计校准。→ `systems/adventure-event/`、`systems/balance.md`。
 
 ## 对应

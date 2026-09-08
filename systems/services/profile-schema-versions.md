@@ -4,7 +4,14 @@
 > 宿主服务是 `sync-service`（`MigrationManager` 在那里）；服务本体的设计见 `systems/services/sync-service.md`。
 > `schemaVersion` 不是 `PlayerProfile` 的字段——它落三处信封，见该文件「JSON 序列化命名策略」。
 
-Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-09-05-schema-ledger-v1-coverage.md`
+Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-09-05-schema-ledger-v1-coverage.md` · `handoffs/2026-09-06-completed-data-retention.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md` · `handoffs/2026-09-06-stale-wording-roundup.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
+
+## 意图
+> _设计意图，从 handoffs 中提炼。保持更新。_
+
+- **本文件是两层 Profile 每一版序列化形状的唯一登记面。** 宿主服务是 `sync-service`（`MigrationManager` 在那里），服务本体的设计见 `systems/services/sync-service.md`；**别处一律回链本表、不得就地宣布 bump**（口径见「形态纪律」②）。
+- **登记是变更内原子的：** 任何改动两层 Profile 及其可达对象序列化形态的设计落笔，未登记进本表即视为未完成（见「登记时点与责任人」）。
+- **漏 bump 由 `ProfileShapeCheck` 抬到纪律阶梯第 2 级**（打包管线不通过即不产包 + `#if DEBUG` 启动期同一份校验），载体是签入 `game-feature-branch/` 的 golden 形状快照（见该节）。
 
 ## 登记表
 
@@ -41,7 +48,7 @@ Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-
 | 19 | `PlayerProfile` | 全部 Codex 顶层键（元素 `CodexEntry`） | `systems/player-profile/codex/common-properties.md` |
 | 20 | `PlayerProfile` | `gameSetting`（子对象 `GameSetting`） | `systems/player-profile/game-setting.md` |
 | 21 | `PlayerProfile` | 四类持有条目定形，条目键名 `powerId` / `itemId`；**集合字段名一律单数** | `systems/player-profile/_index.md` · `decisions/ADR-0105-singular-collection-field-naming.md` |
-| 22 | `ProfileChangeSpec` | 按施加语义分列的各列：`StatusChanges` · `DeckElements` · `PlotElements` · `EventStateChanges` · `RngElements` · `TraceElements` · `CodexElements` · `SettingChanges` · `ItemElements` · `ItemUseElements`（元素类型 `StatusAssignment` / `DeckChangeElement` / `PlotKeyPointAssignment` / `EventStateAssignment` / `RngStateAssignment` / `PastEventEntry` / `CodexUnlock` / `SettingAssignment` / `ItemChargeElement` / `ItemUseEntry`） | `systems/services/profile-service.md` · `decisions/ADR-0128-status-changes-assignment-column.md` |
+| 22 | `ProfileChangeSpec` | 按施加语义分列的各列：`StatusChanges` · `DeckElements` · `PlotElements` · `EventStateChanges` · `RngElements` · `TraceElements` · `CodexElements` · `SettingChanges` · `ItemElements` · `ItemUseElements` · `AbilityStatusChanges`（元素类型 `StatusAssignment` / `DeckChangeElement` / `PlotKeyPointAssignment` / `EventStateAssignment` / `RngStateAssignment` / `PastEventEntry` / `CodexUnlock` / `SettingAssignment` / `ItemChargeElement` / `ItemUseEntry` / `AbilityStatusAssignment`） | `systems/services/profile-service.md` · `decisions/ADR-0128-status-changes-assignment-column.md` |
 | 23 | `ProfileChangeSpec` | `ChangeElement` 第三字段 `Op`；`ElementSpec` 第六列 `AllowedOps`；`DeckChangeOp` 含 `AddLooseCard` ⇒ `PastEventEntry.AppliedChange` 的形状随之定形 | `systems/services/profile-service.md` |
 | 24 | `EventOption` | `OutcomeSpec` · `Encounter` · `DestinationLocationId` | `systems/adventure-event/common-properties.md` · `decisions/ADR-0128-status-changes-assignment-column.md` |
 | 25 | `EventOption` | Exchange 物化字段 `ExchangeStock` · `BarterStock` · `RerolledCount` | `systems/adventure-event/exchange/common-properties.md` · `decisions/ADR-0126-exchange-barter-payment.md` |
@@ -53,10 +60,12 @@ Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-
 | 31 | `PlayerProfile` | `characterProfile`（两层聚合的容器顶层键） | `systems/character-profile/_index.md` |
 | 32 | `PlayerProfile` | `playerPower` · `playerItem` 两个持有列表顶层键（元素 record 的形状见 #21） | `systems/player-profile/player-power/_index.md` · `systems/player-profile/player-item/_index.md` |
 | 33 | `PlayerProfile` | `AccountInfo` 其余各格 `AccountId` · `CreatedAtUtc` · `Identities` · `Nickname`——与 #17 的 `AccountSeed` 合为该顶层键的完整形状 | `systems/player-profile/account-info.md` |
+| 34 | `CharacterProfile` | `chapterStartSnapshot`（本篇章起始的可回滚实体状态冻结拷贝 + 篇章起始 `Seq` 锚点） | `systems/character-profile/_index.md` |
+| 35 | `PlayerProfile` | `achievement` 顶层键（元素 `Achievement`） | `systems/player-profile/achievement/common-properties.md` |
+| 36 | `PlayerProfile` | `achievementGroup` 顶层键（元素 `AchievementGroupState`） | 同上 |
+| 37 | `ProfileChangeSpec` | `AchievementElements` · `AchievementTierElements` 两列（元素 `AchievementProgressElement` / `AchievementTierAward`） | `systems/services/profile-service.md` |
 
 **清单只写对象 + 字段名 + 一句话，不复述类型 / 取值域 / 校验语义**——那些的权威在「权威」列所指的字段所在文档。这与 `content/` 的硬边界是同一条纪律。
-
-**`PlayerProfile.achievement` 尚未进清单。** 它的条目结构待 `Achievement` schema 答定后补入本清单，届时仍属 `schemaVersion` 1、不产生新的 bump。在唯一登记面上写一个推测形状比空着更危险——它会被当作权威照抄进迁移器；留这一句是让这处空缺**有承载**而不是不可见。
 
 ## 形态纪律
 
@@ -89,6 +98,12 @@ Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-
 - **不设周期性对账。** 周期性对账允许漂移窗口存在，而那个窗口正是两侧按不同真值编码的时期。判据与后端 `contracts/_index.md`「契约变更的完成判据」同款。
 - **跨边界的那一半：本表新增一行 = 一次 bump 定案，是跨边界承接分片的一类常规触发源**（`open-questions/cross-boundary.md`）。后端兼容矩阵的 `schemaVersion` 集合、登记流程与「矩阵先加、客户端后发」的顺序纪律在 `backend-design-documents/operations/version-matrix.md` 与 `operations/_index.md`，**本库一字不复述**。
 
+## 决策(-> ADR)
+> _已定案的决定链接到 decisions/ADR-####。_
+
+- **存档 `schemaVersion` 的登记权威 = 独立成文的逐版登记表 + `ProfileShapeCheck` 护栏**（`sync-service.md` 只留执行面） → `decisions/ADR-0158-schema-version-ledger-authority.md`（Accepted）。
+- **本表不写任何计数（形态纪律第 ⑥ 条）** → `decisions/ADR-0145-schema-ledger-no-counts.md`（Accepted）。
+
 ## `ProfileShapeCheck`：把漏 bump 抬到纪律阶梯第 2 级
 
 先套 `systems/architecture.md`「纪律的可执行化」的选级判据：**漏 bump 能不能上线？能。线上可不可见？不可见。** 结构改了而版本号没改 ⇒ 后端与旧客户端都以为是同一个 schema，没有任何一侧会报错；症状是复算悄悄退化、迁移器悄悄跳过。按判据**必须做到第 1 或第 2 级，第 3 级不够**。
@@ -105,6 +120,11 @@ Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-
 - **落地时点：** `game-feature-branch/` 尚无 `.csproj`，本护栏宜与那批既有实测项同批落地（`open-questions/05-service-contracts.md`），**不单独排期；设计形态不依赖实测结果**。
 - **第 3 级的一条廉价旁证：** 「凡本表之外出现『bump schema 版本』字样 ⇒ 必须是回链或上述三类非自称形态」可作为 `/sync-knowledge` 的一条 grep 断言。它抓的是**文档漂移**，护栏抓的是**代码漂移**，两者不重叠。
 - **第 3 级的第二条廉价旁证：** 本护栏比对的是**代码形状 ↔ golden 文件**；「**登记表条目 ↔ 两层 Profile 字段表行**」那一段由 `/sync-knowledge` 的一条对账断言承担——v1 清单的条目集合与 `systems/character-profile/_index.md` · `systems/player-profile/_index.md` 字段表的行集合双向核对，任一侧有而另一侧无 ⇒ 报一条不一致。它与上一条互补不重叠：上一条抓「别处又自己宣布了一次」，本条抓「本表少了一格」。条目漏登的后果是文档面误导（golden 快照仍会带上那个字段、`ProfileShapeCheck` 仍会通过，而迁移器作者照表写会漏格），属「能上线、开发期可发现」⇒ 第 3 级足够，**不为它另造工具、也不抬到管线闸**（管线读不到设计库）。它是跟着 `/sync-knowledge` 走的机会性对账，不是排期的周期性巡检——后者已被「登记时点与责任人」明确排除。
+
+## 待决问题
+> _尚未解决，需要一次 handoff/决策。_
+
+- **v1 的 golden 形状快照 `profile-shape-v1.json` 待建。** 设计形态已完整（见「`ProfileShapeCheck`」节），卡的是落地时点——`game-feature-branch/` 尚无 `.csproj`，宜与那批既有实测项同批落地（`open-questions/05-service-contracts.md`），**不单独排期**。本条是**落地排期项**，不阻塞任何 derive。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/sync-service.md`（引用层，待建）。
