@@ -6,6 +6,9 @@
 
 | 草稿 | 类型 | 日期 | 去向 handoff | answer log |
 |------|------|------|--------------|------------|
+| `solution-draft-portrait-option-list.md` | solution-draft | 2026-09-08 | `handoffs/2026-09-08-portrait-option-list.md` | `answer-logs/log-portrait-option-list.md`（移出 2 条） |
+| `solution-draft-combat-ui-elements.md` | solution-draft | 2026-09-08 | `handoffs/2026-09-08-combat-ui-elements.md` | `answer-logs/log-combat-ui-elements.md`（移出 6 条） |
+| `solution-draft-combat-portrait-layout.md` | solution-draft | 2026-09-08 | `handoffs/2026-09-08-combat-portrait-layout.md` | `answer-logs/log-combat-portrait-layout.md`（移出 5 条） |
 | `solution-draft-achievement-schema-and-rewards.md` | solution-draft | 2026-09-07 | `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md` | `answer-logs/log-achievement-schema-and-rewards.md`（移出 3 全条 + 1 部分 · 记 interview 裁决 2 项 · 新增 0 条） |
 | `solution-draft-combat-scale-baseline.md` | solution-draft | 2026-09-07 | `handoffs/2026-09-07-combat-scale-baseline.md` | `answer-logs/log-combat-scale-baseline.md`（移出 5 全条 · 记 interview 裁决 2 项 · 新增 2 条复核项） |
 | `solution-draft-cosmetic-monetization-shape.md` | solution-draft | 2026-09-07 | `handoffs/2026-09-07b-cosmetic-monetization-shape.md` | `answer-logs/log-cosmetic-monetization-shape.md`（移出 1 条收窄为事实确认 · 记 interview 裁决 2 项） |

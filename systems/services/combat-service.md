@@ -587,7 +587,7 @@ public readonly record struct MomentumDelta(
 
 ### 可选奖励的候选生成
 
-- **固定 3 项候选，不受道念差影响；三项各自独立可领可跳，不是择一。** **道念差的价值全部落在候选质量上**（`Tier` 三档，见 `systems/balance.md`），不落在数量上——这是数量恒定的现行理由。逐项领取使实际到手项数在 0–3 之间由玩家决定，**面板长度恒为 3、到手数不恒定**。
+- **固定 3 项候选，不受道念差影响；三项各自独立可领可跳，不是择一。** **道念差的价值全部落在候选质量上**（`Tier` 三档，见 `systems/balance.md`），不落在数量上——这是数量恒定的现行理由。逐项领取使实际到手项数在 0–3 之间由玩家决定，**候选项数恒为 3、到手数不恒定**；**合法池不足 3 条目时显式降级为实际项数**（`PushWarning` + 给出实际能给的项数，不静默给 2 项）。呈现层逐格映射 `picks`、**不渲染空槽**——空槽没有语义，会被读成加载失败（形态见 `ux/combat-ux.md`）。
 - **池 = 事件模板携带的 `RewardPoolId`，经 `AllEnabled()` 取池**，**四类混合（`CardData` / `ItemData` / `CultivationTechniqueData` / `PowerData`）**，去重（本次已抽中的 `Id` 不再出）。**`PowerData` 只在 `combatTier ∈ { Standard, Finale }` 时进候选族，`Practice` 档整族排除**——最轻一档也掉神通会把这条获取面稀释成常规掉落（口径权威见 `systems/character-profile/power/_index.md`「内容编排口径」，此处不复述）。**必须走 `AllEnabled()`**，不得自写 `All().Where(x => x.ContentEnabled)`。**这是一条玩家侧候选池，故另叠一层 `Pool != Enemy`**——卡牌与功法两侧同款过滤（`Pool` 的枚举成员、必填语义与两侧对称的校验口径见 `systems/character-profile/deck/_index.md`，此处不复述）。**`RewardPoolId` 挂 `AdventureEventData` 不挂 `EnemyData`**——「打赢什么敌人」与「这场给什么奖」是两件事，同一个敌人在 Practice 与 Combat 中的奖励池应当能不同。**稀有度权重表按 `RarityTier` 五档索引、由优势档 `Tier` 三档选表**——`RarityTier { Tier1..Tier5 }` 是内容品质档（挂 `CardData` / `ItemData` / `PowerData` / `CultivationTechniqueData`，缺失 → `PushError`），`Tier { Narrow, Solid, Crushing }` 是道念差归一化的优势档，**两者不得复用同一枚举、也不得互相换算**。见 `systems/balance.md`。
 - **功法候选的两条口径。**
   - **候选中出现该角色修不了的功法 → 直接排除。** 灵根修习准入在功法族上再叠一层过滤（判定式与单点纯函数见 `systems/character-profile/deck/_index.md`「灵根修习准入」）；它需要读 `Profile` 取角色灵根，故与 `Pool != Enemy` 一样由本服务在把候选交给抽取之前筛掉，不进 `DrawPool<T>`。

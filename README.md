@@ -34,7 +34,7 @@ inbox (draft)                          顶层 = 在办；提炼后移入 inbox/a
 - **系统行为**的桥梁是两步：`/derive-requirements` 产出片区级的 `requirements/FR-*`，`/breakdown-requirements` 再把**一份** FR 拆成同名文件夹内的**可执行子需求**——后者才是 `/blueprint` 的直接输入。两层结构、id 形态、签核语义与拆解粒度判据见 `requirements/_index.md`。
 - **内容条目**不经 FR，**直接喂 `/blueprint`**——内容最终落地就是一批 `.tres`，其可构建增量的边界天然就是条目本身。`systems/` 持有**这类内容怎么运作**（类定义），`content/` 持有**有哪些条目**（实例），二者是类 ↔ 实例关系，故平级。约定、类型登记表与依赖链见 `content/_index.md`。Source: `handoffs/2026-08-14c-content-authoring-layer.md`。
 
-**derive 就绪度由 `/assess-derive-readiness` 单独评估**（全量扫描全部主题文档，写入 `open-questions.md` 的「derive 就绪度」小节），**由用户在时机成熟时手动调用**；它是该小节的**唯一写入者**。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不**顺带评估或更新就绪度——逐次 handoff 顺带的判定会迅速过时且互相矛盾。**当前状态见 `open-questions.md` 的「derive 就绪度」小节**——已有少数文档整份判定 ready、另有一批带可独立成立的就绪切片（partial），该小节逐份给出判定与卡点，并列出建议的 derive 顺序（被依赖者在前、须同批处理的成组标出）。
+**derive 就绪度由 `/assess-derive-readiness` 单独评估**（全量扫描全部主题文档，写入 `open-questions.md` 的「derive 就绪度」小节），**由用户在时机成熟时手动调用**；它是该小节的**唯一写入者**。`/analyze-new-ideas` 与 `/summarize-open-questions` **均不**顺带评估或更新就绪度——逐次 handoff 顺带的判定会迅速过时且互相矛盾。**当前状态见 `open-questions.md` 的「derive 就绪度」小节**——它逐份给出 ready / partial / blocked 的判定与卡点（partial 者标出可独立成立的就绪切片），并列出建议的 derive 顺序（被依赖者在前、须同批处理的成组标出）。份数与结论随每次评估滚动，此处不复述。
 
 ## 根级关键文件
 | 文件 | 内容 |

@@ -4,6 +4,47 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| [ADR-0223](ADR-0223-research-risk-neutral-annotation.md) | 走火入魔风险档用中性标记 + 明写规则，不用告警色、不做二次确认 | Accepted | 2026-09-08 | ux/screen-flow.md, systems/adventure-event/research/_index.md, systems/adventure-event/research/common-properties.md |
+| [ADR-0222](ADR-0222-research-build-panel-portrait-form.md) | 闭关构筑面板竖屏形态：全部槽同屏一个滚动容器，不做分步向导 | Accepted | 2026-09-08 | ux/screen-flow.md, systems/adventure-event/research/_index.md, systems/adventure-event/research/common-properties.md |
+| [ADR-0221](ADR-0221-shared-card-width-baseline.md) | 角色选择屏与事件选择区共用同一卡宽基准；5 张角色卡照常滑动 | Accepted | 2026-09-08 | ux/screen-flow.md |
+| [ADR-0220](ADR-0220-event-option-carousel-n-adaptation.md) | 选择区卡宽恒定、逐项吸附、按常态 3 项同屏标定；N 变只改「要不要滑」 | Accepted | 2026-09-08 | ux/screen-flow.md |
+| [ADR-0219](ADR-0219-event-option-focus-tap-entry.md) | 事件选项的进入手势 = 焦点制：点焦点卡才支付进入 | Accepted | 2026-09-08 | ux/screen-flow.md |
+| [ADR-0218](ADR-0218-candidate-item-widget-and-annotation-layers.md) | 统一「候选条目」构件六个位 + 三类标注层 + 长按说明通道；三条标注禁则 | Accepted | 2026-09-08 | ux/screen-flow.md, ux/_index.md, ux/combat-ux.md, systems/adventure-event/research/_index.md |
+| [ADR-0217](ADR-0217-option-list-layout-axis-criterion.md) | 候选项排布轴判据：推进进程的择一走横滑，面板内的择一与列举走纵向 | Accepted | 2026-09-08 | ux/screen-flow.md, ux/_index.md, ux/combat-ux.md |
+| [ADR-0216](ADR-0216-enemy-line-slots-and-flavor-only.md) | 敌人台词进战斗屏、`LineSlot` 首批五成员；台词永不承载规则信息 | Accepted | 2026-09-08 | ux/combat-ux.md, systems/enemies/_index.md, systems/enemies/common-properties.md |
+| [ADR-0215](ADR-0215-post-combat-reward-panel-form.md) | 战后奖励面板 = 全屏一屏纵向堆叠，绝不横滑；已处置项两键移除而非置灰 | Accepted | 2026-09-08 | ux/combat-ux.md, ux/error-and-blocking-ux.md, systems/services/combat-service.md |
+| [ADR-0214](ADR-0214-fatigue-three-presentation-cells.md) | 抽牌堆余量常驻；见底预警只给一档纯静态，阈值 `DrawPerTurn × 2` 是派生量 | Accepted | 2026-09-08 | ux/combat-ux.md, systems/services/combat-service.md |
+| [ADR-0213](ADR-0213-combat-log-copy-system.md) | 战报文案体系：飘字管量与归属、战报管事实与例外；绝不省略增量 | Accepted | 2026-09-08 | ux/combat-ux.md, ux/error-and-blocking-ux.md, systems/services/combat-service.md |
+| [ADR-0212](ADR-0212-card-detail-sheet-and-disable-tier.md) | 卡牌详情页 = bottom sheet 上界屏高 60%，禁用档与战报展开态同档 | Accepted | 2026-09-08 | ux/combat-ux.md, ux/error-and-blocking-ux.md |
+| [ADR-0211](ADR-0211-card-frame-color-and-type-glyph-split.md) | 颜色管「哪一类」、形状管「同一类」：类型角标脱色后仍须两两可辨 | Accepted | 2026-09-08 | ux/combat-ux.md, art/visuals/art-direction.md |
+| [ADR-0210](ADR-0210-ability-scope-shape-badge.md) | `AbilityScope` 两级标识 = 形状化角标，不用文字不用边框色 | Accepted | 2026-09-08 | ux/combat-ux.md, systems/player-profile/player-item/_index.md |
+| [ADR-0209](ADR-0209-zero-value-affordance-versus-indicator.md) | 0 值处置的判据 = 它是不是一个入口：入口置灰保留，指示淡出 | Accepted | 2026-09-08 | ux/combat-ux.md, ux/error-and-blocking-ux.md |
+| [ADR-0208](ADR-0208-readonly-power-icon-strip-overflow.md) | 只读层 = 单行图标条 + `+N` 溢出格，不折叠不滚动，`K ≥ 3` | Accepted | 2026-09-08 | ux/combat-ux.md |
+| [ADR-0207](ADR-0207-card-pile-visible-faces.md) | 牌堆给可见实体：抽牌堆厚度即余量，敌方牌堆不给实体 | Accepted | 2026-09-08 | ux/combat-ux.md, systems/monetization.md |
+| [ADR-0206](ADR-0206-no-composite-comeback-indicator.md) | 回合进度与道念差是邻接两行，绝不合成「还追得回来吗」的复合指示 | Accepted | 2026-09-08 | ux/combat-ux.md, systems/balance.md |
+| [ADR-0205](ADR-0205-momentum-gap-explicit-badge.md) | 道念差显式呈现为一枚 `+15` / `−15` 徽标，不附寿元换算 | Accepted | 2026-09-08 | ux/combat-ux.md |
+| [ADR-0204](ADR-0204-hand-overlapping-fan-and-readable-corners.md) | 手牌 = 水平重叠扇、每张至少露出左侧 40%；卡面必读元素因此落左侧 | Accepted | 2026-09-08 | ux/combat-ux.md |
+| [ADR-0203](ADR-0203-enemy-zone-readouts-only.md) | 敌方区只承载读数与观看；布局不得预留「翻开对手信息」的位置 | Accepted | 2026-09-08 | ux/combat-ux.md |
+| [ADR-0202](ADR-0202-combat-portrait-zone-height-budget.md) | 竖屏战斗屏「上敌下我、中轴共享决策面板」与六区屏高预算表 | Accepted | 2026-09-08 | ux/combat-ux.md |
+| [ADR-0201](ADR-0201-stack-as-resolution-time-overlay.md) | 栈是结算期的临时浮层，不占常驻布局预算 | Accepted | 2026-09-08 | ux/combat-ux.md, systems/monetization.md |
+| [ADR-0200](ADR-0200-achievement-reward-family-split.md) | 成就两档奖励各给恰一个专属条目：60% 档古宝、90% 档法则 | Accepted | 2026-09-07 | systems/player-profile/achievement/_index.md, systems/common-properties.md, ux/screen-flow.md, content/_index.md |
+| [ADR-0199](ADR-0199-achievement-collection-surface-and-write-columns.md) | `AchievementManager` 采集面与 `CodexManager` 同构；写入开两条新列，API 面一删两增 | Accepted | 2026-09-07 | systems/services/profile-service.md, systems/architecture.md, systems/services/profile-schema-versions.md, systems/player-profile/_index.md |
+| [ADR-0198](ADR-0198-weighted-group-progress-and-hidden-denominator.md) | 组内加权进度只取整一次；隐藏成就计入分母，每组启用成就数 ≥ 10 | Accepted | 2026-09-07 | systems/player-profile/achievement/common-properties.md, systems/player-profile/achievement/_index.md, ux/screen-flow.md, systems/balance.md |
+| [ADR-0197](ADR-0197-achievement-content-schema-and-signal-table.md) | 成就内容形态：条件恰一条不做组合；`SignalId` 取点分字符串 + 封闭常量表 | Accepted | 2026-09-07 | systems/player-profile/achievement/common-properties.md, content/_index.md, systems/architecture.md |
+| [ADR-0196](ADR-0196-achievement-save-shape-two-keys.md) | 成就存档 = 两个顶层键两条 record；`Completed` 不由 `Progress >= Target` 派生 | Accepted | 2026-09-07 | systems/player-profile/achievement/common-properties.md, systems/player-profile/_index.md, systems/services/profile-schema-versions.md |
+| [ADR-0195](ADR-0195-cosmetic-storefront-and-wardrobe-placement.md) | 外观购买落 Store 屏内、换装落角色选择屏；不开 Wardrobe 入口 | Accepted | 2026-09-07 | systems/monetization.md, ux/screen-flow.md, systems/player-profile/game-setting.md |
+| [ADR-0194](ADR-0194-cosmetic-entry-content-type-and-release-cadence.md) | 一套外观 = 一条内容条目，落地时才开张；每上一套外观 = 一次客户端发版 | Accepted | 2026-09-07 | systems/monetization.md, content/_index.md, art/visuals/_index.md |
+| [ADR-0193](ADR-0193-cosmetic-ownership-versus-equipped-split.md) | 外观「持有」落 `PlayerEntitlement.Cosmetic`、「选用」落 `GameSetting` 账号级具名字段 | Accepted | 2026-09-07 | systems/player-profile/_index.md, systems/player-profile/game-setting.md, systems/monetization.md, systems/services/profile-schema-versions.md |
+| [ADR-0192](ADR-0192-cosmetic-category-roster.md) | 外观品类：角色皮肤为首个、卡背为第二、界面主题不做 | Accepted | 2026-09-07 | systems/monetization.md, art/visuals/_index.md, ux/combat-ux.md |
+| [ADR-0191](ADR-0191-cosmetic-reservation-addition-windows.md) | 外观「架构预留」的兑现物 = 三个加法窗口保持开启，明确否决占位字段 | Accepted | 2026-09-07 | systems/monetization.md, vision/scope.md, systems/player-profile/_index.md, systems/player-profile/game-setting.md |
+| [ADR-0190](ADR-0190-innate-power-momentum-ceiling.md) | 神通的战斗内强度闸门 = 单条道念净贡献 ≤ 25% × `baseMomentum`，不设合计总闸 | Accepted | 2026-09-07 | systems/balance.md, systems/character-profile/power/_index.md, systems/player-profile/player-power/_index.md |
+| [ADR-0189](ADR-0189-per-turn-momentum-enchantment-rate.md) | 「每回合 +X 道念」的永久物允许，配 rate `ManaCost ≈ X × 3` 与 `X ≤ 20% × manaLimit` | Accepted | 2026-09-07 | systems/character-profile/deck/common-properties.md, systems/character-profile/power/_index.md, systems/balance.md |
+| [ADR-0188](ADR-0188-momentum-modifier-layer-authoring-scope.md) | 道念两格首批只编排加法层；乘法层留给费用 / 抽牌 / 疲劳三格 | Accepted | 2026-09-07 | systems/character-profile/deck/common-properties.md, systems/character-profile/deck/_index.md, systems/balance.md |
+| [ADR-0187](ADR-0187-chapter-three-overlevel-catchup-carrier.md) | ch3 的越阶追分不由卡组承担，改由神通 / 战斗内法则 / 道具三者承担 | Accepted | 2026-09-07 | systems/balance.md, systems/character-profile/power/_index.md, systems/player-profile/player-power/_index.md, systems/character-profile/item/_index.md |
+| [ADR-0186](ADR-0186-technique-tier-scale-and-enemy-baseline.md) | `MaxTier` 上界 5、每层 +20%；敌人层数篇章基准档 2 / 3 / 4 | Accepted | 2026-09-07 | systems/character-profile/deck/_index.md, systems/balance.md, systems/enemies/_index.md, terminology.md |
+| [ADR-0185](ADR-0185-starting-deck-and-enemy-deck-sizes.md) | 一门功法 5 张、起始卡组 15 张；敌方样本卡组按档 10–25 | Accepted | 2026-09-07 | systems/character-profile/deck/_index.md, systems/character-profile/deck/common-properties.md, systems/balance.md, systems/enemies/_index.md |
+| [ADR-0184](ADR-0184-mana-cost-curve-and-card-flow.md) | 卡牌费用曲线随境界整体上移；牌流三值 4 / 2 / 7 三章同形 | Accepted | 2026-09-07 | systems/character-profile/mana.md, systems/balance.md, systems/character-profile/deck/common-properties.md, decisions/ADR-0035-mana-no-curve-model.md |
+| [ADR-0183](ADR-0183-momentum-per-mana-exchange-rate.md) | 战斗量纲基准取 `momentumPerMana = 1`：产与削共用同一把刻度 | Accepted | 2026-09-07 | systems/balance.md, systems/character-profile/deck/_index.md, systems/scoring.md, systems/enemies/_index.md |
 | [ADR-0182](ADR-0182-baseline-id-superset-invariant.md) | 随包基线条目永不删除：`Id` 集合单调不减，退役 = 禁用或掏空，归档步机械核对超集 | Accepted | 2026-09-06 | systems/services/content-service.md, systems/common-properties.md, decisions/ADR-0141-overlay-packer-proof-and-baseline-snapshot.md |
 | [ADR-0181](ADR-0181-hide-store-entry-off-channel-platforms.md) | 非商店平台的 Store 入口不渲染，不引入「永久灰」语义 | Accepted | 2026-09-06 | systems/monetization.md, ux/screen-flow.md, ux/error-and-blocking-ux.md |
 | [ADR-0180](ADR-0180-purchase-backend-fourth-interface.md) | 购买域后端调用独立为第四个窄接口 `IPurchaseBackend`；条件编译清单扩至 6 处 | Accepted | 2026-09-06 | systems/services/sync-service.md, systems/architecture.md, system-overview.md |

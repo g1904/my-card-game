@@ -23,6 +23,9 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| [log-portrait-option-list](log-portrait-option-list.md) | 2026-09-08 | `inbox/archive/solution-draft-portrait-option-list.md` → `handoffs/2026-09-08-portrait-option-list.md` | 2 全条（`02-event-options.md` 的选择区呈现与导航手感 · `03-adventure-event-types.md` 的构筑面板竖屏呈现与风险档标注；另记批量评审裁决 3 项与连带落笔 1 项） |
+| [log-combat-ui-elements](log-combat-ui-elements.md) | 2026-09-08 | `inbox/archive/solution-draft-combat-ui-elements.md` → `handoffs/2026-09-08-combat-ui-elements.md` | 6 全条（`01-combat.md` 的战报文案体系 / 详情页 / 四项具体形态 / 疲劳 / 战后奖励面板 / `LineSlot`；同时关闭 `systems/enemies/common-properties.md` 的唯一待决项；另记裁决 2 项与标准默认 4 项） |
+| [log-combat-portrait-layout](log-combat-portrait-layout.md) | 2026-09-08 | `inbox/archive/solution-draft-combat-portrait-layout.md` → `handoffs/2026-09-08-combat-portrait-layout.md` | 4 全条 + 1 条跨分片事实确认（`01-combat.md` 的竖屏分区整体 / 栈与战场同屏 / 道念对比形态 / 战斗屏其余形态 + `07-codex-monetization.md` 的卡背可见面确认；另记裁决 2 项与标准默认 3 项） |
 | [log-achievement-schema-and-rewards](log-achievement-schema-and-rewards.md) | 2026-09-07 | `inbox/archive/solution-draft-achievement-schema-and-rewards.md` → `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md` | 3 全条 + 1 部分（成就两档奖励内容 · 采集面 · `Achievement` schema；另记 interview 裁决 2 项与六处连带落笔；新增 0 条） |
 | [log-combat-scale-baseline](log-combat-scale-baseline.md) | 2026-09-07 | `inbox/archive/solution-draft-combat-scale-baseline.md` → `handoffs/2026-09-07-combat-scale-baseline.md` | 5 全条（`01-combat.md` 的量纲基准 / 卡组规模 / 功法规模参数 / 费用曲线 / 牌流 4-2-7 五条；另记 interview 裁决 2 项与神通闸门 X = 25%；新增 2 条复核项） |
 | [log-cosmetic-monetization-shape](log-cosmetic-monetization-shape.md) | 2026-09-07 | `inbox/archive/solution-draft-cosmetic-monetization-shape.md` → `handoffs/2026-09-07b-cosmetic-monetization-shape.md` | 1 条收窄为事实确认（`07-codex-monetization.md` 的「纯外观付费点做成什么」两半均答定，仅余牌背可见面一项待确认；记 interview 裁决 2 项） |

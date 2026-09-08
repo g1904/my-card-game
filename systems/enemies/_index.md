@@ -138,12 +138,33 @@ public partial class EnemyLine : Resource                // 内嵌 Resource + �
     [Export] public LocalizedText Text { get; set; }
 }
 
-public enum LineSlot { /* ⟨待定：成员随战斗 UX 专场一并定，见 common-properties.md 的待决问题⟩ */ }
+public enum LineSlot
+{
+    OnCombatStart,          // 战斗开始、Power 入场之后、第一个开始阶段之前
+    OnFirstEnemyTurn,       // 敌方第一个回合的开始阶段
+    OnEnemyMomentumLead,    // 敌方道念首次反超玩家的那次结算收口之后（一场至多一次）
+    OnEnemyDefeat,          // 胜负判定 = 玩家胜之后、奖励面板之前
+    OnCharacterDefeat,      // 胜负判定 = 玩家负之后、结算面板之前
+}
 ```
+
+- **五个 slot 全部落在既有的可观测时刻上**（回合边界 / 战斗边界 / 一次结算的收口），**不新造任何时刻**：
+
+  | 成员 | 触发时刻 | 为什么是它 |
+  |---|---|---|
+  | `OnCombatStart` | 战斗开始、`Power` 入场之后、第一个开始阶段之前 | 战斗前确认页之后的第一个可观测时刻 |
+  | `OnFirstEnemyTurn` | 敌方**第一个**回合的开始阶段 | 敌人回合是玩家获取动态情报的唯一时刻；与 `OnCombatStart` 分开，是因为先后手由 `EncounterSpec.FirstSide` 决定，两者不一定相邻 |
+  | `OnEnemyMomentumLead` | 敌方道念**首次**反超玩家的那次结算收口之后（**一场至多一次**） | 道念对比是主视觉，「反超」是这场唯一有语义的中途分水岭；「首次」封顶避免在拉锯局里刷屏 |
+  | `OnEnemyDefeat` | 胜负判定为玩家胜之后、奖励面板之前 | 战斗收口的既有时刻 |
+  | `OnCharacterDefeat` | 胜负判定为玩家负之后、结算面板之前 | 同上 |
+
+- **新增成员一律追加在枚举末尾**（避免既有 `.tres` 的枚举整数值漂移）；**因此不承诺「声明顺序 = 时间轴」**——首批按时间轴排只是为了可读，日后新增的中途 slot 会排在末尾，这一点明写接受。
+- **绝不给 `EnemyLine` 加权重 / 条件 / 概率**：那会把稀疏覆写数组变成第二套触发系统，而触发式异能已经是那个系统。同理不加逐动作 slot（`OnCardPlayed` / `OnAbilityActivated`）——它们与飘字 + 战报争同一时刻、吃掉敌人回合 ≤ 4 s 的演出预算，且会随出牌泄漏规则信息。
+- **硬纪律：台词永不承载规则信息。** 纯风味。台词一旦能说「我要用大招了」，它就成了「敌人的行动不作任何事前预告」这条承重纪律的旁路——这条须与成员清单一起被内容编写者读到，否则台词会自然而然地往那个方向写。呈现落点（敌人立绘上方的非常驻浮层气泡）见 `ux/combat-ux.md`。
 
 - **不写成一组具名字段**（`IntroLine` / `VictoryLine` / `DefeatLine`）：每加一个场合就要改 C# 类 + 发版，撞「新增内容 = 新增 / 编辑 `.tres`，不改 switch」——这正是 `LocalizedText` 否决「每语言一个 `[Export]` 字段」的同一条理由。
 - **不上移为顶层共有字段**：挂载面只有 `EnemyData` 一处。
-- **`LineSlot` 无成员期间，`Lines` 对任何条目都只能是空数组**；三条加载期校验与该阻塞的完整陈述见 `common-properties.md`。
+- **`Lines` 可正常填写**：空数组仍合法（= 该敌人无台词）；三条加载期校验见 `common-properties.md`。
 
 ### 敌人 AI —— 通用兜底 + 模板级定制策略
 
@@ -224,7 +245,7 @@ public partial class AiWeight : Resource             // 内嵌 Resource + 两个
 - **不另加带数字的胜率口径**（如「定制相对兜底的基准胜率偏差 ≤ ±5pp」）：该数字在量纲基准与首批 starter deck 成型之前无法测量，写下即是一条无人执行的条款。日后确有需要时它是纯加法。
 - 取值域住平衡资源，故可随 overlay 热更收紧，不必发版。
 
-Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-09-07-combat-scale-baseline.md`
+Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-09-07-combat-scale-baseline.md` · `handoffs/2026-09-08-combat-ui-elements.md`
 
 ## 决策(-> ADR)
 

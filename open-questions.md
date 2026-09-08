@@ -8,7 +8,7 @@
 >
 > 本清单**只跟踪仍待答的问题**（不留已解决区），是导航 / 拾取清单，**权威归属在各主题文档**。
 >
-> 最近更新：2026-09-07 — 成就体系整块收口：移出 3 全条 + 1 部分（详见 `open-questions/update-log.md` · `answer-logs/log-achievement-schema-and-rewards.md`）
+> 最近更新：2026-09-08 — 战斗屏竖屏形态与候选项列表语言整块收口：移出 12 条 · 新增 2 条（详见 `open-questions/update-log.md` · `answer-logs/`）
 > （逐次变更摘要见 `open-questions/update-log.md`；已答定问题的逐条移出记录见 `answer-logs/`）
 
 ## 分片导航
@@ -17,9 +17,9 @@
 |------|------|
 | `open-questions/update-log.md` | 每次运行的更新摘要（答结 / 推翻 / 新增落点），倒序，**只留最近 10 条**。不含问题条目本身。 |
 | `open-questions/update-log-archive.md` | 更早的更新摘要，原样归档、按时间正序。只读，不写新条目。 |
-| `open-questions/01-combat.md` | **① 战斗机制**（焦点之首）：能力剥夺与统计计数的残留（片区主体已于 08-10c 答结）、结构与配置（`EncounterTighten` 六界常量 · `EnemyManaLimit`）、内容与数值（多数留待内容扩充后的统计校准）、呈现（竖屏分区专场 · 战报文案体系 · 敌人台词槽位）。 |
+| `open-questions/01-combat.md` | **① 战斗机制**（焦点之首）：能力剥夺与统计计数的残留（片区主体已于 08-10c 答结）、结构与配置（`EncounterTighten` 六界常量 · `EnemyManaLimit`）、内容与数值（多数留待内容扩充后的统计校准）、呈现（形态已整体定案，只剩实测校准项与美术取值）。 |
 | `open-questions/02-event-options.md` | **② eventOptions 生成流程**：生成 / 加权与配比、物化字段、优先级、寿元打穿、Explore 揭示池、Travel 出场、location 与图鉴连边。 |
-| `open-questions/03-adventure-event-types.md` | **③ 逐类型 AdventureEvent 的收口后残留**：五类机制面已全部收口（各自开过专场），片内只剩**只欠取值 / 只欠呈现形态**的格——Travel 定价、Exchange 两组数值格、Explore 三个待定取值、走火入魔权重、构筑面板呈现、三档奖励厚薄与 `HiddenStatGrade` 编排。 |
+| `open-questions/03-adventure-event-types.md` | **③ 逐类型 AdventureEvent 的收口后残留**：五类机制面已全部收口（各自开过专场），片内只剩**只欠取值 / 只欠呈现形态**的格——Travel 定价、Exchange 两组数值格、Explore 三个待定取值、走火入魔权重、三档奖励厚薄与 `HiddenStatGrade` 编排。 |
 | `open-questions/04-hidden-attributes-plot.md` | **④ 隐藏属性 / 剧本机制**（档位表 · 跨档叙事 · 数据编码 · 寿元增长通道 · **属性清单定稿两项**均已答结）：仅剩逐条目的推拉映射与两条剧情线的具体内容、`HiddenStatGrade` 三个映射值。 |
 | `open-questions/05-service-contracts.md` | **⑤ 服务契约 / 工程侧残留**（API 面 · `revision` · 契约边界 · 翻译键 · 共有属性分层 · 纪律可执行化均已答结）：location 无法被 flags 秒关的运营替代通道、**首次生成 `.csproj` 后的三项实测**（`#if DEBUG` 判据 · `Control` 自动翻译 · 平台凭据存储能力）、`schemaVersion` 登记表覆盖对账的两件残留。 |
 | `open-questions/06-meta-progression.md` | **⑥ 元进程的失败侧**（中长期规划感三角、四支频次预算与失败螺旋容错量均已于 09-06 答结）：胜侧 `experiencePoint` 单价是否计入供给账、通用功法占比口径、角色强度差与多灵根换算。 |
@@ -197,12 +197,13 @@
 
 ## 下一阶段
 
-- **ADR 状态：** `decisions/` 现有 **181 份 Accepted**（`ADR-0002` ~ `ADR-0182`，`ADR-0001` 为 Proposed 示例占位）。
+- **ADR 状态：** `decisions/` 现有 **222 份 Accepted**（`ADR-0002` ~ `ADR-0223`，`ADR-0001` 为 Proposed 示例占位）。
   2026-08-28 的一次 `/write-adr all` 全量扫描（逐份核对 29 份未被任何 ADR 引为来源的 handoff）把散落其中、已落笔主题文档却无档案的定案固化为 **23 份新 ADR**（`ADR-0100` ~ `ADR-0122`），覆盖 sync 族（`revision` CAS · flush 非阻塞 · 闸门口径）· 命名通则 · 战斗 RNG 单流 · 敌人 AI 权重向量 · 效果原语语法 · capability flag / modifier · 道具使用效果面与批次层提交等。
   台账与逐条影响文档见 `decisions/_index.md`。
   2026-08-30 的一次 `/write-adr game` 固化 **10 份新 ADR**（`ADR-0123` ~ `ADR-0132`）：上述 4 条登记候选（灵根修习准入 · `Artwork` 单格与 `RealmArtworks` · 二进制不经 overlay · Exchange 以物易物）全部立档；另逐份核对未被任何 ADR 引为来源的 handoff，补固化 6 条散落定案（寿元合并与显性化 · `StatusChanges` 置值列 · `HiddenStatDirection` · flags 第三层覆盖来源 · `Upgrade` 非闸门点不硬阻塞 · `StackEntryKind.UsedItem`）。
   2026-09-05 的一次 `/write-adr game`（范围 `all`）固化 **26 份新 ADR**（`ADR-0133` ~ `ADR-0158`）：三条登记候选（货币跨篇章结转 · 灵石渠道口径与 Travel 禁令扩三 key · 仙玉不落可售出族）全部立档；另逐份核对 22 份未被任何 ADR 引为来源的 handoff，补固化 23 条散落定案，覆盖 09-02 / 09-03 / 09-05 三批（图鉴三层浏览 · 轮回结束屏与篇章结束屏 · 阵法启动式异能宿主 · 剧本分支落点与 `BranchLabel` 焊死 · 跨载体边界判据 · 神通强度刻度 · 快照按视角过滤 · 合规域切分判据 · `lifeSpanCost` 耗时正比定价 · 剧本层对外面 · schema 登记权威与不写计数 · `FinaleDiff` 旋钮 · 灰态非禁用 · `OpError.Purchase` · 打包工具两项产出 等），并补立两条早期基础定案（两层档案持有骨架 `ADR-0136` · 设计库类模型化组织 `ADR-0137`）。
-  2026-09-07 的一次 `/write-adr game`（范围 `all`）固化 **24 份新 ADR**（`ADR-0159` ~ `ADR-0182`）：两条登记候选（不设 ante 式章内难度阶梯与两条分格轴 `ADR-0163` · 随包基线 `Id` 超集不变式 `ADR-0182`）全部立档；另逐份核对 19 份未被任何 ADR 引为来源的 handoff，补固化 22 条散落定案，覆盖 09-06 批（失去能力频次预算 · 主动放弃角色 · 篇章时长上移 ≈60 分钟 · 轮回出口三层处置与痕迹只追加 · `AbilityStatusChanges` 写入通道 · 隐藏属性收口两项 · 战后奖励四族与档位闸 · 演出跳过权分档 · 敌人产出同因 · `BaseTypeWeightsData` 与 `combatTier` 编排口径 · 类型修正护栏 · 失败容错 N = 2 与偏紧入账 · 不给距 Finale 读数 · IAP 四条）与 09-02 批（`MoveCardEffect` 补 `Side` · 平台密钥库五条触发条件）。三份历史 handoff 判定不建档：`2026-08-02c`（意图族已被 `ADR-0059` 整条推翻）· `2026-08-12b`（已由 `ADR-0051` 承载）· `2026-07-12-example`（模板示例）。**当前无待固化的 ADR 候选。**
+  2026-09-07 的一次 `/write-adr game`（范围 `all`）固化 **24 份新 ADR**（`ADR-0159` ~ `ADR-0182`）：两条登记候选（不设 ante 式章内难度阶梯与两条分格轴 `ADR-0163` · 随包基线 `Id` 超集不变式 `ADR-0182`）全部立档；另逐份核对 19 份未被任何 ADR 引为来源的 handoff，补固化 22 条散落定案，覆盖 09-06 批（失去能力频次预算 · 主动放弃角色 · 篇章时长上移 ≈60 分钟 · 轮回出口三层处置与痕迹只追加 · `AbilityStatusChanges` 写入通道 · 隐藏属性收口两项 · 战后奖励四族与档位闸 · 演出跳过权分档 · 敌人产出同因 · `BaseTypeWeightsData` 与 `combatTier` 编排口径 · 类型修正护栏 · 失败容错 N = 2 与偏紧入账 · 不给距 Finale 读数 · IAP 四条）与 09-02 批（`MoveCardEffect` 补 `Side` · 平台密钥库五条触发条件）。三份历史 handoff 判定不建档：`2026-08-02c`（意图族已被 `ADR-0059` 整条推翻）· `2026-08-12b`（已由 `ADR-0051` 承载）· `2026-07-12-example`（模板示例）。
+  2026-09-08 的一次 `/write-adr game`（范围 `all`）固化 **41 份新 ADR**（`ADR-0183` ~ `ADR-0223`）：候选清单当时为空，全部来自逐份核对 6 份未被任何 ADR 引为来源的 handoff 后扫出的散落定案。按批：09-07 共 18 条（战斗量纲基准 `momentumPerMana = 1` · 费用曲线随境界上移与牌流 4/2/7 · 起始卡组 15 张与敌方规模 · `MaxTier` 上界 5 与每层 +20% · ch3 越阶追分承担面 · 道念修正只用加法层 · 永久物 rate · 神通 25% 闸门 · 外观预留三个加法窗口 / 品类 / 持有与选用切分 / 条目形态与发版节奏 / 呈现落点 · 成就存档两键 / 内容 schema 与信号表 / 加权进度与隐藏分母 / 采集面与两条新列 / 两档奖励族分配）· 09-08 共 23 条（栈浮层化 · 竖屏六区屏高预算 · 敌方区只读 · 手牌重叠扇与卡面占位 · 道念差徽标 · 不做复合追分指示 · 牌堆可见面 · 只读层图标条 · 0 值处置判据 · `AbilityScope` 形状角标 · 卡框色与角标分工 · 详情页与禁用档 · 战报文案体系 · 疲劳三格呈现 · 战后奖励面板形态 · `LineSlot` 五成员与台词硬纪律 · 候选项排布轴判据 · 候选条目构件与标注层 · 事件选项焦点制 · carousel 的 N 自适应 · 共用卡宽基准 · 闭关面板竖屏形态 · 风险档中性标注）。**当前无待固化的 ADR 候选。**
   - ✅ 更早的一条候选「**不设 `GlobalBalanceData` 兜底大表，平衡资源按三问判据（消费者 / 覆写纪律 / 跨字段不变式）逐份切**」（`handoffs/2026-08-22-singleton-balance-resource-registry.md`）已于 2026-08-28 收口：`systems/balance.md` 补上了该判据本身那一小节（此前只有逐处应用），**并直接改写既有的 `ADR-0074`**（它本就是「凡可调数值一律住平衡资源」那条决策的档案，同一件事不另开编号——见本库「改决定直接改 ADR」的治理原则）；`ADR-0074` 后果里自陈的那条欠账随之关闭。**无需再跑 `/write-adr`。**
   （注：ADR 现可自由编辑，改决定直接改 ADR，不再新开取代 ADR。）
 - **流水线闭环（07-30）：** design → code 链路补上 `/breakdown-requirements`（一份 FR → 一个文件夹的可执行子需求），完整形态见 `README.md` 与 `requirements/_index.md`。

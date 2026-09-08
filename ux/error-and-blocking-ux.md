@@ -179,7 +179,7 @@
 | `MENU_` | `menu.csv` | 主菜单、篇章切换、更新横幅 |
 | `SYNC_` | `sync.csv` | 常驻同步指示、软阻塞模态、更新引导半屏 |
 | `EVENT_` | `event.csv` | EventMenu、事件选项框架文案（**不含事件正文——那是内容层**） |
-| `COMBAT_` | `combat.csv` | CombatScreen、出牌 / 结算面板的框架文案 |
+| `COMBAT_` | `combat.csv` | CombatScreen、出牌 / 结算面板的框架文案。首批键：战报五条模板句 `COMBAT_LOG_CARD_PLAY` / `_ABILITY_ACTIVATION` / `_ABILITY_TRIGGER` / `_ITEM_USE` / `_FATIGUE`（**与 `CombatFeedKind` 的成员机械对应，不建第二张手写对照表**）· `COMBAT_LOG_TRUNCATED`（截断括注全文）· `COMBAT_LOG_FIZZLED` / `_ALL`（部分 / 全条落空）· `COMBAT_LOG_TURN_HEADER`（展开态回合分组行）· `COMBAT_SATCHEL_EMPTY`（随身抽屉空态一行）· `COMBAT_REWARD_PENDING_REMAINS`（奖励面板主按钮灰态说明）· `COMBAT_REWARD_CONTINUE`（奖励面板主按钮，与结算面板的「继续」分开）。**来源名（卡名 / 异能名 / 道具名）不进翻译键**——它们是内容层 `LocalizedText`，由呈现层作格式参数插入 |
 | `PROFILE_` | `profile.csv` | PlayerProfile / CharacterProfile 面板、图鉴族、成就 |
 | `SETTINGS_` | `settings.csv` | 设置屏（含同步版本 `#N` 的标签）。首批十个键：`SETTINGS_TITLE` · `SETTINGS_SECTION_AUDIO` · `SETTINGS_VOLUME_MASTER` / `_MUSIC` / `_SFX` · `SETTINGS_SECTION_COMBAT` · `SETTINGS_FAST_ANIMATION` · `SETTINGS_SECTION_LANGUAGE` · `SETTINGS_SYNC_REVISION` / `_NONE` |
 | `STORE_` | `store.csv` | 礼包屏：标题、权益条目、再次购买说明、入口不可用说明、购买按钮、**购买处理态与兑现结果态的全部文案**、**购买失败各情形的文案与终态失败面的「请提供此编号联系客服」一行** |
@@ -208,6 +208,7 @@
 | **Exchange 的 barter 格：不持有 `PayItemId`，或产出目标已持有（能力族）** | **置灰 + 支付要求（支付物图标 + 名称）保持可见 + 点按一行说明**，不隐藏、**不按持有面过滤呈现** | 换不成的格子点下去只会撞上一个**必然被门面前置拒绝**的提交（只读 `ProfileService.Holds(...) == false`），没有任何决策价值。与上一行同出于「恒真 vs 可变」：是否持有某件法宝是**可变**状态（轮回内可买到、可由事件产出、可售出），故落在灰显一侧，而非储物袋「古宝无售出键」那种恒真不可用（`decisions/ADR-0126-exchange-barter-payment.md`；产出侧那条见 `systems/adventure-event/exchange/common-properties.md` 运行期失败表） |
 
 - **判据一句话：灰态禁令适用于「玩家可能有意选择的失败」，不适用于「必然无结果的操作」。**
+- **另一条边界：暂时不可用 → 置灰并保留触控；已成事实、永不恢复 → 移除控件。** 上表每一行的判据都是「暂时不可用 / 必然无结果，**但仍是一个入口**」，故置灰并给一条说明；而已成事实的处置项（例：战后奖励面板上已领取 / 已跳过那一行的两个按钮）**永远不会再可用、也不再是入口**，没有任何说明可给，留一个灰键只会诱导点击 ⇒ 直接移除控件，另以一枚非文字状态标记表达它的终态（见 `ux/combat-ux.md`）。
 - **不隐藏而是置灰**：隐藏会让玩家以为功能消失且无处解释，而闸 ② 触发时后端已收到 `PushError` 上报——**正在被修的运营事故不该表现为「功能不见了」**。
 - 说明文案走**所属分区**的普通键（礼包入口 → `STORE_UNAVAILABLE_POOL` / `STORE_UNAVAILABLE_SYNC` / `STORE_UNAVAILABLE_PENDING`；主菜单「开始新轮回」→ `MENU_` 分区；Exchange 刷新 → `EVENT_REROLL_UNAVAILABLE_POOL`；Exchange barter 格 → `EVENT_BARTER_UNAVAILABLE_NOT_HELD` / `EVENT_BARTER_UNAVAILABLE_ALREADY_OWNED`），**不占 `ERR_` 前缀**——它们是本地业务拒绝，没有后端 `code`。
   - 两个 barter 键的 `<CONTEXT>` 取 `BARTER`（与 `REROLL` 指刷新按钮同一层级），**不取 `EXCHANGE`**：`EVENT_` 分区已隐含事件界面，再嵌一层事件类型名会让 `EVENT_EXCHANGE_*` 与 `EVENT_REROLL_*` 两种嵌套深度并存。两键只承载框架句，支付物 / 产出物的名称是内容层 `LocalizedText`，由呈现层以格式参数插入。
@@ -373,7 +374,7 @@ public readonly record struct BlockingNoticeSpec(
 - **非模态提示与 toast 级提示不放**——那是高频呈现，加编号是噪音。
 - **纪律：它是诊断展示，不是玩法数据。** ViewModel 只读一次，不进任何玩法路径、不参与判断（与「同步版本 #N」同条纪律）。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-05-barter-grayed-state-keys.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-iap-channel-integration.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-05-barter-grayed-state-keys.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-08-combat-ui-elements.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

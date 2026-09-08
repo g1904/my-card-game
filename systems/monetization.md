@@ -167,9 +167,10 @@
       | 品类 | 边际成本 | 既有承载 | 结论 |
       |---|---|---|---|
       | 角色形象皮肤 | 1 张基础 + ≤3 张境界覆写 / 套 | **最强**：`CharacterData.Artwork` + `RealmArtworks` 稀疏覆写已成形，零新机制 | **首个品类** |
-      | 卡背 | 1 张图 / 套 | **零**：资产类目表里没有「卡背」一行，卡牌资产只定义了 full art 正面 | **第二品类**，排入前须先确认牌堆背面在竖屏战斗屏上有稳定可见面（见待决问题） |
+      | 卡背 | 1 张图 / 套 | **零**：资产类目表里没有「卡背」一行，卡牌资产只定义了 full art 正面 | **第二品类**，无阻塞——牌背在竖屏战斗屏上确有稳定可见面（见下） |
       | 界面主题 | 全套 UI 元件（九宫格、状态变体、图标），且**对未来每一个新屏永久征税** | **最弱**：UI 元件明写「与插画分开、不适合整图生成」，不走 AI 流水线 | **明确不做**。将来若要做，须先答「主题覆盖到哪一层」——它不是一个可以事后收窄的承诺 |
 
+    - **卡背的可见面 = 玩家侧抽牌堆顶 + 己方埋伏的背面，两处。** 抽牌堆在战斗全程于底部条有一个固定实体（一叠牌背朝上的牌，厚度随剩余张数递减），己方埋伏是战场带内的面朝下条目 ⇒ 卡背在竖屏战斗屏上确有稳定可见面，**该品类不再被任何事实确认阻塞**。**敌方牌堆不给实体**（对侧只有计数可用，且敌人不应获得一个卡背外观位）⇒ 卡背外观只作用于玩家侧。落地时须在 `art/visuals/` 的资产类目表新增「卡背」一行（归内容 / 美术排期）。形态权威见 `ux/combat-ux.md`「竖屏分区」。
     - **落地时的形态（首批一格不落）：**
       - **持有** = `PlayerEntitlement.Cosmetic : IReadOnlyList<CosmeticEntry>`，元素 `readonly record struct CosmeticEntry(string Id)`。**写入方只有后端**（验票事务内追加），客户端经 pull 读到。**不需要兑现水位**——礼包要水位是因为兑现要掷骰抽内容，外观授予无随机、无内容抽取 ⇒ 三道空池闸、`GrantPoolMargin`、`K` 一概不适用，客户端零兑现事务。**不加 `Status` / `Charges` / `SourceCode`**：外观零玩法影响，没有启用开关、没有使用次数，来源恒为购买。字段表与读档校验的权威在 `systems/player-profile/_index.md`。
       - **选用**（当前穿哪一套）= `GameSetting` 的账号级具名字段，**不进 `PlayerEntitlement`**（那里只放凭证与兑现水位，选中项是纯偏好）。见 `systems/player-profile/game-setting.md`。
@@ -182,7 +183,7 @@
   - **重试次数耗尽时不提示购买**，两条独立理由——① 那是玩家刚失去一个角色的时刻，此处推销正是「付费才玩得下去」观感的经典成因，且会把 ③ ④ 从「宽松化」在观感上变成「解锁继续游玩」；② **它在结构上本就不可行**（购买只在主菜单发起、待发队列为空，而重试耗尽是轮回内 / 结算流程内的时刻）。
   - **允许的全部呈现穷举为三处**：主菜单入口本身；礼包详情页内如实列出四项权益（及第二次起的删减说明）；**兑现结果态**（列出本次获得的 1 法则 + 2 古宝）。这句穷举约束的是**推销面**——兑现结果不是推销：它发生在付款之后、内容已定，且「付了钱看不到货」与本文件反复出现的诚实性纪律正面相悖，也是退款争议的常见诱因。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md` · `handoffs/2026-09-08-combat-portrait-layout.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -195,7 +196,6 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 > _尚未解决，需要一次 handoff/决策。_
 
 - **`GrantPoolMargin` 的数值与 `K`。** 闸 ① 的口径已改写为「支撑 K 次重复购买 + 留给第 K+1 次的缓冲」，**结构已定、数值待内容规模明朗**。→ `systems/balance.md`。
-- **卡背品类的一项事实确认。** 品类顺序与字段形状均已给出（见上方「唯一预留方向」），**卡背排入前须先确认牌堆背面在竖屏战斗屏上确有稳定可见面**——`ux/` 当前未描述牌堆呈现形态。归入既已排期的竖屏分区 UX 专场。→ `ux/combat-ux.md`。
 - **合规。** 付费与实名 / 防沉迷 / 渠道分成 / 退款的交互归后端与合规侧；客户端不读年龄、不做任何本地拦截，只承接后端 `code` 展示对应 `ERR_*` 文案。→ `backend-design-documents/`。
 
 ## 对应

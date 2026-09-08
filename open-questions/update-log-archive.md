@@ -1185,3 +1185,27 @@
 - **校验面纯加法**：Travel 禁令的 `ResourceKey` 集合扩为三 key（**`Direction == Gain` 保留**——草稿的写法会连带误禁 Travel 的货币扣减向，如「路上被劫」）· 新增软校验「非 Combat 条目产货币 → `PushWarning`」（校验表第 9 行）与「`BaseReward` 灵石量 > `2.5 × S` → `PushWarning`」。零字段增量、零 schema bump。
 - **三处推翻草稿自身的主张**：`ADR-0089` 并非自相冲突（草稿引的 `:38` 是五条否决通道的列举，不含「稀有 AdventureEvent 产出」，冲突方在 ADR 与系统文档之间）· `balance.md` 待决第 10 条与货币无关（其「定价表」指寿元 `lifeSpanCost` 表）、第 4 条方向相反（`RarityTier` 分布权重是本方案的**前置**而非产物）· 校验 6 的谓词是合取而非单条件。
 - **顺带订正三处历史残留**：`ADR-0089` 的「唯一主动获取通道是商店」（商店是花销出口）· 同 ADR 的「`CostKey` 15 → 16」（`LifeTotal` 退役后恒为 15，08-30 漏改此处）· `terminology.md` 仙玉词条漏掉的「主动」二字。
+
+## 2026-09-05c（`/batch-analyze-new-ideas game` · 3 份草稿 / 2 分片 · 单波并行 · 合并 interview 3 题 · 移出 4 全条 · 新增 1 条）
+
+- **分区依据写入面而非主题**：barter 与 run-end 两份草稿都写 `ux/error-and-blocking-ux.md`（前者「灰态判据」小节、后者「键命名规范」分区表），合并给同一 worker 串行落笔；schema 分片写入面零交集，并行。Phase A 分级 🔴 1 · 🟠 2 · 🔵 28，必问过滤后问 3 题，一轮问齐。**跨草稿核对未发现矛盾**，且查出一处正向咬合：run-end 的「元婴证书只用已定字段 ⇒ 零 schema bump」恰好坐实 schema 草稿「本次不新增版本行 ⇒ 不触发后端矩阵」的前置。
+
+- **篇章结束屏 `ChapterEndScreen` = 一屏三变体**（移出 `06-meta-progression.md` 2 条：篇章通关那一刻的呈现 · 元婴界面的具体形态）。变体轴取 `chapter`，**ch3 变体即元婴通关证书**；与 `CycleEndScreen` 合成轮回收尾族两屏——不合并为一屏五变体，判据是失败侧「账号级收获零呈现」与元婴「必须有统计区」互相否定。出口只有「返回主菜单」，允许一次入场演出（≈1.2s + 短音效 + 任意触点跳过）。`CompleteChapter` 组装只读摘要 `ChapterEndSummary`，时点两条硬要求：境界寿元增量之后、`TeardownCycle` 与任何角色数据处置之前。零新增存档字段 / 零 schema bump / 后端零配合。「通关」口径分离：ch1 / ch2 写「突破」。
+- **新增 1 条待答（`06-meta-progression.md`）：`completed` 是否清理角色数据。** 库内两处写「两条出口的数据都会被清理」，而「篇章继承：全部继承 + 读档续章」与 `program-overview.md` 阶段 5 的 `completed` 分支要求它不被清理。用户裁决**本次不拍板**：`life-cycle-service.md` 用中性措辞（摘要在任何角色数据处置之前组装，两种读法下均成立），矛盾另立待答项。
+- **barter 灰态补进权威判据表**（移出索引「台账 / 投影缺口」1 条）。判据表 4 → 6 行：新增「barter 格：不持有 `PayItemId` 或产出目标已持有（能力族）」（两条触发条件写一行）与用户裁决一并补的「Exchange 商店买不起」。两个新键 `EVENT_BARTER_UNAVAILABLE_NOT_HELD` / `_ALREADY_OWNED`（`<CONTEXT>` 取 `BARTER` 不取 `EXCHANGE`），买不起那行**零新增键**（说明由 `ApplyResult.MissingElement` 机械映射）。新增落地纪律「**灰态是视觉降级不是禁用，灰格必须继续接收触控**」。顺手修同一张分区表内 `COMBAT_` 行残留的已删机制 `intent`。
+- **schema 登记表：原条目所指四批漏登经核实已不成立**（移出 `05-service-contracts.md`，改写后降级留档）。真残留是登记表**自身**的覆盖空缺——由草稿说的 7 处**修正为 11 处**（另有 `magicPack` / `characterPower` / `playerPower` / `playerItem` 四个顶层键零登记），追加 v1 行 #28–#33；#18 错归属订正（`disabledAbility` 属 `CharacterProfile`、已由 #10 登记）；`AccountInfo` 补登依据由形态纪律 ⑤ 第三档改挂 ①（`AccountId` 不受回声约束）。**立形态纪律 ⑥「本表不写任何计数」**并同批清掉表内既有六处计数（否则新纪律在自己表内当场不成立），⑥ 加射程限定句以免规则吃掉自己；`ADR-0127` 两处「22 格」与登记表 #12 删计数改回链，ADR 的决定 / 理由链一字未动。`ProfileShapeCheck` 补一条 `/sync-knowledge` 条目 ↔ 字段表行双向对账断言（第 3 级，不造工具 / 不抬管线闸）。
+- **两处边界裁决。** ① 草稿要撤销的三处 derive 前置标注全在 `## derive 就绪度` 小节内——该小节由 `/assess-derive-readiness` 独占，故**小节一字不碰**，改写后的条目移入 `05-service-contracts.md` 并在正文写明那三处已失效、待下次全量评估清理。② 草稿断言「对侧无残留错指」**不成立**：后端 `open-questions.md` 两处仍按 09-03 之前的事实陈述，本次一并删除（纯删除，不新增后端义务、不触碰契约）。
+
+## 2026-09-05d（`/summarize-open-questions game` · 全量整理 · 移出 1 条 · 归集 3 条 · 订正 2 处 · 报告 5 处矛盾）
+
+- **采集面**：主题文档 `vision/` · `systems/**` · `art/**` · `ux/` + 根级三份共 **59 处 `## 待决问题`** 小节（本库范围内标题写法统一为中文「待决问题」，无英文写法）；`handoffs/` **152 份全部 `distilled`**（唯一 `raw` 是 `2026-07-12-example.md` 模板示例，自述「写好真实的之后请删除」），台账 ↔ frontmatter 零不一致 ⇒ **无「尚未进主题文档」的未决项**。
+- **移出 1 条**：`deferred-content.md` 的**元婴界面（通关证书）的具体形态**——同日已随 `ChapterEndScreen` ch3 变体答结并从 `06-meta-progression.md` 移出，但本片留着一份重复登记。见 `../answer-logs/log-0905.md`。
+
+- **归集 3 条**（此前只在主题文档侧登记、本清单零承载）：
+  - `01-combat.md` ← **敌人台词的槽位清单 `LineSlot` 成员**（`enemies/common-properties.md` 的待决项**已点名回链本分片**，而本分片此前没有这一条——单向悬空）；并入竖屏专场。
+  - `03-adventure-event-types.md` ← **Travel 一行的具体定价**（结构约束已定、绝对数字未定）；Explore 条由「两个待实测初值」扩为**三个待定取值**（补 `Explore` 行定价，随真身占比实测偏移须与 `t = 1.6` 一并重算）。
+  - `06-meta-progression.md` ← **通用功法（空 `RequiredAffinities`）的占比口径**，与「全池指定的强度塌缩」「多灵根换算」同属灵根辨识度这条压力线的第三面。
+- **订正 2 处清单自身的失真**：① `01-combat.md` 与 `deferred-content.md` 两处把 `lossPerMomentum` 写成既定的「三章 10 / 5 / 10」，而 `balance.md` 只锁定了 **ch1 = 10**，ch2 / ch3 的 **5 / 10 是候选值、尚未定案** —— 两处改为如实措辞。② `deferred-content.md`「尚未设计」区把**账号层** `player-profile/player-item/common-properties.md` 与**角色层** `character-profile/item/common-properties.md` 混为一谈，据前者「已写出机制面」宣布「本节已不再有空占位文档」；该文件自陈「共有字段……目前均为占位，无实质设计」⇒ 抬头措辞推翻为「仍有一处空占位」，欠的是整份共有字段面而非 `status` 一格。
+- **`03-adventure-event-types.md` 的首条改版式**：主干「各类型的结算 / 机制细化」五类已全部收口，由待答子弹改为 `>` 前提说明（结论早在各 `log-*-mechanics.md` 归档，不重复计入本次移出），片内保留的只是收口后**只欠取值 / 只欠呈现形态**的残留。
+- **`## derive 就绪度` 小节一字未动**（`/assess-derive-readiness` 独占）；本次报告不含就绪度结论。
+

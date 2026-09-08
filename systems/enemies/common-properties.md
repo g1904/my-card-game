@@ -23,7 +23,7 @@
 | 游离散牌列表 | `CardData.Id` 序列，允许为空、允许同名重复 | 悬空 id → `PushError`（带模板 `Id` + 卡牌 `Id`） |
 | 样本卡组（派生） | 功法展开产物 ∪ 散牌；**规模不设硬限**（逐条编排，与玩家侧同规则） | 并集**为空 → `PushError`**（带模板 `Id`）；并集含 `Pool == Character` 的条目 → `PushError`（报出违规卡 `Id` + 带入它的功法 `Id` + 模板 `Id`） |
 | item 持有列表 | `ItemData.Id[]` | 悬空 id → `PushError` |
-| power 持有列表 | `PowerData.Id[]` | 悬空 id → `PushError`；带 `IgnoresProtection` 者须满足两条硬准入（仅挂 boss 档载体 · 绝不挂玩家可主动获取的内容，见 `systems/balance.md` 的 ≈5% 口径） |
+| power 持有列表 | `PowerData.Id[]` | 悬空 id → `PushError`；带 `IgnoresProtection` 者须满足两条硬准入（仅挂 boss 档载体 · 绝不挂玩家可主动获取的内容，见 `systems/balance.md` 的 ≈3% 口径） |
 | `EncounterScopes` | `CombatTier[]`，取值 `{ Practice, Standard, Finale }`（与 `EncounterSpec.Tier` 同一枚举） | **空数组 → `PushError`**（漏填会静默缩小抽取池） |
 | `ChapterScope` | `int[]`，取值 `1..3`（对位 `CharacterProfile.chapter`） | **空数组合法**（= 三章通用，与 `PlotArcData.ChapterScope` 同名同义）；越界值 → `PushError`；重复值 → `PushWarning` |
 | `PoolScope` | 内嵌 `Resource`，两个具名可空字段 `LocationId` / `PlotArcId`（形态见 `_index.md`） | **允许为 `null`**（= 通用池），不报错；校验见下 |
@@ -36,7 +36,7 @@
 - **「关键卡牌必在样本卡组内」是一条加载期即可执行的机械检查**：层数在模板上逐条固定 ⇒ 展开唯一确定 ⇒ `KeyCardIds` 中任一张不在「展开产物 ∪ 散牌」里 → `PushError`。理由：图鉴词条挂模板且是静态的，图鉴与玩家实际遭遇对不上会当场废掉**事前知识的主通道**。
 - **展开产物不得写回条目。** 校验与展开都是纯只读——`EnemyData` 是 ContentRegistry 里的共享只读单例；需要缓存展开结果就落在 ContentRegistry 侧的**派生索引**（加载期一次算出）。被引用的功法 `ContentEnabled == false` 时**不做连带过滤**，敌人照常展开（过滤只发生在产出侧，读取侧 `Get(id)` 不过滤）。
 - **`Lines` 的三条校验分档不另立判据**：整条 `EnemyLine` 不存在 = 合法（对应「字段本身为 `null`」那条既有判据）；**挂上了却是空壳 = 坏数据**；同 `Slot` 重复照抄 `AiWeight` 同 `Term` 重复与 `TechniqueRef` 同 `TechniqueId` 重复的处置。默认语言为空串仍是坏数据这一条的权威在 `systems/common-properties.md` 的可选 `LocalizedText` 一节。
-- **`LineSlot` 尚无成员，故 `Lines` 对任何条目都只能是空数组。** 台词的呈现落点在本库尚无表述（战斗屏形态待一次战斗 UX 专场，见 `open-questions/01-combat.md`），成员清单须与那场专场一并定——先写下一组无消费点的枚举值只会让内容编写者填出永不显示的文本。**本格在专场答定成员之前不可填写**；形态先落是为了让类定义、校验与 derive 面此刻即完整。
+- **`LineSlot` 的五个成员与各自的触发时刻见 `_index.md`，`Lines` 可正常填写**（空数组仍合法 = 该敌人无台词）。台词在战斗屏的呈现落点 = 敌人立绘上方的非常驻浮层气泡，见 `ux/combat-ux.md`。**内容侧硬纪律：台词永不承载规则信息**——它一旦能预告下一步，就成了「敌人的行动不作任何事前预告」这条承重纪律的旁路。
 - **台词是文本内容，不是音频资产**：它走 `LocalizedText`，与图鉴词条并列为写作口径的对象——标为 `[Practice, Standard]` 的条目，其图鉴与台词必须同时说得通「切磋」与「厮杀」，归 `enemy-codex` 的写作规格。
 - **敌人条目不开音效引用字段。** `art/soundtracks/` 的六个音频类目没有任何一条按敌人条目逐条产出（出牌音属卡牌动作、受击音属道念反馈，两者都已在别的类目名下）；敌人级独有的只剩「入场吼叫」一类，其存在性在全库无一处表述。且多数玩家静音游玩、**音频必须是增益而非承载信息的唯一通道** ⇒ 敌人级音效即便日后有也只承载演出层语义，而演出层的挂点归 `art/visuals/animations/`。**留一个恒无对象的伸缩位只会让每个消费点都要处理一个永不发生的分支**（同「敌方不为天劫开第二条构筑通道」）。日后确有需求是纯加法。类目表见 `art/soundtracks/_index.md`。
 
@@ -79,7 +79,7 @@
 - **敌人侧的战斗内量与玩家侧对称**：也是道念，同一套起手 / 抽牌 / 手牌上限数值（见 `systems/balance.md`），共用同一个 `DeckModule`，**疲劳规则一视同仁**（抽牌堆不重洗，空堆每抽一张 −1 道念）。
 - **敌人抽牌与玩家共用同一条 `combat` RNG 子流**，不按侧分流：两侧牌序在参战方组装时各洗一次即定，此后抽牌只是从定序列表取值、零随机消耗，故一侧的额外抽牌不会打乱另一侧的牌序。初洗与先后手掷点的顺序规则见 `systems/services/combat-service.md`「确定性」。
 
-Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26b-combat-substream-arbitration.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md`
+Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-enemy-deck-size-and-fatigue-knob.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26b-combat-substream-arbitration.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-09-08-combat-ui-elements.md`
 
 ## 决策(-> ADR)
 
@@ -87,6 +87,7 @@ Source: `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoff
 
 ## 待决问题
 
-- **敌人台词的槽位清单（`LineSlot` 的成员）：** 字段形态已给出（见上方 `Lines`），成员清单待一次**战斗 UX 专场**——台词的呈现落点尚无表述。在它答定之前 `Lines` 只能是空数组。→ `ux/combat-ux.md`、`open-questions/01-combat.md`。
+- 无。
+
 ## 对应
 提炼至：`.claude/knowledge/systems/enemies.md`（待建）

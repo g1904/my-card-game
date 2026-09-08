@@ -47,7 +47,7 @@ public sealed record ResearchCandidate(
 
 - **`DeckOperationKind`（五值 · 面板层）与 `DeckChangeOp`（四值 · element 层）是两个枚举，不得合并。** 前者回答「玩家在这个槽里能选什么」，后者回答「卡组变更如何施加」；`GrantItem` 落 `AbilityElements` 列，故不出现在后者中。类型定义见 `systems/architecture.md`「共享核心类型」。
 - **文本一律不进快照**：候选的显示名 / 描述由 UI 按 `TargetId` 现场取模板组装，与「文本类字段一律留在模板侧」一致。
-- **`ManaDelta` 在物化时即已掷定并落存档。** 这是「退出重进不能重掷」的落地点，也是风险档能够成立的技术前提——面板上只标注「有风险」，不预先展示结果。
+- **`ManaDelta` 在物化时即已掷定并落存档。** 这是「退出重进不能重掷」的落地点，也是风险档能够成立的技术前提——面板上只标注「有风险」，不预先展示结果。**标注与说明通道的呈现形态权威在 `ux/screen-flow.md`「闭关（Research）构筑面板」**，本处不复述。
 - **槽内选择不进快照。** 「玩家在槽 0 选了第 2 个候选」这个中间态**没有承载格，也不该有**——它不是物化产出、也不是即时提交，中途退出即丢失（恢复回面板初始态、候选不变），判据与「短缺标记不进快照」同款。语义见 `_index.md`。
 - **`ResolveOutcome` 不新增结构**：resolver 把玩家所选候选翻译为 `DeckElements` / `AbilityElements` / `Elements` 三份 element，照常交给 `eventEnd` 那一次 `TryApply`。
 
@@ -94,7 +94,7 @@ public sealed record ResearchCandidate(
   [FutureEvent-ResearchSlot] instance=<InstanceId> event=<EventId> slot=<SlotIndex> op=<Kind> want=<n> got=<m>
   ```
 
-Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
+Source: `handoffs/2026-09-08-portrait-option-list.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -104,7 +104,6 @@ Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **构筑面板的竖屏呈现形态。** 与战后奖励面板**在呈现层**同构（候选纵向排列、点按选中）已定方向——**交互层不同构**：本面板是「选完全部槽再一次确认提交」，奖励面板是逐项即时领取 / 跳过（见 `systems/services/combat-service.md`）；**风险档的视觉标注与说明通道**（不得为 hover-only）未设计。→ `ux/screen-flow.md`。
 - 数值格见 `_index.md` 的待决问题。
 
 ## 对应

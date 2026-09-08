@@ -57,6 +57,7 @@
 - **它是 Research 唯一的内部张力，因此是承重的。** 没有它，Research 就是**纯收益事件**（付寿元、拿构筑，没有任何可能变糟），而闭关的 `lifeSpanCost` 又是**玩家可自由比价的各类中最贵的一档**（`Finale` 以 `eventPriority = 1` 收窄整批出场、玩家没有替代选项，不参与比价）——一个「最贵且必然赚」的事件会成为批次里的无脑首选，压掉「从一批里择一」的决策价值。**风险档是这条张力的唯一载体**，不可省。
 - **「玩家自选」而非「随机惩罚」是关键的一半。** 被系统随机扣上限只会让玩家感到被惩罚，并进而回避 Research——而 Research 是构筑的唯一落点；**自己按下那个按钮**则与「明知是死路仍然走 / 打不过也得打」是同族的取向，风险是被选择的，不是被施加的。
 - 载体是 `CostKey.ManaLimit`（`ResourceElements` 该行两个修正列均为 `null`，见 `systems/services/profile-service.md`）。
+- **构筑面板与风险档标注的竖屏呈现形态权威在 `ux/screen-flow.md`「闭关（Research）构筑面板」**（全槽同屏共用一个纵向滚动容器 · 底部固定确认键 · 「什么都不做」为候选列平等的最后一行 · 风险档取中性标记 + 常驻一行规则 · 长按半屏 bottom sheet 的说明通道）——本处只定结构与语义，不复述呈现。
 
 ### 代价：不另收资源代价
 
@@ -79,7 +80,7 @@
   - **缺席是一次大声失败的运营事故**（`PushError` + 上报），运行期唯一可能的成因是 flags 把功法 / 法宝池关到见底。**不新增任何降级路径或补发机制**——空池是运营事故，不是玩法分支。
   - 反面的做法是运行期静默把 `AllowDecline` 改成 `true` 让它照常出场：那用「静默改写一条内容侧的强约束」换「不缺席」，而开局底盘残缺的后果贯穿整个轮回，且玩家与运营都看不见发生过什么。
 
-Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
+Source: `handoffs/2026-09-08-portrait-option-list.md` · `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-non-combat-decision-points.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
