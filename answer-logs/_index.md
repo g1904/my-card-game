@@ -23,6 +23,13 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-compliance-launch-tiering.md` | 2026-09-07 | `inbox/archive/solution-draft-compliance-launch-tiering.md` → `handoffs/2026-09-07-compliance-launch-tiering.md` | 2（`02`「合规能力的上线分级」整条含从属项 · `06`「昵称审核阈值取值」改造为条件化核对项；同批裁决两项外部事实：首版 = 中国大陆正式发行 · 署方实名系统接入暂挂账） |
+| `log-compliance-domain-storage.md` | 2026-09-06 | `inbox/archive/solution-draft-compliance-domain-storage.md` → `handoffs/2026-09-06-compliance-domain-storage.md` | 1（`06`「合规域的存储与产物」整条 + 其从属项「三个旋钮初值待实测校准」；同批裁决两项：注销执行保留 `receipt_idem` 全行 + 最小 `account` 墓碑 · `signin` 四条拦截码求值顺序） |
+| `log-trusted-server-clock.md` | 2026-09-06 | `inbox/archive/solution-draft-trusted-server-clock.md` → `handoffs/2026-09-06-trusted-server-clock.md` | 1（`06`「可信服务端时钟」整条；同批裁决一项：日历过期时未成年账号一律 fail-closed，与规则集读取失败同处置） |
+| `log-external-provider-selection-dr.md` | 2026-09-06 | `inbox/archive/solution-draft-external-provider-selection-dr.md` → `handoffs/2026-09-06-external-provider-selection-dr.md` | 1（**部分移出**：`06` 外接服务商选型与灾备主体答结，第三方昵称审核的阈值**取值**残留于 `06`、从属 `02`） |
+| `log-receipt-idem-cold-archive.md` | 2026-09-06 | `inbox/archive/solution-draft-receipt-idem-cold-archive.md` → `handoffs/2026-09-06-receipt-idem-cold-archive.md` | 1（`06`「`receiptId` 幂等记录的冷存归档与对账阈值」整条；定值残余并入同分片「成本模型」） |
+| `log-cdn-multi-region-propagation-window.md` | 2026-09-06 | `inbox/archive/solution-draft-cdn-multi-region-propagation-window.md` → `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md` | 1（`04` 多区域一致性与传播窗口 T 整条；`04` 分片待答清单随之清零） |
+| `log-spec-check-automation-hosting.md` | 2026-09-06 | `inbox/archive/solution-draft-spec-check-automation-hosting.md` → `handoffs/2026-09-06-spec-check-automation-hosting.md` | 1（`01` 三条机检断言的承载位置整条；`01` 分片待答清单随之清零） |
 | `log-0906.md` | 2026-09-06 | 用户直接指示（无草稿来源）· 对侧权威 `game-design-documents/handoffs/2026-09-03-compliance-client-surface.md` | 1（`cross-boundary.md` 待承接：`envelope.md` §6 四条 `compliance.*` 拦截码处置列改回链） |
 | `log-iap-channel-integration.md` | 2026-09-06 | `inbox/archive/solution-draft-iap-channel-integration.md` → `handoffs/2026-09-06-iap-channel-integration.md` | 1（`06` 托管形态整条；另同批裁决 `Rejected` 原因取值与 `status` PascalCase） |
 | `log-0905.md` | 2026-09-05 | `/summarize-open-questions backend` 全库对账整理（无草稿来源） | 1（剧本分包边界——答案落在对侧库 `ADR-0029`，本库零机制增量；残余的下载量与成本转 `06`） |

@@ -458,7 +458,7 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 
 | 原待答项 | 现落点 |
 |---|---|
-| 风控事件的落地形态（结构化事件字段、累计频次的处置阈值） | `operations/moderation.md`（字段表 · `kind` 八值 · 阈值分档 · 全局熔断 · 自动化止于工单） |
+| 风控事件的落地形态（结构化事件字段、累计频次的处置阈值） | `operations/moderation.md`（字段表 · `kind` 取值表 · 阈值分档 · 全局熔断 · 自动化止于工单） |
 | `revision` CAS 的具体存储 · 两类幂等记录的存储 | `systems/profile-store.md` |
 | 限流的实现与实际阈值 | `operations/environments.md`（「限流的实现分层」；阈值本身是旋钮，初值权威仍在 §10 §12） |
 | 跨区域拓扑 | `operations/environments.md`「拓扑与副本」（单区域部署、不做跨区域多活；玩家读路径全走写入区） |

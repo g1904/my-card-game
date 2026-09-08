@@ -4,6 +4,29 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| `ADR-0050` | 合并校验逐基线各跑一遍，不因超集成立而只跑最新基线 | Accepted | 2026-09-06 | `operations/content-delivery-ops.md` |
+| `ADR-0047` | flags 版本传播窗口以实例为主体，且头永不领先于本实例能兑现的规则集 | Accepted | 2026-09-06 | `contracts/content-manifest.md`, `operations/content-delivery-ops.md`, `operations/environments.md`, `operations/observability.md` |
+| `ADR-0046` | `Rejected` 原因复用 verify 终态 `code`，不新造取值集、不进错误体 | Accepted | 2026-09-06 | `contracts/purchase.md`, `contracts/envelope.md` |
+| `ADR-0045` | 收据幂等记录取三层归档形态：哨兵行永不删，归档任务默认关闭 | Accepted | 2026-09-06 | `operations/purchase-ops.md`, `systems/profile-store.md`, `operations/environments.md` |
+| `ADR-0043` | 昵称改名频次闸：`nicknameChangeRequired` 为真时豁免拦截、不豁免计数 | Accepted | 2026-09-06 | `contracts/auth.md`, `systems/account.md`, `operations/moderation.md`, `operations/environments.md` |
+| `ADR-0042` | 微信开放平台资质的过闸断言取运行时事实，延误即推迟上线 | Accepted | 2026-09-06 | `operations/external-providers.md`, `operations/deployment.md`, `contracts/auth.md` |
+| `ADR-0041` | 向外调用类凭据取云 Secrets 条目，按轮换驱动方分立托管 | Accepted | 2026-09-06 | `operations/purchase-ops.md`, `operations/external-providers.md`, `operations/environments.md` |
+| `ADR-0040` | 禁并发双发、同码转备用至多一次、禁双验 | Accepted | 2026-09-06 | `operations/external-providers.md`, `contracts/auth.md`, `contracts/compliance.md` |
+| `ADR-0039` | 供应商冗余度逐能力判定：只有短信双供，且只有短信有自动切换 | Accepted | 2026-09-06 | `operations/external-providers.md`, `operations/environments.md` |
+| `ADR-0038` | 外接能力适配层共用 `Outcome` 三档，归一发生在调用方且不新增 `code` | Accepted | 2026-09-06 | `operations/external-providers.md`, `contracts/auth.md`, `contracts/compliance.md`, `systems/account.md` |
+| `ADR-0037` | `signin` 四条合规拦截码的求值顺序写死 | Accepted | 2026-09-06 | `contracts/compliance.md` |
+| `ADR-0036` | 导出产物进私有桶、每次现签短寿命链接，`downloadExpiresAtUtc` 是保留期终点 | Accepted | 2026-09-06 | `operations/compliance-ops.md`, `contracts/compliance.md`, `systems/account.md`, `operations/observability.md` |
+| `ADR-0035` | 注销执行保留 `receipt_idem` 全行与最小 `account` 墓碑，其余按数据类别硬删 | Accepted | 2026-09-06 | `operations/compliance-ops.md`, `systems/account.md`, `operations/environments.md`, `operations/purchase-ops.md` |
+| `ADR-0034` | 长时状态机的调度 = 周期扫描 + `FOR UPDATE SKIP LOCKED`，零新增组件 | Accepted | 2026-09-06 | `operations/compliance-ops.md`, `operations/environments.md` |
+| `ADR-0033` | 注销冷静期落独立表，`pendingDeletion` 由行派生，`previous_status` 是承重列 | Accepted | 2026-09-06 | `operations/compliance-ops.md`, `systems/account.md`, `operations/moderation.md` |
+| `ADR-0032` | `complianceTicket` 落主库，一次性消费做成条件更新，回放窗口做成寿命的延长 | Accepted | 2026-09-06 | `operations/compliance-ops.md`, `systems/account.md`, `operations/deployment.md` |
+| `ADR-0031` | fail-open 是默认，例外判据 = 错误放行的代价不可回收 | Accepted | 2026-09-06 | `operations/environments.md`, `operations/compliance-ops.md`, `contracts/compliance.md` |
+| `ADR-0030` | 法定节假日日历人工录入，且必须含调休工作日两类条目 | Accepted | 2026-09-06 | `operations/compliance-ops.md`, `operations/observability.md`, `operations/deployment.md` |
+| `ADR-0029` | 时段规则集走不可变版本化发布，时区是规则集的一员 | Accepted | 2026-09-06 | `operations/compliance-ops.md`, `operations/deployment.md`, `operations/environments.md` |
+| `ADR-0028` | 合规判定的时刻基准取事务库时钟，且时钟只 slew 不后跳 | Accepted | 2026-09-06 | `operations/compliance-ops.md`, `contracts/compliance.md`, `operations/environments.md`, `operations/observability.md` |
+| `ADR-0049` | 首版即内置 active / standby 两把内容签名公钥 | Accepted | 2026-09-03 | `operations/content-delivery-ops.md`, `contracts/content-manifest.md` |
+| `ADR-0048` | 发布侧校验闸只验背书，不在本库复制任何一条内容校验规则 | Accepted | 2026-09-03 | `operations/content-delivery-ops.md` |
+| `ADR-0044` | 昵称判定取四级短路，复核级与不可达一律先接受 | Accepted | 2026-09-03 | `contracts/auth.md`, `systems/account.md`, `operations/moderation.md`, `operations/external-providers.md` |
 | `ADR-0027` | 风控自动处置止步于观察与工单，并配全局熔断 | Accepted | 2026-09-03 | `operations/moderation.md`, `systems/account.md`, `contracts/profile-sync.md` |
 | `ADR-0026` | 未过审昵称的处置只落 `status` 侧，后端绝不改写或置空云端昵称 | Accepted | 2026-09-03 | `operations/moderation.md`, `systems/account.md`, `contracts/auth.md`, `contracts/compliance.md` |
 | `ADR-0025` | 未知取值宽容的判据边界：有判定权的字段不适用 | Accepted | 2026-09-03 | `contracts/profile-sync.md`, `operations/observability.md` |

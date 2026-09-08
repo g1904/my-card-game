@@ -6,6 +6,15 @@
 
 | 草稿 | 对应 handoff | 日期 |
 |------|--------------|------|
+| `solution-draft-compliance-launch-tiering.md` | `handoffs/2026-09-07-compliance-launch-tiering.md` | 2026-09-07 |
+| `solution-draft-manifest-schema-dual-serve-and-cdn-failure-codes.md` | `handoffs/2026-09-07-manifest-schema-path-branch-and-cdn-failure-codes.md` | 2026-09-07 |
+| `solution-draft-auth-idle-refresh-expiry-reasonkey.md` | `handoffs/2026-09-07-refresh-expiry-reasonkey.md` | 2026-09-07 |
+| `solution-draft-spec-check-automation-hosting.md` | `handoffs/2026-09-06-spec-check-automation-hosting.md` | 2026-09-06 |
+| `solution-draft-cdn-multi-region-propagation-window.md` | `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md` | 2026-09-06 |
+| `solution-draft-trusted-server-clock.md` | `handoffs/2026-09-06-trusted-server-clock.md` | 2026-09-06 |
+| `solution-draft-compliance-domain-storage.md` | `handoffs/2026-09-06-compliance-domain-storage.md` | 2026-09-06 |
+| `solution-draft-receipt-idem-cold-archive.md` | `handoffs/2026-09-06-receipt-idem-cold-archive.md` | 2026-09-06 |
+| `solution-draft-external-provider-selection-dr.md` | `handoffs/2026-09-06-external-provider-selection-dr.md` | 2026-09-06 |
 | `solution-draft-iap-channel-integration.md` | `handoffs/2026-09-06-iap-channel-integration.md` | 2026-09-06 |
 | `solution-draft-baseline-superset-and-pack-proof.md` | `handoffs/2026-09-06-baseline-superset-and-pack-proof.md` | 2026-09-06 |
 | `solution-draft-schema-bump-ledger-authority.md` | `handoffs/2026-09-03-schema-bump-ledger-authority.md` | 2026-09-03 |

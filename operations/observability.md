@@ -31,6 +31,10 @@
 - **聚合维度的孤儿取值告警**：零判定权字段的取值清单不是校验闸，拼错的成员名只会在聚合维度里多出一个孤儿取值、靠看板发现（`decisions/ADR-0017-*`）。**这条告警就是那个看板的兑现**——缺了它，该决策接受的代价就无人承接。
 - **数据面**：复制延迟 · 连接池饱和度 · 最长事务时长 · profile 文档体积分布与超阈值账号数 gauge。**体积是软告警，绝不拒绝上行。**
 - **refresh 端点的滥用记账**：请求率与单账号频次分布，只告警、不返回限流码（`deployment.md` G-1）。
+- **flags 版本传播窗口 T**：每个实例把「本实例当前能兑现的最大规则集版本」（即 `X-Flags-Version` 下发所取的那个数，`operations/content-delivery-ops.md` A8 / A9）暴露为一个 gauge，标签只用实例标识（实例数为个位数，低基数）。告警断言：**实例间 gauge 极差 ≠ 0 且持续超过 T（初值 60 秒，口径与预算见同文件「版本传播窗口 T：口径、预算与探针」）**。稳态恒为 0，一次 `publish` 后短暂非零是正常的。**零新增契约字段、零新增客户端义务。** 不用「publish 时刻 → 首次出现新号」做主指标：那要跨发布侧与请求侧两个数据源，且在无发布期间失效，发现不了「某个实例卡在旧版本再也不更新」这一更隐蔽的故障——而 gauge 极差就是 T 的定义本身。
+- **合规域三条探针**：**导出任务生成时长分布**（`Pending → Ready` 的 p50 / p95——它是 `pollAfterSeconds` 的校准信号）· **导出 `Failed` 率**（分子按内部原因分档，只上看板）· **到期扫描的滞后量**（最老的一个已超产物保留期却仍未清理的任务的滞后秒数，**阈值应恒接近 0**）。第三条是「个人信息超期留存」唯一的机制发现面——缺了它，扫描任务失效的表现是完全静默的。
+- **时钟两条探针**：`clock.db_process_skew`（gauge，标签 `environment` + `instance`，均低基数；绝对值 > 1 秒记警告、> 5 秒工程告警）· `clock.ntp_unsynchronized`（取自守护进程的同步态，**阈值 = 0，任一次即告警**）。阈值的推导是本域判定粒度为秒级，5 秒开始侵蚀 60 秒回放窗口的余量假设。**待实测校准。**
+- **时段日历到期告警**：日历覆盖的最后一个日期距今 < 60 天即工程告警。日历过期的表现是静默地走降级路径（未成年账号一律拦截），**没有它就没有任何人会知道**。
 
 ## 日志脱敏：中间件统一实施
 
@@ -39,6 +43,7 @@
 - `message` 必填且必须写到能定位问题，同时**不得含 token / 完整凭据 / 密钥**。
 - 账号标识与 `pushId` 一类标识按前缀截断。
 - 手机号 / 邮箱一律以 `identifier_mac` 或掩码出现，**明文绝不落日志**。
+- **导出下载链接（`downloadUrl`）绝不落日志**——它是一枚含签名、无鉴权即可直下个人信息文件的临时凭据。姓名 / 证件号同理，**永不进任何应答与日志**（`contracts/compliance.md` §10）。
 - 密钥解包事件单独成一条审计线（谁、哪个环境、何时），见 `environments.md`。
 
-Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-03-schema-bump-ledger-authority.md`。
+Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md` · `handoffs/2026-09-06-compliance-domain-storage.md` · `handoffs/2026-09-06-trusted-server-clock.md`（传播窗口 · 合规域三条探针 · 时钟两条探针与日历到期告警 · 脱敏一条）。

@@ -24,7 +24,7 @@ overlay 内容需要一条能被边缘永久缓存、又能在事故时快速撤
 
 - **允许 `contentVersion` 回退以表达回滚** — 给客户端引入一条只在事故时执行的降级分支，并破坏两个已定的单调判据；而前滚已能等价达成撤回。
 - **按逻辑路径寻址 blob（`<contentRoot>/content/cards/card_x.tres`）** — 同一 URL 的字节会随发布改变，`immutable` 缓存失效，边缘必须回源校验。
-- **把 `contentRoot` 写进被签名的 manifest** — CDN 域名切换或多区域托管时须重签全部历史 manifest。
+- **把 `contentRoot` 写进被签名的 manifest** — CDN 域名 / 厂商切换或日后独立部署时须重签全部历史 manifest。
 
 ## 后果
 

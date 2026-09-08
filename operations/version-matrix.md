@@ -23,7 +23,7 @@
 |---|---|
 | `appVersion` 下界 | 待定 |
 | URL 主版本 | `v1` |
-| `manifestSchema` 集合 | 待定 |
+| `manifestSchema` 集合 | 待定（首发即 `{1}`，路径分支 `s1`；下线计划照下方序列填） |
 | `schemaVersion` 集合 | 见下方「`schemaVersion` 集合」子表 |
 
 ### `schemaVersion` 集合
@@ -43,6 +43,16 @@
 - **闸门在签发 token 时判定一次**，会话期内不因阈值提升而中途变严。
 - **提升 `appVersion` 下界的生效点是玩家的下一次登录**，永远不会打断进行中的轮回。因此**不得假定它即时生效**：覆盖存量会话所需时间的上限 = refresh 链的绝对寿命上限（`contracts/auth.md` §5b）。运营在排期时按这个上限计算。
 - **下线一个 `schemaVersion` 或 `manifestSchema` 是同一条纪律**：先把下界提上去，等存量会话自然翻转，再删实现分支。
+
+  `manifestSchema` 的双发下线序列由此展开为三点（**保留时长 = (T1 − T0) + 绝对寿命上限，绝对下界即该上限**）：
+
+  | 时点 | 动作 | 判据 |
+  |---|---|---|
+  | T0 | 发布 `manifestSchema` N，两个路径分支并存，本集合 = `{N-1, N}` | — |
+  | T1 | 提 `appVersion` 下界到「首个支持 N 的客户端版本」，给 N-1 填下线计划 | 覆盖率 ≥ 阈值（口径与阈值见 `content-delivery-ops.md`「覆盖率口径」「阈值推导」，**本表不复制第二份**） |
+  | T2 = T1 + 绝对寿命上限 | 停发 N-1 分支、删实现分支 | 上一条运维流程：覆盖存量会话所需时间的上限 = refresh 链绝对寿命上限（`contracts/auth.md` §5b · §8） |
+
+  T2 的等待期不可省：T1 之后仍有只走 `refresh`、从不 `signin` 的存量会话不经过闸门，仍会请求 N-1 分支。**该等待期不是本表自己的旋钮**，它随 `auth.md` §8 的绝对寿命上限走——本库对「旧客户端最长能活多久」只有一份答案。
 - **在架版本集合同时是内容发布侧校验闸的输入**——「哪些基线要各跑一遍」由本矩阵给出，不另立一份清单（`deployment.md`）。
 
-Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-03-schema-bump-ledger-authority.md`。
+Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-09-07-manifest-schema-path-branch-and-cdn-failure-codes.md`（`manifestSchema` 双发的下线序列）。

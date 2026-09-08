@@ -26,7 +26,7 @@
 
 ### 旋钮清单
 
-逐条来自契约，**初值在此不重复也不改动**，权威列指向唯一的取值来源。
+逐条来自契约与运维形态文档，**初值在此不重复也不改动**，权威列指向唯一的取值来源。
 
 | 旋钮 | 权威 |
 |---|---|
@@ -41,14 +41,30 @@
 | 单账号 profile 体积软告警 | `contracts/profile-sync.md` §12 |
 | 版本兼容矩阵 | `version-matrix.md`（矩阵数据本身即旋钮表的一员） |
 | 渠道验票凭据的刷新间隔 | `operations/purchase-ops.md` §1 |
-
-昵称改名频次阈值尚未定值（`open-questions/06-platform-stack.md`），定值后落本表。
+| 昵称改名频次上限 | `contracts/auth.md` §8 |
+| 外接能力的硬超时 · 短信降级与回切判据 · 供应商余额低水位两档 | `operations/external-providers.md` |
+| 昵称审核 `rejectThreshold` / `reviewThreshold` | `operations/moderation.md`（首版能力未启用，不定值） |
+| 导出下载链接的单次签发有效期 | `operations/compliance-ops.md`（数据导出） |
+| 导出生成重试上限 | 同上 |
+| 合规周期任务的扫描间隔 | 同上（冷静期到期 · 导出生成 · 产物与记录到期 · ticket 清理共用一条通道） |
+| 时钟偏差警告阈值 | `operations/compliance-ops.md`（可信时钟） |
+| 时钟偏差告警阈值 | 同上 |
+| 时段日历到期告警提前量 | 同上 |
+| 收据冷存归档：总开关 · 归档水位线 · 单批行数 · 执行间隔 | `operations/purchase-ops.md` §3d |
+| 收据点查延迟预算：热层 p99 · 温层二跳 p99 | `operations/purchase-ops.md` §3d |
+| 对账信号「`grant > redeemed`」持续天数 N · 工单产出开关 | `operations/purchase-ops.md` §4 |
+| 悬挂 `claiming` 记录的清理阈值（仅退化形态启用时） | `operations/purchase-ops.md` §3a |
+| 实例「当前 `flagsVersion`」读取缓存 TTL | `operations/content-delivery-ops.md`「版本传播窗口 T」 |
+| flags 副本滞后预算 | 同上 |
 
 ## 限流的实现分层
 
 - **push 滥用阈值走 Redis 计数器**（`INCR` + `EXPIRE`），**键是账号维度、不是 IP**——移动网络 NAT 下 IP 维度会误伤整个小区。触发时的 `code` 与 `class` 见错误码台账；应答须**同时**给 `Retry-After` 头与 `detail.retryAfterSeconds`（台账已把 `detail` 形状写死）。
 - **Redis 不可用 → 放行并告警**，不阻断玩家：限流是防滥用，不是正确性的一部分。
-- **验证码 / 短信计数是例外，不沿用上面这条 fail-open。** 短信是有成本且被刷的通道，一旦放行代价是真金白银。它的计数落 Postgres；若实现上仍走 Redis，则 Redis 不可用时对该端点 fail-closed 返回限流码。
+- **fail-open 是默认，例外的判据是「错误放行的代价不可回收」。** 命中判据的通道一律 fail-closed，且计数落 Postgres；实现上仍走 Redis 时，Redis 不可用即对该端点 fail-closed 返回限流码。已知实例：
+  - **验证码 / 短信计数** —— 短信是有成本且被刷的通道，放行的代价是真金白银。
+  - **实名提交限流** —— 核验服务**按次计费**（`contracts/compliance.md` §9），与短信同档。
+  - **未成年时段判定** —— 它不是限流，但同判据：错误放行是合规事故（渠道下架 / 监管处罚）不可回收，错误拦截可回收（配置回源恢复即自动解除）。形态见 `operations/compliance-ops.md`。
 - **`/v1/auth/refresh` 上不得存在任何返回限流码的限流**——这是契约刻意留的形状，实现与网关两侧都要守，作为上线核对项过闸（见 `deployment.md`）。
 
 ## 区域与合规
@@ -56,6 +72,8 @@
 - **主区在中国大陆境内。** 面向国内渠道（登录 / 支付 / 实名 / 防沉迷）反向约束存放地，且身份主体自建这条决策的理由之一正是境外托管与国内数据存放要求冲突（`decisions/ADR-0010-*`）。
 - **个人信息不出境**（手机号 / 邮箱 / 实名信息 / 验证码记录）。**任何副本因此仍在境内**——跨区域不等于跨境。
 - **`identity` 与 `profile` 分表分权限**，使注销与数据导出能按数据类别定位，且日常玩法路径不需要触达个人信息表。
+- **注销与数据导出按数据类别逐表落地**：删除清单、`receipt_idem` 与 `account` 墓碑两条保留的硬理由、导出产物的白名单与私有桶形态，见 `operations/compliance-ops.md`。
+- **未成年时段判定的时区口径是时段规则集的一员**（IANA 名，随规则集同版本发布），不是代码常量、也不落 `config_knob`——口径由监管决定，其任何一部分都不该要求发版才能改。形态见 `operations/compliance-ops.md`。
 - **手机号 / 邮箱以 `identifier_mac = HMAC(identifierSecret, identifier)` 参与索引，明文绝不落库落日志**；日志侧的统一脱敏见 `observability.md`。
 - **域名备案与国内发行资质是上线时序的前置**，不是技术选型的自由度；它与发布前置清单同批推进（`deployment.md`）。
 
@@ -110,9 +128,13 @@ verify  ≈ 每账号个位数 / 年
 
 内容签名密钥的保管、CI 签名步骤与 `keyId` 轮换形态的权威在 `_index.md` 的内容分发运维面，本文件不复述。
 
-### 渠道验票凭据（第三把钥匙）
+### 渠道验票凭据
 
-托管形态的权威在 `operations/purchase-ops.md` §1「托管形态」（云 Secrets 条目 · 渠道 × 环境 · 第三条审计线），本文件不复述；三把钥匙不共用托管配置。
+托管形态的权威在 `operations/purchase-ops.md` §1「托管形态」（云 Secrets 条目 · 渠道 × 环境 · 独立审计线），本文件不复述；**各类钥匙不共用托管配置**。
+
+### 外接能力凭据（短信 / 实名核验 / 昵称审核）
+
+托管形态的权威在 `operations/external-providers.md`（云 Secrets 条目 · **能力 × 供应商 × 环境** · 独立审计线 · `credentials[]` 新旧并存），本文件不复述。它**自成一类托管条目与轮换流程**，不与既有各类钥匙共用——轮换节奏由各自的外部方驱动，共用一份托管配置会让最慢的那条绑架其余。
 
 ### 本地 feature 环境
 
@@ -120,6 +142,17 @@ verify  ≈ 每账号个位数 / 年
 
 ## 定时任务出口
 
-当前只有两个轻量周期任务：幂等记录的分区滚动、profile 体积扫描。托管容器形态天然能承接它们。**合规侧的注销冷静期是一条跨天长时状态机**，会追加对可靠调度的要求——出口已预留，形态待合规侧落定（`open-questions/06-platform-stack.md`）。
+轻量周期任务全部由托管容器形态承接，**零调度中间件、零消息队列、零分布式锁**：领取一律走 `SELECT … FOR UPDATE SKIP LOCKED` 的条件转移，多副本同时跑同一个任务互不重叠，进程中途崩溃即回滚、下一轮重新领取。
 
-Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-06-iap-channel-integration.md`（旋钮清单一行 · 密钥保管指路）。
+| 任务 | 权威 |
+|---|---|
+| 幂等记录的分区滚动 | `systems/profile-store.md` · `operations/purchase-ops.md` |
+| profile 体积扫描 | `contracts/profile-sync.md` §12 |
+| 注销冷静期到期执行 | `operations/compliance-ops.md` |
+| 导出任务生成 | 同上 |
+| 导出产物与记录的到期清理 | 同上 |
+| `complianceTicket` 的过期清理 | 同上 |
+
+**注销执行是本库唯一不可逆的周期动作**：时钟异常（NTP 失同步 / step 级跳变）期间暂停一轮，其余判定照常。判据与降级语义见 `operations/compliance-ops.md`。
+
+Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-06-iap-channel-integration.md`（旋钮清单一行 · 密钥保管指路） · `handoffs/2026-09-06-compliance-domain-storage.md` · `handoffs/2026-09-06-trusted-server-clock.md` · `handoffs/2026-09-06-external-provider-selection-dr.md` · `handoffs/2026-09-06-receipt-idem-cold-archive.md` · `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md`（旋钮清单 · fail-closed 例外判据 · 定时任务出口 · 外接能力凭据）。

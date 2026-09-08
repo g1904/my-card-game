@@ -13,8 +13,13 @@ profile       (account_id PK/FK, revision BIGINT, schema_version INT,
 push_idem     (account_id, push_id, new_revision, accepted_at_utc,
                PRIMARY KEY (account_id, push_id))  -- 按 accepted_at_utc 月分区
 
-receipt_idem  (receipt_id PK, account_id, channel, status,
-               bundle_grant_ordinal, revision, ordered_at_utc, verified_at_utc)
+receipt_idem  (receipt_id PK, account_id, status, tier, record_at_utc,   -- 常驻列
+               archived_at_utc,
+               channel, bundle_grant_ordinal, revision,                  -- 记录体，归档后置 NULL
+               ordered_at_utc, verified_at_utc)
+
+receipt_idem_archive                             -- 归档表：只装被搬走的记录体列，
+  (record_at_utc, receipt_id PK, <记录体列>)      -- 按 record_at_utc 年度分区，仍是点查
 ```
 
 - **`doc` 整段存一列。** 透明段与不透明段同处一个 `jsonb`，后端对不透明段一字不动；分列存储会让「顶层键整键替换」这条合并语义分裂成两套实现。
@@ -49,7 +54,7 @@ receipt_idem  (receipt_id PK, account_id, channel, status,
 |---|---|---|
 | 键 | `(account_id, push_id)` | `receipt_id` **全局唯一，不带账号前缀** |
 | 保留 | 有窗口（初值 30 天 / 200 条） | **永久保留，不设 TTL** |
-| 分区 | 按 `accepted_at_utc` 月分区，整分区滚动裁剪 | 不按账号分区（全局唯一键与按账号分区互斥）；按 `ordered_at_utc` 的时间分区仍可行 |
+| 分区 | 按 `accepted_at_utc` 月分区，整分区滚动裁剪 | 不按账号分区（全局唯一键与按账号分区互斥）；在线按 `receipt_id` 哈希分区，时间维度只用于归档表（`operations/purchase-ops.md`） |
 | 命中的含义 | 同一次上行的重复到达 | 同一张收据的重复核销，或**已被其他账号核销** |
 
 ### `push_idem`：两个旋钮取先到者，实现只执行时间那一半
@@ -64,7 +69,7 @@ receipt_idem  (receipt_id PK, account_id, channel, status,
 
 - **插入点有两处**：下单时预落一条未决态记录（幂等键由后端在下单时分配或取平台发放的 id，客户端不生成），验票通过时把同一行更新为已核销并写入序号与 `revision`。**核销与 `bundleGrantOrdinal += 1` 必须同一次事务**，否则会出现「序号已推进但幂据未落」这一契约点名的失败态。
 - **`receipt_id` 是主键**，因此「这张收据已被其他账号核销」是一次索引冲突，不是一次应用层查重。
-- **永久保留**：一批收据行的体量极小，永久保留成本近似为零，与内容 flags 历史规则集永久保留是同形取舍。冷存归档、渠道逐个的 `receipt` 内部形态与对账信号阈值归购买域运维文档，本文件只定存储位置与事务边界。
+- **永久保留，且保留在「行」这一级**：一批收据行的体量极小，永久保留成本近似为零，与内容 flags 历史规则集永久保留是同形取舍。**行本身没有任何删除路径**——`receipt_id` 与 `account_id` / `status` / `tier` / `record_at_utc` 这几列常驻，唯一性约束因此永不离线；归档只把记录体列搬进 `receipt_idem_archive` 并在本表置 `NULL`。账号注销执行时该行同样保留，保留深度的权威在 `operations/compliance-ops.md`。冷存归档的三层形态、读路径与旋钮，以及渠道逐个的 `receipt` 内部形态与对账信号阈值，归购买域运维文档（`operations/purchase-ops.md`），本文件只定存储位置与事务边界。
 - **它受读己所写约束**：下单与验票之后的 `receipt/{receiptId}` 读必须读到该次写入（见下）。
 
 ## 读己所写：玩家读路径全部走写入区
@@ -77,4 +82,4 @@ receipt_idem  (receipt_id PK, account_id, channel, status,
 
 每次 push 写入后取 `doc` 的存储体积，出一个分布指标与「超阈值账号数」的 gauge（初值 512 KB，可热调，见 `operations/environments.md`）。**软告警绝不拒绝上行**——契约没有拒绝语义，把观测阈值实现成拒绝阈值等于给正常账号造一条「push 永远失败」的路径。
 
-Source: `handoffs/2026-09-03-backend-stack-and-hosting.md`。
+Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-06-receipt-idem-cold-archive.md`（`receipt_idem` 的常驻列与归档表）。

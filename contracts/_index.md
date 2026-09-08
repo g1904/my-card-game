@@ -21,7 +21,7 @@ Source: `handoffs/2026-08-14-profile-sync-contract.md`。
 **purchase 域已成文：`purchase.md`（2026-08-16）** ——三端点（`POST verify` / `GET receipt/{receiptId}` / `POST order`）、验票由后端向平台校验、**写入只由 verify 承担**（渠道回调降为对账 / 补偿通道，下单端点不参与权益写入）、幂等键不由客户端生成、序号与 `revision` 同事务自增、verify 不走 CAS 且应答不内联 profile、复算回链 §6 不新开随机源。**逐渠道 `receipt` 形态（判别式在请求根的三分支联合）与五条 `purchase.*` 错误码已落笔。** 它同时定下 `profile-sync.md` §2 §5 的**后端写入字段封闭表**——后端只读、除表内四项外，加行须两侧同批评审且须逐条通过「够格进表」的两条判据。
 Source: `handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-09-03-purchase-channel-integration.md`。
 
-**合规域已成文：`compliance.md`（2026-08-16 · 第六份）** ——六端点（实名提交 / 合规态查询 / 注销申请与撤销 / 导出申请与查询）、`complianceTicket` 解无 token 态的死锁、合规**拦截只在 `signin`**（`compliance.*` 四条码与各自 `reasonKey`）、防沉迷时段中途到点**复用 `auth.session_revoked`** 而不新增通道、时段口径落配置不进契约、数据导出取最简 JSON 形态。同批把 `auth.md` 三处 `reasonKey` 留白填满（形态 PascalCase · `session_revoked` 八值 · `nickname_rejected` 三值）、新增 `auth.md` §4a 会话裁决（`sid` claim · `(accountId, deviceId)` 唯一约束 · 活跃会话上限 1 · `signin` 的 60 秒幂等回放窗口），并把 `envelope.md` §4a 的无鉴权例外由**点名 auth** 改写为**一条判据**。
+**合规域已成文：`compliance.md`（2026-08-16 · 第六份）** ——六端点（实名提交 / 合规态查询 / 注销申请与撤销 / 导出申请与查询）、`complianceTicket` 解无 token 态的死锁、合规**拦截只在 `signin`**（`compliance.*` 四条码与各自 `reasonKey`）、防沉迷时段中途到点**复用 `auth.session_revoked`** 而不新增通道、时段口径落配置不进契约、数据导出取最简 JSON 形态。同批把 `auth.md` 三处 `reasonKey` 留白填满（形态 PascalCase；`session_revoked` 与 `nickname_rejected` 的取值表见 `auth.md` §10，**条数以该表为准、此处不复述**——它按设计会持续扩张，写死一个数目就是一份会漂移的副本）、新增 `auth.md` §4a 会话裁决（`sid` claim · `(accountId, deviceId)` 唯一约束 · 活跃会话上限 1 · `signin` 的 60 秒幂等回放窗口），并把 `envelope.md` §4a 的无鉴权例外由**点名 auth** 改写为**一条判据**。
 
 **报文本体已于同一域内补齐** ——六端点逐个的请求 / 应答字段表、共有枚举 `ComplianceRealnameStatus`、`taskId` 形态 `^[0-9a-f]{32}$`、导出任务状态机四值、导出产物的正列白名单，以及端点自身的三条错误码（`compliance.ticket_invalid` · `compliance.verification_failed` · `compliance.deletion_irrevocable`，全 `Fatal`、全映 `OpError.Compliance`）。撤销注销改用 `POST /v1/compliance/deletion/cancel`：免鉴权判据要求凭据在 body 里送达，而 `DELETE` 携带 body 的语义未定义、中间层剥离是已知行为——端点数量、鉴权形态与判据本身均不变。
 Source: `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`、`handoffs/2026-09-03-compliance-endpoint-payloads.md`。
@@ -62,7 +62,7 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 
 ### 契约变更的完成判据
 
-Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
+Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md` · `handoffs/2026-09-06-spec-check-automation-hosting.md`（机检的工程承载 · 降级形态 · 两条提取护栏）。
 
 **核对时机 = 变更内原子**：spec 与 markdown 在同一次契约变更内同批更新，只改了一边的变更**视为未完成**。不设周期性对账——周期性对账允许漂移窗口存在，而那个窗口正是两侧按不同真值编码的时期。**责任人 = 发起该次变更的那一侧**。这是 `operations/_index.md` 已立的「先改台账、再改服务端实现」往前挪一格。
 
@@ -75,7 +75,7 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 5. **人工清单四项**已过；
 6. 另一侧的跨库 handoff 已写并互相回链。
 
-**三条机检断言**（`06` 落定自动化承载前，以人工清单的前三项执行；断言本身与后端栈无关——校验的是 markdown 与 YAML / JSON）：
+**三条机检断言**（断言本身与后端栈无关——校验的是 markdown 与 YAML / JSON，因此不等技术栈、不等镜像构建。工程承载与降级形态见本节末「机检的工程承载」）：
 
 | # | 断言 | 提取方式 | 漂移后果 |
 |---|---|---|---|
@@ -85,8 +85,8 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 
 - ②的投入产出比最高：错误码台账是全库最容易漏项的表，而其漂移形态是**静默**的（客户端对未知 `code` 有兜底，漏登记不报错，只让某条错误一直走降级路径）。
 - **②的基准是台账当前登记的条目。** 合规域端点自身的三条错误码已进台账（`envelope.md` §6），与六端点的报文本体同批落笔；断言校验两处**已有内容**的双向覆盖，不是对未定内容的完备性要求。**`downloadUrl` 指向的是外部对象 URL、不是本 API 的端点**，故它出现在 `compliance.md` 中不构成 spec 的 `paths` 漏项（断言③）。
-- **②不下探到 `reasonKey`。** 它是 `detail` 内的取值集合、其权威在 `auth.md` §10 与 `compliance.md` §5，而 spec 只表达 `detail` 是个对象。`reasonKey` 取值的正确性由**人工清单第 1 项**（`detail` 形状与 `message` 必含项）承担；契约的兜底纪律本就要求客户端容忍未知取值，故这里的漏项不是静默走错分支，而是回落一级文案。
-- 工具不点名（工程选型，与「栈未定前不指定语言 / 框架 / 库」同向），只立能力要求：**能校验 OpenAPI 3.1 / JSON Schema 2020-12，且能在设计库侧运行**。
+- **②不下探到 `reasonKey`。** 它是 `detail` 内的取值集合、其权威在 `auth.md` §10 与 `compliance.md` §5 · §11（前者是四条拦截码的取值，后者是合规域端点自身三条码的取值——两处都在断言②的不下探面内），而 spec 只表达 `detail` 是个对象。`reasonKey` 取值的正确性由**人工清单第 1 项**（`detail` 形状与 `message` 必含项）承担；契约的兜底纪律本就要求客户端容忍未知取值，故这里的漏项不是静默走错分支，而是回落一级文案。
+- **工具不点名的是契约文档，不是实现。** 契约文档只立能力要求：**能校验 OpenAPI 3.1 / JSON Schema 2020-12，且能在设计库侧运行**。校验脚本里当然会出现具体包名与解释器——那不违反本条：**工具选择是工程实现，可随时替换而不构成契约变更**；被约束的是「不得把某个具体工具写成契约的一部分」。
 
 **人工清单四项**（机检覆盖不到的语义面）：
 
@@ -94,6 +94,44 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 2. 承重纪律段落是否随形态变更而失效（典型：`profile-sync.md` §5 的 JSON path 白名单、§6 的 `stream` 取值冻结）；
 3. 是否需要 bump `schemaVersion` / URL 主版本 / spec 的 `info.version`（三者互不复用，见 `envelope.md` §1 §3）；
 4. 另一侧的 handoff 是否已写（把「契约变更是跨库事件」变成可勾选项）。
+
+**机检的工程承载**
+
+三条断言的校验对象是 markdown + YAML + JSON，**零云资源依赖**；而后端镜像构建需要云侧镜像仓库凭据、且跑在后端实现分支上，那条分支根本没有 `contracts/`。故承载是**设计库分支自带的一条独立检查**（就近挂在代码托管方的 CI 上），与镜像构建**不同分支、不同触发、无依赖**——让镜像构建跨分支检出设计库去跑一条纯文本检查，会把两条本应独立的分支线在 CI 层重新耦合起来。**不为一条纯文本检查再引入第二套 CI 系统。**
+
+| 项 | 形态 |
+|---|---|
+| 落点 | 设计库分支根的 workflow + 库根的校验脚本目录。**脚本不放 `contracts/`**——本索引的目录形态图把 `contracts/` 下每个文件都登记为契约产物，混入可执行脚本会破坏「`contracts/` 下的东西都是契约」这个读法，也会让断言③的扫描把工具文档里的示例路径当成端点 |
+| 触发 | 推送到设计库分支 + 手动重跑，路径过滤到 `contracts/**` 与校验脚本自身 |
+| 运行环境 | 通用 Linux runner，**不需要 .NET、不需要 Godot** |
+| 阻断对象 | **「变更被视为完成」，不是推送本身。** 绿灯即完成判据第 4 条的兑现物（该次提交上的检查结论就是「三条机检断言通过」这个可勾选物）；红灯 = 该次契约变更未完成（六条判据是合取），须**前滚一次修复提交**，红灯期间不得据该契约推进实现或跨库 handoff |
+| 跳过开关 | **无条件触发，不设跳过开关、不设紧急免检参数**（与 `operations/content-delivery-ops.md` C3 同构：人可以跳过的闸不是闸） |
+| 通知 | 代码托管方的默认失败通知。**不接入 `operations/observability.md` 的告警面**——那是线上服务的口径，混进工程流水线的红灯会稀释它 |
+| 本地可复跑 | **同一套检查必须能在本地以一条命令跑完**，CI 只是它的无人值守执行。变更内原子要求作者在提交前就能自查；只能在 CI 上跑的检查会把「原子」拖成「推上去再说」 |
+
+与内容发布闸的一处差异要写明：`content-delivery-ops.md` C5 的「阻断 = 什么都还没发生」在此**不成立**——那道闸拦在产物生成之前，而这里提交已进入历史。修复形式因此是前滚，与迁移的「只前滚」同向，而不是撤销。
+
+**`openapi.yaml` 尚不存在时的降级形态。** 三条断言各有一半或全部以 spec 为对象，若原样理解则三条同时无对象。降级形态取 markdown 内部的双向核对——它**现在就有对象、现在就能机检**，且与完整形态是同一段提取逻辑：
+
+| # | spec 不存在时 | spec 落笔后 |
+|---|---|---|
+| ① | **不适用**，输出 `skipped: no spec yet`（**不是** `pass`） | spec 自身合法（OpenAPI 3.1 + 全部 `$ref` 可解析） |
+| ② | `envelope.md` §6 台账首列的 `code` 集合 ⇔ 六份契约正文中出现的 `code` 字面量集合，**双向** | 台账 ⇔ **spec 的错误码枚举**，双向 |
+| ③ | `envelope.md` §3 端点全集 ⇔ 六份契约正文中出现的 `METHOD 路径` 集合，**双向**（含 CDN 域三端点） | 端点全集与正文 ⇔ **spec 的 `paths` 键**，双向 |
+
+- ①输出 `skipped` 而非 `pass` 是承重的：把「没有对象」记成「通过」，会让完成判据第 4 条在 spec 落笔那天**从绿变绿**，谁也看不出承接面变了。
+- **markdown 内部的那一半在 spec 落笔后不删。** 它校验的是 markdown 各文档之间自洽（台账 ⇔ 各契约正文、端点全集 ⇔ 各契约正文），而 spec 那一半校验的是 markdown ⇔ spec。两者对象不同，同时保留才能定位漂移出在哪一侧。
+- **切换判据 = `contracts/openapi.yaml` 在被检出的树中存在**：存在则三条全跑且必须全绿，不存在则①报 `skipped`、②③跑 markdown 内部那一半。用开关表达必然出现「spec 已落、开关忘了开」的静默窗口。同理 `schemas/*.json` 逐个新增时由①的 `$ref` 解析自动纳入，无需改配置。
+- **人工清单四项不受影响，永远保持人工**——它们是机检覆盖不到的语义面。承载落地之前，三条机检断言以人工清单的前三项形式执行。
+
+**两条提取护栏**（②③是正则提取 + 集合比较，其最常见失败模式不是漏检而是假阳性与提不出来）：
+
+| # | 护栏 | 不立的后果 |
+|---|---|---|
+| P-1 · P-3 | **`envelope.md` §6 台账首列与 §3 端点全集首列是机器读取面**，形态与同批改脚本的要求写在那两处 | 提取面被说明文字污染时，断言的失败形态是「少了一条」而非「解析失败」 |
+| P-2 | **排除清单落在校验脚本的配置里，每条必须带一行理由**；新增排除项须在该次契约变更中**显式提及**，不得静默追加 | 排除清单是消灭断言的最省事路径——一条假阳性加一条排除，几次之后断言就空了 |
+
+排除清单的已知条目：`compliance.md` 的 `downloadUrl` 指向外部对象 URL、不是本 API 端点；同文件「备选方案」段残留的 `DELETE /v1/compliance/deletion` 是被否决的形态、现行端点是 `POST .../cancel`；本索引与 `README.md` 内的端点字面量不属契约正文，不进扫描面。**②的扫描面同样排除 `envelope.md` §6 台账本身**——台账是基准侧，含进来会让第二个方向自指恒真、断言退化为半向。
 
 ### `schemas/*.json` 的拆分判据与落笔后的目录形态
 

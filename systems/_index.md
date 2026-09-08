@@ -7,13 +7,13 @@
 协议契约六份已成文（`contracts/envelope.md` · `content-manifest.md` · `auth.md` · `profile-sync.md` · `purchase.md` · `compliance.md`）。技术栈与托管形态为 **C# / ASP.NET Core · 腾讯云托管容器 · 云数据库 PostgreSQL（单主）· 云 Redis · 云 KMS · CDN**（运行时形态见 `operations/`），服务内部设计所需的存储、并发控制与会话形态因此有了确定的地基。
 
 - `account.md` · `profile-store.md` —— 已建立。
-- `content-delivery.md` —— 尚未建立。它的**运维形态**已成文（`operations/content-delivery-ops.md`），欠的是服务内部形态所依赖的两项：剧本内容的体积与分发形态、多区域一致性与传播窗口（`open-questions/04-content-delivery.md`）。按「先有设计再建文件」不预先占位。
+- `content-delivery.md` —— 尚未建立。它的**运维形态**已成文（`operations/content-delivery-ops.md`），此前欠的两项前置**已全部答结**：剧本内容的体积与分发形态由客户端 `game-design-documents/decisions/ADR-0029-plot-tree-single-baseline-package.md` 裁定（不分包、随基线发布，本库零机制增量）；版本传播窗口 T 已取定初值并重定义为跨实例窗口（`operations/content-delivery-ops.md`「版本传播窗口 T」）。**服务内部形态具备开写条件**；按「先有设计再建文件」，在有实质设计之前仍不预先占位。
 
 ## 服务
 
 | 文档 / 文件夹 | 职责 | 对位的客户端成分 |
 |---|---|---|
-| `account.md` | 账号、鉴权、会话、多设备裁决、合规能力（注销 / 导出）、昵称判定链与未过审昵称的存量扫描的服务内部形态 | `account-service` |
+| `account.md` | 账号、鉴权、会话、多设备裁决、合规能力（注销 / 导出）与合规域三张表的事务边界、昵称判定链与未过审昵称的存量扫描的服务内部形态（合规域的运维形态见 `operations/compliance-ops.md`） | `account-service` |
 | `profile-store.md` | 权威 profile 存储、`revision` 计数器与 CAS、`pushId` 幂等窗口 | `sync-service` |
 | `content-delivery.md` | overlay 构建与分发、`manifest.json`、放量 / 秒关开关、**剧本文本随内容一并发布** | `content-service` |
 
@@ -28,13 +28,15 @@ Source: `handoffs/2026-08-11-plot-service-retired.md`。
 - **并发单元统一为 `account` 行。** 会话写入与 profile 写入争用同一把行锁，故「一台设备正在 push、另一台正在 signin」有确定的串行顺序，全库只有一套并发模型。
 - **profile 文档以 `jsonb` 承载。** `jsonb` 的 `||` 运算符恰好是「顶层键整键替换、不递归」，与 `contracts/profile-sync.md` §3a 的合并语义逐字吻合；它**不是** RFC 7386（没有以 `null` 表示删除的语义），因而与该节对 JSON Merge Patch 的否决天然不冲突。
 - **体积余量充足。** `jsonb` 走 TOAST 与压缩，单值上限远高于 `profile-sync.md` §12 的 512 KB 软告警——软告警是观测口径，不是存储能力的边界。
-- **三条契约条款直接落为数据库不变式**，不靠应用层检查（并发下只有约束是可靠的）：
+- **契约条款直接落为数据库不变式**，不靠应用层检查（并发下只有约束是可靠的）：
 
   | 契约条款 | 数据库形态 |
   |---|---|
   | 单账号活跃会话上限 1（`auth.md` §4a） | 部分唯一索引 `UNIQUE (account_id) WHERE revoked_at_utc IS NULL` |
   | `(accountId, deviceId)` 唯一（同上） | 普通唯一约束 |
   | `receiptId` 全局唯一、不带账号前缀（`purchase.md` §7） | 全局唯一索引；「已被其他账号核销」因此是一次索引冲突，而不是一次应用层查重 |
+  | 同时至多一个在办导出任务（`compliance.md` §10 的 `deduplicated` 语义） | 部分唯一索引 `UNIQUE (account_id) WHERE state IN ('Pending','Ready')` |
+  | 冷静期至多一条在办、重复申请绝不顺延（`compliance.md` §10） | `account_deletion.account_id` 主键 + `ON CONFLICT DO NOTHING` |
 
 - **Redis 只承担限流计数器，不持有任何权威状态。** 它不可用时限流退化为不限流并告警，不影响任何正确性语义（验证码类计数是例外，见 `operations/environments.md`）。按账号的 flags 缓存是否引入归内容分发侧裁决；若引入，缓存键必须含 `flagsVersion`（`decisions/ADR-0009-*`）。
 - **字段名用 `snake_case`，报文用 lowerCamelCase**，两者在序列化边界一次映射。

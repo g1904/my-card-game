@@ -1,6 +1,6 @@
 # Scope — 后端的范围与边界
 
-> 后端要做什么、不做什么。本文件只陈述**已由客户端侧决定所锁定的事实**与由此推出的直接边界；技术栈、托管与协议形态**均未定**（见 `open-questions.md`）。
+> 后端要做什么、不做什么。本文件只陈述范围与边界本身，**不复述任何机制**——协议形态在 `contracts/`（六份已成文），技术栈与托管形态已落定（`ADR-0021` · `handoffs/2026-09-03-backend-stack-and-hosting.md`），服务内部与运维形态在 `systems/` 与 `operations/`。
 > Source: `game-design-documents/decisions/ADR-0003-online-cloud-authority.md`、`game-design-documents/vision/scope.md`。
 
 ## 后端存在的理由
@@ -13,9 +13,9 @@
 
 | 客户端成分 | 后端承担 |
 |---|---|
-| `account-service` | 账号鉴权、会话、多设备裁决、合规能力 |
-| `sync-service` | 权威存档、`revision` CAS 与 `pushId` 幂等、冲突裁决 |
-| `content-service` | 内容 overlay 分发（CDN）、`manifest.json`、放量 / 秒关开关 |
+| `account-service` | 账号鉴权、会话、多设备裁决（`contracts/auth.md`）；**合规六端点**——实名 / 防沉迷拦截、注销、数据导出（`contracts/compliance.md`） |
+| `sync-service` | 权威存档、`revision` CAS 与 `pushId` 幂等、冲突裁决（`contracts/profile-sync.md`）；**付费验票三端点**——验票、收据幂等读、微信下单（`contracts/purchase.md`，客户端侧走 `IPurchaseBackend`） |
+| `content-service` | 内容 overlay 分发（CDN）、`manifest.json`、放量 / 秒关开关（`contracts/content-manifest.md`） |
 
 客户端侧的门面设计见 `game-design-documents/systems/services/`；**边界另一侧全部归本库**。
 
@@ -24,10 +24,15 @@ Source: `handoffs/2026-08-11-plot-service-retired.md`。
 
 ## In scope
 
-- 账号与鉴权、合规所需的账号能力（注销、数据导出等）。
+- 账号与鉴权（登录渠道、会话、多设备裁决）。
+- **合规域**：实名核验、防沉迷时段判定、账号注销（含冷静期与执行）、数据导出、昵称审核与风控。它是一条**独立的纵向切片**，不是账号能力的附属——契约在 `contracts/compliance.md`，运维面在 `operations/compliance-ops.md` 与 `moderation.md`。
+  **四项能力（实名核验 · 防沉迷时段 · 账号注销 · 数据导出）全部在首版范围内**，不分档：可后置的是各项的增强项，不是能力本身。**第三方昵称审核适配器留位不启用**，触发条件见 `operations/moderation.md`。两份发布前置清单（「首个真实账号建号之前」与「首次面向公众发行之前」）见 `operations/deployment.md`。
+- **付费验票域**：向平台服务器验票、权威写入兑现序号、收据幂等与对账。渠道取值域封闭为三条（Google Play Billing · App Store · 微信支付），范围权威在 `game-design-documents/vision/scope.md`。契约在 `contracts/purchase.md`，运维面在 `operations/purchase-ops.md`。
 - 权威 profile 存储与同步裁决。
 - 内容分发与线上开关（**含剧本文本**——它是普通内容文件，与卡牌 / 事件同走 manifest 通道）。
 - 客户端 ↔ 后端协议契约（**本库的核心产出**，落点 `contracts/`）。
+
+Source: `handoffs/2026-09-07-compliance-launch-tiering.md`（合规四项的首版落位）。
 
 ## Out of scope
 
@@ -44,4 +49,4 @@ Source: `handoffs/2026-08-11-plot-service-retired.md`。
 
 ## Open questions
 
-见 `open-questions.md`——尤其是 `01-contracts.md`（边界层已成文，余下各端点报文本体）与 `06-platform-stack.md`（技术栈 / 托管全未定）。
+见 `open-questions.md`。**范围面本身无待答项**：六份契约已成文（`01-contracts.md` 待答清单已清零）、技术栈与托管已落定。合规能力的首版落位已在上方 In scope 写实，过闸时点见 `operations/deployment.md` 的两份发布前置清单。余下与本文件相关的一条是**范围的时点而非范围的内容**：待实测取值（`06-platform-stack.md`）。

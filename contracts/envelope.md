@@ -3,7 +3,7 @@
 > 覆盖**全部端点共有**的那一层：契约用什么表达、报文怎么序列化、信封带什么、错误长什么样、版本怎么协商。
 > 各端点的报文本体在 `auth.md` / `profile-sync.md` / `content-manifest.md`；它们**不另立一套**错误码或版本机制。
 > 客户端侧门面见 `game-design-documents/systems/services/`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md`、`handoffs/2026-08-13-auth-endpoint-contract.md`（§4a 的 auth 例外域 · 台账两条新 `code` 与 `session_revoked.detail`）、`handoffs/2026-08-14-profile-sync-contract.md`（§2 的超 2⁵³ 整数判据 · §8 可见字段子集回链）、`handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`（§1 的落笔规则 · 形态收 spec 单点 · `info.version`）、`handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 端点清单 · §4a 无鉴权例外判据 · §6 台账四条 `compliance.*`）、`handoffs/2026-09-03-compliance-endpoint-payloads.md`（§4a 撤销端点方法 · §6 台账三条合规域端点错误码）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§7e 登记流程指路 · §8 统计层推论的两条限定）。
+> Source: `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md`、`handoffs/2026-08-13-auth-endpoint-contract.md`（§4a 的 auth 例外域 · 台账两条新 `code` 与 `session_revoked.detail`）、`handoffs/2026-08-14-profile-sync-contract.md`（§2 的超 2⁵³ 整数判据 · §8 可见字段子集回链）、`handoffs/2026-09-06-spec-check-automation-hosting.md`（§1 机检承载与降级形态的指路 · §3 端点全集与 P-3 · §6 台账 P-1）、`handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 端点清单 · §4a 无鉴权例外判据 · §6 台账四条 `compliance.*`）、`handoffs/2026-09-03-compliance-endpoint-payloads.md`（§4a 撤销端点方法 · §6 台账三条合规域端点错误码）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§7e 登记流程指路 · §8 统计层推论的两条限定）。
 
 ## 1. 表达形式与文档分工
 
@@ -19,10 +19,12 @@
 | 代码生成 | **不强制**。两侧可生成也可手写 DTO——契约不规定实现手段 |
 | 落地时机 | **不预先建空壳**（本库「先有设计再建文件」）。**任一侧**（客户端或后端）的首个端点进入实现时，由**动手的那一侧**落 `openapi.yaml`（即使动手方是客户端，spec 仍落本库），范围 = **全部共有层 + 该一个端点**；其余端点路径在各自进入实现时逐个追加。**在某端点的 spec 落笔前，其 markdown 字段表视为草案** |
 | **形态的迁移** | 某端点的形态一旦进入 spec，其 markdown 字段表**同批删除规范性形态列**（类型 / 必填 / 枚举取值），降级为「字段名 + 语义 / 用途 / 承重纪律」；示例报文保留。瘦身**随 spec 覆盖面逐步推进**，不一次性做完四份——任何时刻形态都只有一处权威 |
-| 覆盖面 | spec 的 `paths` **覆盖 API 域与 CDN 域两侧**（`/v1/…` 与 `<contentRoot>/manifest`·`manifest.sig`·`/blobs/<sha256>`，以两个 `server` 表达）。CDN 域无鉴权，其安全声明差异在 spec 内显式给出 |
+| 覆盖面 | spec 的 `paths` **覆盖 API 域与 CDN 域两侧**（`/v1/…` 与 `<contentRoot>/s<manifestSchema>/manifest`·`…/manifest.sig`·`<contentRoot>/blobs/<sha256>`，以两个 `server` 表达）。CDN 域无鉴权，其安全声明差异在 spec 内显式给出 |
 | `info.version` | spec 自身的发布版本，semver，**与 `/v1/` 和 `schemaVersion` 三者互不复用**（节奏完全不同，见 §3）。报文形态破坏性变更 bump major，新增可选字段 / 新增端点 bump minor，纯描述修订 bump patch。三者分工在 spec 顶部注释里显式声明 |
 
 **完整的落笔规则、`schemas/*.json` 拆分判据、一致性核对的三条机检断言与人工清单，见 `_index.md` 的「约定」段。**
+
+**三条断言的工程承载与降级形态同见该段。** 要点：承载是设计库分支上的一条独立检查（不与后端镜像构建同流水线）；`openapi.yaml` 尚不存在时，断言①**无对象**，断言②③ 以 markdown 内部的双向核对形式执行；**切换由 `contracts/openapi.yaml` 的存在性驱动**，不设开关——因此本节「落地时机」那一行的触发点到来时，机检覆盖面自动扩展，无需另一个记得去翻的动作。
 Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 
 ## 2. 序列化与命名约定（全局）
@@ -42,18 +44,34 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 
 **API 面带主版本前缀 `/v1/`；`contentRoot` 下的静态对象不带。**
 
-```
-/v1/auth/…            验证码 / 登录 / 刷新 / 登出 / 绑定 / 解绑 / 改名   → auth.md（七端点，封定）
-/v1/compliance/…      实名 / 合规态 / 注销 / 数据导出                    → compliance.md（六端点）
-/v1/profile/pull      整聚合下行                   → profile-sync.md
-/v1/profile/push      diff 上行（CAS + 幂等）      → profile-sync.md
-/v1/purchase/…        验票 / 收据幂等读 / 下单（仅需商户侧下单的渠道）  → purchase.md（三端点）
-/v1/content/flags     按账号解析后的开关结果        → content-manifest.md
+**端点全集**（API 域 + CDN 域）：
 
-<contentRoot>/manifest        静态、无鉴权、CDN
-<contentRoot>/manifest.sig    同上
-<contentRoot>/blobs/<sha256>  同上，immutable
-```
+| `METHOD 路径` | 用途 | 报文权威 |
+|---|---|---|
+| `POST /v1/auth/challenge` | 取验证码 | `auth.md` |
+| `POST /v1/auth/signin` | 登录 | `auth.md` |
+| `POST /v1/auth/refresh` | 刷新 | `auth.md` |
+| `POST /v1/auth/signout` | 登出 | `auth.md` |
+| `POST /v1/auth/bind` | 绑定渠道 | `auth.md` |
+| `POST /v1/auth/unbind` | 解绑渠道 | `auth.md` |
+| `POST /v1/auth/nickname` | 改名 | `auth.md` |
+| `POST /v1/compliance/realname` | 实名提交 | `compliance.md` |
+| `GET /v1/compliance/status` | 合规态查询 | `compliance.md` |
+| `POST /v1/compliance/deletion` | 注销申请 | `compliance.md` |
+| `POST /v1/compliance/deletion/cancel` | 撤销注销 | `compliance.md` |
+| `POST /v1/compliance/export` | 数据导出申请 | `compliance.md` |
+| `GET /v1/compliance/export/{taskId}` | 导出任务查询 | `compliance.md` |
+| `GET /v1/profile/pull` | 整聚合下行 | `profile-sync.md` |
+| `POST /v1/profile/push` | diff 上行（CAS + 幂等） | `profile-sync.md` |
+| `POST /v1/purchase/verify` | 验票 | `purchase.md` |
+| `GET /v1/purchase/receipt/{receiptId}` | 收据幂等读 | `purchase.md` |
+| `POST /v1/purchase/order` | 下单（仅需商户侧下单的渠道） | `purchase.md` |
+| `GET /v1/content/flags` | 按账号解析后的开关结果 | `content-manifest.md` |
+| `GET <contentRoot>/s<manifestSchema>/manifest` | 静态、无鉴权、CDN；路径段承载结构版本 | `content-manifest.md` |
+| `GET <contentRoot>/s<manifestSchema>/manifest.sig` | 同上 | `content-manifest.md` |
+| `GET <contentRoot>/blobs/<sha256>` | 同上，immutable | `content-manifest.md` |
+
+**P-3 —— 本表是机器读取面。** 它是机检断言③ / ③′ 的**输入**（端点集 ⇔ 六份契约正文中出现的 `METHOD 路径`，双向；spec 落笔后再与 `paths` 键三方对齐，见 `_index.md`「契约变更的完成判据」）。因此：首列必须是**反引号包裹的裸 `METHOD 路径`**，方法大写、路径以 `/` 或 `<contentRoot>` 起始，列内不加任何附加文字；**新增 / 删除 / 改名任何端点，必须在同一次契约变更内同批改本表**；改本表的**结构**（列序 / 首列形态）须同批改提取脚本。理由与 §6 台账的 P-1 同源：提取面一旦被注释文字污染，断言的失败形态是「少了一条」而非「解析失败」。
 
 - **`/v1/` 与 `schemaVersion` 的分工**：URL 主版本 = **端点集与传输信封**的破坏性变更（并存两版一段时间，同 `manifestSchema` 的处理）；报文内的 `schemaVersion` = **存档负载**自身的版本（见 §8）。二者不复用一个数字——变更节奏完全不同。
 - **`/v1/content/flags` 归 API 域，不在 `contentRoot` 下。** 它需鉴权、按账号计算、`no-cache`——本质是 API 而非静态对象。放在 CDN 域会诱导中间层按静态对象缓存，导致**灰度分桶串号**：这类事故只在放量时显形且极难定位。
@@ -185,6 +203,8 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 | `client.version_unsupported` | `Upgrade` | `Auth` | 强更闸门（**只在登录 / 启动点触发**，见 §7） | `{ minAppVersion }` | 收到的 `appVersion` 与当前下界 |
 | `resource.not_found` | `Fatal` | `NotFound` | — | `{ resource }` | 资源类型与 id |
 
+**P-1 —— 本表首列是机器读取面。** 它是机检断言② / ②′ 的**输入**（台账 `code` 集合 ⇔ 六份契约正文中出现的 `code` 字面量，双向；spec 落笔后再与 spec 的错误码枚举双向，见 `_index.md`「契约变更的完成判据」）。因此首列必须是**反引号包裹的裸 `code` 字面量**——无附加文字、无换行、无合并单元格；**本表自此改结构须同批改提取脚本**。首列一旦混入说明文字，②的失败形态是「少了一条」而非「解析失败」，而这条断言存在的全部理由就是它守的漂移是静默的。
+
 **台账的五条承重项：**
 
 - **「刷新失败」按判据拆成两条路径，判据是「有没有收到明确应答」而非「失败了」。** 网络失败（请求发不出 / 应答收不到 / `server.unavailable`）→ 视同断线走 sync 缓冲通道 + 指数退避，**不硬阻塞**；收到 `auth.session_revoked` → **硬阻塞重登 + 暂停退避**（重试必然成功不了）。收不到应答一律算网络失败——弱网下二者不可区分，且误判成硬阻塞的代价远大于多退避几次。`POST /v1/auth/refresh` 的错误清单因此**只有两条**（`auth.session_revoked` · `server.unavailable`），使这个判据在报文层面无歧义（见 `auth.md` §8 §10）。
@@ -280,7 +300,7 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 
 ## Open questions
 
-- **`openapi.yaml` / `schemas/*.json` 的实际落笔**——**规则已定**（§1 的触发点 / 范围 / 形态迁移，`_index.md` 的完成判据与三条机检断言），只待触发点到来，属待落笔项而非设计未决。唯一仍开放的是三条机检断言的**承载位置**（设计库侧有无自动化流水线），待 `06-platform-stack.md`；在此之前以人工清单执行。
+- **`openapi.yaml` / `schemas/*.json` 的实际落笔**——**规则已定**（§1 的触发点 / 范围 / 形态迁移，`_index.md` 的完成判据、三条机检断言与它们的工程承载），只待触发点到来，属**待落笔项而非设计未决**。
 
 ## 跨库待办（客户端侧，本库不代为决定）
 

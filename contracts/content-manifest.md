@@ -2,7 +2,7 @@
 
 > 覆盖 `content-service` 边界的全部报文：overlay 的 **manifest**、内容文件 **blob**、以及 `ContentEnabled` 的 **flags** 通道。**剧本文本亦走本通道**（见下方「剧本文本」一节）。
 > 客户端侧门面见 `game-design-documents/systems/services/content-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md` · `handoffs/2026-08-23b-flags-version-monotonic.md`（服务端保证重构为两组 + flags 三条单调条款）· `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md`。
+> Source: `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md` · `handoffs/2026-08-23b-flags-version-monotonic.md`（服务端保证重构为两组 + flags 三条单调条款）· `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` · `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md`（传播窗口主体改为多实例 + 头永不领先）· `handoffs/2026-09-07-manifest-schema-path-branch-and-cdn-failure-codes.md`（端点路径分支 · 双发保留时长 · CDN 三端点失败状态码）。
 
 > 序列化与命名约定（lowerCamelCase · RFC 3339 UTC · 忽略未知字段）、端点风格与错误码分层归 `envelope.md`，本文件不另立一套、也不复述。
 
@@ -14,14 +14,15 @@
 
 | 端点 | 域 | 方法 | 应答 | 缓存 | 签名 |
 |---|---|---|---|---|---|
-| `<contentRoot>/manifest` | CDN · 无鉴权 | GET | manifest.json **原始字节** | `no-cache` 或极短 TTL（秒级） | ES256 detached，见 `.sig` |
-| `<contentRoot>/manifest.sig` | CDN · 无鉴权 | GET | `{alg, keyId, sig}` | 同 manifest | — |
+| `<contentRoot>/s<manifestSchema>/manifest` | CDN · 无鉴权 | GET | manifest.json **原始字节** | `no-cache` 或极短 TTL（秒级） | ES256 detached，见 `.sig` |
+| `<contentRoot>/s<manifestSchema>/manifest.sig` | CDN · 无鉴权 | GET | `{alg, keyId, sig}` | 同 manifest | — |
 | `<contentRoot>/blobs/<sha256>` | CDN · 无鉴权 | GET | 文件字节 | `public, max-age=31536000, immutable` | 由 manifest 内的 hash 覆盖 |
 | `/v1/content/flags` | **API · 需鉴权** | GET | flags JSON + detached 签名 | `no-cache` | 同一密钥体系 |
 
 - **manifest 端点的 TTL 决定秒关 / 回滚的实际生效速度**，故只能 no-cache 或秒级。
+- **manifest 与 `.sig` 的路径段 `s<manifestSchema>` 承载结构版本，`s1` 从第一天就在**（分流机制见「版本化」）。**blob 路径不带该段**：它是内容寻址的字节，与 manifest 的**结构**无关；分支它会让同一份字节按结构版本重复存储与回源，而这条链的成本基石正是 blob 的 `immutable` 长缓存。同一个 manifest URL 此后只承载同一种结构，与内容寻址的「URL ↔ 字节」不变量同向。
 - **flags 归 API 域，不在 `contentRoot` 下**（见 `envelope.md` §3）：它需鉴权、按账号计算、`no-cache`——本质是 API 而非静态对象。放在 CDN 域会诱导中间层按静态对象缓存，导致**灰度分桶串号**，这类事故只在放量时显形且极难定位。
-- **blob URL 是内容寻址**：`<contentRoot>/blobs/<hash>`，逻辑路径只出现在 manifest 条目里。`contentRoot` **随信封 / 配置下发，不写进被签名的 manifest**——使 CDN 域名可切换而无需重签历史 manifest，并为多区域托管留出自由度。
+- **blob URL 是内容寻址**：`<contentRoot>/blobs/<hash>`，逻辑路径只出现在 manifest 条目里。`contentRoot` **随信封 / 配置下发，不写进被签名的 manifest**——使 CDN 域名 / 厂商可切换而无需重签历史 manifest，也为日后独立部署留出自由度。
 
 ## 服务端保证
 
@@ -32,7 +33,7 @@
 1. **每个 overlay 文件有独立、可单独 GET 的稳定 URL。**
 2. **URL 的字节内容不可变**（内容寻址的直接推论）。
 3. **manifest 与它列出的全部文件在发布上是原子的**——manifest 可被读到时，其列出的文件必须已可下载。发布顺序因此固定为**先推全部 blob、后推 manifest**；manifest 是服务端侧的提交点，与客户端侧 `overlay.manifest.json` 的 rename 对称。
-4. **`contentVersion` 严格单调递增，不允许回退。回滚 = 前滚**：发布一个更大的 `contentVersion`，其内容指回旧 blob——**内容寻址让这一步零成本**。允许回退会给客户端引入「降级」分支，并破坏 `StartContentVersion` / `LastContentVersion` 的单调判据。→ ADR 候选①。
+4. **`contentVersion` 严格单调递增，不允许回退。回滚 = 前滚**：发布一个更大的 `contentVersion`，其内容指回旧 blob——**内容寻址让这一步零成本**。允许回退会给客户端引入「降级」分支，并破坏 `StartContentVersion` / `LastContentVersion` 的单调判据。→ `ADR-0001`。
 
 **A 组不提供的**：断点协商、下载令牌、客户端进度记录、差量清单——任何一项都会把无状态拉取变成有状态协商，与客户端的事务模型冲突。**字节级 Range 不写进契约、客户端也不依赖**（CDN 若默认支持属免费能力）。**这句否定的边界只覆盖 A 组**，与 B 组的 API 域无关。
 
@@ -55,14 +56,14 @@ flags 不是内容寻址的静态对象，故 A 组的保证对它不成立，�
 | 来源 | 破坏形态 | 本节如何堵 |
 |---|---|---|
 | **数据库回滚 / 备份恢复** | 版本计数器倒退，已用过的号被重新分配（更糟：同号承载不同规则） | 分配点持久化一条**单调高水位**，且高水位与规则集存储在**同一事务边界**内（避免只恢复其一）。恢复后取 `max(恢复值, 高水位)` 并**强制跳号**；「版本号未倒退」列为恢复演练的必检项（`operations/`） |
-| **多区域发布传播时延** | 区域 A 已到 42，区域 B 仍在 41；设备跨区路由即观测到更小值 | 保证 5 钉死单一全局序列，区域差异降格为**传播时延**而非独立计数。再加一条运维 SLO：**新批次须在窗口 T 内在全部区域可见**。窗口内客户端观测到更小版本是**已知良性态**（它不拉、告警、按会话去重上报一次，保留当前那批 flags）。**T 的数值待「多区域内容分发的一致性」答定**（`open-questions/04-content-delivery.md`） |
+| **多实例版本传播时延** | 实例 A 已到 42，实例 B 仍在 41；设备在一次会话内打到多个实例即观测到更小值 | 保证 5 钉死单一全局序列，实例差异降格为**传播时延**而非独立计数。再加一条运维 SLO：**新批次须在窗口 T 内在全部对外服务的实例上可见**（T 的初值与预算分解见 `operations/content-delivery-ops.md`「数值初值一览」）。窗口内客户端观测到更小版本是**已知良性态**（它不拉、告警、按会话去重上报一次，保留当前那批 flags）。**且 `X-Flags-Version` 下发的值取 `min(高水位, 本实例当前能兑现的最大规则集版本)`——头永不领先于本实例能兑现的规则集**，使唯一会产生误报的偏斜方向（头领先于体、客户端拉回后整批丢弃并上报）结构性不可能 |
 | **手工改规则**（直接改存储 / 控制台绕过发布动作） | 内容变了、版本号没变 ⇒ 已在线设备「等值不拉」改动永不生效，新会话设备拿到新结果 ⇒ **两批设备行为分裂，且没有任何一侧报错** | **规则集不可变**：没有原地编辑路径，任何改动只能产出一个新版本（形态见 `operations/content-delivery-ops.md`）。可选加固：把规则集内容指纹与版本号绑定，服务端自检到「同版本不同指纹」即告警——**指纹不下发给客户端**（ADR-0002 的载荷边界） |
 
 **单调递增只堵住回退，堵不住原地改**，而按账号计算的 flags 恰恰给了原地改一条极自然的路径——这是第 7 条与「规则集不可变」必须成对存在的理由。
 
-**若引入按账号的解析结果缓存层，缓存键必须包含 `flagsVersion`**，且缓存条目**不得跨版本复用**、不得在版本提升后继续被读到。缓存键只按 `accountId` 时，版本提升后设备拉到的仍是旧结果——但版本号已经增大 ⇒ 客户端认为「已同步到最新」⇒ 此后「等值不拉」⇒ **这一批秒关对该账号永不生效**。这与「手工改规则」同一病理，只是发生在缓存层。**是否引入缓存层本身不在此裁决**（`open-questions/04-content-delivery.md`）。
+**若引入按账号的解析结果缓存层，缓存键必须包含 `flagsVersion`**，且缓存条目**不得跨版本复用**、不得在版本提升后继续被读到。缓存键只按 `accountId` 时，版本提升后设备拉到的仍是旧结果——但版本号已经增大 ⇒ 客户端认为「已同步到最新」⇒ 此后「等值不拉」⇒ **这一批秒关对该账号永不生效**。这与「手工改规则」同一病理，只是发生在缓存层。**是否引入缓存层本身不在此裁决**：形态（缓存对象为规则集本身、键取 `flagsVersion`）与「改为按账号结果缓存」的触发判据见 `operations/content-delivery-ops.md` A6。
 
-**B 组零报文成本**：不新增任何字段、`flagsSchema` 不提升、客户端无需任何改动。→ ADR 候选④。
+**B 组零报文成本**：不新增任何字段、`flagsSchema` 不提升、客户端无需任何改动。→ `ADR-0009`。
 
 ## manifest schema（`manifestSchema: 1`）
 
@@ -105,7 +106,22 @@ flags 不是内容寻址的静态对象，故 A 组的保证对它不成立，�
 | `contentVersion` | overlay 的**内容** | 每次内容发布 | 与本地不同（且更大）→ 增量更新 |
 
 - **`manifestSchema` 只在破坏性变更时 +1。** 向后兼容的加字段（新增可选字段）**不**提升版本；**客户端必须忽略未知字段**（契约条款）。
-- 破坏性变更时，服务端**同时保留 N-1 与 N 两版 manifest 端点**一段时间（按 `appVersion` 或显式 `?manifestSchema=` 分流），使老客户端不被立即打断。
+- 破坏性变更时，服务端**同时保留 N-1 与 N 两版 manifest 端点**一段时间，使老客户端不被立即打断。**分流 = 客户端按自己内置的支持集合去请求对应的路径分支** `<contentRoot>/s<manifestSchema>/manifest`；服务端不做任何判定。
+
+  **判定方只能是客户端，这一句是承重的：** CDN 域三端点无鉴权、不是 API 请求，服务端在这条请求上既没有 token 也没有 `X-App-Version`（`envelope.md` §4a 只在 API 请求上要求该头）；且 manifest 拉取排在**登录之前**（客户端启动链第一步），那一刻不存在可供服务端判定的会话身份。客户端是唯一同时知道「我支持哪个集合」与「我正在发这个请求」的一方。不写下这条，「按 `appVersion` 分流」会被反复重新提出。
+
+  **未知的 `s<N>` 分支天然是 404**，与「对象不存在」同一格，不需要 `400`——本域不返回契约错误体，一个裸 400 客户端读不到理由（失败面见下）。
+
+- **双发的保留时长 = 覆盖率条件 ∧ 时间下界，不是一个裸天数：**
+
+  ```
+  T0  发布 manifestSchema N        两个路径分支并存；矩阵的 manifestSchema 集合 = {N-1, N}
+  T1  覆盖率 ≥ 阈值                → 把 appVersion 下界提到「首个支持 N 的客户端版本」，
+                                    并在矩阵里给 N-1 填下线计划
+  T2  = T1 + refresh 链绝对寿命上限 → 停发 N-1 分支、删实现分支
+  ```
+
+  **必须等到 T2 而非 T1**：T1 之后仍有存量会话只走 `refresh`、从不 `signin`，它们不经过闸门（`auth.md` §5），仍会请求 N-1 分支；绝对寿命上限（`auth.md` §5b · §8）是让这批会话必然翻转的唯一机制。判据刻意偏向**宁可多留**——超期未下线的代价近乎为零（两个小对象），而**过早**下线会让一批还能正常游玩的客户端从此收不到任何内容热更，且客户端对此不报错、不阻塞，症状与「最近没发内容」不可区分。覆盖率口径与阈值、双发期的发布流水线读法见 `operations/content-delivery-ops.md`；矩阵与下线计划见 `operations/version-matrix.md`。
 - **`manifestSchema` 不支持时降级到基线，而非强更。** 客户端已定「断网降级：跳过更新，直接使用基线」；网络完全不可用都能开局，「manifest 读不懂」不该比断网更严厉。强更是 `appVersion` 维度的决定，走 `envelope.md`，不由内容分发通道兼职。
 - **`contentVersion` 严格单调递增、回滚即前滚**——条款本体见「服务端保证」A 组第 4 条（两条单调纪律并列在那一节，那是后端实现者唯一会当成义务清单读的地方）。
 
@@ -166,7 +182,7 @@ res://基线  <  user://overlay/  <  flags（仅覆盖 ContentEnabled，不改�
 
 故它**可在轮回进行中安全热应用**（下一次抽取即生效），而数值型 overlay 无此性质。**它之所以能秒，恰恰因为它被限制得足够窄。**
 
-> **硬边界（不可放宽）：flags 只能覆盖 `ContentEnabled` 这一个布尔，不得携带任何数值 / 文案 / 新 `Id`。** 一旦放宽，上述三条纪律立即失效。→ ADR 候选②。
+> **硬边界（不可放宽）：flags 只能覆盖 `ContentEnabled` 这一个布尔，不得携带任何数值 / 文案 / 新 `Id`。** 一旦放宽，上述三条纪律立即失效。→ `ADR-0002`。
 
 **灰度分桶留在服务端。** 分桶规则（百分比 / 白名单 / 篇章档位）**不下发**；端点按账号计算后只给**结果**。客户端始终只看到「这些 `Id` 现在不进抽取池」，永远不知道分桶规则存在——因此 `game-design-documents/systems/services/content-service.md` 的「分桶信息放哪」的答案是**哪也不放在客户端**，`DrawPool<T>` 的构造签名不必变成 `AllEnabled(bucketContext)` 一类。
 
@@ -212,14 +228,40 @@ res://基线  <  user://overlay/  <  flags（仅覆盖 ContentEnabled，不改�
 ## 与客户端 `OpError` 的映射
 
 > 权威错误码分层与台账归 `envelope.md` §5–6；本表只给内容分发侧的情形 → 客户端处置的对应关系。CDN 侧的三个静态对象**不返回契约错误体**（它们无鉴权、由 CDN 直接服务），客户端按 HTTP 状态码与本地校验结果判定。
+> **这与 `envelope.md` §5b「客户端不得靠 HTTP 状态码分支」不冲突**：那一条约束的是 **API 域的业务错误**（`401` 分不清「静默刷新」与「硬阻塞重登」），而 CDN 域本就被本节明文豁免。下方两表把这条豁免**写细**，不扩大它。
+
+**本地判定面**（应答本身是 `200` 或根本没有应答）：
 
 | 情形 | 应答 | 客户端 `OpError` | 客户端处置 |
 |---|---|---|---|
-| 网络不可达 / 超时 / 5xx | — | `Network` | 跳过更新，用现有层开局（已定的断网降级） |
+| 网络不可达 / 超时 | — | `Network` | 跳过更新，用现有层开局（已定的断网降级） |
 | 验签失败 / hash 不符 / `keyId` 未知 | — | `Validation` | `PushError` + 拒绝 overlay + 回退基线 + 上报一次事件 |
 | `manifestSchema` 不受支持 | 200（客户端自行判定） | `Validation`（细分一个**不上报**的子因） | 跳过更新，用基线（**不强更**） |
 | `minAppVersion` 高于当前 `appVersion` | 200（客户端自行判定） | — | 跳过更新，用基线；强更与否归 `envelope.md` 的版本协商 |
 | 预估落盘空间不足（`files[].size` 求和） | — | 磁盘空间 | 下载前即失败，不产生半套 staging |
+
+**CDN 三端点的失败状态码（契约层钉死）**——`OpError` 一列是客户端处置的对位，其权威在对侧：
+
+| 端点 | 失败面 | HTTP | 可否负缓存 | 客户端处置 |
+|---|---|---|---|---|
+| `manifest` | 对象不存在（`contentRoot` 配置错 · 环境未首发 · 未知 `s<N>` 分支） | **404** | **否**（关闭或 TTL ≤ 数秒） | 跳过更新、用现有层开局；本地 `PushWarning`，**不上报** |
+| `manifest` | 访问被拒（防盗链 / 权限误配） | **403** | 否 | 同上 |
+| `manifest` | 回源失败 / 上游故障 | **502 / 503 / 504** | 否 | `Network`，既有断网降级 |
+| `manifest` | 边缘限流 | **429** | 否 | `Network`；有 `Retry-After` 则尊重 |
+| `manifest` | 非 `GET` / `HEAD` | **405** | — | 不发生（客户端只发 GET）；仅为形态完备 |
+| `manifest.sig` | 对象不存在 | **404** | **否** | **`Validation`** + 上报一次 + 拒绝该 overlay + 回退基线；**不重试** |
+| `manifest.sig` | 403 / 5xx / 429 | 同 manifest 各行 | 否 | 同 manifest 各行 |
+| `blobs/<sha256>` | hash 未发布 / 对象缺失 | **404** | **否** | **`Validation`** + 上报一次 + 本次更新整体不提交（清空 staging）；**不进 3 次退避** |
+| `blobs/<sha256>` | 403 | **403** | 否 | 同上 |
+| `blobs/<sha256>` | 5xx / 429 / 超时 | **502 / 503 / 504 · 429** | 否 | `Network`，**进**既有的 3 次退避重传 |
+| `blobs/<sha256>` | 字节与 manifest 内 hash 不符 | **200** | — | `Validation`（同上方本地判定面） |
+
+**4xx 的两分判据（承重）：入口对象的 4xx 是环境 / 配置面，入口之后的对象的 4xx 是发布原子性被违反。**
+manifest 404 的最可能成因是 `contentRoot` 配置错或环境尚未首发内容——客户端无从区分，且它**不代表已发布的内容被动过**，映成 `Validation` 会在开发 / 测试环境刷出持续告警。而 `.sig` 或 blob 的 404 只可能发生在 **manifest 已经被读到之后**，那一刻 A 组第 3 条已承诺「它列出的文件必须已可下载」⇒ 收到 404 即证明发布纪律被破坏（或负缓存命中），这正是值得上报的一类。同理，对一个明确的 404 跑三次退避重传是纯浪费——重试语义留给传输抖动。CDN 侧的负缓存配置要求见 `operations/content-delivery-ops.md`。
+
+**「版本已被回滚 / 撤下」这一失败面在本设计里结构性不存在。** 回滚 = 前滚（A 组第 4 条）：manifest 被更大的 `contentVersion` 覆盖而非删除，历史 blob 永不删除。故不产生 404、无需为它定状态码。**逐字写下这一格，是为了让「回滚了要不要给客户端一个信号」此后不再被问。**
+
+**本表不新增任何 `envelope.md` §6 台账条目。** 台账的每一条都要给出 `code` · `class` · `detail` 形状 · `message` 必含值，而 CDN 域**结构上产不出这四样**；客户端在这条通道上映射的是 `OpError` 三档，不经 `code` 表。新增条目会造出一批永远不会被下发的 `code`，并让 P-1 的双向机检断言在「台账有、正文无」这一侧永久失衡。
 
 ## 客户端侧的既定前提（回链，不复述）
 
@@ -227,10 +269,7 @@ res://基线  <  user://overlay/  <  flags（仅覆盖 ContentEnabled，不改�
 
 ## 决策(-> ADR)
 
-- **内容寻址 + `contentVersion` 严格单调递增（回滚即前滚）** → ADR 候选①，登记于 `decisions/_index.md`。
-- **flags 第三层只覆盖 `ContentEnabled`** → ADR 候选②（含限定条款，需固化其边界）。
-- **flags 规则集不可变版本化 · `flagsVersion` 严格单调 · 同版本结果恒定 · 回滚即前滚** → ADR 候选④，登记于 `decisions/_index.md`。**不并进 ADR 候选①**：那一条的核心论证是「内容寻址让前滚零成本」，对 flags 不成立（flags 不是内容寻址的静态对象），其零成本另有理由（全量快照）；并进去会让一条 ADR 的理由段承载两条不同论证。真正值得固化的是「不可变版本化 + 同版本结果恒定」——ADR 候选②的载荷边界也覆盖不到它，而「临时改个比例」这类运营需求会反复来撬它。
-
-## Open questions
-
-- **多区域一致性**：若内容分发需按区域托管，`contentRoot` 按区域下发已留出自由度，但多区域间 `contentVersion` 是否必须同步推进未定（`02-account-compliance.md`）。
+- **内容寻址 + `contentVersion` 严格单调递增（回滚即前滚）** → `ADR-0001`。
+- **flags 第三层只覆盖 `ContentEnabled`**（含载荷硬边界） → `ADR-0002`。
+- **flags 规则集不可变版本化 · `flagsVersion` 严格单调 · 同版本结果恒定 · 回滚即前滚** → `ADR-0009`。**它不并进 `ADR-0001`**：那一条的核心论证是「内容寻址让前滚零成本」，对 flags 不成立（flags 不是内容寻址的静态对象），其零成本另有理由（全量快照）；并进去会让一条 ADR 的理由段承载两条不同论证。真正值得固化的是「不可变版本化 + 同版本结果恒定」——`ADR-0002` 的载荷边界也覆盖不到它，而「临时改个比例」这类运营需求会反复来撬它。
+- **flags 传播窗口 T 重定义为跨实例窗口，头永不领先于本实例可兑现的规则集** → `ADR-0047`。

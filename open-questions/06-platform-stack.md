@@ -1,18 +1,26 @@
-# ⑥ 技术栈 · 托管 · 运维（栈已落定 · 余下为外部依赖与成本）
+# ⑥ 技术栈 · 托管 · 运维（栈与运维形态已落定 · 余一条待实测的成本模型）
 
 > 后端尚未开工（`backend-feature-branch/` 只有 README），但**技术栈与托管形态已落定**：C# / ASP.NET Core · 腾讯云托管容器 · 云数据库 PostgreSQL（单主）· 云 Redis · 云 KMS · CDN；两套云上环境 + 本地 docker-compose。
 >
 > **八条已于 2026-09-03 答结** → `systems/_index.md`（共用的存储与并发形态 · 明确不引入）· `systems/account.md`（会话表与并发语义 · `tokenId` 与 `sid` 的分工 · refresh token 的派生形态 · access token 签发）· `systems/profile-store.md`（`revision` CAS · 两类幂等记录 · 读己所写的落地）· `operations/environments.md`（区域与合规 · 拓扑与副本 · 两把密钥的保管与轮换）· `operations/deployment.md`（环境分层与发布线 · 迁移三步 · 网关纪律）· `operations/observability.md`（可观测性口径与四条探针）· `operations/version-matrix.md`。移出记录见 `answer-logs/log-backend-stack-and-hosting.md`。
 >
-> 余下各条的共同点是**它们不取决于栈**：外部服务商、监管口径的数据源、以及需要真实流量才能定的数值。
-
-- **可信服务端时钟（08-16c 采集）。** 未成年时段判定的时间源**不得**依赖设备时钟——`contracts/envelope.md` §4b 已定 `X-Server-Time` 仅供诊断，改一次系统时间即可绕过时段限制。时钟源的形态（NTP 层级、跨区域一致性、时区与法定节假日表的数据源）待定。→ `contracts/compliance.md` §6，落 `operations/`。
-
-- **合规域的存储与产物（08-16c 采集）。** 三项：`complianceTicket` 的存储与一次性消费保证（含兑付的 60 秒回放窗口）· 注销冷静期这条**跨天长时状态机**的调度形态（到期生效、撤销、幂等重入）· **数据导出产物的存储与下载链接签发**（产物含个人信息，保留期初值 7 天，链接不得可枚举）。→ `contracts/compliance.md` §2 §3 §9；承接对象已登记进 `operations/moderation.md` 末节，`operations/environments.md`「容量形状」亦已为冷静期的可靠调度预留出口。
-  **从属项（2026-09-05 从主题文档并入）：合规域三个旋钮的初值待实测校准** —— 实名提交次数上限 · 导出申请限流 · `pollAfterSeconds`。与 `contracts/compliance.md` §9 既有四个旋钮同档，**不阻塞契约成文**，与下方两条数值同属「需真实体量 / 流量才能定」。→ `contracts/compliance.md` 的 `## Open questions`。
-
-- **`receiptId` 幂等记录的冷存归档与对账阈值（部分答结）。** 存储选型（关系库 `receipt_idem`，`receipt_id` 全局唯一主键）· 与序号 / `cloudRevision` 的写入同一次事务 · 下单时预落未决态记录 · 永久保留不设 TTL 的落地形态**已定**（→ `systems/profile-store.md`；分区、索引、TTL 禁用断言与选型判据见 `operations/purchase-ops.md`）。**仍待落定**：体量增长后的**冷存归档形态**，以及对账信号「`bundleGrantOrdinal > bundleRedeemedOrdinal` 持续 N 天」的阈值——**只作人工 / 工单入口，不驱动任何自动写入**。两者都需要真实体量才能定。
-
-- **短信 / 邮件 / 实名核验的服务商选型与灾备（08-16b 采集）。** 身份模型已定「C 层原子能力一律外接、每类能力在后端内部有一个稳定接口使服务商可换」（`contracts/auth.md`）；具体服务商、多供应商灾备策略与切换形态归本分片。**服务商错误码不上契约面**——一律先归一到本库已有的 `code`（`rate.limited` / `auth.credential_invalid` / `auth.challenge_expired` / `server.unavailable`）。另有三项同归此处：**昵称改名频次阈值**与**第三方昵称审核服务商 / 评分阈值**（判定链已留出适配器位，见 `operations/moderation.md`）· **微信开放平台资质申请**——首版以 `unionid` 建 identity 是不可逆决定，**必须在首个玩家建号之前完成**，已列入 `operations/deployment.md` 的发布前置清单。
+> **四条已于 2026-09-06 答结** → `operations/compliance-ops.md`（可信服务端时钟 · 合规域的存储与产物）· `operations/purchase-ops.md` §3d §4（`receiptId` 幂等记录的冷存归档与对账阈值形态）· `operations/external-providers.md`（外接原子能力的选型判据、灾备与切换、凭据托管、微信资质时序）。移出记录见 `../answer-logs/log-trusted-server-clock.md` · `log-compliance-domain-storage.md` · `log-receipt-idem-cold-archive.md` · `log-external-provider-selection-dr.md`。
+>
+> 余下**一条**待答，它不取决于栈：需要真实体量 / 流量才能定的数值。昵称审核两阈值随「合规能力的上线分级」于 2026-09-07 答结（首版不启用 ⇒ 不定值），已转为下方的条件化核对项。
 
 - **成本模型。** 强制在线意味着每次事件推进都有一次上行；QPS 预估与单账号成本未估算。它是一批数值的共同前置：实例规格 · 灾备副本数与备份保留期（`operations/environments.md` 只写了能力要求）· CDN 成本模型 · **剧本首包与增量下载量的可接受上界**（2026-09-05 从 `04-content-delivery.md` 并入——分包边界本身已由客户端 `ADR-0029` 答定为「不分包」，余下的只是量级与成本，本库不再持有形态问题）。
+  **收据归档的三条触发阈值与对账阈值 N 的定值同属此列**——形态、旋钮位置与校准公式已定（`operations/purchase-ops.md` §3d §4），只差上线后的实测数据。
+  **本次新增两个输入**（仍不足以定成本模型，缺 DAU）：短信双供的接入成本与按条计费口径 · 实名核验的按次计费口径（`operations/external-providers.md`）。
+
+## 条件化核对项（不是待办）
+
+承接 `operations/moderation.md` 的适配器阈值一节。**第三方昵称审核首版不启用**（唯一启用触发条件：渠道过审点名要求接入第三方内容审核能力），故 `rejectThreshold` / `reviewThreshold` **首版不定值**；下列两点**条件化于「该能力被触发启用」这一假设**，在触发之前不构成任何待办：
+
+1. 两阈值的取值——形态已定（两阈值 · 服务商 × 环境维度 · 以真实人工判定样本标定，取使漏放最小、误拒可接受的一对），启用之日标定并登记进 `operations/moderation.md` 的数值初值表；
+2. 该能力的服务商选型（过 H1–H4）与其凭据的独立审计线——形态已由 `operations/external-providers.md` 定死，触发时按同一套判据执行。
+
+两点的完整陈述在 `operations/moderation.md` 与 `operations/external-providers.md`，本处只承接指路、不复述判据。
+
+## 已答结、移出本片的（不在此跟踪）
+
+- **外接原子能力的适配接口与归一映射 · 逐能力供应商数与灾备切换 · 选型判据与凭据托管** → `operations/external-providers.md`；**昵称改名频次上限** 3 次 / 30 天滚动 → `contracts/auth.md` §8；**微信开放平台资质**的前置链、过闸断言与延误处置（推迟上线）→ `operations/external-providers.md` · `operations/deployment.md` 第一份前置清单第 4 项。移出记录见 `../answer-logs/log-external-provider-selection-dr.md`。

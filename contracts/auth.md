@@ -2,7 +2,7 @@
 
 > 覆盖 `/v1/auth/…` 七个端点的报文本体。**边界层不在此重复**：序列化与命名约定、`/v1/` 主版本、传输信封、错误体形状、错误码台账、版本协商——全部见 `envelope.md`，本文件只写 auth 域**相对它的差异与例外**。
 > 客户端侧门面见 `game-design-documents/systems/services/account-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-13-auth-endpoint-contract.md` · `handoffs/2026-08-16b-account-identity-model.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` · `handoffs/2026-08-23-refresh-lifetime-cap.md` · `handoffs/2026-09-03-nickname-moderation-and-risk-control.md`（§8 的判定链与两条承重口径）· `handoffs/2026-09-03-backend-stack-and-hosting.md`（§8 的限流实现分层与旋钮落点 · refresh 不限流的网关守则 · token 签名密钥与会话存储形态——**契约语义未因此改动**）。
+> Source: `handoffs/2026-08-13-auth-endpoint-contract.md` · `handoffs/2026-08-16b-account-identity-model.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md` · `handoffs/2026-08-23-refresh-lifetime-cap.md` · `handoffs/2026-09-03-nickname-moderation-and-risk-control.md`（§8 的判定链与两条承重口径）· `handoffs/2026-09-03-backend-stack-and-hosting.md`（§8 的限流实现分层与旋钮落点 · refresh 不限流的网关守则 · token 签名密钥与会话存储形态——**契约语义未因此改动**）· `handoffs/2026-09-07-refresh-expiry-reasonkey.md`（§4 · §8 · §10 的 `SessionExpired` 收编三种情形）。
 
 ## 1. 端点集：七个
 
@@ -132,10 +132,14 @@ refresh 请求到达
   │                               → auth.session_revoked { revokedAtUtc, reasonKey: "SessionExpired" }
   ├─ 该 refresh token 已被轮换且在 60 秒宽限窗口内 → 回放上次那一对，不再轮换
   ├─ 该 refresh token 已被轮换且在窗口外 → 判泄漏 → 吊销全部会话（TokenReuseDetected）
-  ├─ now ≥ refreshExpiresAtUtc（滑动截止）→ auth.session_revoked（reasonKey 沿用既有口径）
+  ├─ now ≥ refreshExpiresAtUtc（滑动截止）→ 吊销会话（revokedReason = SessionExpired）
+  │                               → auth.session_revoked { revokedAtUtc, reasonKey: "SessionExpired" }
   └─ 正常 → rotation：签发新对；refreshExpiresAtUtc 顺延；absoluteExpiresAtUtc 不动
        若 absoluteExpiresAtUtc - now ≤ 软信号提前量 → 应答带 reauthRecommended: true（§5 · §8）
 ```
+
+**两个截止到期共用 `SessionExpired`**（取值表见 §10）。滑动截止到期时**同样落 `revokedAtUtc` / `revokedReason`**——与绝对到期分支同形，`detail` 因此恒定可填。
+**`tokenId` 无从识别时**（伪造，或会话记录已被清理）无会话行可读，`revokedAtUtc` 取**本次判定时刻**；取值同为 `SessionExpired`（§10）。
 
 **先判到期、再判宽限回放**，顺序不可颠倒——反过来会让一条已到期的链靠重放多活 60 秒，而那 60 秒没有任何玩家价值。
 
@@ -313,7 +317,9 @@ refresh 请求到达
 | `expiresAtUtc` | string | 验证码有效期截止 |
 | `resendAfterSeconds` | number | 距离可再次请求的秒数（客户端据此禁用「重发」按钮） |
 
-错误：`rate.limited`（`Retry-After` + `detail.retryAfterSeconds`）· `auth.credential_invalid`（标识符格式非法）。
+错误：`rate.limited`（`Retry-After` + `detail.retryAfterSeconds`）· `auth.credential_invalid`（标识符格式非法）· `server.unavailable`（下发通道不可达 / 超时）。
+
+**下发通道的失败必须按「明确拒绝 vs 不可达」两分**，与 §3a 对第三方渠道的处理逐字同构：号码本身被拒 → `auth.credential_invalid`（`Fatal`）；通道限流 / 额度耗尽 → `rate.limited`（`Retryable`，带 `Retry-After`）；超时 / 不可达 → `server.unavailable`（`Retryable`）。合并成一条会让一次通道抖动被客户端当成终态。归一映射的形态归 `operations/`，本契约只声明这三类在报文层面可区分。
 
 ### `POST /v1/auth/signin`
 
@@ -346,7 +352,7 @@ QQ      → { "authCode": "<同上>" }
 | `isNewAccount` | boolean | 可选 | 缺省即 `false`（`envelope.md` §2「不下发 `null`」）；**仅驱动首玩引导与日志，不是玩法判断的输入** |
 | `reauthRecommended` | boolean | 可选 | 缺省即 `false`（同上）。服务端算好的软着陆信号（§5b），**绝不是时间戳**；客户端收到即为真、未收到即为假，不做任何本地时钟比较 |
 
-错误：`auth.credential_invalid` · `auth.challenge_expired` · `auth.channel_rejected` · `client.version_unsupported`（§5）· `rate.limited`
+错误：`auth.credential_invalid` · `auth.challenge_expired` · `auth.channel_rejected` · `client.version_unsupported`（§5）· `rate.limited` · `server.unavailable`（渠道服务不可达 / 超时 / 限流，§3a 第二类映射）
 · 四条合规拦截（§5a，语义见 `compliance.md`）：`compliance.realname_required` · `compliance.playtime_blocked` · `compliance.account_restricted` · `compliance.account_deleting`。
 
 ### `POST /v1/auth/refresh`
@@ -355,7 +361,7 @@ QQ      → { "authCode": "<同上>" }
 应答：与 `signin` 应答**同形**（含轮换后的新 `refreshToken`），`isNewAccount` 恒不下发；`reauthRecommended` 照 `signin` 的规则填。
 **宽限窗口内的重放**（同一个旧 `refreshToken` 在轮换后 60 秒内再次到达）→ 回**与上次完全相同**的那一对 token，不再轮换、不判泄漏（§4）。**但先判绝对到期**：落在 `absoluteExpiresAtUtc` 之后的回放按到期处理（§4 求值顺序）。
 
-错误：**只有两条**——`auth.session_revoked`（refresh token 已失效 / 被吊销 / 超出宽限窗口的重放 / **链达到绝对寿命上限**，四者靠 `reasonKey` 分辨）· `server.unavailable`。**绝对寿命上限不新增第三条错误码**——客户端「刷新失败按有无明确应答分两条路径」的判据靠报文层面只有两种可能才无歧义（§10、ADR-0004 后果段），而复用 `session_revoked` + `reasonKey` 拿到完全相同的表达力。
+错误：**只有两条**——`auth.session_revoked`（refresh token 已失效 / 被吊销 / 超出宽限窗口的重放 / 两个截止任一到期，**各情形靠 `reasonKey` 分辨，取值与触发见 §10**）· `server.unavailable`。**绝对寿命上限不新增第三条错误码**——客户端「刷新失败按有无明确应答分两条路径」的判据靠报文层面只有两种可能才无歧义（§10、ADR-0004 后果段），而复用 `session_revoked` + `reasonKey` 拿到完全相同的表达力。
 **永不返回 `client.version_unsupported`**（§5）；**永不返回 `auth.token_expired`**（那会让客户端递归刷新）。
 **本端点刻意不给 `rate.limited`**：滥用面靠记账 + 告警承接，**网关侧也不得静默加一条限流**（实现与网关两侧的守则、逐次上线核对项见 `operations/deployment.md` G-1）。日后若认定必须限流，须回改本节**并同时给客户端第三条处置路径**。
 
@@ -398,6 +404,7 @@ QQ      → { "authCode": "<同上>" }
 **两条承重口径：**
 
 - **频次计数只对「被接受的一次改名」`+1`。** 拒绝不计数——若拒绝也计数，玩家试错三次就把自己锁死在 `TooFrequent` 上，而他一次都没有改成。这与「重复提交同一昵称回 `204`」（§7）配套：**重放不消耗配额**。
+- **`nicknameChangeRequired` 为真时豁免频次级的拦截，不豁免计数。** 该标记的解除路径就是走一次改名流程（`operations/moderation.md` 处置阶梯）；若该玩家刚好用尽配额，他会撞上 `TooFrequent` 而无法解除自己的处置状态——处置阶梯与频次闸互相锁死且无自解通道。频次闸防的是刷子，而处于该档的玩家是被我方要求改名的。该次改名照常计数，使解除后立刻再刷仍会被挡住。其余四级照走。
 - **词表判定的输入是归一化串，`Malformed` 判定用原串。** 匹配前对提交串做 NFKC 规范化、剥离零宽 / 控制 / 变体选择符、大小写折叠、繁简折叠；而长度与字符集判定必须在原串上做，否则玩家看到的字数与服务端判定的字数不一致。不做归一化即等于把词表变成摆设——插一个零宽空格就绕过。
 
 ### 数值初值（可调旋钮，非硬编码）
@@ -413,9 +420,10 @@ QQ      → { "authCode": "<同上>" }
 | 单账号活跃会话上限 | **1** | 客户端全部既定语义都建立在「同时只有一个活跃写入方」之上（§4a） |
 | 验证码有效期 | **5 分钟** | 通行值 |
 | 验证码重发间隔 | **60 秒** | 通行值；短信是**有成本且被刷**的通道 |
-| 单标识符验证码日上限 | **10 次** | 初值，待实测校准 |
+| 单标识符验证码日上限 | **10 次** | 初值，待实测校准。**只计成功受理的一次下发**——与「频次只计被接受的一次改名」同源：把失败也计进去，一次下发通道故障就能把玩家锁死在自己的日配额上，而他一条短信都没收到 |
+| 昵称改名频次上限 | **3 次 / 30 天滚动窗口** | 昵称在本作**没有任何玩家间可见性**（§8 已论证），改名是低频动作；3 次覆盖「首次设定 + 两次反悔」这一完整的正常用法。窗口取 30 天，与 `pushId` 保留时长 / refresh 滑动 TTL / 存量扫描兜底周期同量级，使几处窗口不互相穿帮。**滚动窗口而非自然月**：自然月边界会让月末改两次、月初再改三次成为一条免费的刷子路径 |
 
-**这些是待实测校准的初值，落点是后端配置而非代码常量。** 具体限流的实现分层与旋钮落点见 `operations/environments.md`（「旋钮清单」与「限流的实现分层」）；契约层只声明语义，不指定实现。**昵称改名频次阈值是本表唯一尚未定值的一项**，归 `open-questions/06-platform-stack.md`。
+**这些是待实测校准的初值，落点是后端配置而非代码常量。** 具体限流的实现分层与旋钮落点见 `operations/environments.md`（「旋钮清单」与「限流的实现分层」）；契约层只声明语义，不指定实现。
 
 ## 9. auth 域新增的五个错误码
 
@@ -466,13 +474,16 @@ QQ      → { "authCode": "<同上>" }
 | `PlaytimeEnded` | 未成年人时段到点强制下线 | `compliance.md` §7 |
 | `CredentialChanged` | `bind` / `unbind` 改变了账号的登录方式，既有会话失效 | §7 |
 | `TokenReuseDetected` | refresh token 在宽限窗口外重放，判定泄漏，吊销全部会话 | §4 |
-| `SessionExpired` | refresh token 链达到绝对寿命上限 | §5b |
+| `SessionExpired` | refresh 凭据不再有效，且不属于本表其余任一取值——三种情形共用本取值：① 滑动截止 `refreshExpiresAtUtc` 到期（闲置超过滑动 TTL）；② 绝对截止 `absoluteExpiresAtUtc` 到期（链达到绝对寿命上限）；③ `tokenId` 无从识别（伪造，或会话记录已被清理） | §4 · §5b |
 
 **`SessionSuperseded` 不能省。** 「同设备重登 → 旧 refresh token 随后到达」是一个已知且常态的情形；不给它取值，等于让它长期占用「未知 → 兜底文案」那条路，而那条兜底是为**日后新增**取值准备的。
 
 **`TokenReuseDetected` 与 `CredentialChanged` 填的是既有漏洞。** §4（rotation 判泄漏 → 吊销全账号会话）与 §7（`bind`/`unbind` 改变登录方式）都会产生 `auth.session_revoked`，而此前只举了「另一设备登录 / 运营吊销」两例——落到实现，玩家会在自己刚绑定一个渠道之后看到「你的账号已在另一台设备登录」。
 
 **`SessionExpired` 与其余取值在情绪上必须可区分。** 它是一次**完全正常的例行事件**：玩家没有做错任何事，也没有第二台设备在动他的账号。取值命名取事件的完成态（与既有取值同形），且它面向的是**玩家措辞的分辨**而非机制的自述——「过期」是玩家能理解的词。对应的客户端文案取最平淡的例行口吻，权威见 `game-design-documents/ux/error-and-blocking-ux.md`。
+
+**三种情形共用一个取值是刻意的，判据是本节自己的那一条：`reasonKey` 分辨的是玩家措辞，不是机制。** 三者对玩家是同一句话——完全正常的例行事件，玩家没做错任何事，也没有第二台设备在动他的账号。给它们各立一个取值，会在客户端产出两三条**逐字相同**的二级文案条目（客户端不持有 `reasonKey` 清单、正向审计只查一级键 ⇒ 措辞调整时不同步是一次静默失准）；要让它们真的有分辨价值，二级文案就得说出「因为你太久没登录 / 因为这条链够老了」，而那正是客户端侧已否决的写法（把后端可调旋钮写进翻译条目）。
+**服务端侧的分辨不依赖它**：会话行同时持有 `refresh_expires_at_utc` 与 `absolute_expires_at_utc`，哪一个先到期在行内可判。日后若确需在观测面分辨，加一个**不跨边界**的内部字段，不占契约面的取值（与 `sid` / `channelUserId` / `idKind` 同一条纪律）。
 
 ### `auth.nickname_rejected.detail.reasonKey`
 
@@ -528,6 +539,10 @@ QQ      → { "authCode": "<同上>" }
 - **下发 `reauthAfterUtc` 一类时间戳让客户端自己判断该重登了** — 客户端既定纪律禁止任何本地时钟比较（设备时钟不可信），该字段落地即成为一个「存下来等着被人读」的陷阱。
 - **缩短 refresh 滑动 TTL（30 天 → 7 天）以收口闸门** — 惩罚的是**闲置**玩家（他们回来本就走 `signin`、本就过闸门），对连续活跃的目标人群一点约束都没有：链条照样无限顺延。它治的是另一个病。
 - **接受缺口、不收口** — 零成本，但代价是强更闸门对长期在线的老版本客户端**永久且静默地**失效，而闸门是协议破坏性变更的唯一兜底（§5b）。
+- **给滑动截止到期单立一个取值**（如 `SessionIdleExpired`）以在报文层区分闲置流失与活跃链到期 — 它与绝对到期对玩家是一字不差的同一句话，分列会在客户端产出两条逐字相同的二级文案条目（一份必然漂移、且客户端的文案审计只查一级键、无从发现不同步的副本）；要让它真有分辨价值就得把后端可调旋钮写进翻译条目，而那是客户端侧明确否决的写法。观测需求由不跨边界的内部字段满足（§10）。
+- **给「`tokenId` 无从识别」单立第三个取值**（如 `CredentialUnknown`）— 玩家措辞与到期一字不差（同上），且向未知来源确认「这个 `tokenId` 我不认识」是无谓的信息自述面。
+- **让滑动到期落进「未知 `reasonKey` → 一级键」的兜底** — §10 已就 `SessionSuperseded` 逐字否决过同一做法：那条兜底是为**日后新增**取值准备的，不该让一条常态路径长期占用它。
+- **把 `revokedAtUtc` 改为可选，以适配「无会话记录」的情形** — 要动 `envelope.md` §6 台账里的 `detail` 形状（P-1 护栏所在的表），而「取本次判定时刻」零成本且语义成立（§4）。
 - **触发源只写在 `message` 里** — `envelope.md` §5a 禁止客户端解析 `message`，等于让这个信息对代码不可见（§10）。
 - **`AccountSeed` 随 signin 应答下发 / 立 `/v1/auth/me`** — 与 `AccountInfo` 随 profile pull 下行制造两份真值（§1、§11）。
 - **把 `signin` 的多设备裁决结果告知登录方**（如「已挤下线 1 台设备」）— 无客户端消费面；另一台设备会通过它自己的下一次请求得到 `auth.session_revoked`，这是既定路径。

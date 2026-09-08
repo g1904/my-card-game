@@ -4,7 +4,7 @@
 > **边界层不在此重复**：序列化与命名约定、`/v1/` 主版本、传输信封、错误体形状、版本协商——全部见 `envelope.md`。
 > 拦截发生在 `signin`，故 `auth.md` §5 与本文件互为对位：**那里定「什么时候拦」，这里定「拦住之后玩家怎么走出去」**。
 > 客户端侧门面见 `game-design-documents/systems/services/account-service.md`。
-> Source: `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（端点集 · ticket 机制 · 拦截落点 · 四条拦截码 · 时段与导出的承重纪律）、`handoffs/2026-09-03-compliance-endpoint-payloads.md`（§2 撤销端点方法 · §3 回放窗口 · 六端点报文字段表 · 端点自身的错误码 · §8 白名单 · §9 五个旋钮）、`handoffs/2026-09-03-nickname-moderation-and-risk-control.md`（`nicknameChangeRequired` 的语义来源 · §5 取值表首版不扩）。
+> Source: `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（端点集 · ticket 机制 · 拦截落点 · 四条拦截码 · 时段与导出的承重纪律）、`handoffs/2026-09-03-compliance-endpoint-payloads.md`（§2 撤销端点方法 · §3 回放窗口 · 六端点报文字段表 · 端点自身的错误码 · §8 白名单 · §9 五个旋钮）、`handoffs/2026-09-03-nickname-moderation-and-risk-control.md`（`nicknameChangeRequired` 的语义来源 · §5 取值表首版不扩）、`handoffs/2026-09-07-compliance-launch-tiering.md`（§1 首版范围）。
 
 ## 1. 为什么独立成文
 
@@ -18,6 +18,8 @@
 把两套相反的纪律塞进 `auth.md`，读者无法判断哪条管哪个端点——这与拒绝把 `purchase` 并入 `profile-sync` 是同一条理由。
 
 **实名 / 时段不需要端点，注销 / 导出需要。** 前两者是**拦截**，走错误码即可；后两者是**玩家主动发起的操作**。它们不能省：PIPL 明确要求删除权与可携带权，国内应用商店审核亦查「App 内可注销」。
+
+**四项能力（实名核验 · 防沉迷时段 · 账号注销 · 数据导出）全部在首版范围内**，本文件六个端点因此**首版全部实装**，不存在「首版只做其中几项」这个变体。过闸时点与断言见 `operations/deployment.md` 的两份发布前置清单，分档判据见 `operations/compliance-ops.md`。第三方昵称审核适配器（判定链第④级）**留位不启用**，触发条件见 `operations/moderation.md`——它不属于本文件的端点面。
 
 ## 2. 端点集：六个
 
@@ -86,13 +88,30 @@ GET    /v1/compliance/export/{taskId}   查导出任务状态与下载链接  �
 
 **`compliance.account_restricted` 的取值表首版不扩。** 风控三档处置对玩家没有可执行差异（掷骰复算异常与昵称违规的出路同为站外申诉），而告知判据的具体维度等于把判据外泄、反向指导规避；昵称违规的处置也不落 `restricted`，它走 §10 的 `nicknameChangeRequired` 标记（`operations/moderation.md` 的存量扫描与复核通道）。日后确需区分时扩表是纯增量——新增 `reasonKey` 不要求客户端同批发版（`envelope.md` §5b）。
 
+### 四条码同时成立时的求值顺序（承重）
+
+一次 `signin` 上可能同时成立多条拦截——典型是一个被风控限制的账号又申请了注销。**求值顺序写死，逐级短路：**
+
+```
+① compliance.account_deleting
+② compliance.account_restricted
+③ compliance.realname_required
+④ compliance.playtime_blocked
+```
+
+**判据：不可逆且有时限的在前，可持续且可撤销的在后；每天都会重新成立的时段判定放最后。** 冷静期是 15 天后**不可逆**地删号，而撤销所需的 ticket **只随 `account_deleting` 下发**（§3）；这类账号的会话已被吊销、调不动需鉴权的撤销端点，若先收到 `account_restricted` 就再也拿不到 ticket——那是一条会真实删掉玩家账号且无出路的死路。
+
+**风控强度一秒都没有松动**：撤销端点兑付成功后不签发 token（§3），玩家撤销后重登仍被 `account_restricted` 拦住。顺序只决定「先告诉玩家哪一件事」，不决定谁能进游戏。
+
+顺序**必须由契约定死而非留给实现**：同一输入的应答若不确定，验收断言无从写，且上述死路会以随机概率发生。
+
 ## 6. 时段口径不写进契约（承重）
 
 **契约只给 `reasonKey` 与 `resumeAtUtc`，具体时段表落后端配置**（归 `operations/`）。监管口径变动时不必改契约、不必发版，与 pillar #5「线上可干预」一致。
 
 现行国内口径（未成年人仅周五 / 六 / 日与法定节假日 20:00–21:00 可玩）可作**说明性注释**写入 `operations/`，但**不具规范性**——写进契约即成为第二权威，而它恰恰是最容易被监管变动推翻的那一条。
 
-**时段判定的时间源必须是可信的服务端时钟。** `envelope.md` §4b 已定 `X-Server-Time` 仅供诊断、设备时钟不可信；时段判定若读设备时钟，改一次系统时间即绕过。时钟源的实现形态归 `06`。
+**时段判定的时间源必须是可信的服务端时钟。** `envelope.md` §4b 已定 `X-Server-Time` 仅供诊断、设备时钟不可信；时段判定若读设备时钟，改一次系统时间即绕过。时钟基准、时区口径、时段规则集与法定节假日日历的形态，以及时钟 / 规则不可用时的降级语义，见 `operations/compliance-ops.md`。
 
 ## 7. 防沉迷中途到点：复用 `auth.session_revoked`
 
@@ -126,7 +145,7 @@ GET    /v1/compliance/export/{taskId}   查导出任务状态与下载链接  �
 
 由白名单直接得出：产物**不含**渠道内部键（`channelUserId` / `idKind`）· `sid` · `deviceId` · 任何会话 / token 材料 · 姓名 / 证件号 / 出生日期。前者承 `auth.md` §1a「服务端内部键不跨边界」；后者的理由独立且同样承重——**实名材料是核验的输入，不是玩家的游戏进度**，把它放进导出物等于把最敏感的那一项重新交出去一次。
 
-导出产物含个人信息，链接有效期见 §9。产物的存储形态与链接签发方式归 `06`。
+导出产物含个人信息，保留期见 §9。产物的存储形态与链接签发方式见 `operations/compliance-ops.md`。
 
 ## 9. 数值初值（可调旋钮，非硬编码）
 
@@ -142,7 +161,7 @@ GET    /v1/compliance/export/{taskId}   查导出任务状态与下载链接  �
 | 导出任务**记录**保留期 | **30 天** | 产物本身 7 天。记录多留使 `Expired` 与 `resource.not_found` 可区分（§10），成本是一行元数据 |
 | 导出任务建议轮询间隔 | **5 秒** | `pollAfterSeconds` 的初值；生成一份 JSON 的量级。待实测校准 |
 
-**落点是后端配置而非代码常量**，与 `auth.md` §8 的旋钮同处。
+**落点是后端配置而非代码常量**，与 `auth.md` §8 的旋钮同处。各旋钮的**校准信号**（线上哪个指标动了就该改这个值）见 `operations/compliance-ops.md`。
 
 ## 10. 六端点的报文字段表
 
@@ -263,11 +282,11 @@ GET    /v1/compliance/export/{taskId}   查导出任务状态与下载链接  �
 | `status` | string | ✅ | 导出任务状态机四值，见下 |
 | `requestedAtUtc` | string | ✅ | 申请时刻 |
 | `pollAfterSeconds` | number | 可选 | 仅 `Pending` 时下发 |
-| `downloadUrl` | string | 可选 | 仅 `Ready` 时下发。绝对 HTTPS URL，签名在 URL 内、无鉴权可直下，客户端用系统浏览器 / 下载器打开，那条请求不带 `Authorization` |
-| `downloadExpiresAtUtc` | string | 可选 | 仅 `Ready` 时下发。产物保留期 7 天（§9） |
+| `downloadUrl` | string | 可选 | 仅 `Ready` 时下发。绝对 HTTPS URL，签名在 URL 内、无鉴权可直下，客户端用系统浏览器 / 下载器打开，那条请求不带 `Authorization`。**它是一枚短寿命签名链接、每次查询现签**，因此两次查询拿到的值不同——契约不要求它稳定 |
+| `downloadExpiresAtUtc` | string | 可选 | 仅 `Ready` 时下发。它是**产物保留期**的终点（7 天，§9），**不是这条链接的寿命**——链接寿命短得多，玩家在保留期内任意时刻重新查一次即得新链接。照字面把它当链接有效期实现，等于签出一枚 7 天有效、无鉴权、可直下含个人信息文件的凭据 |
 | `sizeBytes` | number | 可选 | 仅 `Ready` 时下发。移动网络下下载前告知体积；产物是单份 JSON，永不接近 2⁵³ ⇒ 走 number 而非字符串（`envelope.md` §2 判据） |
 
-**`downloadUrl` 指向的是外部对象，不是本 API 的端点，因此不进 spec 的 `paths`。** 这一句必须写下：`_index.md` 的机检断言③校验「markdown 中出现的每个 `METHOD 路径` ⇔ spec 的 `paths` 键」，不写明会被误判成漏项。链接签发与产物存储归 `06`（§8）。
+**`downloadUrl` 指向的是外部对象，不是本 API 的端点，因此不进 spec 的 `paths`。** 这一句必须写下：`_index.md` 的机检断言③校验「markdown 中出现的每个 `METHOD 路径` ⇔ spec 的 `paths` 键」，不写明会被误判成漏项。链接签发与产物存储见 `operations/compliance-ops.md`（§8）。
 
 **状态一律走应答体的 `status` 字段，不靠 HTTP 状态码表达**：导出申请回 `200` 而非 `202`，因为客户端不得靠状态码分支（`envelope.md` §5b）。
 
@@ -357,8 +376,9 @@ GET    /v1/compliance/export/{taskId}   查导出任务状态与下载链接  �
 
 ## Open questions
 
-- **可信服务端时钟的形态**、**实名核验服务商与灾备**、**导出产物的存储与链接签发**、**`complianceTicket` 的存储与一次性消费保证**、**冷静期这条跨天长时状态机的调度形态**——均归 `06`，落 `operations/`。契约层只声明语义。
-- **旋钮初值待实测校准**：实名提交次数上限 · 导出申请限流 · `pollAfterSeconds`。与 §9 既有四个旋钮同档，不阻塞契约成文。
+- **无。** 实名核验的服务商形态与灾备已定（`operations/external-providers.md`：单供 · 禁双验 · 硬超时 5 秒 · 归一映射），余下「选哪一家」是商业决定，不改变本文件的任何语义——服务商错误码不上契约面，一律先归一到已有的 `code`。
+
+> 时钟形态、`complianceTicket` 的存储与一次性消费、冷静期的调度、导出产物的存储与链接签发、以及各旋钮的校准信号，全部落在 `operations/compliance-ops.md`；契约层只声明语义。
 
 ## 跨库待办（客户端侧，本库不代为决定）
 

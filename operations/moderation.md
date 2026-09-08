@@ -1,7 +1,7 @@
 # 昵称审核 · 存量扫描 · 风控的运维形态
 
 > 语义权威在 `contracts/auth.md` §8 §10 与 `contracts/profile-sync.md` §5c §7a；本文件只记运维形态须满足的性质，不指定实现。判定链的服务内部形态见 `systems/account.md`。
-> Source: `handoffs/2026-09-03-nickname-moderation-and-risk-control.md`。
+> Source: `handoffs/2026-09-03-nickname-moderation-and-risk-control.md` · `handoffs/2026-09-07-compliance-launch-tiering.md`（第三方审核适配器的启用触发条件）。
 
 ## 昵称词表的不可变版本化发布
 
@@ -17,7 +17,14 @@
 
   两档而非三档：**「放行」不是一档，是补集**——同「白名单的补集即不透明段」的措辞纪律，避免第三份清单漂移。
 - **来源三条通道**：① 监管 / 行业公开基础表导入为初始基线；② 人工复核队列的判定结果回灌；③ 渠道过审反馈与工单。三条**都收敛到同一次发布动作，不存在旁路写入**。
-- **第三方审核适配器首版不启用、只留位**（实现为透传恒放行）；C 层原子能力一律外接以适配器隔离，服务商与评分阈值归 `06`。是否启用取决于「合规能力的上线分级」。
+- **第三方审核适配器首版不启用、只留位**（实现为透传恒放行）；C 层原子能力一律外接以适配器隔离，适配接口、归一档位与灾备形态见 `operations/external-providers.md`。
+  **触发启用的唯一条件：渠道过审点名要求接入第三方内容审核能力。** 触发时以真实人工判定样本标定下方两阈值，并登记进本文件的数值初值表。
+  留位而不启用的理由：昵称在本作没有任何玩家间可见性（`contracts/auth.md` §8）⇒ 残留风险面只剩合规抽查，而抽查面已由本地词表两档分级 + 存量扫描 + 三档处置阶梯完整承接——**第④级是增强，不是承重**；启用的边际成本则是明确且非零的一份负债（一家服务商过选型判据 · 一份独立审计线的凭据轮换 · 同步路径上的玩家等待预算 · 一条要监控的曲线）。给它写死触发条件而非留一个开放留位，是因为没有触发条件的留位会变成没有人会再想起来的空位。
+
+  **适配器阈值是两个，不是一个**：`rejectThreshold`（判拒绝，落禁止级同一出口）与 `reviewThreshold`（入复核）。单阈值表达不了判定链要求的三档落点（拒绝 / 待复核 / 放行）。
+  - **阈值的维度是「服务商 × 环境」，不是一个全局数。** 不同审核服务的评分刻度互不可比（有的 0–1、有的 0–100、有的分类标签 + 置信度），写成一个全局单值，换一家服务商当天判定口径就会静默漂移。
+  - **标定方式**：拿一批人工已判定的昵称跑一遍，取使漏放（判放行实为违规）最小、且误拒可接受的一对阈值。
+  - **能力未启用 ⇒ 不定值。** 启用之日（触发条件见上）以真实样本标定，届时登记进下方数值初值表。首版无人工判定样本可用，上一对未标定的阈值等于让误拒以 `SensitiveWord` 告诉玩家「你的昵称违规」——那正是判定链明令避免的体验（`systems/account.md` N9）。
 
 ## 未过审昵称的存量扫描
 
@@ -43,6 +50,8 @@
 | **须改名** | 禁止级命中；复核判违规 | 不变 | `GET /v1/compliance/status` 的 `nicknameChangeRequired` 为真，登录后走一次改名流程即自解除 |
 | **限制 / 封禁** | 拒不改名；恶意反复；申诉驳回 | `restricted` / `banned` | `compliance.account_restricted` + `UnderReview` / `Banned`，申诉走站外 |
 
+**「须改名」档豁免改名频次闸的拦截，不豁免计数。** 该档的解除路径就是走一次改名流程；若该玩家此前刚好用尽改名配额，他会撞上 `TooFrequent` 而无法解除自己的处置状态——处置阶梯与频次闸互相锁死，且没有任何自解通道。频次闸防的是刷子，而处于本档的玩家是**被我方要求**改名的。该次改名照常计数，使解除后立刻再刷仍会被挡住。判定链上的落点见 `contracts/auth.md` §8 与 `systems/account.md`。
+
 `nicknameChangeRequired` **由云端状态算出**：处置台账处于「须改名」档、且云端 `/accountInfo/nickname` 仍是被判违规的那个值时为真；玩家改名并 push 后由 T1 的比对自动清零。**不在端点判定通过的那一刻清零**——那会让「调用端点但不 push」成为绕过路径；T3 仍兜底。`status` 变更连带吊销全部会话、下行 `OperatorRevoked`，因此 `restricted` / `banned` 的解除**只改回 `status`，永不带外改写昵称**：玩家重登后标记仍为真，自己改名即可。
 
 ## 风控事件流与阈值
@@ -66,7 +75,16 @@
 | `appVersion` · `contentVersion` | string | 可选 | 取自请求头；**熔断判据的分组维度** |
 | `context` | object | 可选 | 按 `kind` 取固定形状（同 `detail` 按 `code` 定形的纪律） |
 
-**`kind` 八值**（清单可增量，未知取值不驱动判定）：`RollMismatch` · `ChanceInconsistent` · `InvariantViolated` · `EchoRejected` · `NicknameBypassed` · `NicknameViolation` · `RevisionAhead` · `RateLimitTripped`。
+**`kind` 取值**（清单可增量，未知取值不驱动判定）：`RollMismatch` · `ChanceInconsistent` · `InvariantViolated` · `EchoRejected` · `NicknameBypassed` · `NicknameViolation` · `RevisionAhead` · `RateLimitTripped` · `DeletionRequested` · `DeletionCancelled`。
+
+**后两值只作审计，不进阈值表、不驱动任何自动处置**，保留期沿用下方的 180 天：
+
+| `kind` | 写入时点 | `severity` | `context` |
+|---|---|---|---|
+| `DeletionRequested` | 注销申请端点**同一次事务内**，与 `account_deletion` 行的插入同批写入 | `Info` | `{ effectiveAtUtc, previousStatus }`，**不含任何个人信息** |
+| `DeletionCancelled` | 撤销端点**同一次事务内**，与「删 `account_deletion` 行 + 恢复 `status`」同批写入 | `Info` | `{ restoredStatus }` |
+
+**为什么必须有这两值（承重）：** 注销冷静期的撤销形态是**撤销即删行**——行一删，「谁在什么时候申请过 / 撤销过」在库内就**只剩事件流这一个落点**。没有它，一次「我明明撤销过」的客诉在服务端零证据可查，而这条路径直接决定账号是否被删除。与事件流同一次事务写入是必需的：拆成两次写会让「行已删、事件未落」成为一个可达状态，而那正是要留证的那一刻。
 
 **四条落地纪律：** 只追加（条目永不改写、永不单条删除，到期整体过期）· 旁路不在热路径裁决 · **不进 profile** · 保留期初值 **180 天**（覆盖两倍于最长累计窗口 90 天；含可关联到个人的行为数据，不宜永久）。
 
@@ -97,7 +115,14 @@
 | `RollMismatch` 全局熔断率 | 1% 账号 / 分组 | 全局熔断 |
 | `EchoRejected` 全局熔断率 | 0.5% 账号 / 分组 | 全局熔断 |
 | `NicknameViolation` 封禁阈值 | ≥3 次 / 180 天 | 阈值表 |
+| 昵称改名频次上限 | 3 次 / 30 天滚动窗口 | `contracts/auth.md` §8（推导与计数口径均在契约侧） |
+| 昵称审核 `rejectThreshold` / `reviewThreshold` | **不定值** —— 能力首版不启用，启用触发条件见昵称词表一节 | 昵称词表一节的适配器阈值 |
 
-## 合规域的运维承接对象（本次只登记，形态仍归 `06`）
+## 与合规域运维面的交叉点
 
-可信服务端时钟 · `complianceTicket` 的存储与一次性消费保证（含 60 秒兑付回放窗口）· 注销冷静期这条跨天长时状态机的调度 · 导出产物的存储与链接签发 · 实名核验服务商与灾备 · 风控事件流 / 复核队列 / 扫描台账的存储形态。语义权威在 `contracts/compliance.md`，本节只记「已有承接对象」。
+合规域的运维形态已展开为 `operations/compliance-ops.md`（可信时钟与同步纪律 · 时区与时段规则集 · 法定节假日日历 · 三个失败面的降级语义 · `complianceTicket` 的存储与一次性消费 · 注销冷静期的跨天长时状态机 · 数据导出的任务 / 产物 / 链接签发 · 周期任务与旋钮的校准信号 · 上线分级）；语义权威在 `contracts/compliance.md`。**本节不复述它**，只记两者的交叉面。
+
+- **交叉面只有一条：注销申请与撤销各在自己的事务内写一条风控事件**（`DeletionRequested` / `DeletionCancelled`，形态见上方 `kind` 取值一节）。撤销即删行 ⇒ 事件流是这两个动作在库内的唯一留痕，因此写入必须与状态变更同事务。
+- **实名核验的服务商、灾备与归一映射**见 `operations/external-providers.md`，不在本文件也不在合规运维面。
+
+**仍待定的一项：风控事件流 / 复核队列 / 扫描台账自身的存储形态**（分区、索引、到期整体过期的执行方式）——归 `open-questions/06-platform-stack.md`。本文件已把它们的**字段与语义**写全，欠的只是落到哪张表、怎么滚动。
