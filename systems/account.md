@@ -39,6 +39,32 @@ export_task       (task_id PK, account_id, state, requested_at_utc, ready_at_utc
                    record_expires_at_utc, attempt_count,
                    UNIQUE (account_id) WHERE state IN ('Pending','Ready'),
                    索引 (state, requested_at_utc))
+
+risk_event     (occurred_at_utc, event_id, account_id, kind, severity,
+                subject, expected, actual, request_id, device_id,
+                app_version, content_version, context jsonb,
+                PARTITION BY RANGE (occurred_at_utc) —— 月分区,
+                PRIMARY KEY (occurred_at_utc, event_id),
+                每分区索引 (account_id, kind, occurred_at_utc),
+                每分区索引 (kind, occurred_at_utc))
+
+deletion_audit (event_id PK, account_id, kind, occurred_at_utc,
+                request_id, context jsonb,
+                索引 (account_id, occurred_at_utc))
+
+nickname_review (review_id PK, account_id, submitted_nickname, wordlist_version,
+                 request_id, enqueue_reason, state, decision,
+                 claimed_by, claim_expires_at_utc, claim_attempts,
+                 enqueued_at_utc, decided_at_utc,
+                 UNIQUE (account_id) WHERE state IN ('Pending','Claimed'),
+                 索引 (state, enqueued_at_utc),
+                 索引 (state, claim_expires_at_utc),
+                 索引 (decided_at_utc) WHERE state = 'Decided')
+
+nickname_scan  (account_id PK, last_accepted_nickname, accepted_at_utc,
+                reviewed_wordlist_version, review_state, last_scanned_at_utc,
+                索引 (reviewed_wordlist_version),
+                索引 (last_scanned_at_utc))
 ```
 
 - `identity` 的两条唯一约束分别兑现「一个渠道身份只属于一个账号」与「一个账号在同一渠道最多一条 identity」（`contracts/auth.md` §1a）。
@@ -48,6 +74,11 @@ export_task       (task_id PK, account_id, state, requested_at_utc, ready_at_utc
 - **`account_deletion.previous_status` 是承重列，不是审计装饰。** `restricted` / `banned` 的账号同样可以申请注销，撤销时若把 `status` 无脑置回 `active`，就成了用「申请注销 + 撤销」洗白风控处置的一条路径。撤销必须恢复到 `previous_status`。这一处漏掉后**线上不可发现**：表现只是「某些被封号的玩家又能进了」，没有任何报错。
 - **`account.status = pendingDeletion` 由「存在 `state='CoolingOff'` 的行」派生**，与 `nicknameChangeRequired` 由云端状态算出是同一手法；契约的 status 四值一字不改。`account.deleted_at_utc` 非空表示墓碑行，**不进 status 枚举**。
 - **`export_task` 的部分唯一索引兑现「同时至多一个在办导出任务」**：两次并发 `POST export` 靠应用层「先查再插」会各建一个任务，落成数据库不变式才可靠；冲突即读出既有行回幂等应答，同 `push_idem` 的处置。
+- **后四张表的写入方都在本域**（昵称判定链、存量扫描、合规域端点），故承重列在此；**分区 / 索引选型 / 裁剪 / 领取语义 / 探针在 `operations/moderation.md`**——与 `receipt_idem`（承重列在 `profile-store.md`、运维形态在 `purchase-ops.md`）同一分工。四张表都是新建，不涉及迁移三步。
+- **`risk_event` 的主键含分区键**是 PostgreSQL 分区表唯一索引的硬要求；`event_id` 因此不是跨分区全局唯一，这不影响它「去重与工单关联的键」的语义——它由服务端生成、去重发生在写入侧，工单关联恒带时间戳。
+- **`deletion_audit` 与 `risk_event` 分表**：`DeletionRequested` / `DeletionCancelled` 服务于举证而非风控判定，保留期 3 年且**注销执行时不删**（条目不含个人信息，与 `account` 墓碑同一性质）。它与 `account_deletion` 的插入 / 删除同事务，是撤销这个动作在库内的唯一留痕。
+- **`nickname_review` 的部分唯一索引兑现「同一账号在办至多一条待复核」**——同一玩家反复改名撞复核级会连开多条条目、让人工重复判定；命中冲突即更新既有在办条目为最新一次提交，不新插行。它的领取走**条件 `UPDATE` 取租约**（不持锁到人工判定结束），理由与形态在运维侧。
+- **`nickname_scan` 独立成表、不给 `account` 加列**：`account` 行是全库唯一的并发单元，一条纯离线批处理去批量更新 `last_scanned_at_utc` 会与 `signin` / `push` / `bind` 争同一把行锁。它一行一账号、不随时间增长，故不分区、无到期过期。
 
 ## 事务边界
 
@@ -62,7 +93,7 @@ export_task       (task_id PK, account_id, state, requested_at_utc, ready_at_utc
 | 实名兑付 `POST /compliance/realname` | ①条件更新 `compliance_ticket` 占位消费（`WHERE consumed_at_utc IS NULL`）并提交 · ②调核验（外部 HTTP，**不在事务内**）· ③第二次事务写核验结果与 `response_snapshot` | 受影响行数分支，无需行锁；②③ 之间崩溃 ⇒ 回 `server.unavailable`（`Retryable`），玩家重走 `signin` 取新 ticket |
 | `POST /compliance/deletion` | `account_deletion` 的 `INSERT … ON CONFLICT (account_id) DO NOTHING`，`previous_status = account.status` | `SELECT … FOR UPDATE` on `account`；插入 0 行即回既有 `deletionEffectiveAtUtc` + `deduplicated`，**绝不顺延** |
 | `POST /compliance/deletion/cancel` | 删除 `state='CoolingOff'` 的 `account_deletion` 行 · 同事务把 `account.status` 恢复为 `previous_status` · 落一条 `DeletionCancelled` 风控事件 | 同上；0 行且无行 ⇒ `204`（幂等）；行为 `Executing` / `Executed` ⇒ `compliance.deletion_irrevocable` |
-| 注销执行（周期任务） | 按数据类别逐表硬删（`identity` · 实名材料 · `profile` · `signin_replay` · `compliance_ticket` · `session` · `export_task` 与其对象 · 风控事件 · `push_idem`）· `account` 行降为墓碑 · `state='Executed'` | `FOR UPDATE SKIP LOCKED` 领取，逐账号各自一次事务；**全有或全无**，中途崩溃即回滚，下一轮重新领取 |
+| 注销执行（周期任务） | 按数据类别逐表硬删（`identity` · 实名材料 · `profile` · `signin_replay` · `compliance_ticket` · `session` · `export_task` 与其对象 · `risk_event` · `nickname_review` · `nickname_scan` · `push_idem`）· `account` 行降为墓碑 · `state='Executed'`；**`deletion_audit` 不在删除清单内**——条目不含个人信息，且它正是这次删除的举证依据 | `FOR UPDATE SKIP LOCKED` 领取，逐账号各自一次事务；**全有或全无**，中途崩溃即回滚，下一轮重新领取 |
 
 `bind` / `unbind` 推进 `revision` 是通则的一例——后端对 profile 的任何写入都推进它（`contracts/profile-sync.md` §5）。profile 侧的写入形态见 `profile-store.md`。
 
@@ -123,7 +154,7 @@ export_task       (task_id PK, account_id, state, requested_at_utc, ready_at_utc
 
 适配接口的形状要求、四个签名与硬超时、多供应商灾备与切换、选型判据与凭据托管见 `operations/external-providers.md`。
 
-Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-07-refresh-expiry-reasonkey.md`（refresh 校验流程两处叶子的 `reasonKey`）。
+Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-07-refresh-expiry-reasonkey.md`（refresh 校验流程两处叶子的 `reasonKey`）· `handoffs/2026-09-08-risk-ledger-storage-shapes.md`（四张台账的承重列 · 注销执行的删除清单）。
 
 ## 昵称判定链与存量扫描的服务内部形态
 

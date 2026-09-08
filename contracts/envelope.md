@@ -1,7 +1,7 @@
 # envelope —— 契约的边界层（表达形式 · 信封 · 错误码 · 版本协商）
 
 > 覆盖**全部端点共有**的那一层：契约用什么表达、报文怎么序列化、信封带什么、错误长什么样、版本怎么协商。
-> 各端点的报文本体在 `auth.md` / `profile-sync.md` / `content-manifest.md`；它们**不另立一套**错误码或版本机制。
+> 各端点的报文本体在 `auth.md` / `profile-sync.md` / `content-manifest.md` / `purchase.md` / `compliance.md`；它们**不另立一套**错误码或版本机制。
 > 客户端侧门面见 `game-design-documents/systems/services/`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
 > Source: `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md`、`handoffs/2026-08-13-auth-endpoint-contract.md`（§4a 的 auth 例外域 · 台账两条新 `code` 与 `session_revoked.detail`）、`handoffs/2026-08-14-profile-sync-contract.md`（§2 的超 2⁵³ 整数判据 · §8 可见字段子集回链）、`handoffs/2026-09-06-spec-check-automation-hosting.md`（§1 机检承载与降级形态的指路 · §3 端点全集与 P-3 · §6 台账 P-1）、`handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 端点清单 · §4a 无鉴权例外判据 · §6 台账四条 `compliance.*`）、`handoffs/2026-09-03-compliance-endpoint-payloads.md`（§4a 撤销端点方法 · §6 台账三条合规域端点错误码）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§7e 登记流程指路 · §8 统计层推论的两条限定）。
 
@@ -9,7 +9,7 @@
 
 **契约的表达形式 = OpenAPI 3.1 + JSON Schema 单点。明确否决共享 DTO 代码——即使后端最终也选 C#。**
 
-依据在根约定而非技术栈选型：客户端与后端是两条彼此独立的分支线，从不互相合并（理由是后端代码不得被编译进游戏程序集）。共享 DTO 要成立就需要一个被两条分支线同时引用的编译期依赖——它要么住在某一条分支里（当场违反该理由），要么需要第三个发布物，其版本节奏要同时迁就 Godot 4.7 的 .NET 目标框架与后端运行时。→ ADR 候选③。
+依据在根约定而非技术栈选型：客户端与后端是两条彼此独立的分支线，从不互相合并（理由是后端代码不得被编译进游戏程序集）。共享 DTO 要成立就需要一个被两条分支线同时引用的编译期依赖——它要么住在某一条分支里（当场违反该理由），要么需要第三个发布物，其版本节奏要同时迁就 Godot 4.7 的 .NET 目标框架与后端运行时。→ `decisions/ADR-0003-openapi-single-source-contract.md`。
 
 | 项 | 定案 |
 |---|---|
@@ -18,7 +18,7 @@
 | **markdown ↔ spec 分工** | **markdown 承载语义、理由与承重纪律；spec 单点承载字段名、类型、必填性、枚举值。**markdown 中的形态性文字（示例报文等）**均为说明性，不具规范性**。冲突裁决规则保留为兜底：**字段形态以 spec 为准，语义以 markdown 为准** |
 | 代码生成 | **不强制**。两侧可生成也可手写 DTO——契约不规定实现手段 |
 | 落地时机 | **不预先建空壳**（本库「先有设计再建文件」）。**任一侧**（客户端或后端）的首个端点进入实现时，由**动手的那一侧**落 `openapi.yaml`（即使动手方是客户端，spec 仍落本库），范围 = **全部共有层 + 该一个端点**；其余端点路径在各自进入实现时逐个追加。**在某端点的 spec 落笔前，其 markdown 字段表视为草案** |
-| **形态的迁移** | 某端点的形态一旦进入 spec，其 markdown 字段表**同批删除规范性形态列**（类型 / 必填 / 枚举取值），降级为「字段名 + 语义 / 用途 / 承重纪律」；示例报文保留。瘦身**随 spec 覆盖面逐步推进**，不一次性做完四份——任何时刻形态都只有一处权威 |
+| **形态的迁移** | 某端点的形态一旦进入 spec，其 markdown 字段表**同批删除规范性形态列**（类型 / 必填 / 枚举取值），降级为「字段名 + 语义 / 用途 / 承重纪律」；示例报文保留。瘦身**随 spec 覆盖面逐步推进**，不一次性做完六份——任何时刻形态都只有一处权威 |
 | 覆盖面 | spec 的 `paths` **覆盖 API 域与 CDN 域两侧**（`/v1/…` 与 `<contentRoot>/s<manifestSchema>/manifest`·`…/manifest.sig`·`<contentRoot>/blobs/<sha256>`，以两个 `server` 表达）。CDN 域无鉴权，其安全声明差异在 spec 内显式给出 |
 | `info.version` | spec 自身的发布版本，semver，**与 `/v1/` 和 `schemaVersion` 三者互不复用**（节奏完全不同，见 §3）。报文形态破坏性变更 bump major，新增可选字段 / 新增端点 bump minor，纯描述修订 bump patch。三者分工在 spec 顶部注释里显式声明 |
 
@@ -242,7 +242,7 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 - **暂停自动退避重试**（重试必然失败，退避只是空耗电量与流量）；
 - 恢复点：玩家更新并**重新登录**后 → 先 pull 后 flush。
 
-它与客户端「缓冲超限 → 软阻塞」策略的衔接属客户端侧，见本文件末的跨库待办。
+它与客户端「缓冲超限 → 软阻塞」策略的衔接属客户端侧，权威见 `game-design-documents/systems/services/sync-service.md`。
 
 ### 7d. `minAppVersion`（内容维度）与强更闸门（协议维度）互不兼职
 
@@ -280,7 +280,7 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 
 ## 决策(-> ADR)
 
-- **契约表达形式 = OpenAPI 3.1 单点，不共享 DTO 代码** → ADR 候选③，登记于 `decisions/_index.md`。值得固化其依据（根约定的分支线独立性），否则「后端也用 C# 了，不如共享 DTO」会反复被重新提出。
+- **契约表达形式 = OpenAPI 3.1 单点，不共享 DTO 代码** → `decisions/ADR-0003-openapi-single-source-contract.md`。值得固化其依据（根约定的分支线独立性），否则「后端也用 C# 了，不如共享 DTO」会反复被重新提出。
 
 ## 备选方案（已考虑并否决）
 
@@ -301,7 +301,3 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 ## Open questions
 
 - **`openapi.yaml` / `schemas/*.json` 的实际落笔**——**规则已定**（§1 的触发点 / 范围 / 形态迁移，`_index.md` 的完成判据、三条机检断言与它们的工程承载），只待触发点到来，属**待落笔项而非设计未决**。
-
-## 跨库待办（客户端侧，本库不代为决定）
-
-需 `game-design-documents/` 另写一份 handoff，见 `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md` 的「客户端侧影响」段：`Retry-After` 的尊重 · `X-Flags-Version` 的读取点 · 错误码映射表的落点与形态 · `Upgrade` 类错误在非闸门点的非阻塞处置与「缓冲超限 → 软阻塞」的衔接 · `HttpProfileBackend` 把两个版本字段搬到 HTTP 头。

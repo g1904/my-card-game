@@ -368,7 +368,7 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 - **同一 `accountId` 上的「读 `cloudRevision` → 比对 `baseRevision` → 写 profile 并 `+1`」必须是一次线性化的读改写。** 任何实现（条件 UPDATE、事务、单分区串行）只要满足它即可。
 - **绝不允许「先写 profile 再改 revision」的两步非原子形态**——中途失败会留下一个 profile 已变而 revision 未变的账号，此后每一次 push 都会被判成功却写在错误基线上。
 - **跨区域：单写入区（单主）+ 只读副本。** 账号级严格单调递增的计数器在多主下无法维持，而「云端权威」这条决策的全部力量都建立在这个计数器上。跨区域延迟由客户端的非阻塞 push 通道吸收（pillar #4 已保证玩家不等待）。
-- **只读副本受一条读己所写要求约束**（`purchase.md` §6）：验票写入返回之后，同一账号的任何后续 `pull` 必须不早于该次写入的结果。**滞后的只读副本因此不能无条件承接 pull**——要么该账号的读走写入区，要么读路径附带会话粘滞 / `revision` 下界等待。它排除了一部分部署形态，这是明知的代价，须在栈选型时带上（`open-questions/06-platform-stack.md`）。
+- **只读副本受一条读己所写要求约束**（`purchase.md` §6）：验票写入返回之后，同一账号的任何后续 `pull` 必须不早于该次写入的结果。**滞后的只读副本因此不能无条件承接 pull**——要么该账号的读走写入区，要么读路径附带会话粘滞 / `revision` 下界等待。它排除了一部分部署形态，这是明知的代价。所选的部署形态即最简兑现——单区域、玩家读路径全部走写入区、只读副本只承担灾备与离线分析，见 `decisions/ADR-0021-single-primary-runtime-topology.md` 与 `operations/environments.md`「拓扑与副本」。
 - 「本地领先」（`baseRevision > cloudRevision`）→ 回 `sync.revision_ahead`，**并作为服务端指标单列**。它在服务端侧的含义是「客户端信封被改写**或后端发生过回滚**」，后者是后端自己的事故信号。
 
 ## 9. `pushId` 幂等窗口：`(accountId, pushId)` 唯一键 + 30 天 TTL
@@ -390,7 +390,7 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 
 - **不设常规节流**——它只会打到正常玩家，而 `Retry-After` 的重试又会把同一批数据再送一次。
 - **设一个远高于稳态的滥用阈值**（初值：单账号 **60 次 / 分钟**，稳态的 60 倍），触发 → `rate.limited`（`Retryable`）+ `Retry-After`。客户端已定「退避取 `max(本地计算值, 服务端值)` + jitter」，且**限流绝不映 `Conflict`**。
-- 实现与实际阈值归 `06`（落 `operations/`），契约层只声明语义——同 `auth.md` §8 的处理。
+- 实现分层与实际阈值落 `operations/environments.md`（「限流的实现分层」与「旋钮清单」），契约层只声明语义——同 `auth.md` §8 的处理。
 
 ## 11. `compliance.*` 不打到同步通道（承重边界）
 
@@ -409,9 +409,9 @@ Source: `handoffs/2026-08-14-splitmix64-test-vectors.md`、`handoffs/2026-08-14-
 
 ## 决策(-> ADR)
 
-- **账号级掷骰的随机源 = 契约定义的纯函数 SplitMix64**（§6）→ ADR 候选，登记于 `decisions/_index.md`。值得固化其依据（跨语言逐位一致是复算的前提，不能押在引擎实现细节上），否则「客户端本来就有 RNG，为什么另写一个」会反复被重新提出。
-- **后端写入路径在上行侧只接受回声，不等即整批拒绝**（§5c）→ ADR 候选，登记于 `decisions/_index.md`。值得固化其依据（浅合并按顶层键 ⇒ 封闭表若无报文层执行点即形同虚设；CAS 问基线不问所有权），否则「CAS 已经挡住了，为什么还要比一次字段」会反复被重新提出。
-- **防作弊的边界 = 可复算 `roll`、不复算阈值；不一致仅记账不拒绝**（§7 · §7a）→ ADR 候选。它是 pillar #1 在最具体处的一次兑现，也是「后端要不要持有平衡表」这个问题的永久答案。
+- **账号级掷骰的随机源 = 契约定义的纯函数 SplitMix64**（§6）→ `decisions/ADR-0006-splitmix64-account-roll-source.md`。值得固化其依据（跨语言逐位一致是复算的前提，不能押在引擎实现细节上），否则「客户端本来就有 RNG，为什么另写一个」会反复被重新提出。
+- **后端写入路径在上行侧只接受回声，不等即整批拒绝**（§5c）→ `decisions/ADR-0008-upstream-echo-validation-of-server-owned-paths.md`。值得固化其依据（浅合并按顶层键 ⇒ 封闭表若无报文层执行点即形同虚设；CAS 问基线不问所有权），否则「CAS 已经挡住了，为什么还要比一次字段」会反复被重新提出。
+- **防作弊的边界 = 可复算 `roll`、不复算阈值；不一致仅记账不拒绝**（§7 · §7a）→ `decisions/ADR-0005-anti-cheat-recompute-boundary.md`。它是 pillar #1 在最具体处的一次兑现，也是「后端要不要持有平衡表」这个问题的永久答案。
 
 ## 备选方案（已考虑并否决）
 

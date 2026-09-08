@@ -1,4 +1,4 @@
-# ① 协议契约（六份已成文 · 当前无待答项）
+# ① 协议契约（六份已成文 · 余一条错误码台账待核）
 
 > 客户端 ↔ 后端边界的**唯一**耦合点。两侧都读它，因此必须单点定义。权威落点：`contracts/`。
 > 跨越这条边界的客户端成分有**三个**：`account-service`、`content-service`、`sync-service`——全部是服务本身，没有任何 manager 跨边界（剧本内容已本地化，2026-08-11）。
@@ -17,6 +17,6 @@
 > **合规域的报文本体与端点自身的错误码已于 2026-09-03 答结** → `contracts/compliance.md` §10 §11（六端点字段表 · `ComplianceRealnameStatus` · `taskId` 形态 · 导出任务四状态 · 三条新 `code` 与各自 `reasonKey`）+ `contracts/envelope.md` §6 台账三行、§4a 例外表（撤销注销改 `POST .../cancel`）。移出记录见 `answer-logs/log-compliance-endpoint-payloads.md`。**六份契约自此全部完全成文。**
 > **`refresh` 的限流形态已于 2026-09-03 答结** → 网关不得对 refresh 施加限流，只记账 + 告警，落 `operations/deployment.md` 的两条网关纪律与逐次上线核对项；契约侧「刻意不给 `rate.limited`」因此不必松动。移出记录见 `answer-logs/log-backend-stack-and-hosting.md`。
 > **三条机检断言的工程承载已于 2026-09-06 答结** → `contracts/_index.md`「契约变更的完成判据」+ `operations/deployment.md`（`backend-design` 分支上的 `contract-spec-check` workflow · spec 未落笔期的降级形态 · 存在性驱动的切换判据 · 断言③′ 的基准改为 `envelope.md` §3 的端点全集表并配 P-3 护栏）。移出记录见 `../answer-logs/log-spec-check-automation-hosting.md`。
-> **本分片当前无待答项。**
+> 余下**一条**待答，它不阻塞任何落笔，只等下一次触及契约面时一并核对。
 
-*（当前无待答项）*
+- **flags 端点零装载时的错误应答是否值得一条专属 `code`。** `systems/content-delivery.md`「回源失败的降级」定：本实例一个版本都没装载且回源失败 ⇒ 返回 `Retryable` 类错误、**绝不以空 `disabledIds` 兑现**（空集合语义上是「什么都没关」，会让秒关静默失效，且客户端会把它当作一批合法 flags 持久化为降级值）。当前按 `contracts/envelope.md` §5a 的兜底走 `server.unavailable`（`Retryable`），**不阻塞任何落笔**；是否新增专属码归 `contracts/envelope.md` §6 台账裁决，建议在下一次触及契约面时一并核对。

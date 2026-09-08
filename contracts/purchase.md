@@ -205,9 +205,9 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 
 ## 决策(-> ADR)
 
-- **购买写入只由 verify 端点承担，渠道回调降为对账通道** → ADR 候选，登记于 `decisions/_index.md`。值得固化其依据（回调时序不可控 ⇒ 「已付款但序号未涨」无处排查），否则「用回调直接写库省一次往返」会反复被重新提出。
-- **验票请求的判别式发生在请求根，`receipt` 逐渠道成形** → ADR 候选。值得固化其依据（判别属性不得在同一报文里有两个落点），否则「把 `platform` 也塞进 `receipt` 便于就地判别」会被重新提出。
-- **微信渠道引入下单端点，但不改变 §2 的写入权威分配** → ADR 候选。值得固化，否则「既然有了下单端点，不如让它也参与写入」会被反复提出。
+- **购买写入只由 verify 端点承担，渠道回调降为对账通道** → `decisions/ADR-0007-purchase-write-authority.md`。值得固化其依据（回调时序不可控 ⇒ 「已付款但序号未涨」无处排查），否则「用回调直接写库省一次往返」会反复被重新提出。
+- **验票请求的判别式发生在请求根，`receipt` 逐渠道成形** → `decisions/ADR-0018-verify-request-root-discriminator.md`。值得固化其依据（判别属性不得在同一报文里有两个落点），否则「把 `platform` 也塞进 `receipt` 便于就地判别」会被重新提出。
+- **微信渠道引入下单端点，但不改变 §2 的写入权威分配** → `decisions/ADR-0019-merchant-side-order-endpoint.md`。值得固化，否则「既然有了下单端点，不如让它也参与写入」会被反复提出。
 
 ## 备选方案（已考虑并否决）
 
@@ -241,7 +241,13 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 
 ## Open questions
 
-- **幂等记录的体量增长后的冷存归档形态**，以及对账信号「`bundleGrantOrdinal > bundleRedeemedOrdinal` 持续 N 天」的**阈值 N** —— 两者都需真实体量才能定，归 `06-platform-stack.md`，**不回头改契约**（与 `profile-sync.md` §12 同一条处置）。信号只作人工 / 工单入口，不驱动任何自动写入。
-  **存储选型与事务实现已不在此列**：关系库 `receipt_idem`、`receipt_id` 全局唯一主键、与序号 / `cloudRevision` 同一次事务、下单时预落未决态记录已落 `systems/profile-store.md`；判据、分区与索引、不合表与 TTL 禁用断言在 `operations/purchase-ops.md`。§7 的语义（永不过期）本身不依赖选型。
+**无待答项。** 实现侧的落点分工如下，**契约层不因此改动**——§7 的语义（永不过期）不依赖选型，对账信号只作人工 / 工单入口、不驱动任何自动写入：
+
+| 实现侧的事 | 落点 |
+|---|---|
+| 关系库 `receipt_idem`、`receipt_id` 全局唯一主键、与序号 / `cloudRevision` 同一次事务、下单时预落未决态记录 | `systems/profile-store.md` |
+| 选型判据、分区与索引、不合表与 TTL 禁用断言 | `operations/purchase-ops.md` §3 |
+| 幂等记录体量增长后的冷存归档形态（触发条件与三层分工） | `operations/purchase-ops.md` §3d · `decisions/ADR-0045-receipt-idem-tiered-archival.md` |
+| 对账信号「`bundleGrantOrdinal > bundleRedeemedOrdinal` 持续 N 天」的**阈值 N** 及其校准口径 | `operations/purchase-ops.md` §4（N 落旋钮表，不落契约） |
 
 Source: `handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 的失败面：verify 不返回 `compliance.*`）· `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§3 渠道取值域 · §4 与 §6 读己所写 · §5 判据 · §7 收据幂等窗口）· `handoffs/2026-09-03-purchase-channel-integration.md`（§1 三端点 · §3 判别式与失败面 · §3a 逐渠道形态与 `receiptId` 取值 · §3b 下单端点 · §6 保证 3 覆盖面 · §7 回链）· `handoffs/2026-09-06-iap-channel-integration.md`（§4 `Rejected` 附 `code` · `status` 三值 PascalCase）。

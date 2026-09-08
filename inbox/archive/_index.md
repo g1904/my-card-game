@@ -6,6 +6,8 @@
 
 | 草稿 | 对应 handoff | 日期 |
 |------|--------------|------|
+| `solution-draft-risk-ledger-storage-shapes.md` | `handoffs/2026-09-08-risk-ledger-storage-shapes.md` | 2026-09-08 |
+| `solution-draft-flags-service-internal-doc-home.md` | `handoffs/2026-09-08-flags-service-internal-doc-home.md` | 2026-09-08 |
 | `solution-draft-compliance-launch-tiering.md` | `handoffs/2026-09-07-compliance-launch-tiering.md` | 2026-09-07 |
 | `solution-draft-manifest-schema-dual-serve-and-cdn-failure-codes.md` | `handoffs/2026-09-07-manifest-schema-path-branch-and-cdn-failure-codes.md` | 2026-09-07 |
 | `solution-draft-auth-idle-refresh-expiry-reasonkey.md` | `handoffs/2026-09-07-refresh-expiry-reasonkey.md` | 2026-09-07 |

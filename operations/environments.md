@@ -44,6 +44,11 @@
 | 昵称改名频次上限 | `contracts/auth.md` §8 |
 | 外接能力的硬超时 · 短信降级与回切判据 · 供应商余额低水位两档 | `operations/external-providers.md` |
 | 昵称审核 `rejectThreshold` / `reviewThreshold` | `operations/moderation.md`（首版能力未启用，不定值） |
+| 风控事件保留期 · `risk_event` 预建空分区余量 | `operations/moderation.md`（四张台账的存储形态） |
+| 注销审计保留期 | 同上（`deletion_audit`，与风控事件不同期） |
+| 旁路缓冲上界（行数） | 同上（待上线后按事件速率标定） |
+| 复核租约超时 · 复核终态条目保留期 | 同上（`nickname_review`） |
+| 定期兜底扫描周期 | 同上（存量扫描 T3） |
 | 导出下载链接的单次签发有效期 | `operations/compliance-ops.md`（数据导出） |
 | 导出生成重试上限 | 同上 |
 | 合规周期任务的扫描间隔 | 同上（冷静期到期 · 导出生成 · 产物与记录到期 · ticket 清理共用一条通道） |
@@ -152,7 +157,11 @@ verify  ≈ 每账号个位数 / 年
 | 导出任务生成 | 同上 |
 | 导出产物与记录的到期清理 | 同上 |
 | `complianceTicket` 的过期清理 | 同上 |
+| `risk_event` 分区维护（预建 + 到期整分区 `DROP`） | `operations/moderation.md` |
+| `deletion_audit` 到期清理 | 同上 |
+| `nickname_review` 租约回收 · 终态条目清理 | 同上 |
+| 昵称存量扫描 T2（词表版本驱动）· T3（定期兜底全量） | 同上 |
 
 **注销执行是本库唯一不可逆的周期动作**：时钟异常（NTP 失同步 / step 级跳变）期间暂停一轮，其余判定照常。判据与降级语义见 `operations/compliance-ops.md`。
 
-Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-06-iap-channel-integration.md`（旋钮清单一行 · 密钥保管指路） · `handoffs/2026-09-06-compliance-domain-storage.md` · `handoffs/2026-09-06-trusted-server-clock.md` · `handoffs/2026-09-06-external-provider-selection-dr.md` · `handoffs/2026-09-06-receipt-idem-cold-archive.md` · `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md`（旋钮清单 · fail-closed 例外判据 · 定时任务出口 · 外接能力凭据）。
+Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-06-iap-channel-integration.md`（旋钮清单一行 · 密钥保管指路） · `handoffs/2026-09-06-compliance-domain-storage.md` · `handoffs/2026-09-06-trusted-server-clock.md` · `handoffs/2026-09-06-external-provider-selection-dr.md` · `handoffs/2026-09-06-receipt-idem-cold-archive.md` · `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md`（旋钮清单 · fail-closed 例外判据 · 定时任务出口 · 外接能力凭据）· `handoffs/2026-09-08-risk-ledger-storage-shapes.md`（风控四张台账的旋钮与定时任务）。

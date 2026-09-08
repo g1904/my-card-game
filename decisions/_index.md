@@ -4,6 +4,16 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| `ADR-0060` | flags 规则集的装载必须有请求无关的触发 | Accepted | 2026-09-08 | `systems/content-delivery.md`, `operations/observability.md` |
+| `ADR-0059` | 风控事件默认走有界旁路缓冲批量写入，三类例外必须同事务 | Accepted | 2026-09-08 | `operations/moderation.md`, `operations/environments.md`, `systems/_index.md`, `operations/observability.md` |
+| `ADR-0058` | 复核队列取条件 `UPDATE` 租约，不照抄合规域的持锁 `SKIP LOCKED` | Accepted | 2026-09-08 | `operations/moderation.md`, `operations/environments.md` |
+| `ADR-0057` | 注销审计单独成表，保留 3 年，注销执行时不删 | Accepted | 2026-09-08 | `operations/moderation.md`, `operations/compliance-ops.md`, `systems/account.md` |
+| `ADR-0056` | 风控台账落四张表，逐表形态按「体量随什么增长 + 是不是点查」判定 | Accepted | 2026-09-08 | `operations/moderation.md`, `systems/account.md`, `operations/environments.md`, `operations/observability.md` |
+| `ADR-0055` | 第三方昵称审核首版不启用，且写死唯一启用触发条件 | Accepted | 2026-09-07 | `operations/moderation.md`, `operations/external-providers.md`, `vision/scope.md` |
+| `ADR-0054` | 合规四项能力全部首版必备，可后置判据 = 是否需要对存量账号追溯 | Accepted | 2026-09-07 | `operations/deployment.md`, `vision/scope.md`, `systems/account.md` |
+| `ADR-0053` | `reasonKey` 分辨的是玩家措辞而非机制自述，措辞相同即共用取值 | Accepted | 2026-09-07 | `contracts/auth.md`, `systems/account.md` |
+| `ADR-0052` | CDN 域的 4xx 按「入口对象 / 入口之后的对象」两分 | Accepted | 2026-09-07 | `contracts/content-manifest.md`, `operations/content-delivery-ops.md` |
+| `ADR-0051` | `manifestSchema` 双发走客户端选路的路径分支，blob 不分支 | Accepted | 2026-09-07 | `contracts/content-manifest.md`, `contracts/envelope.md`, `operations/version-matrix.md`, `operations/content-delivery-ops.md` |
 | `ADR-0050` | 合并校验逐基线各跑一遍，不因超集成立而只跑最新基线 | Accepted | 2026-09-06 | `operations/content-delivery-ops.md` |
 | `ADR-0047` | flags 版本传播窗口以实例为主体，且头永不领先于本实例能兑现的规则集 | Accepted | 2026-09-06 | `contracts/content-manifest.md`, `operations/content-delivery-ops.md`, `operations/environments.md`, `operations/observability.md` |
 | `ADR-0046` | `Rejected` 原因复用 verify 终态 `code`，不新造取值集、不进错误体 | Accepted | 2026-09-06 | `contracts/purchase.md`, `contracts/envelope.md` |

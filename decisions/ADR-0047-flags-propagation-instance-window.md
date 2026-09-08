@@ -18,7 +18,7 @@
 - **A8** —— `X-Flags-Version` 下发值 = `min(高水位, 本实例当前能兑现的最大规则集版本)`，**头永不领先**。
 - **A9** —— 该数由既有的规则集缓存自然给出：零新增机制、零新增存储、零报文改动。
 
-T 的探针取**实例 gauge 极差 ≠ 0 且持续超过 T**。条款见 `contracts/content-manifest.md`；纪律、预算与初值见 `operations/content-delivery-ops.md`；探针见 `operations/observability.md`。
+T 的探针取**实例 gauge 极差 ≠ 0 且持续超过 T**。条款见 `contracts/content-manifest.md`；三条纪律的服务内部形态见 `systems/content-delivery.md`；预算与初值见 `operations/content-delivery-ops.md`；探针见 `operations/observability.md`。
 
 ## 理由
 

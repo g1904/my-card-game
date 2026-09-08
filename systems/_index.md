@@ -6,8 +6,7 @@
 
 协议契约六份已成文（`contracts/envelope.md` · `content-manifest.md` · `auth.md` · `profile-sync.md` · `purchase.md` · `compliance.md`）。技术栈与托管形态为 **C# / ASP.NET Core · 腾讯云托管容器 · 云数据库 PostgreSQL（单主）· 云 Redis · 云 KMS · CDN**（运行时形态见 `operations/`），服务内部设计所需的存储、并发控制与会话形态因此有了确定的地基。
 
-- `account.md` · `profile-store.md` —— 已建立。
-- `content-delivery.md` —— 尚未建立。它的**运维形态**已成文（`operations/content-delivery-ops.md`），此前欠的两项前置**已全部答结**：剧本内容的体积与分发形态由客户端 `game-design-documents/decisions/ADR-0029-plot-tree-single-baseline-package.md` 裁定（不分包、随基线发布，本库零机制增量）；版本传播窗口 T 已取定初值并重定义为跨实例窗口（`operations/content-delivery-ops.md`「版本传播窗口 T」）。**服务内部形态具备开写条件**；按「先有设计再建文件」，在有实质设计之前仍不预先占位。
+- `account.md` · `profile-store.md` · `content-delivery.md` —— 三份服务文档均已建立，与下表三个服务一一对位。
 
 ## 服务
 
@@ -38,7 +37,7 @@ Source: `handoffs/2026-08-11-plot-service-retired.md`。
   | 同时至多一个在办导出任务（`compliance.md` §10 的 `deduplicated` 语义） | 部分唯一索引 `UNIQUE (account_id) WHERE state IN ('Pending','Ready')` |
   | 冷静期至多一条在办、重复申请绝不顺延（`compliance.md` §10） | `account_deletion.account_id` 主键 + `ON CONFLICT DO NOTHING` |
 
-- **Redis 只承担限流计数器，不持有任何权威状态。** 它不可用时限流退化为不限流并告警，不影响任何正确性语义（验证码类计数是例外，见 `operations/environments.md`）。按账号的 flags 缓存是否引入归内容分发侧裁决；若引入，缓存键必须含 `flagsVersion`（`decisions/ADR-0009-*`）。
+- **Redis 只承担限流计数器，不持有任何权威状态。** 它不可用时限流退化为不限流并告警，不影响任何正确性语义（验证码类计数是例外，见 `operations/environments.md`）。**按账号的 flags 解析结果缓存不引入**，缓存对象是规则集本身、键取 `flagsVersion`；若日后被读数触发而引入，键必须含 `flagsVersion`（`systems/content-delivery.md`「规则集缓存」· `decisions/ADR-0009-*`）。
 - **字段名用 `snake_case`，报文用 lowerCamelCase**，两者在序列化边界一次映射。
 
 ## 明确不引入
@@ -46,7 +45,7 @@ Source: `handoffs/2026-08-11-plot-service-retired.md`。
 逐条给理由，使它们不必被反复重新提出：
 
 - **独立的文档数据库** —— profile 已是 `jsonb`；再加一套存储会把「幂等记录与计数器同事务」拆成跨存储写入，正是 `contracts/profile-sync.md` §9 与 `purchase.md` §7 点名的失败态（`revision` 已推进但幂等记录未落）。
-- **消息队列** —— 本域没有需要削峰或跨服务解耦的写入；把 push 异步化会当场破坏「账号级线性化读改写」与「push 应答必须回 `newRevision`」的同步语义。风控事件与告警走日志 / 指标出口即可。
+- **消息队列** —— 本域没有需要削峰或跨服务解耦的写入；把 push 异步化会当场破坏「账号级线性化读改写」与「push 应答必须回 `newRevision`」的同步语义。风控事件落同库的 `risk_event` 表（旁路批量写入，见 `operations/moderation.md`），告警走指标出口——两者都不需要消息队列。
 - **分布式事务协调器** —— 单库内已满足全部原子性要求，引入它只是给自己造一个新的故障域。
 - **分片 / 多主 / 读写分离** —— 账号级严格单调计数器在多主下无法维持（`contracts/profile-sync.md` §8），而读己所写排除了无条件承接玩家读路径的滞后副本（`decisions/ADR-0013-*`）。它们要解决的规模问题，在契约定义的写入频率下不存在（容量算式见 `operations/environments.md`）。规模真的到来时，纵向扩容 + 按 `accountId` 的单主分区（分区内仍线性化）是保住线性化的扩展方向。
 

@@ -234,21 +234,26 @@ Source: `handoffs/2026-09-06-compliance-domain-storage.md`。
 | `profile` 行 | **硬删除** | 玩家进度 |
 | `signin_replay` · `compliance_ticket` · `session` | **硬删除** | 含 `identifier_mac` 与活凭据 |
 | `export_task` 与其对象存储产物 | **硬删除** | 产物含个人信息 |
-| 风控事件（该账号的全部条目） | **硬删除** | 已定性为可关联到个人的行为数据 |
+| 风控事件（`risk_event` 中该账号的全部条目） | **硬删除** | 已定性为可关联到个人的行为数据 |
+| `nickname_review`（该账号的全部条目） | **硬删除** | 含玩家提交的昵称串与判定记录，属可关联到个人的行为数据 |
+| `nickname_scan`（该账号的一行） | **硬删除** | 含 `last_accepted_nickname` |
 | `push_idem` | **硬删除** | 无独立价值，随 profile 走 |
 | `account` 行 | **保留墓碑**：`account_id` + `created_at_utc` + `deleted_at_utc`，其余列置空 | 见下 |
 | `receipt_idem` | **保留全行** | 见下 |
+| `deletion_audit`（该账号的注销申请 / 撤销条目） | **保留全行** | 见下 |
 
-**两条保留各有硬理由，不是偷懒：**
+**三条保留各有硬理由，不是偷懒：**
 
 - **`receipt_idem` 必须保留。** 它的 `receipt_id` 全局唯一是**防重复发放的唯一防线**（永久保留、不设 TTL，且配置层有一条启动期断言，见 `operations/purchase-ops.md`）。删掉它 = 同一张收据可被新账号再核销一次，且**线上不可发现**——第二次提交查不到记录即当作新票，没有任何报错，攻击形态明确：买一次 → 注销 → 重建号 → 再核销同一张票。它含 `account_id` 但不含个人信息；交易记录另有法定保存期。
 - **`account` 墓碑必须保留**，否则 `receipt_idem.account_id` 悬空、退款对账通道断裂。墓碑不含任何个人信息、**不可关联到自然人**，只是一个已删除标记加时间戳。**它不进 `account.status` 枚举**（契约四值不动）——「已删除」由 `deleted_at_utc` 非空表达，而已删除账号在任何端点上都不可达（identity 已删，无从登录）。
 
-删除权针对的是个人信息；保留一个不可关联到自然人的内部键，换来一条不可发现的重复发放漏洞被永久堵死。
+- **`deletion_audit` 必须保留**（保留期 3 年，与本次执行无关）。撤销即删 `account_deletion` 行 ⇒ 这张表是「谁在什么时候申请过 / 撤销过」在库内的唯一留痕，而这条路径直接决定账号是否被删除；在执行时把它一并删掉，等于在**最需要它举证的那一刻**销毁唯一的证据（一次「我明明撤销过」的客诉往往在半年、一年后才到）。它的条目**不含任何个人信息**，与 `account` 墓碑同一性质，故长留不构成个人信息超期留存。形态见 `operations/moderation.md`。
+
+删除权针对的是个人信息；保留不可关联到自然人的内部键与审计留痕，换来一条不可发现的重复发放漏洞被永久堵死、一条删号客诉可举证。
 
 **执行必须在一次事务内完成、全有或全无**：删到一半崩溃 ⇒ 回滚 ⇒ 下一轮重新领取。逐表删除的顺序按外键依赖排即可，不需要额外机制。
 
-Source: `handoffs/2026-09-06-compliance-domain-storage.md`。
+Source: `handoffs/2026-09-06-compliance-domain-storage.md` · `handoffs/2026-09-08-risk-ledger-storage-shapes.md`（删除清单的三张风控台账与 `deletion_audit` 的保留）。
 
 ## 数据导出：任务 · 产物 · 链接签发
 

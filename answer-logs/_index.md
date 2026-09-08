@@ -23,6 +23,8 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-risk-ledger-storage-shapes.md` | 2026-09-08 | `inbox/archive/solution-draft-risk-ledger-storage-shapes.md` → `handoffs/2026-09-08-risk-ledger-storage-shapes.md` | 1（风控三张台账的存储形态整条——该条此前**不在任一分片跟踪**，只挂在 `operations/moderation.md` 末行的一句悬空指路上；同批裁决一项：两个删除类 `kind` 另落 `deletion_audit`、保留 3 年、注销执行不删。残余 `riskEventBufferRows` 取值转 `06`，新开 `07` 两条） |
+| `log-flags-service-internal-doc-home.md` | 2026-09-08 | `inbox/archive/solution-draft-flags-service-internal-doc-home.md` → `handoffs/2026-09-08-flags-service-internal-doc-home.md` | 1（A6–A9 的文档归属整条——同样不在任一分片跟踪，只记于 `open-questions.md`「最短解锁路径」第 3 条；同批裁决一项：只迁 A6–A9，回链方向反转被接受。新增 `01` 一条不阻塞的台账待核） |
 | `log-compliance-launch-tiering.md` | 2026-09-07 | `inbox/archive/solution-draft-compliance-launch-tiering.md` → `handoffs/2026-09-07-compliance-launch-tiering.md` | 2（`02`「合规能力的上线分级」整条含从属项 · `06`「昵称审核阈值取值」改造为条件化核对项；同批裁决两项外部事实：首版 = 中国大陆正式发行 · 署方实名系统接入暂挂账） |
 | `log-compliance-domain-storage.md` | 2026-09-06 | `inbox/archive/solution-draft-compliance-domain-storage.md` → `handoffs/2026-09-06-compliance-domain-storage.md` | 1（`06`「合规域的存储与产物」整条 + 其从属项「三个旋钮初值待实测校准」；同批裁决两项：注销执行保留 `receipt_idem` 全行 + 最小 `account` 墓碑 · `signin` 四条拦截码求值顺序） |
 | `log-trusted-server-clock.md` | 2026-09-06 | `inbox/archive/solution-draft-trusted-server-clock.md` → `handoffs/2026-09-06-trusted-server-clock.md` | 1（`06`「可信服务端时钟」整条；同批裁决一项：日历过期时未成年账号一律 fail-closed，与规则集读取失败同处置） |
