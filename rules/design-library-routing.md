@@ -68,10 +68,10 @@
 | 主题文档区 | `vision/` · `systems/` · `content/` · `art/` · `ux/` | `vision/` · `contracts/` · `systems/` · `operations/`（**无 `content/`**） |
 | 根级横切文件 | `terminology.md` · `program-overview.md` · `system-overview.md` | 无（术语沿用客户端库的 `terminology.md`） |
 | 需求模板差异 | `Data & state touchpoints` | 另有 `Contract touchpoints` 与**强制**的 `Failure & retry semantics` |
-| 验收标准的可验证方式 | 在 Godot 编辑器里运行游戏观察 | 请求 → 应答 / 存储状态（后端栈未定前，只写可验证的断言形态，不指定测试工具） |
+| 验收标准的可验证方式 | 在 Godot 编辑器里运行游戏观察 | 请求 → 应答 / 存储状态（只写可验证的断言形态，不指定测试工具） |
 | ADR 编号 | 各自独立 —— 引用另一侧一律写全路径 | 同左 |
 | 知识引用层 | `.claude/knowledge/*` 覆盖 | **无**——后端尚无引用层，技能不要去 `knowledge/` 找后端背景 |
-| 代码落地分支 | `game-feature-branch/` | `backend-feature-branch/`（尚未开工，无技术栈） |
+| 代码落地分支 | `game-feature-branch/` | `backend-feature-branch/`（尚未开工；技术栈与托管形态已落定 → `backend-design-documents/README.md`） |
 
 > **本表是「路由用副本」（显式例外 · 已裁定 2026-08-14）。** 两库结构的权威在各自 README；此处保留一份是因为它是技能路由的前置信息，
 > 换成回链等于每次跑设计流水线技能都要先读两份 README，而路由判错的代价是把一侧的意图写进另一侧的库。
@@ -85,7 +85,7 @@
 
 | 技能 | 原因 |
 |---|---|
-| `/blueprint` · `/implement` | 产出面向 `game-feature-branch/` 的 Godot / C# 实现；后端技术栈未定，无从设计实现形态。 |
+| `/blueprint` · `/implement` | 产出面向 `game-feature-branch/` 的 Godot / C# 实现。**注意：下方「再扩展」的两个条件（技术栈落定 + `contracts/` 成文）现已同时成立，是否扩展到后端待用户裁决。** |
 | `/review-feature` · `/review-local-changes` · `/investigate` | 审查 / 追踪 Godot 客户端代码。 |
 | `/scaffold-content-type` · `/author-content` · `/audit-content` | 内容条目层 `content/` 只存在于 `game-design-documents/`；后端库没有这一分区。 |
 | `/sync-knowledge` | `.claude/knowledge/*` 只覆盖客户端。 |

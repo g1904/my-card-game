@@ -18,7 +18,8 @@
 | 异能 / 效果原语 / 触发条件 | `AbilityData` / `EffectData` / `TriggerConditionData` / `StaticModifierData` | `character-profile/deck/common-properties.md`「效果原语与定义体」；**异能不独立开张为内容文件夹**，先内联在宿主条目内 → `content/_index.md` |
 | Enemy（敌人） | `EnemyData` ↔ `EnemyInstance` | `enemies/`（与 adventure-event 平级） |
 | 敌人 AI 策略 | `EnemyAiProfileData` | `enemies/` |
-| 成就 | Achievement 条目 | `player-profile/achievement/` |
+| 成就 | `AchievementData`（**内联 `AchievementConditionData`**，不独立开张） | `player-profile/achievement/` |
+| 成就组 | `AchievementGroupData` | `player-profile/achievement/`（成就按组授奖，**两个 `Resource` 类型 = 两个内容类型**） |
 | AdventureEvent（修行事件） | `AdventureEventData` | `adventure-event/`（五个子类型，ADR-0002） |
 | 法宝 / 古宝（可购道具） | **两层共用 `ItemData`**（古宝另受 `Charges > 0` 硬约束） | `player-profile/player-item/`、`character-profile/item/` |
 | 效果关键字 | `KeywordData` | `character-profile/deck/`（首批清单为空、机制保留） |
@@ -29,7 +30,7 @@
 | 平衡配置（单例） | 若干 `ISingletonContent` 资源（**逐份切、无兜底大表**；切分判据是**三问**——① 消费者是谁 ② 覆写纪律（相反 ⇒ 必须分开）③ 有无跨字段不变式（有 ⇒ 必须同住）） | 三问判据与逐份落点 / 清单 → `balance.md`；注册形态与加载期校验 → `services/content-service.md` |
 | 剧本线 / 剧本节点 | `PlotArcData` / `PlotNodeData` | `services/plot-manager.md`（**本地内容层**，随 overlay 分发） |
 
-**内容条目有一组顶层共有字段**（含 `ContentEnabled` · `LocalizedText` · `Rarity` · `SourceCode` + `Source` · `ExclusiveSource` · **`Artwork`**），**定义只在最小公共祖先一层**，权威见 `systems/common-properties.md`「内容共有字段」——各落点只写投影，此处不复制字段表。
+**内容条目有一组顶层共有字段，定义只在最小公共祖先一层**；字段清单、各字段的挂载面与判据卡在 `systems/common-properties.md`「内容共有字段」，**此处不复制**。
 
 ## 承重纪律（写代码时会改变写法的那几条）
 
@@ -54,7 +55,7 @@
 - **热更范围 = 只改不增；剧本内容是唯一例外**，且该例外已是合并期硬校验、不再是约定。→ `systems/services/content-service.md`
 - **发版通道的反方向同样封死：随包基线只增不删——跨发版的基线 `Id` 集合单调不减。** 超集**只在 `Id` 集合层面**成立（字段值与 `ContentEnabled` 可自由改，那正是退役路径的载体）；退役 = 置 `ContentEnabled = false` / 合规移除**掏空而非删除**；**改名 = 删 + 增，同样禁止**。机械闸在基线快照归档步，按 semver 版本序与上一版比对，出现「上一版有、本版无」的 `Id` → 非零退出。删一条 = 老档 `Get(id)` 抛错 ⇒ **升级即废档**。→ `decisions/ADR-0182-baseline-id-superset-invariant.md`
 - **flags 只能覆盖 `ContentEnabled`，不得携带任何数值 / 文案 / 新 `Id`**——它能秒关正因为被限制得足够窄；作用点唯一 = `AllEnabled()` 取池。→ `systems/services/content-service.md`
-- **结构性查表类恒启用**（`LocationData` / `LocationMapData` / `HiddenStatBandData`）：`ContentEnabled == false` 即加载期 `PushError`，flags 对它们不生效——线上关掉若干地域会让邻接集合为空、轮回死锁。→ `systems/services/content-service.md`
+- **结构性查表类与一切 `ISingletonContent` 恒启用**：`ContentEnabled == false` 即加载期 `PushError`、flags 对其不生效——线上关掉一条即结构空洞（邻接集合为空、轮回死锁），**清单去权威看、别在此处抄**。→ `systems/services/content-service.md`
 - **不冻结轮回的 `contentVersion`**：overlay 更新对进行中的轮回立即生效，已放弃跨内容版本的 seed 可复现。→ `standards/rng-determinism.md`
 - **增量下载 = 文件级事务 + manifest 签名**，原子写 manifest 即提交点，**永不存在半套 overlay**。→ `systems/services/content-service.md`
 - **二进制资产不经 overlay / blob 通道下发**：overlay 只能把资产引用改指到**随包基线内已存在**的资产、或置空（→ ViewModel 占位回落）；换图 / 加图随版本发布。这正是「文件级事务、不做字节级断点续传」所依赖的前提。**纯加法窗口在第一批 `.tres` 写下时关闭。** → `decisions/ADR-0125-no-binary-over-overlay.md`

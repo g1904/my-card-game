@@ -32,7 +32,8 @@
 - **一个分支只能被一个 worktree 检出。** 想在别处再看同一分支，用 `git worktree add --detach`。
 - 各目录照常 `git status` / `commit` / `push`，上游跟踪逐分支设好（`origin/<branch>`）。
 - **根目录 `D:\MyCardGame\` 本身不是仓库**，也没有根级 `.gitignore`（git 从不向仓库根以上查找忽略规则；
-  客户端的忽略面在 `game-feature-branch/.gitignore`）。根级三个 `.cmd` 包装脚本不受任何分支版本控制。
+  客户端的忽略面在 `game-feature-branch/.gitignore`）。根级三个 `.cmd` 包装脚本不受任何分支版本控制；
+  根下偶尔出现的其他非 worktree 文件夹（IDE 目录、辅助工具脚手架）同理——`push-all.cmd` 只遍历下方十个 worktree，不碰它们。
 
 ```
 D:\MyCardGame\
@@ -150,7 +151,7 @@ D:\MyCardGame\
 
 设计 → 需求 → 代码：
 
-> **双库入参：** 前 5 步（`/analyze-new-ideas`、`/provide-solution-draft`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）与 `/summarize-open-questions`、`/write-adr` 对**两个设计库**通用——`game-design-documents/`（客户端）与 `backend-design-documents/`（后端）。用 `--lib=game` / `--lib=backend` 显式指定，或直接给带库前缀的路径；判不出时技能会**询问，不静默默认**。解析顺序、跨库纪律与两库结构差异见 `rules/design-library-routing.md`。第 6 步起（`/blueprint` 及其后）仍只面向客户端。
+> **双库入参：** 前 5 步（`/analyze-new-ideas`、`/provide-solution-draft`、`/assess-derive-readiness`、`/derive-requirements`、`/breakdown-requirements`）与 `/summarize-open-questions`、`/write-adr` 对**两个设计库**通用——`game-design-documents/`（客户端）与 `backend-design-documents/`（后端）。用 `--lib=game` / `--lib=backend` 显式指定，或直接给带库前缀的路径；判不出时技能会**询问，不静默默认**。解析顺序、跨库纪律与两库结构差异见 `rules/design-library-routing.md`。第 6 步起（`/blueprint` 及其后）目前仍只面向客户端——当初的限制理由（后端技术栈未定 + 契约未成文）已不再成立，是否扩展待用户裁决。
 
 1. `/analyze-new-ideas [--lib=…] <raw>` —— 先校验想法的**逻辑自洽性**与**同既有 ADR / 主题文档 / 承重纪律的兼容性**；有冲突或含糊即**停下来发起 interview 让用户澄清**，拿到答复后才把意图捕获为整洁的 handoff 并提炼进选定设计库的主题文档。无参数运行则扫描该库 `inbox/` 列出待处理草稿。
 2. `/provide-solution-draft <问题>` —— 取 `open-questions.md` 的**一个**待答项，基于既有决策推演 + 行业通行做法给出**提案式**方案，写到 `inbox/solution-draft-<slug>.md`。**人类评审后**再喂回 `/analyze-new-ideas` 提炼（human-in-the-loop）。它只写这一个草稿文件，不裁决问题、不动主题文档。
@@ -168,7 +169,7 @@ D:\MyCardGame\
 
 `knowledge/` 是**指向设计库的薄引用层**（导航表 + 代码现状 + 一句话承重纪律；设计内容不在此复述，见 `decisions/ADR-0005`）—— `/implement` 会在构建时就地更新相关的 `systems/`、`scenes/`、`data/`、`autoloads/` 笔记；怀疑知识与代码/设计脱节时运行 `/sync-knowledge` 做整体对账——它的对账面是**整个 `.claude` 的设计投影面**（`knowledge/*` + `rules/*`）对两个事实来源（`game-feature-branch/` 的代码现状、`game-design-documents/` 的设计意图），并把偷偷长回来的副本压回薄引用。术语的权威在 `game-design-documents/terminology.md`；`knowledge/dictionary.md` 只保留通用的 roguelike 卡组构建体裁词汇，不复制本作专有术语。
 
-**决策立档（与上面的流水线并行、随时可跑）：** `/write-adr [--lib=…]` 把各库的**已定方向**（`open-questions.md`「下一阶段」的 ADR 候选、后端库 `decisions/_index.md` 的「ADR 候选」表、以及散落在 handoff 里的定案）逐条落成 `<LIB>/decisions/ADR-####-<slug>.md` 并更新 `decisions/_index.md`。它是 `decisions/` 的**唯一写入者**（唯一例外：用户裁决推翻某条决策时，`/analyze-new-ideas` 直接改写那份 ADR），且严守「**台账绝不领先于事实**」：一条定案没写进权威主题文档就不建档，只在报告里点名。**不接受跨库运行**——两库 ADR 编号各自独立、永不合并。
+**决策立档（与上面的流水线并行、随时可跑）：** `/write-adr [--lib=…]` 把各库的**已定方向**（`open-questions.md`「下一阶段」的 ADR 候选、`decisions/_index.md` 中登记的候选，以及散落在 handoff 里的定案）逐条落成 `<LIB>/decisions/ADR-####-<slug>.md` 并更新 `decisions/_index.md`。它是 `decisions/` 的**唯一写入者**（唯一例外：用户裁决推翻某条决策时，`/analyze-new-ideas` 直接改写那份 ADR），且严守「**台账绝不领先于事实**」：一条定案没写进权威主题文档就不建档，只在报告里点名。**不接受跨库运行**——两库 ADR 编号各自独立、永不合并。
 
 台账闭环：`/blueprint` 把 FR 翻为 `blueprinted` 并登记 `blueprints/_index.md`；`/implement` 在**端到端验证通过后**把 FR 翻为 `built`。台账各有**唯一写入者**：`decisions/_index.md` 归 `/write-adr`，`answer-logs/` 归 `/summarize-open-questions`，`blueprints/_index.md` 归 `/blueprint` 与 `/implement`，「derive 就绪度」小节归 `/assess-derive-readiness`。
 

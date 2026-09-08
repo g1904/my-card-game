@@ -14,17 +14,17 @@
 | 平衡 | `balance.md` | TODO | 花费、伤害、掉落权重、篇章 / 等级维度的缩放曲线。 |
 | 游戏进程 | `game-progression.md` | TODO | eventOptions 循环推进、location（地域）、travel 路由、难度与数值缩放的**分格轴**。**编排顶点**。 |
 | 修行事件（顶层） | `adventure-event/_index.md` | TODO | 顶层 + 顶层共有属性；下含**五个**子类型（ADR-0002）。 |
-| ├ 战斗 | `adventure-event/combat/` | TODO | 回合结构、敌人 AI、胜负结算。**`combatTier` 三档共用同一套代码，差异只在遭遇参数**——档位成员与各档 `TurnLimit` 取值去权威文档看。**唯一的族级例外：战后奖励候选池四族中 `PowerData` 只进 `Standard` / `Finale`，`Practice` 整族排除**（`decisions/ADR-0169-combat-reward-four-family-pool.md`）。 |
+| ├ 战斗 | `adventure-event/combat/` | TODO | 回合结构、敌人 AI、胜负结算。**`combatTier` 三档共用同一套代码，差异只在遭遇参数**——档位成员与各档 `TurnLimit` 取值去权威文档看。**`combatTier` 是模板常量，物化管线里没有任何一步在掷 tier**——配比是内容编排的涌现结果，不得为它加字段 / 加权重表 / 加管线步骤（`decisions/ADR-0173-combat-tier-mix-authoring-only.md`）。**唯一的族级例外：战后奖励候选池四族中 `PowerData` 只进 `Standard` / `Finale`，`Practice` 整族排除**（`decisions/ADR-0169-combat-reward-four-family-pool.md`）。 |
 | ├ 交易 | `adventure-event/exchange/` | TODO | 交易 / 商店机制；**社交语境并入本类**。 |
 | ├ 闭关 | `adventure-event/research/` | TODO | 钻研 / 潜修；开局的强制构筑事件归本类。 |
 | ├ 探索秘境 | `adventure-event/explore/` | TODO | **唯一的元类型**：遮罩一个固定事件，进入即揭示真身。 |
 | └ 前往某处地点 | `adventure-event/travel/` | TODO | **地图路由**：刷新角色所在 location。`eventCountLimit` 用尽即收窄为仅剩 Travel —— **结构性闸门**，别写成「可选的移动事件」。 |
-| 敌人 | `enemies/` | TODO | **与 adventure-event 平级**：`EnemyData` ↔ `EnemyInstance`、样本卡组、作用域取池、**`±2` 赋级带**（无例外硬规则——赋级函数不接受任何区间覆盖参数；代码标识符叫 `EnemyLevelRange`，**不叫 `LevelBand`**，Band 已被隐藏属性档占用）。三个 `combatTier` 档共享同一批条目。 |
-| 角色档案 | `character-profile/_index.md` | TODO | 轮回级主档（字段面见权威）。**隐藏属性恰两项 —— 道心 `Faith` / 煞气 `Bloodlust`**；寿元是明文资源、**不在其列**（`HiddenStat` 只有两个成员，写第三个编译不过）。**模板 `CharacterData` ≠ 轮回态 `CharacterProfile`**。 |
+| 敌人 | `enemies/` | TODO | **与 adventure-event 平级**：`EnemyData` ↔ `EnemyInstance`、样本卡组、作用域取池、**赋级带是无例外的硬规则**——赋级函数不接受任何区间覆盖参数，带边界住平衡资源、随 overlay 可调（取值见权威「赋级带的接受面」）；代码标识符叫 `EnemyLevelRange`，**不叫 `LevelBand`**（Band 已被隐藏属性档占用）。三个 `combatTier` 档共享同一批条目。 |
+| 角色档案 | `character-profile/_index.md` | TODO | 轮回级主档（字段面见权威）。**隐藏属性是一个封闭的两成员枚举 `HiddenStat`，寿元不在其列**（成员表与「写第三个编译不过」的依据见 `architecture.md`「共享核心类型」与 `decisions/ADR-0168-hidden-stat-roster-closure.md`）。**模板 `CharacterData` ≠ 轮回态 `CharacterProfile`**。 |
 | ├ Deck | `character-profile/deck/` | TODO | draw/hand/discard 牌堆、seeded 洗牌、卡牌定义与结算。**构筑单位 = 功法 `CultivationTechnique`**（整组入组 / 整组替换），带层数 `TechniqueTier`。 |
 | ├ 道具 | `character-profile/item/` | TODO | 角色持有的道具。 |
 | ├ 神通（CharacterPower） | `character-profile/power/` | TODO | 轮回级能力，对标账号级 PlayerPower（法则）。 |
-| ├ 货币 | `character-profile/currency.md` | TODO | 轮回货币**两层**：灵石 `spiritStone`（基础）· 仙玉 `immortalJade`（高阶）。**二者完全不可兑换**——不设任何兑换通道，写一条即让双层退化为「单层 + 汇率」。 |
+| ├ 货币 | `character-profile/currency.md` | TODO | 轮回货币分**两层**，且**二者完全不可兑换**——不设任何兑换通道，写一条即让双层退化为「单层 + 汇率」。层名、字段名与取值面见权威。 |
 | ├ 寿元 | `character-profile/life-span.md` | TODO | **`lifeSpan` = 角色唯一的一条命**，既是寿命预算也是失败惩罚承受量。**单值：无上限字段、无上限截断**（别拆成 `currentLifeSpan / lifeSpanLimit`）；**战斗内不被读写**，只在收口时刻被扣；归 0 → `defeated`。 |
 | └ 法力 | `character-profile/mana.md` | TODO | 每回合出牌资源；`manaLimit` 幅度恒为 1。 |
 | 玩家档案 | `player-profile/_index.md` | TODO | 账号级元进程主档（跨轮回持久）。 |
@@ -36,7 +36,7 @@
 | └ 游戏设置 | `player-profile/game-setting.md` | TODO | 音频 / 显示 / 辅助功能等玩家设置。 |
 | 服务层 | `services/_index.md` | TODO | 层级词表 + 七服务；各服务文档带 API 契约表。**服务清单见 `autoloads/_index.md`。** |
 | 计分 | `scoring.md` | TODO | **计分模型 = 道念（momentum）**：既是胜利点数，也**就是战斗的胜负判据**。 |
-| 商业化 | `monetization.md` | TODO | premium bundle —— **唯一付费点、可重复购买**：能力 / 道具项每次都给，重试上限项只在首购生效、不叠加；授予按账号级序号水位**逐次兑现**（授予内容、三道空池闸与序号形态见权威）。法则闸门配额。 |
+| 商业化 | `monetization.md` | TODO | premium bundle —— **当前唯一已陈述的付费点、可重复购买**：能力 / 道具项每次都给，重试上限项只在首购生效、不叠加；授予按账号级序号水位**逐次兑现**（授予内容、三道空池闸与序号形态见权威）。**纯外观是唯一已裁决的预留方向，架构预留、首批一格不落。** 法则闸门配额。 |
 
 ## 承重纪律
 
@@ -54,6 +54,9 @@
 - **轮回出口的「清理」分三层，两条出口不对称**：L1 运行时拆解 / L2 运行态字段清空两条出口都做；**L3 角色实体状态处置只在 `defeated` 做——`completed` 保留（那就是境界存档本身）**。`chapterRetry` 必须归第三类字段，否则重试计数永远停在 1、上限静默失效；`TeardownCycle()` 收窄为纯运行时拆解、零存档语义。→ `decisions/ADR-0165-cycle-exit-three-layer-teardown.md`
 - **`pastEvent` / `pastItemUse` 跨篇章只追加**：不在篇章边界清空、不随篇章重试回滚；「本篇章事件数」由篇章起始 `Seq` 锚点求差得出，不另建篇章坐标系。→ `decisions/ADR-0166-trace-append-only-across-chapters.md`
 - **灵根修习准入不进 `DrawPool<T>`**：它要读 `Profile` 的 `Affinities`，故由调用方在 `PickMany` 之前筛掉，**玩家侧四处取池点各叠一层**（闭关 / 开局构筑 / 商店功法族 / 战后奖励功法族）——漏一处即放出学不了的功法。→ `decisions/ADR-0123-affinity-technique-learning-gate.md`
+- **能力的「启用开关」与「拥有 / 失去」是两条互不覆盖的写入通道**：`Status` 走 `AbilityStatusChanges`（绝对置值），获得 / 失去走 `AbilityElements` 的 `Grant` / `Remove`；**`StatusChanges` 不承载 `Status`**——它绑的是 `CharacterProfile.Status` 上的数值格，名字撞车、语义无交集，写错即把开关写进数值面。→ `systems/player-profile/_index.md`
+- **成就的达成态与发放水位一律不可由派生量反推**：`Completed` 不写成 `Progress >= Target`（`Target` 可 overlay 上调 ⇒ 已达成的里程碑会在一次内容更新后回退，而奖励不可补发），`RewardedTierPercent` 也不由「奖励条目已在持有列表」反推。→ `decisions/ADR-0196-achievement-save-shape-two-keys.md`
+- **外观付费点是「加法窗口保持开启」而非「先埋占位」**：首批不得为它增加任何字段（含 `PlayerEntitlement.Cosmetic`）、屏、内容类型或资产类目——落地形态已写定，预先埋格没有收益且要多 bump 一次 schema。→ `systems/monetization.md`「唯一预留方向」
 
 > 横切的引擎层关注（存档 / 读档、UI / 屏幕、输入 / 触摸、音频）不在 `systems/` 内单列——代码承载形式见 `autoloads/_index.md`、`scenes/_index.md` 与 `standards/*`。
 

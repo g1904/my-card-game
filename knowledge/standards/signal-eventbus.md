@@ -2,14 +2,13 @@
 
 `.claude/rules/csharp-godot-rules.md`（信号章节）的配套。**权威：`game-design-documents/systems/architecture.md`**「总则 5」与「EventBus 负载契约」——**事件清单、负载 schema、`Emit` 代码形状去那边看**，此处不复制。
 
+## 代码现状
+
+**尚无 EventBus、无任何 autoload、无订阅方。** `project.godot` 未注册任何 autoload，`game-feature-branch/` 零 C# 脚本。下列全是规划中的纪律。
+
 ## 何时用什么
 
-| 场合 | 用什么 |
-|------|--------|
-| 父级驱动自身子级、场景内紧耦合 node | **直接方法调用**（默认） |
-| 跨服务、需要返回值 | **直接方法调用** `Xxx.Instance.Method(...)` |
-| 子级通知其父 / 所有者，不知道谁在听（`Card` 发 `Played`） | **局部 `[Signal]`**，限场景边界内 |
-| 跨系统、跨场景的**既成事实**广播 | **EventBus autoload** |
+一条判据分三档：**场景内父→子直接方法调用**；**需要返回值的一律直接方法调用**（含跨服务 `Xxx.Instance.Method(...)`）；**只有跨系统、跨场景的既成事实广播才走 EventBus**。局部 `[Signal]` 仅存的用武之地是场景边界内的子→父通知（`Card` 发 `Played`）。判据本身与「广播不可否决」的语义见下方纪律。→ `game-design-documents/systems/architecture.md`「总则 5」
 
 ## 承重纪律
 

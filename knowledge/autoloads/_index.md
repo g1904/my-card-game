@@ -1,6 +1,6 @@
 # Autoload（服务）索引（引用层）
 
-> **权威：`game-design-documents/systems/services/`**（`_index.md` 层级词表 + 七服务；各服务文档带「API 面（契约）」四列表：方法 | 形态(A/B/C) | 完整签名 | 失败语义）与根级 `program-overview.md`（启动顺序 / 职责矩阵）、`system-overview.md`（代码形态）。**签名、接口、代码块一律去那边看**——此处只留导航与代码现状。
+> **权威：`game-design-documents/systems/services/`**（`_index.md` 层级词表 + 七服务；各服务文档带「API 面（契约）」四列表：方法 | 形态(A/B/C) | 完整签名 | 失败语义）与根级 `program-overview.md`（启动顺序 / 职责矩阵）、`system-overview.md`（代码形态）。**签名、接口、代码块一律去那边看**——此处只留导航与代码现状。该目录另住一份**非服务 / 非 manager** 文档：存档 `schemaVersion` 的逐版登记表（宿主 sync-service，别处不得就地宣布 bump）→ `systems/services/profile-schema-versions.md`。
 
 ## 代码现状
 
@@ -18,7 +18,7 @@
 | **future-event-service** | 物化 AdventureEvent → eventOptions（**唯一物化点 / 唯一出口**）。 | `services/future-event-service.md` ⊃ `services/plot-manager.md` |
 | **combat-service** | 回合循环、抽 / 弃、双方道念、敌人 AI。**`combatTier` 三档复用同一套代码。** | `services/combat-service.md` |
 
-> **各服务的判据字母与内含 manager 清单去权威文档看**——此处曾复制过一份，结果它比设计库少了两个 manager。判据本身（三选一才够格成为服务）：① 自有状态机 / 跨多帧长流程；② 事务性跨多字段一致写；③ 外部 I/O 边界。
+> **各服务的判据字母与内含 manager 清单去权威文档看**——此处曾复制过一份，结果它比设计库少了两个 manager。**「够格成为服务」的三判据本身同样只在权威一处**，别在此抄。→ `systems/architecture.md`「服务层：五级层次」
 
 **跨进程边界只有三个服务**（account / content / sync），且**跨边界成分全部是服务本身——`manager` 不跨边界是无例外的结构性事实**（连 `PlotManager` 也不跨）。
 
@@ -35,12 +35,13 @@
 - **后端错误一律以 `code` 为键查表映射成 `OpError`**，不写 switch、不按 HTTP 状态码分支、不解析 `message`；请求头组装 / 应答头解析 / 映射表**收敛在一处**（`src/Core/`），各 `HttpXxxBackend` 不各写一遍。→ `systems/architecture.md`「总则 7」
 - **`_Ready` 只装配，`InitializeAsync` 才做 I/O**（autoload 的 `_Ready` 不能 `await`，也别写 `async void`）：异步初始化经 `IBootstrappable`，由 `BootstrapScreen` 按序驱动。**装配顺序与初始化顺序的权威都在 `system-overview.md`「三、注册」与「Bootstrap 屏幕」两节，不在此复制。**
 - **两条唯一入口：** 内容读取经 `ContentRegistry`（不散落 `ResourceLoader.Load`；**抽取走 `AllEnabled()`**）；档案写入经 `ProfileManager.TryApply(spec)`，**收口前的重算走只读投影 `Project(spec)`，不开第二个写入面**。
+- **四类持有条目的 `bool Status` 只经 `AbilityStatusChanges` 列写入**（门面 `SetAbilityStatus`）；**`StatusChanges` 不承载这一维**——它绑的是数值型规则字段，名字撞车、语义无交集，不写下这句就几乎必然被误推。→ `systems/services/profile-service.md`
 - **autoload 一律直接指向 `.cs`，无例外**（不为服务包一层 `.tscn`）⇒ **服务级配置走 ProjectSettings，`[Export]` 只留给场景组件**——没有场景实例，`[Export]` 既无存储处也无检视器落点。这是技术互斥，不是风格偏好。
 - **离线 stub 是「换一个实现」，不是在服务里插 `if (offline)`**：三个边界服务持**四个**窄后端接口（`IPurchaseBackend` 与 `IProfileBackend` 同宿主 sync-service），每个两份实现经唯一选择点 `BackendSelector` 取得，`OfflineXxxBackend` 整类包在 `#if DEBUG` 内（Release 里不存在；条件编译清单穷举、不得扩张），开关走 ProjectSettings 而非 `[Export]`。**渠道封装 `IStoreChannel` 不是后端接口**——渠道可用性是运行时事实，走运行时探测，不占 `#if` 位点。→ `systems/architecture.md`「总则 7」、`systems/services/sync-service.md`、`system-overview.md` 第四节
 
 ## 装配顺序（规划）
 
-**EventBus → content → account → sync → profile → life-cycle → future-event → combat**（已定案，与 `system-overview.md` 的 `[autoload]` 块逐行一致）。注意这只解决**装配**顺序；**初始化**顺序另由 `BootstrapScreen` 按 `IBootstrappable` 驱动。→ `system-overview.md`
+**已定案，逐行以 `system-overview.md`「三、注册」的 `[autoload]` 块为准，此处不抄。** 注意它只解决**装配**顺序；**初始化**顺序另由 `BootstrapScreen` 按 `IBootstrappable` 驱动 → 同文件「Bootstrap 屏幕」。
 
 ## 如何添加一条 autoload 说明
 

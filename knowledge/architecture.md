@@ -18,6 +18,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 | `autoloads/*` | `systems/services/`（七服务 + 层级词表 + 各服务 API 契约表；**另住一份非服务 / 非 manager 文档 `profile-schema-versions.md` —— 存档 `schemaVersion` 逐版登记表，宿主 sync-service**） |
 | 美术 / 音频（知识层无对应文件） | `art/`（`visuals/` · `soundtracks/`；只存 vision / 参考登记 / guide，**生成出的二进制资产归 `game-feature-branch/`**——目前一件都还没有） |
 | 协议契约（客户端只有投影） | `backend-design-documents/contracts/`——**报文形态的权威在后端库**，本库只定客户端的调用形状 |
+| 范围与支柱（知识层无对应文件） | `vision/`（`pillars.md` 支柱 · `scope.md` 范围内 / 外清单——「加一条新机制」类提案的终审面） |
 | 已定案决策 | `decisions/ADR-*` |
 | 待答问题 | `open-questions.md` |
 | 可构建规格 | `requirements/FR-*` |
@@ -26,12 +27,15 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 
 `game-feature-branch/` 目前**只有 Godot 脚手架**：`project.godot`、`icon.svg(.import)`、编辑器 / git 配置文件。**尚不存在任何场景、C# 脚本、autoload 或数据资源，也尚无 `.csproj`**（设计库多条护栏的落地时点挂在「首次生成 `.csproj`」上 → `game-design-documents/systems/services/profile-schema-versions.md`）；`project.godot` 无 `[autoload]` 段、未设主场景。设计文档里的一切都是**待构建的规划**——在代码里亲眼见到之前，不要假定某系统已存在。
 
-引擎与平台（读自 `project.godot`）：
+`backend-feature-branch/` **只有一份 `README.md`，尚未开工**——后端契约的权威仍在 `backend-design-documents/contracts/`，代码侧目前无任何可对照物。
+
+引擎（**读自 `project.godot`**）：
 - **Godot 4.7** + **.NET/C#**，程序集名 `game-feature-branch`。
 - 渲染器 **GL Compatibility**（`gl_compatibility`，`.mobile` 亦然）；Windows 编辑器用 `d3d12` 驱动。
-- 显示 `stretch/mode = canvas_items`、`stretch/aspect = expand`，**竖屏**、移动优先。
-- 目标平台 **Android / iOS（主要）、桌面、网页**；**强制在线 · 云端权威**，`user://` 仅作缓存。
+- 显示 `stretch/mode = canvas_items`、`stretch/aspect = expand`。
 - 3D 物理设为 Jolt（脚手架默认；本作是 2D，未使用）。
+
+**竖屏 / 目标平台（Android · iOS 主，桌面 · 网页次）/ 强制在线 · 云端权威三项尚未在 `project.godot` 里落地**，它们是设计意图而非代码事实 → `game-design-documents/vision/scope.md`、`systems/architecture.md`「内容与档案的存储分界」。
 
 ## 结构骨架（一句话版，细节见权威）
 
@@ -43,7 +47,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 - **物化模型：** `AdventureEventData`（模板）→ future-event-service（**唯一物化点**）→ `EventOption`（**产出即定稿、不可变、落存档**）。同一通则也适用于 `EnemyData` → `EnemyInstance`。→ `systems/architecture.md`「总则 6」。
 - **核心循环一批只有一次操作：择一进入。** 跳过通道整体不存在，别为「跳过」写任何分支；选择约束只剩 `Priority` 一条轴，future-event-service 独占置位。→ `systems/game-progression.md`
 - **内容三层覆盖来源：** 基线 < overlay < flags → 合并后统一校验 → ContentRegistry 按 `Id` 索引。→ `data/_index.md`
-- **一切内容都在本地，没有云端内容通道**：跨进程边界收敛为**四个窄接口**（鉴权 · 内容分发 · 进度同步 · **购买**），由**三个边界服务**持有——`IPurchaseBackend` 与 `IProfileBackend` **同宿主 sync-service、接口分立**（挂进 `IProfileBackend` 已被否决）；运行时内容零网络请求。条件编译清单穷举、不得扩张。渠道封装 `IStoreChannel` 不是后端接口（运行时探测选实现，不占 `#if` 位点）。 → `systems/architecture.md`「总则 7」、`decisions/ADR-0180-purchase-backend-fourth-interface.md`、`decisions/ADR-0179-store-channel-wrapper-in-sync-service.md`；「剧本纯本地」这一条 → `systems/services/plot-manager.md`
+- **一切内容都在本地，没有云端内容通道**（含剧本）：跨进程边界 = **三个边界服务持四个窄接口**，`IStoreChannel` 不在其列；条件编译清单穷举、不得扩张；运行时内容零网络请求。**展开见 `autoloads/_index.md`**，权威 → `systems/architecture.md`「总则 7」、`systems/services/plot-manager.md`
 - **启动契约：** `main` 场景 = `BootstrapScreen.tscn`，按序驱动**三个**边界服务的 `InitializeAsync`，并在登录之后插入一次 `RefreshFlagsAsync`。→ `autoloads/_index.md`。
 
 ## 承重纪律（写代码时会改变写法的那几条）
@@ -59,6 +63,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 7. **EventBus 用 C# 泛型 `event` + `readonly record struct` 负载**，不用 Godot `[Signal]`；负载**只带 `Id` + 值类型**；**`_Ready` 订阅 / `_ExitTree` 退订**。→ `standards/signal-eventbus.md`
 8. **服务间只经 `Xxx.Instance.Method(...)` 调用**，不读写对方字段、不伸手进对方 manager（跨服务方法调用本身是允许的）；manager 类型 `internal sealed`；服务不返回内部可变集合。
 9. **集合字段名与元素类型名恒为单数形态对应，且二者不得逐字相同**（`RealmArtworks : RealmArtwork[]`）——同名会让类内成员查找遮蔽同名类型，`new RealmArtwork()` 当场解析不了；且字段名机械映射为 JSON path，改名即破坏性契约变更。→ `decisions/ADR-0105-singular-collection-field-naming.md`
+10. **`HiddenStat` 已永久收口，不得为「以后可能加」预留占位成员或 band 字段**——占位成员当场污染 `ResourceElements` / `StatusFields` 两张封闭表与「每 `Stat` 须有常态档」那行校验；新增一项须先过准入四问。→ `systems/services/plot-manager.md`「准入四问」、`decisions/ADR-0168-hidden-stat-roster-closure.md`
 
 ## 其余导航
 

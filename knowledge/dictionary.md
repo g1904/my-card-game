@@ -24,7 +24,7 @@
 | **Boss** | 一个 act 的收尾遭遇。 | **Finale（境界突破 / 天劫）**——复用 combat-service，全部 Finale 均为战斗。→ `systems/adventure-event/combat/` |
 | **Reward** | 遭遇结束后的选择（卡牌 / 货币 / relic）。 | 强制自动计入项 + 候选项**逐项领取 / 跳过**（不是三选一）；**每一次领取 / 跳过都是决策点**。→ `decisions/ADR-0082-itemized-combat-rewards.md` |
 | **CycleState** | 所有 per-run 数据的内存持有者。 | **`CharacterProfile`**（轮回级），由 `PlayerProfile` 持有。→ `systems/character-profile/_index.md` |
-| **Content registry** | 按 id 索引全部内容资源的启动期注册表。 | `ContentRegistry`，隶属 content-service，**全游戏唯一内容读取入口**。→ `data/_index.md` |
+| **Content registry** | 按 id 索引全部内容资源的启动期注册表。 | `ContentRegistry`，隶属 content-service，**全游戏唯一内容读取入口**。→ `game-design-documents/systems/services/content-service.md` |
 | **Materialize（物化）** | 体裁无对应通称：模板 → 依情境代入 → 定稿实例。 | `AdventureEventData` → future-event-service → `EventOption`，**产出即定稿、不可改写、落存档**。→ `terminology.md` |
 
 > **本作大量借用 MTG 术语**（栈 / 结算 / 触发 / 永久物 / 卡牌类型 / 次类型），但**只借结算模型与词汇，不借其胜负模型、mana 曲线、交互与优先权**。借词的中英定名权威在 `terminology.md`。

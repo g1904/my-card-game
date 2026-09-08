@@ -2,6 +2,10 @@
 
 `.claude/rules/scene-rules.md` 的配套文档。
 
+## 代码现状
+
+**零场景。** `game-feature-branch/` 只有 `project.godot` + `icon.svg`，无任何 `.tscn`、无 autoload 注册、未设主场景。下列全是规划中的约定。
+
 ## 组合
 - 一个场景 = 一个内聚单元（一个屏幕、一张卡牌、一个敌人）。用较小的实例化场景组合大屏幕，而非一个巨大的 `.tscn`。
 - 根 node 类型反映场景的角色：UI 屏幕/控件用 `Control`，世界/棋盘元素用 `Node2D`，纯逻辑容器用 `Node`。

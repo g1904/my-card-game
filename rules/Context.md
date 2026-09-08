@@ -42,7 +42,7 @@ Godot **4.7**，渲染器 **GL Compatibility**（`renderer/rendering_method = gl
 
 客户端代码位于 `game-feature-branch/`。它目前**只有 Godot 工程骨架**（`project.godot` + `icon.svg`），**零 C# 脚本、零场景、零 `.tres`、尚无 `.csproj`**。知识文件描述的是**预期的**架构，会随着系统落地而逐步填充；在你于代码中亲眼见到某个系统之前，不要假定它已存在。
 
-后端代码位于 `backend-feature-branch/`，**尚未开工**（只有 README，技术栈待定）。在后端就绪前，客户端的边界服务（`account-service` / `content-service` / `sync-service`）以**离线 stub** 实现，使整个游戏可先端到端跑起来。权威：`game-design-documents/systems/architecture.md` 的「总则 7 —— 后端接口化」与 `game-design-documents/system-overview.md` 第四节。
+后端代码位于 `backend-feature-branch/`，**尚未开工**（只有 README）；**技术栈与托管形态已在设计库落定**，见 `backend-design-documents/README.md`。在后端就绪前，客户端的边界服务（`account-service` / `content-service` / `sync-service`）以**离线 stub** 实现，使整个游戏可先端到端跑起来。权威：`game-design-documents/systems/architecture.md` 的「总则 7 —— 后端接口化」与 `game-design-documents/system-overview.md` 第四节。
 
 ## 知识导航（按需加载）
 
