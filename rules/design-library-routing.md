@@ -89,5 +89,6 @@
 | `/review-feature` · `/review-local-changes` · `/investigate` | 审查 / 追踪 Godot 客户端代码。 |
 | `/scaffold-content-type` · `/author-content` · `/audit-content` | 内容条目层 `content/` 只存在于 `game-design-documents/`；后端库没有这一分区。 |
 | `/sync-knowledge` | `.claude/knowledge/*` 只覆盖客户端。 |
+| `/design-direction-interview` | 设计方向 / 风格取向（玩法手感、UI/UX 基调、数值性格）天然属客户端体验；后端的取向问题走 `/provide-solution-draft`。 |
 
 后端进入实现阶段（技术栈落定 + `contracts/` 成文）时再扩展这几项。`/update-readme` 本就按路径参数分发，不走本文件的库解析。

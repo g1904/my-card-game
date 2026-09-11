@@ -76,6 +76,8 @@ Phase B 写完不等于批次完成。宣告完成前，orchestrator 必须依�
 
 ## worker 契约（对单会话技能的三点覆盖）
 
+**派发形态（前置）：worker 一律用 `subagent_type: "general-purpose"`，绝不用 `Explore`。** worker 按下方契约必须写自己的独占文件（`questions-<分片>.md`、`report-<分片>.md`、以及分派给它的草稿 / FR / 蓝图 / 条目），而 `Explore` 的工具集不含 `Edit` / `Write` / `NotebookEdit` —— 写入在工具解析层就失败，**不报权限错、无提示可循**，只表现为 run 目录里静默少了文件（已有先例：`2026-09-03-four-solution-drafts/` 整批 `report-*.md` 缺失）。worker **内部**再派 `Explore` 做只读探查不受此限。这条覆盖 `CLAUDE.md`「写文件不外包给子代理」的默认取向，该处已记同一例外。
+
 worker 执行单会话技能时，以下三点覆盖原技能文本，其余步骤原样遵守：
 
 1. **不调用 `AskUserQuestion`**（subagent 无法触达用户）。原技能要求 interview / 澄清检查点处：Phase A worker 把问题按上述结构写进 run 目录并**就此停止**；Phase B worker 把 `answers.md` 中对应条目视同用户当面答复。

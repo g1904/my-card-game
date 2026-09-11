@@ -32,6 +32,7 @@ allowed-tools: Read, Write, Edit, Glob, Grep, Bash, AskUserQuestion
 - **粘贴的文本** → 把该消息当作原始记录；你将为它创建一个新的 handoff 文件。
 - 仅有一个**主题提示** → 询问用户原始内容在哪里。
 - **一份 `inbox/solution-draft-<slug>.md`**（`/provide-solution-draft` 的产物，用户已评审 / 修改过）→ 当作原始意图读取。注意其中标注 `[取向选择]` 或列在 `## 仍需用户决定` 的项：**用户已在评审中定下的按定下的处理，未定的仍按 Open question 搁置**，不要把提案当成已定案提炼。
+- **一份 `inbox/design-draft-<slug>.md`**（`/design-direction-interview` 的产物）→ 当作原始意图读取。其「逐轴裁决」是用户在 interview 中**亲口拍板的定案**——按定案提炼（视同用户裁决，不再当提案重新发问）；「留白」区仍按 Open question 搁置；「张力」区列出的推翻已获用户确认，按第 4.6 步改写对应 ADR；「配套默认」按 🔵 采纳。
 - **空（无参数）→ 扫描收件箱**：读 `<LIB>/inbox/_index.md` 的「待处理（ongoing）」表，并与 `inbox/` **顶层**的实际文件对照（`_index.md` / `_TEMPLATE.md` 与 `archive/` 除外——`archive/` 里的都是已提炼的，不再是待处理项）。两者不一致时以**实际文件**为准并顺手修正台账。再与 `handoffs/_index.md` 交叉核对，确认顶层没有其实已被处理、只是忘了归档的草稿。呈现待处理清单（文件名 + 一行内容摘要），询问处理哪个（或按用户指示批量逐个处理）。这可以防止草稿在收件箱中悄悄积压。
 
 先逐字读完输入。此时先不要润色——理解写下的意图本身，包括那些尚未成形的想法。
@@ -186,7 +187,7 @@ grep -c "Source:" <改动的活文档>   # 应 ≤ 该文档的 ## 小节数
 - **不要碰「derive 就绪度」小节（强制）。** 该小节由 `/assess-derive-readiness` 独占写入——见下方第 10 步。
 
 **8b. answer-logs/log-\<draftSuffix\>.md（每次运行新建一个文件）**
-- **`draftSuffix` 取值：** 本次处理的输入是 `inbox/draft-<suffix>.md` → **原样照抄该 `<suffix>`（含序列字母）**（例：`draft-0816a.md` → `log-0816a.md`）；输入是 `inbox/solution-draft-<slug>.md`（`/provide-solution-draft` 的产物）→ 用该 `<slug>`（例：`solution-draft-rng-persistence.md` → `log-rng-persistence.md`）；输入是粘贴文本或已在 `handoffs/` 的文件 → 用当天 `MMDD`（**不加序列字母**——没有草稿序列可跟随）；若同名文件已存在，追加 `_2`、`_3`（**冲突后缀，与序列字母是两套东西，不要混用**）。
+- **`draftSuffix` 取值：** 本次处理的输入是 `inbox/draft-<suffix>.md` → **原样照抄该 `<suffix>`（含序列字母）**（例：`draft-0816a.md` → `log-0816a.md`）；输入是 `inbox/solution-draft-<slug>.md`（`/provide-solution-draft` 的产物）或 `inbox/design-draft-<slug>.md`（`/design-direction-interview` 的产物）→ 用该 `<slug>`（例：`solution-draft-rng-persistence.md` → `log-rng-persistence.md`）；输入是粘贴文本或已在 `handoffs/` 的文件 → 用当天 `MMDD`（**不加序列字母**——没有草稿序列可跟随）；若同名文件已存在，追加 `_2`、`_3`（**冲突后缀，与序列字母是两套东西，不要混用**）。
 - **每次移出新建一个文件，绝不追加进旧 log。** 本次若一个问题都没答定，则**不建文件**。
 - 文件内容：标题 `# Answer log <draftSuffix>`，然后 `日期` / `来源`（handoff 或草稿路径）/ `移出条数`，再逐条 `**<问题>** → <结论>（<归档去向文档>）`。若某问题只答定了一部分，写明剩余部分仍留在待答清单。
 - 在 `answer-logs/_index.md` 的台账表追加一行：`log 文件 | 日期 | 来源 | 移出条数`。
@@ -195,7 +196,7 @@ grep -c "Source:" <改动的活文档>   # 应 ≤ 该文档的 ## 小节数
 ### 9. 更新索引、归档草稿并闭环
 - 在 `<LIB>/handoffs/_index.md` 中新增/更新对应行（最新的置顶）：`id | date | topic | status | distilled-to`。一旦折进主题文档，就把 `status` 设为 `distilled`，并在 `distilled-to` 填上你改动过的文件。
 - **归档本次处理的 inbox 草稿（输入来自 `inbox/` 时强制）。** `inbox/` 的**顶层只放待处理草稿**，这样一眼扫过去就是当前积压：
-  1. 把草稿 front matter 的 `status` 改为 `distilled`（`solution-draft-*` 另需 `reviewed:` 一行记录用户的评审裁决，`distilled-to:` 指向本次写就的 handoff）。
+  1. 把草稿 front matter 的 `status` 改为 `distilled`（`solution-draft-*` 另需 `reviewed:` 一行记录用户的评审裁决；`design-draft-*` 的裁决已在正文「逐轴裁决」中，无需 `reviewed:`；两者均加 `distilled-to:` 指向本次写就的 handoff）。
   2. 把文件移进 `<LIB>/inbox/archive/`（目录不存在则创建）：先用 `git ls-files --error-unmatch <路径>` 判断是否被跟踪——已跟踪用 `git mv`，未跟踪（或无 git）用普通 `mv`（`git mv` 对未跟踪文件直接报错）。**不要删除草稿**——留档用于回溯原始措辞。
   3. 更新 `<LIB>/inbox/_index.md`：从「待处理（ongoing）」表删掉该行，在「已归档」表补一行 `文件 | 类型 | 日期 | 去向 handoff | answer log`。待处理表清空后保留一行 `*（空）*` 占位，别把表头也删了。
   - **归档的前置条件是三条同时成立**：handoff 已写就且 `status: distilled`、草稿 front matter 已改 `distilled`、由它答定的问题已移出 `open-questions/` 并记入 `answer-logs/`。有任一条不成立（例如用户只评审了一半、仍有取向待定）→ **草稿留在顶层**，并在 `_index.md` 的待处理行「下一步」列写清还差什么。
