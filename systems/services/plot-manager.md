@@ -507,7 +507,37 @@
   - **煞气 / Bloodlust** —— 跨入 Band 3（75+）→ 触发 **「煞气反噬」** 剧情线（经 `PlotTriggerId`）。
   - **道心 / faith** —— 跨入 Band `−2`（0–19）→ 触发 **「心魔滋生」** 剧情线（经 `PlotTriggerId`）。**该档无叙事文案**，剧情线与调制是它唯一的显影通道。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-third-hidden-stat.md`
+  **两条 arc 的结构形态（同形）：**
+
+  | 格 | 煞气反噬 | 心魔滋生 |
+  |---|---|---|
+  | `Id` | `plot.arc.sidestory.bloodlust_backlash` | `plot.arc.sidestory.inner_demon` |
+  | `Tier` | `SideStory` | `SideStory` |
+  | `ChapterScope` | 空（不限） | 空（不限） |
+  | `PlotTriggerId` | 对接 `HiddenStatBandData` 煞气 Band 3 | 对接道心 Band `−2` |
+  | `ExclusiveGroup` | `hidden_stat_backlash` | `hidden_stat_backlash`（同组） |
+  | 节点数 | 3–4 | 3–4 |
+
+  - **取 `SideStory` 而非 `SideChapter`：** 两个属性的值跨篇章不重置、触发时点不可预知，而 `SideStory` 的定义就是跨篇章穿插。
+  - **`ChapterScope` 恒空，理由须随结构一并写下（否则会被顺手填上）：** 心魔滋生的实际触发时点集中在第二、三篇章，煞气反噬也可能在篇章末跨档；任何非空 `ChapterScope` 都会让刚刚触发的 arc 在下一篇章开头当场被判出范围。
+  - **同 `ExclusiveGroup`：** 既杀伐又背信的角色会同时满足两条线的触发条件，而同时跑两条 boss 线会在一个篇章里堆两次高潮。同组即一次轮回至多激活一条。
+  - **3–4 个节点既是下界也是上界。** 下界：入口叙事 → 1–2 个调制 → 剧情线 boss → 终止，砍到两个节点就没有 boss 节点，而 boss 节点是这条线唯一的高潮落点，缺了它整条线只剩旁白，与「档多 ≠ 文案多」「调制才是主要显影通道」相抵。上界：第三篇章触发时玩家剩余事件位有限，整条线须能在一个篇章的剩余事件位内跑完。
+
+  **节点形态（零新结构）：** 入口节点（纯叙事，`Modulation` 空）→ 1–2 个调制节点（`EventWhitelist` + `EventWeights` 把本线事件推到玩家面前）→ **剧情线 boss 节点**（`EnemyPoolScope` 换煞气化身 / 心魔模板 + `LevelBias` + `Tighten`，即被 `PlotModulation` 六字段拧过的一场 `Standard` 档 Combat）→ 终止节点（`Edges` 空 ⇒ arc → `Completed`）。**至少一处 `ChooseBranch`（两出边）**，让玩家能选择迎合或抗拒。既定边界照旧：**不给残卷、不是篇章闸门、失败不影响境界突破**。
+
+  **两条线的触发通路不对称（这决定编排基调，不写下来会按同一密度铺内容）：**
+
+  - **煞气反噬在默认路径上。** 杀伐是主流玩法，煞气以上行为主，多数轮回会走到 Band 3 附近。
+  - **心魔滋生是主动选择型。** Combat 三档里 `Practice` 与 `Finale` 的道心推拉是**档位默认恒 `Raise`、不进逐条目内容池的方向配比**，一个篇章的结构性 `Raise` 约 +20；逐条目内容池取对称配比 ⇒ **道心的默认叙事是「修行本身即精进」**：不刻意选择的玩家每篇章上漂约 20 点，道心通明（Band `+2`）在第二篇章近乎必达，而**被动跌到 `−2` 的轮回不足一成**。要触发心魔滋生，玩家须**持续**在带道心推拉的条目上选 `Lower`。
+  - **编排后果：** 两条线按各自的触发率铺内容量，但**节点规模不随触发率下调而缩水**——稀有不等于潦草，3–4 节点是最小可用规模。
+
+  **内容大纲（正文归内容编排）：**
+
+  - **煞气反噬** —— 杀业积到反噬自身：战后久不散的血气（叙事节点）→ 旧日杀过的对象在秘境中以煞气化身出现（调制节点，`EnemyPoolScope` 收窄）→ 与自身煞气所化之物一战（boss 节点）。分支 =「以杀止杀」（胜后煞气再涨，得一件与杀伐相性的奖励）vs「散去煞气」（`Bloodlust` `Lower` `Major`，代价是一次事件位与寿元）。
+  - **心魔滋生** —— 道心崩坏后被外物趁虚而入：决断开始出错（调制节点，`Tighten` 让遭遇更紧）→ 一个「可以走捷径」的诱惑事件（`EventWhitelist`）→ 心魔具象（boss 节点）。分支 =「与心魔共处」（保留一项带代价的强力收益）vs「斩心魔」（`Faith` `Raise` `Major`）。
+  - **两条线都不给干净的好结局**，代价一律如实展示（grimdark 基调见 `vision/pillars.md`）。
+
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-third-hidden-stat.md` · `handoffs/2026-09-09f-event-reward-and-hidden-stat-orchestration.md`
 
 ## 管理器角色 / API 面（契约）
 > _总则与共享类型见 `systems/architecture.md`「API 契约总则」。**本 manager 纯本地，永不跨进程边界，故全部方法为形态 A**（剧本内容属本地内容层）。_
@@ -575,8 +605,7 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 
 ## 待决问题
 
-- **隐藏属性的推拉触发：** 清单为 **道心 / 煞气** 两项且均隐藏（准入判据见「意图」的「取值域与档位表」小节），取值域、档位表、阈值与回滞见「意图」；仍待定：**增减触发（哪些 AdventureEvent 推拉、各推哪一档 `HiddenStatGrade`）**、每条剧情线的具体内容与 key points。**Combat 三档已有默认口径**（`Practice` 推道心不推煞气 · `Finale` 胜负同推道心，见 `systems/adventure-event/combat/_index.md`），它是这条待答项的一个子集，其余四类与逐条目编排仍欠。（寿元不在本清单内，它已不是隐藏属性，见 `systems/character-profile/life-span.md`。）→ 亦见 `life-cycle-service.md`、`systems/balance.md`。
-- **`HiddenStatGrade` 的三个映射值留待内容扩充后的统计校准。** 初值 `Minor 2 / Standard 5 / Major 10` 与「每属性每篇章跨档 2–4 次」是**反推验收项，不是死数字**，其校验依赖上一条的「增减触发」。**档位结构、阈值形态、文案形态、呈现形态均不被它阻塞**——它约束的是标定，不是结构。→ `systems/balance.md`。
+- **`HiddenStatGrade` 的三个映射值留待内容扩充后的统计校准。** 初值 `Minor 2 / Standard 5 / Major 10` 与「每属性每篇章跨档 2–4 次」是**反推验收项，不是死数字**。**档位结构、阈值形态、文案形态、呈现形态均不被它阻塞**——它约束的是标定，不是结构。→ `systems/balance.md`。
 
 Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-09-06-third-hidden-stat.md`
 

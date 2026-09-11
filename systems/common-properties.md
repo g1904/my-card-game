@@ -154,11 +154,12 @@ Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hie
 >
 > **为什么必须明写「本层无规则消费点」而不是省略：** 省略与「还没想」不可区分。
 
-**当前顶层六个共有字段的归属核对（判据的一次全量自检 · 无一需要迁移）：**
+**当前顶层七个共有字段的归属核对（判据的一次全量自检 · 无一需要迁移）：**
 
 | 字段 | 挂载面 | 最小公共祖先 | 结论 |
 |---|---|---|---|
 | `ContentEnabled` | 一切 `XxxData` | 顶层 | 留顶层 |
+| `ChapterScope: int[]` | `EnemyData` / `AdventureEventData` / `PlotArcData` | 顶层（跨多棵子树） | 留顶层 |
 | `LocalizedText` | `CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PowerData` / 档位条目 / 剧本 | 顶层 | 留顶层 |
 | `Rarity: RarityTier` | `PowerData` / `ItemData` / `CardData` / `CultivationTechniqueData` | 顶层 | 留顶层 |
 | `Artwork: Texture2D` | `CardData` / `EnemyData` / `PowerData` / `ItemData` / `CharacterData` / `LocationData` / `AdventureEventData` / `AchievementData` | 顶层（跨多棵子树） | 留顶层 |
@@ -170,6 +171,16 @@ Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hie
 - **过滤只发生在产出侧：** 一切**抽取**（eventOptions、商店库存、奖励掷骰）走 `ContentRegistry` 的 **`AllEnabled()`**；**读取侧 `Get(id)` 不过滤**，故存档引用到被关闭的条目仍能正确解析。**任何从内容集合抽取的代码必须走 `AllEnabled()`**——与「不散落 `ResourceLoader.Load`」同级的纪律。
 - **这条纪律由命名强制，不只靠条款：仓储上没有中性名 `All()`**——只有 `AllEnabled()`（抽取池）与 `AllIncludingDisabled()`（全量：启动期校验 / 图鉴统计 / 调试），过渡期保留一个 `[Obsolete(error: true)] All()` 编译闸。选级判据见 `systems/architecture.md`「纪律的可执行化」。
 - **合并后强校验对 disabled 条目照常全量执行**（`Id` 唯一性、交叉引用不悬空），走 `AllIncludingDisabled()`。完整论证见 `systems/services/content-service.md`。
+
+### 内容共有字段 `ChapterScope: int[]`
+
+**声明条目可出现 / 存活的篇章；字段形态与字段级校验在全库只有这一份定义，各落点写投影段。**
+
+- **形态：`int[]`，取值 `1..3`**（对位 `CharacterProfile.chapter`）。**挂载面 = 三类：** `EnemyData`（敌人池的篇章框定）· `AdventureEventData`（事件候选池的篇章框定）· `PlotArcData`（剧情线的存活篇章）——三处**同名同形同义**（已裁定维持同名，不逐类型改名）。
+- **空数组合法 = 不限（三章通用）。** 过滤一律写成 `Length == 0 || Contains(currentChapter)`，空即恒真 ⇒ 漏填只是范围偏宽、不是死条目。与 `EncounterScopes`「空数组 → `PushError`」的不对称是有意的——判据是**漏填的后果不同**（空数组下 `Contains` 恒假会让 `EncounterScopes` 漏填即死条目）。
+- **字段级校验（加载期，带定位上下文）：** 越界值（`1..3` 之外）→ `PushError`（带条目 `Id` + 越界值）+ 抛；重复值 → `PushWarning`（无害但多半是手误——重复对 `Contains` 无任何影响；**只告警、取池不受影响**，校验纯只读，绝不写回共享只读模板）。
+- **不设「长度必须 < 3」检查：** 显式写 `[1,2,3]` 与留空语义相同，而显式写是内容侧表达「我确认过三章都出」的正当方式。
+- **各层叠加的池级断言与豁免归各层，不在本节：** 敌人侧的 `(combatTier, 篇章)` 通用池非空断言见 `systems/enemies/common-properties.md`；事件侧的 `(chapter, EventType)` 命中数 ≥ 1 断言与 `Travel` 恒空豁免见 `systems/adventure-event/common-properties.md`；剧情线侧的 `SideStory` 恒空口径见 `systems/services/plot-manager.md`。
 
 ### 内容文本的多语言形态 `LocalizedText`
 
@@ -230,7 +241,7 @@ public partial class LocalizedText : Resource
 [Export] public Texture2D Artwork { get; set; }   // 可空；null = 尚未产出，呈现层回落占位资产
 ```
 
-- **挂载面 = 七类内容定义：** `CardData`（卡面插画）· `EnemyData`（敌人立绘）· `PowerData` / `ItemData`（法则 / 神通 / 古宝 / 法宝 图标）· `CharacterData`（角色形象；该类另有一格自有的稀疏境界覆写 `RealmArtworks`，见 `systems/character-profile/_index.md`）· `LocationData`（事件背景板）· `AdventureEventData`（事件插图）· `AchievementData`（成就徽记）。资产规格与关键约束逐类目见 `art/visuals/_index.md`。
+- **挂载面 = 八类内容定义：** `CardData`（卡面插画）· `EnemyData`（敌人立绘）· `PowerData` / `ItemData`（法则 / 神通 / 古宝 / 法宝 图标）· `CharacterData`（角色形象；该类另有一格自有的稀疏境界覆写 `RealmArtworks`，见 `systems/character-profile/_index.md`）· `LocationData`（事件背景板）· `AdventureEventData`（事件插图）· `AchievementData`（成就徽记）。资产规格与关键约束逐类目见 `art/visuals/_index.md`。
 - **不挂载：** 任何运行时 / 存档态类型（`CardInstance` / `EnemyInstance` / `EventOption` / `CodexEntry`）——那一层只带 `Id` + 可变状态，见「展示字段的归属」。
 - **功法（`CultivationTechniqueData`）不挂：它没有独立的视觉资产。** 资产类目表里没有功法一行，`TechniqueCodex` 的词条构成也不含立绘；图鉴族的功法词条以名称 / 描述 / `Rarity` + 可选风味文案构成。日后确需一张功法图是纯加法。
 - **字段名取 `Artwork`（单数、类型中立），不取 `Portrait` / `Icon` / `Illustration`。** 同一格在敌人身上是立绘、在卡牌上是卡面、在法则上是图标；按判据卡上移到顶层的字段必须用**跨落点同义**的名字，落点差异由各层投影段的「本层语义」一行承载（同 `Rarity`）。**不拆成三个按用途分立的字段**：同一敌人在图鉴与战斗屏复用同一张资产，分立会让每个内容类都要回答「我该填哪几格」，且三格中至少两格恒空。
@@ -244,7 +255,7 @@ public partial class LocalizedText : Resource
 - **overlay：** overlay 覆盖一条 `.tres` 时，**本节的资产引用格**随之被覆盖；**指向必须落在随包基线内已存在的资产**——overlay 能做的只有改指到另一张已随包的资产，或置空（置空 → ViewModel 占位回落）。**二进制资产本身不经 overlay / blob 通道下发**，换图 / 加图随版本发布：`Artwork` 取的是直接资源引用，落在 `user://` 的裸资产不是导入产物，要让它被条目引用只能退回本节已逐条否决的路径字符串 + 运行时加载形态；且它会让「不做字节级断点续传」那条否决所依赖的 KB 级前提当场失效（见 `systems/services/content-service.md`）。**这条覆盖本节的全部资产引用格**，不止 `Artwork` 一格。报文侧的对位（blob 通道的能力对文件类别中立，限制来自本节的字段形态而非契约）见 `backend-design-documents/contracts/content-manifest.md`。
 - **不落存档、不进上行负载**，不 bump schema、无迁移、后端零配合——它是内容定义的属性，同 `LocalizedText` / `ExclusiveSource`。
 - **消费点 = ViewModel 组装**（见 `systems/viewmodel.md`）。各层的具体消费屏在该层的投影段点名。
-- **基数恒为一条内容一格；境界维度不进本字段。** 七个挂载面里能被境界索引的只有 `CharacterData` 一个（敌人的境界是 `EnemyInstance` 的物化产物、不在模板上，见 `systems/enemies/_index.md` 与 `decisions/ADR-0044-enemy-leveling-band.md`；`LocationData` 三章共用同一张图，见 `decisions/ADR-0042-location-flat-set-and-single-map.md`）——**只有一个落点的字段不进 `common-properties.md`**，故境界覆写按判据卡落 `CharacterData` 自有的一格 `RealmArtworks`，见 `systems/character-profile/_index.md`。
+- **基数恒为一条内容一格；境界维度不进本字段。** 八个挂载面里能被境界索引的只有 `CharacterData` 一个（敌人的境界是 `EnemyInstance` 的物化产物、不在模板上，见 `systems/enemies/_index.md` 与 `decisions/ADR-0044-enemy-leveling-band.md`；`LocationData` 三章共用同一张图，见 `decisions/ADR-0042-location-flat-set-and-single-map.md`）——**只有一个落点的字段不进 `common-properties.md`**，故境界覆写按判据卡落 `CharacterData` 自有的一格 `RealmArtworks`，见 `systems/character-profile/_index.md`。
 - **已知代价（明写接受 + 退让阶梯）：** `ExtResource` 直引使 `LoadAll()` 把全部条目的贴图一并驻留内存。条目量级 × 移动端压缩贴图，量级上可接受；**若真机实测超包体 / 内存预算，退让阶梯是**：① 先降资产分辨率与压缩格式（纯资产侧，零结构改动）→ ② 才考虑改为路径字符串 + 在 ViewModel 层开**唯一一处**受控的资产加载入口（仍不散落 `ResourceLoader.Load`）。给出阶梯是为了让「内存不够」有一条不必重开本节形态裁决的出路。
 
 ### 授予来源共有字段 `SourceCode` + `Source` 枚举
@@ -290,9 +301,9 @@ public partial class LocalizedText : Resource
   | `FinaleWin` | ✅ | ❌ | ❌ | ❌ |
   | `PremiumBundle` | ✅ | ✅ | ❌ | ❌ |
   | `AchievementReward` | ✅ | ✅ | ❌ | ❌ |
-  | `EventOutcome` | ❌ ※ | ❌ ※ | ✅ | ✅ |
+  | `EventOutcome` | ❌ | ❌ | ✅ | ✅ |
   | `CombatReward` | ❌ | ❌ | ✅ | ✅ |
-  | `ExchangePurchase` | ❌ ※ | ✅ | ✅ | ✅ |
+  | `ExchangePurchase` | ❌ | ✅ | ✅ | ✅ |
   | `InitialGrant` | ❌ | ❌ | ✅ | ✅ |
   | `ExchangeSell` | ❌ | ❌ | ❌ | ✅ |
   | `PackSell` | ❌ | ❌ | ❌ | ✅ |
@@ -302,7 +313,7 @@ public partial class LocalizedText : Resource
   - **账号级不接 `CombatReward` / `InitialGrant`：** 账号级授予唯一的战斗入口就是残卷，而它已有专用成员 `FinaleWin`；「开局初始持有」是角色创建时的行为，账号级两类不随角色创建发放。
   - **轮回级不接 `PremiumBundle` / `AchievementReward`：** 二者按定义是账号级发放——发一件随轮回清理的东西作为付费 / 成就回报，与「付费内容不会被游戏销毁」正面冲突。
   - **`Unknown` 只作读档兜底，不是授予时的合法入参**（授予侧传 `Unknown` = 调用方漏填，与「不设默认值」同一条纪律）。
-  - **※ 三格 ❌ 是「暂不开放」，不是「语义上不可能」。** 它们取决于尚未设计的「法则的第三条获取渠道」（见 `systems/player-profile/player-power/_index.md` 的待决项）；在那条答定前一律 ❌，**日后开放 = 在校验表里翻一格，无任何结构改动**。
+  - **账号级两类都不接 `EventOutcome`，法则另不接 `ExchangePurchase`——三格都是规则层的封死，不是「暂不开放」。** 账号级的**授予**恒走「打（残卷）/ 买（礼包）/ 成就」三条：轮回内事件产出会改变账号级经济、绕开这三条既定渠道（`GrantFromPool` 的 `PoolKind` 相应拒绝 `PlayerItem`，见 `systems/services/future-event-service.md`），且会开出一条**后端无输入可复算**的账号级永久授予；法则一侧另有一条——事件产出是一条不受 `x` 调控的平行供给，会旁路掉残卷那条受调控的递减曲线。法则不接 `ExchangePurchase` 则是因为**账号级永久能力不进任何交易面**（古宝那格 ✅ 不受本条约束，其规则归 `systems/player-profile/player-item/_index.md`）。完整论据见 `systems/player-profile/player-power/_index.md`「获取与失去的通道已闭合」。
   - **清单里有三个成员记的是「怎么没的」而非「怎么来的」，故它们只出现在 `Op == Remove` 上：`ExchangeSell`（在 Exchange 商店里卖给商店）· `PackSell`（在储物袋内随手售出）· `ExchangeBarter`（在 Exchange 里作为以物易物的支付侧交出）。** 买与卖在履历、成就与诊断上是两件事：复用 `ExchangePurchase` 会让「购买次数」这类统计永远算不准，而 `Source` 的既定职责本就是「这件东西怎么来的 / 怎么没的」。**三条通道彼此也不复用同一个成员**：随售发生在事件之外，把它记成 `ExchangeSell` 会让「在商店里卖了几件」同样算不准，且让这条痕迹指向一个不存在的事件；以物易物**一枚货币都不动**，把它记成 `ExchangeSell` 会让同一个维度第二次算不准（换出去的东西被计进「卖了几件」）。**校验相应扩三格**：`Op == Grant` 且 `Source == ExchangeSell`、`Op == Grant` 且 `Source == PackSell`、`Op == Grant` 且 `Source == ExchangeBarter` → 均为**必需缺失**，`PushError` + 整批拒绝（与「`(CarrierKind, Scope, Source)` 不在合法子集表内」同档）。**三者都不落在任何持有条目的 `SourceCode` 上**（那件东西已经不在了）。
     - `ExchangeSell` 出现在 `AppliedChange` 的那条 `Remove` element 里——账里因此读得出「这件法宝是卖掉的，不是被事件剥夺的」。
     - `ExchangeBarter` 同样出现在 `AppliedChange` 的那条 `Remove` element 里。**它是按分野判据单列的**：以物易物由**独立的 barter 提交路径**组装（门面先查一次持有再组装 spec），与售出流程不是同一条组装路径；而在「名与 code 双双永不复用」的冻结纪律下，粒度选择本就不对称——细了可以永远不用（成本恒为零：不进 `.tres`、不走 overlay、后端不复制校验表），粗了要补回来得追加新成员且老数据无法回填。**支付侧单列不影响产出侧**：barter 换来的那件东西照常走 `ExchangePurchase`，如实记账为「从商店取得」。规则权威见 `systems/adventure-event/exchange/_index.md`。
@@ -337,7 +348,7 @@ public partial class LocalizedText : Resource
 - **选 `Source?` 而非新开一个布尔（如 `AchievementExclusive`）**：同一诉求日后必然重演（活动限定、剧情限定条目），复用既有枚举让「限定给谁」成为一次数据填写，而非每次新增一个布尔字段——与「新增内容 = 新增 `.tres`，不改 switch」同一条纪律。取值域随 `Source` 清单扩张而自然扩大。
 - **不落存档**（它是内容定义的属性，不是持有条目的属性），故不 bump schema。
 
-Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-14-common-properties-layering.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
+Source: `handoffs/2026-08-09e-discipline-enforceability.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-14-common-properties-layering.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-19-architecture-structural-residuals.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md` · `handoffs/2026-09-10-player-power-acquisition-and-balance.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

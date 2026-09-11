@@ -20,7 +20,8 @@
 
 ## 待承接
 
-*（空）*
+- `backend-design-documents/decisions/ADR-0051-manifest-schema-path-branch.md`#决策 | 2026-09-07 | `systems/services/content-service.md` | **manifest 请求路径由客户端自行选路**：按内置的 `manifestSchema` 支持集合拼出带结构版本段的 manifest / `.sig` 路径，服务端不分流、blob 路径不带该段。端点形态与保留时长口径一律回链对侧，本库只写「客户端怎么拼、拼错得到什么」。
+- `backend-design-documents/decisions/ADR-0052-cdn-failure-surface-entry-object-split.md`#决策 | 2026-09-07 | `systems/services/content-service.md` | **CDN 域 4xx 按「入口对象 / 入口之后的对象」两分处置**，各自的失败类别与是否上报见对侧「失败面」表。**其中「不对 4xx 走退避重传」是对本库既有下载重试语义的一次收窄** —— 现行「更新流程」步 ② 写的是「失败重下该文件（指数退避，最多 3 次）」，落笔时须把 4xx 从该重试面里摘出来，否则两处并存即互相矛盾。
 
 ## 对账基线（不是待办）
 

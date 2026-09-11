@@ -9,7 +9,7 @@
 - **开局那个强制的构筑事件归 Research。** **炼气新角色**的起始批次（含 ch1 的篇章重试）中**必有一个强制事件**，让玩家选**一门功法**与**一件法宝**（各三选一）——形态取 Slay the Spire 第一章的味道。它是 Research 的一个条目，**不需要第六类事件**；承载机制是既有的 `eventPriority = 1`（本批有效可选集收窄为该档），**不新增机制**。**推论：Research 既定起手形状（开局），也承担整个轮回的多轮构筑（途中）**——两者是同一类事件的两种编排。
 - **Research 不可被 Explore 遮罩。** 卡组编辑是玩家主动规划的动作，把它藏在未知后面只制造挫败，不制造张力。见 `../explore/_index.md`。
 - **不单列「休养 / Rest」。** 休养语义并入 战斗 或 闭关——闭关承担其中的静养 / 修整语义。见 `systems/adventure-event/_index.md`、`terminology.md`。
-- **闭关比常规事件耗时更长。** 这是寿元定价上的一条既定差异：定价表里 Research 的 `lifeSpanCost` 高于常规事件（当前 ch1 64 / ch2 70 / ch3 176）。表的形态与取值归 `systems/balance.md`。
+- **闭关比常规事件耗时更长。** 这是寿元定价上的一条既定差异：定价表里 Research 的 `lifeSpanCost` 高于常规事件（当前 ch1 42 / ch2 48 / ch3 123）。表的形态与取值归 `systems/balance.md`。
 
 ### 结算形态 = 构筑面板，由若干决策槽组成（承重）
 
@@ -92,7 +92,7 @@ Source: `handoffs/2026-09-08-portrait-option-list.md` · `handoffs/2026-09-03-li
 > _尚未解决，需要一次 handoff/决策。_
 
 - **走火入魔候选的出现权重（留待内容扩充后的统计校准）。** 形态已定、取值未定。→ `systems/balance.md`。
-- **功法的层数上限（留待内容扩充后的统计校准）。** `UpgradeTechnique` 的「未达层数上限」这条候选过滤有形态无取值，`ResearchCandidate.Amount` 的取值域待它答定。→ `systems/character-profile/deck/_index.md`、`systems/balance.md`。
+- **功法的层数上限已定：`MaxTier = 5`**（`systems/character-profile/deck/_index.md`）。`UpgradeTechnique` 的「未达层数上限」候选过滤按它执行，`ResearchCandidate.Amount` 的取值域随之封顶。→ `systems/character-profile/deck/_index.md`、`systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/adventure-event/research.md`（待建）

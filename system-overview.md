@@ -60,7 +60,7 @@ game-feature-branch/
 │   │   └── Enums.cs                  ← CostKey / CapabilityFlag / RngStream / EventType ...
 │   ├── Data/                         ← XxxData : Resource 定义
 │   │   ├── AdventureEventData.cs
-│   │   ├── CardData.cs  EnemyData.cs  ItemData.cs  PlayerPowerData.cs
+│   │   ├── CardData.cs  EnemyData.cs  ItemData.cs  PowerData.cs
 │   ├── Services/                     ← 一个文件夹 = 一个服务及其全部 manager
 │   │   ├── Account/
 │   │   │   ├── AccountService.cs         ← Node（autoload）

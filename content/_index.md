@@ -70,6 +70,31 @@ content/
 
 **美术 / 音频 guide** 已有自己的落点（`art/visuals/guides/`、`art/soundtracks/guides/`），不并入本层；条目文档以回链方式指向它所需的 guide。
 
+### 跨类型对账项（`/audit-content` 汇总 · 只报告不阻断）
+
+本层只登记「对什么账、目标值在哪」，**口径与取值的权威在 `../systems/`**。下列各项的对账对象随对应类型开张才存在，届时与已登记的 Explore 真身占比、`combatTier` 两档占比同批落地。
+
+| 汇总项 | 对账对象 | 目标值权威 |
+|---|---|---|
+| 战后奖励池的**族占比** | 四个持有类型（`card/` · `character-item/` · `character-power/` · `cultivation-technique/`）逐 `RarityTier` 档的启用条目数，回代出的族占比 | `../systems/balance.md`「战后奖励的内容编排口径」 |
+| 挂 `RewardPoolId` 的 **Combat 条目占比** | `adventure-event/` 台账中 Combat 分区逐条的 `RewardPoolId` 是否为空 | 同上 |
+| 具名奖励池的**五档非空** | 每个具名池的成员清单在 Tier1–Tier5 上逐档至少一条 | 同上 |
+| 逐 `RewardPoolId` 池的**成分** | 逐池的族构成、价位构成与期望价值比 | `../systems/balance.md`「战后奖励池的编排维度」 |
+| 隐藏属性推拉的**逐篇章供给** | 逐篇章 × 逐属性的 Σ\|Δ\| 与 `Raise` / `Lower` 构成；单列「`Travel` 条目携带 `HiddenStatGrants`」与「`Explore` 壳条目携带 `HiddenStatGrants`」两项异常 | `../systems/balance.md`「ch1 推拉供给对账表」（道心携带面 18–20 个事件 / 篇章 · 煞气反向条目 ≈9 条 / 篇章） |
+| 回寿法宝的**三格供给口径** | 逐池逐档含寿元产出的 `ItemData(Scope == Character)` 占比 · 单个 Exchange 条目内 `CharacterItem` 族槽位总数 · 三档回寿量与稀有度 / 定价的绑定是否成立、是否误填 `PriceOffset` | `../systems/character-profile/item/_index.md` |
+| Exchange 的**逐族库存深度** | 每个 Exchange 条目按 `Kind` 分组的 Σ`SlotCount`，逐族与五族之和 | `../systems/balance.md`「Exchange 逐族库存深度」 |
+| 事件侧的**法宝产出量** | 带 `GrantFromPool(CharacterItem)` 的事件条目数 × 各条 `SelectionWeight` 档回代出的期望件数；逐条的 `Count` | 同上 |
+| 法宝**置换频次** | 带 `AbilityChangeSlots` 且锚定 `(Item, Character)` 的事件条目数 × 权重档回代出的期望次数 | `../systems/player-profile/player-power/_index.md` |
+| 法宝**逐档条目数下限** | 每个 `RarityTier` 档的启用法宝条目数 | `../systems/balance.md`「战后奖励的内容编排口径」 |
+| barter 的**对价档差与条数** | 每条 `BarterRule` 的产出物档 vs 支付物档；每个 Exchange 条目的 `BarterRules` 条数 | `../systems/adventure-event/exchange/common-properties.md` |
+
+- **全部只报告不阻断。** 这些是**编排目标**、不是不变式；做成加载期硬校验会在铺内容的中途持续 `PushError`。与 Explore 真身占比、`combatTier` 两档占比的既有登记形态同款。
+- **族占比没有运行时旋钮**：混合池上只按 `RarityTier` 加权 ⇒ 族占比就是条目数矩阵，编排面是它唯一的控制面。加一批卡牌会静默稀释神通占比，故须逐轮对账。
+- **「五档非空」不能落加载期硬校验**（池成员随内容铺开逐步补齐），但必须有对账面——否则「每一档都保有可能性」只是一句无人核对的话。
+- **池深度**已由取池不足的三道闸看住，本层不重复造闸。
+
+Source: `handoffs/2026-09-09d-combat-rarity-and-reward-scale.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md` · `handoffs/2026-09-09f-event-reward-and-hidden-stat-orchestration.md` · `handoffs/2026-09-10-item-family-supply-guardrails.md`
+
 ### 依赖链（决定开张顺序 · 承重）
 
 ```

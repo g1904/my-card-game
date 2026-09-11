@@ -91,7 +91,7 @@ ContentRegistry（内存）    按 Id 索引，唯一内容读取入口
 
 > 三层覆盖来源的语义、各层各自能改什么、flags 的刷新时机与失败降级见 `systems/services/content-service.md`「存储形态：三层覆盖来源」——本图只给落点与合并序，不复述语义。
 
-- **本地内容层**（`res://` + overlay）承载**有稳定 `Id`、被存档引用、需启动期校验**的一切：`AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表，**含静态展示文案**。因此 **AdventureEvent 的定义本身属本地** —— 启动期强校验模型成立。
+- **本地内容层**（`res://` + overlay）承载**有稳定 `Id`、被存档引用、需启动期校验**的一切：`AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PowerData`、平衡表，**含静态展示文案**。因此 **AdventureEvent 的定义本身属本地** —— 启动期强校验模型成立。
 - **没有云端内容通道。** AdventurePlot 的剧本节点 / 分支 / 文本**同属本地内容层**，经 ContentRegistry 读取；PlotManager 按 key points 在本地定位剧本节点，**运行时内容零网络请求**。剧本正文**不落存档**（`CharacterProfile` 只存 key points），这一点只决定一件事：**overlay 对剧本内容可新增 `Id`**（「只改不增」的唯一例外，见 `services/content-service.md`）。悬空 key point → `PushWarning` + 叙事降级、不阻塞轮回。
 - **档案**：云端权威 `PlayerProfile ⊃ List<CharacterProfile>`；启动时全量 pull，自动存档点 push，冲突以云端为准；本地 `user://cache/` 仅缓存。存档本身归属 sync-service。
   - **`user://cache/` 下一律原子写**（临时文件 → rename），实现走共享静态工具 `AtomicJsonFile`（见下方「共享核心类型」）。

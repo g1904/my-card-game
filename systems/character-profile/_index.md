@@ -10,6 +10,8 @@
   - **开局由玩家从角色池中指定一个角色**（炼气起手仍可无限重试，门禁只落篇章层、不落角色层）。
   - **每个角色自带一个神通（`CharacterPower`）与两门绑定功法**，且**与角色绑定**——同一个角色的每一局，神通与这两门功法都相同。**推论：跨轮回的熟悉感有了载体**，「这个角色打起来是什么手感」成为玩家可积累的知识。
   - **绑定不等于不可动摇**：那两门功法**同样可被弃置**（见 `deck/_index.md`）——角色给的是**起手形状**，不是永久底盘。
+  - **绑定功法的灵根构成与神通的性格取向都逐角色自由定**：两门绑定功法是全本灵根还是含通用、神通是强化本灵根主动词还是提供第二性格，均不设统一口径，按每个角色的设计需要定——与「起始卡组逐角色独立立形」同一口径的延伸；首批压平复杂度的约束仍对实际设计生效。
+  - **角色是具名人物，带专属剧情钩子。** 五角是有名字、有来历的具体人物；背景设定不加字段，走描述文本（`LocalizedText`）与图鉴词条承载；剧本侧可用 `PlotNodeData.CharacterIds` 为特定角色铺专属事件 / 剧情线（后续内容，非首批义务）。
   - **每个角色带一个先天灵根 `Affinities`**，它是角色之间除「神通 + 两门绑定功法」之外的第二条辨识轴，唯一的规则后果是功法的**硬性修习准入**（见下方「灵根」段与 `deck/_index.md`）。
   - 角色池的规模、选取机制、是否账号级逐步解锁，见下方「角色模板池的形态」与「`CharacterData` 的字段面」。
 - **`CharacterData` 的字段面（内容条目，`[GlobalClass] partial class CharacterData : Resource`，以 `.tres` 编写）。** 它与 `CharacterProfile` 是两件东西：前者是模板、共享只读单例、静态字段不落存档；后者是某一次轮回的角色状态。
@@ -24,7 +26,7 @@
   | 6 | `TechniqueIds` | `string[]`（长度恒 2） | 是 | 两门绑定功法；**可被弃置**（弃置的是 `CharacterProfile` 里的那份，模板不变） |
   | 7 | `Affinities` | `Affinity[]` | 是 | 该角色的先天灵根，见下方「灵根」段 |
 
-  - **明确不带的格：** **`Rarity`**（它在本库的两个消费点是抽取加权与定价档，角色既不进任何授予池也不被定价；加一格会立刻引出「稀有角色抽不到」这条与「无门槛起手」正面冲突的语义）· **`ExclusiveSource`**（该字段只覆盖 `PowerData` / `ItemData`，语义是「不进抽取池」，与角色的取用方式无关）· **任何解锁条件字段**（首批不做账号级逐步解锁，见下）· **绑定功法的初始层数**（两门绑定功法**恒以第 1 层入组**，与 `LearnTechnique` 的入组层数同款，故不设字段。逐条编排会给角色之间再添一条**纯强度**轴，与「灵根把差异推向能修哪一路、不推向谁更强」相抵；且起始层数的合法上界就是仍待校准的 `MaxTier`，逐条编排此刻只能定结构、定不出取值。见 `deck/_index.md`）。
+  - **明确不带的格：** **`Rarity`**（它在本库的两个消费点是抽取加权与定价档，角色既不进任何授予池也不被定价；加一格会立刻引出「稀有角色抽不到」这条与「无门槛起手」正面冲突的语义）· **`ExclusiveSource`**（该字段只覆盖 `PowerData` / `ItemData`，语义是「不进抽取池」，与角色的取用方式无关）· **解锁条件 / 付费轨道字段首批不落**（首批五角全免费，缺格即免费不产生歧义；付费系列引入时需一格「免费 / 付费」轨道标记并与 `PlayerEntitlement` 对接，具体字段形态、解锁校验与存档 / 契约增量归 `/provide-solution-draft` 推演，见下方「角色模板池的形态」）· **绑定功法的初始层数**（两门绑定功法**恒以第 1 层入组**，与 `LearnTechnique` 的入组层数同款，故不设字段。逐条编排会给角色之间再添一条**纯强度**轴，与「灵根把差异推向能修哪一路、不推向谁更强」相抵；且起始层数的合法上界就是仍待校准的 `MaxTier`，逐条编排此刻只能定结构、定不出取值。见 `deck/_index.md`）。
     - **日后若要做成逐条编排，最小路径已知：** `TechniqueIds : string[]` → `BoundTechniques : BoundTechnique[]`（长度恒 2），元素为 `TechniqueId : string` + `InitialTier : int`（默认 `1`，与今天的口径等价）+ 三条加载期校验（`TechniqueId` 解析不到 / `InitialTier < 1` / `InitialTier > 该功法 MaxTier`，均 `PushError` 带 `characterId` 与功法 `Id`）。**仍是零存档增量**（模板静态字段，不 bump `schemaVersion`、无迁移、后端零影响），代价只在 `.tres` 结构与那一行字段表。集合字段名取复数 `BoundTechniques`、元素类型名取单数 `BoundTechnique`（同 `RealmArtworks` / `RealmArtwork`）。**首批不做。**
   - **静态字段不落存档、不进上行负载。** 存档侧的载体只有 `CharacterProfile.characterDataId` 一格，它早已存在且形态已定 ⇒ **存档 schema 增量为 0、不 bump `schemaVersion`、后端零影响**。
 - **`Artwork`（共有字段 · 类型 `Texture2D`）在本层的投影。** 落在 `CharacterData` 上，是该角色的**基础形象**。
@@ -60,17 +62,19 @@
 
   - **不进 `LoadAll()` 那行 `Artwork` 缺失汇总**：已挂条目的缺图由 R-2 拦死，该汇总的口径不变（只数共有字段 `Artwork == null` 的条目数）。
   - **资产量级：** 每个角色一条基础 + 至多三条境界覆写 ⇒ 全量 **20 张**（池规模 5 × 4 档），MVP（炼气 → 筑基一个篇章）只需 **10 张**，稀疏形态使首发下限为 **5 张**（每角色一张基础图）。
-- **角色模板池的形态：全池指定 · 首批 5 个 · 不做账号级解锁。**
+- **角色模板池的形态：全池指定 · 首批 5 个免费 · 后续按系列扩张（免费 / 付费双轨道）。**
   - **池规模 = 5**，五个角色各持一个不同的单灵根（金木水火土全覆盖）。**池规模不是一格数值旋钮，而是 `content/character/` 里 `ContentEnabled == true` 的条目数**；线上收缩用 `ContentEnabled` / flags。增减角色是纯加法（加一份 `.tres` + 一个神通条目 + 两门功法条目），不改任何结构。**它是待校准初值**，随 ch1 starter deck 打磨与功法条目规模定标。**不进 `systems/balance.md`**——角色池的归属在本文档，`balance.md` 无角色维度数值表，新开一行即制造第二权威。
   - **内容量账：** 5 个 `character-power/` 条目 + 10 门 `cultivation-technique/` 条目 × `MaxTier` 套卡牌定义。这是 ch1 排期必须正视的那一笔。
   - **选取机制 = 开局由玩家从全池自行指定。** 无随机候选集、**无重抽通道**（重抽等于免费 reroll，与「候选预先算定、封死 reroll」同向否决；且本作没有账号级可支配货币，重抽也无从定价）。**完全不涉及 RNG**——四条子流不变、`AccountStream` 不动、不新开子流、不占 `RngElements` 列。服务面见 `systems/services/life-cycle-service.md`。
   - **角色是「被选取的产出侧对象」，故配有 `ContentEnabled` 开关。** 判据用现成的那一条——「能被抽取 / 被选取的才配有开关」（`PlotArcData` 与 `LocationData` 的分野即此）。关一个角色只让它**不再被新轮回选中**；已写进 `characterDataId` 的角色照常经 `Get(id)` 解析，**进行中的轮回不因线上关闭而坏档**。这正是「解析不到 → `PushError`」与「线上可秒关一个问题角色」两条不冲突的原因。
   - **可抽取性 = 自身 `ContentEnabled` ∧ 全部绑定条目 `ContentEnabled`。** 它使「绑定条目被关掉」不需要任何运行时特判——取池时多一层过滤即可，与 `AllEnabled()` 的过滤位置完全同构。
-  - **首批不做账号级逐步解锁**，全部角色恒可用。三条依据任一单独成立即足以否决：「元进程解锁」明确在范围之外（`vision/scope.md`）· 炼气可无门槛起手、门禁只落篇章层（`ux/onboarding.md`），角色层再加一道门等于把「无门槛」这四个字改掉 · 没有现成载体（`PlayerEntitlement` 只放付费凭证本身与其兑现水位、`Achievement` 的奖励形态限定为法则 / 古宝条目、Codex 记的是「见过」而非准入；flags 是运营灰度通道，分桶规则不在客户端、`AllEnabled()` 拒绝接受 `bucketContext`，与玩家进度通道不得合流）。
-    - **负面边界（承重）：解锁绝不可做成付费点。** `systems/monetization.md` 的负面边界五项 + 唯一预留方向（纯外观）已把它关死——付费解锁角色既不是「有档、有上限的宽松化」，也不在纯外观内。
-    - **日后要做时的最小路径：** `PlayerProfile` 加一个具名集合字段（元素用 `readonly record struct` 包一层，照 `CodexEntry` 的加法窗口纪律）+ 一条取池过滤（`AllEnabled()` ∩ 已解锁集合）+ 一次 `schemaVersion` bump。**不需要任何新机制。**
-  - **已接受的代价（承重）：** ch1 无限重试 + 全池指定下，**角色强度差有可能塌缩为「只有一个角色被玩」**，跨轮回熟悉感因此只覆盖玩家自选的那一个。灵根把角色差异从「谁更强」推向「能修哪一路功法」，已部分缓解这条代价，但**仍可能存在一个综合最优的属性池**——待实测。这条代价是日后重估角色池设计的判据起点，不得删。
-  - **首玩局的缓解 = 在选择屏标注推荐项**（内容侧一格标记），**不做「首局跳过选择」的特判**——特判会造出两条起手路径，而两条路径必然各自漂移。
+  - **首批五角永久免费恒可用——它就是「第一个免费系列」**，系列概念向前覆盖既有五角，不为它们另设例外形态。免费轨道恒无门槛：炼气起手仍无门槛，门禁只落篇章层（`ux/onboarding.md`）与付费轨道的持有判定，免费角色层永不加门。
+  - **后续角色按系列成批推出（承重）：** 一个系列 5 个或 10 个、每批保持五行对称；**一个系列全免费或全付费，绝不单出一个角色**。角色条目带「免费 / 付费」轨道属性，**「一旦免费永不改付费」是单向棘轮**——落为内容纪律 + `/audit-content` 核对项候选，不做运行时机制。双灵根首批（十角）走**免费**轨道。
+    - **付费系列 = 商业化的第三支**（premium bundle、纯外观预留之外），付费买到的是新玩法与新组合、**严格横向不卖强度**；商业化侧的定价（整系列礼包 = 5 个付 4 个单解之价 / 10 个付 8 个单解之价）、强度边界与验收口径的权威在 `systems/monetization.md`。
+    - **解锁载体是真实义务（付费系列引入时兑现）：** `PlayerProfile` 加一个具名集合字段（元素用 `readonly record struct` 包一层，照 `CodexEntry` 的加法窗口纪律）+ 一条取池过滤（`AllEnabled()` ∩（免费轨道 ∪ 已解锁集合））+ 一次 `schemaVersion` bump，**不需要任何新机制**；`CharacterData` 需一格轨道标记。具体字段形态、解锁校验与存档 / 契约增量归 `/provide-solution-draft` 推演，首批一格不落。
+    - **玩法进度型解锁仍不做**：轨道判定的输入只有付费凭证，不引入「通关解锁下一个角色」这类玩法门禁；`Achievement` 的奖励形态限定为法则 / 古宝条目、Codex 记的是「见过」而非准入、flags 是运营灰度通道（分桶规则不在客户端、`AllEnabled()` 拒绝接受 `bucketContext`），三条既有边界原样成立。
+  - **强度对齐的验收目标（承重）：「每个角色都能以合理体验通关」**，是内容打磨的验收底线、**全体角色（含付费）一体适用**——验收口径不分轨道，付费角色的目标胜率与免费角色同带。ch1 无限重试 + 全池指定下，**角色强度差仍有可能塌缩为「只有一个角色被玩」**；灵根把角色差异从「谁更强」推向「能修哪一路功法」，已部分缓解，但**仍可能存在一个综合最优的属性池**——待实测。**塌缩不是接受终点，而是触发内容向修正的信号**：实测发现某角色明显不可行即调它的功法池，不加新机制；`/audit-content` 与实测口径向此对齐。
+  - **首玩局的缓解 = 选择屏给玩法简介，不标推荐项。** 每个角色以一句动词级概括（素材即灵根的主战斗动词）+ 起始功法名承载简介，玩家据此自选；**不设任何「推荐」标记格**——**首批五角刻意压平在同一复杂度档做直白入口，同档无需推荐**；玩法复杂度与组合空间由后续系列（单灵根进阶批与双灵根批）向上展开，五行动词的繁简差在首批内收窄到同档表达。**不做「首局跳过选择」的特判**——特判会造出两条起手路径，而两条路径必然各自漂移。呈现形态见 `ux/onboarding.md` 与 `ux/screen-flow.md`。
 - **灵根 `Affinity`：角色的先天资质，唯一的规则后果是功法的硬性修习准入。**
 
   ```csharp
@@ -88,7 +92,8 @@
   - **`Unspecified = 0` 是必需的**：Godot 的 `[Export]` 枚举未填即取 0，没有哨兵就无法把「漏填」与「填了金」区分开——这与 `Pool` / `CardType` 必填纪律的理由完全相同。
   - **灵根固定在 `CharacterData` 上，一局不变。** 它是内容条目上的**静态分类维度**（与 `Rarity` / `Pool` 同族），**不产生任何运行时状态、不进 `CharacterProfile`、不进上行负载**——故它不落在 `vision/scope.md`「范围之外（暂时）」所排除的那种「支撑 Reigns 式平衡张力的完整属性模型」内（那一条指的是 `faith` / `bloodlust` 一类运行时可推拉的资源条）。
     - **日后若要做成轮回内可变，最小路径已知：** `CharacterProfile` 加一格可空 `Affinity[] affinitiesOverride`（`null` = 取模板值）+ `ProfileChangeSpec` 加一列 + 一次 `schemaVersion` bump + 一条读档校验。**不需要任何新机制**，首批不做。
-  - **首批只做单灵根**：五个角色 `Affinities` 各为 `[Metal]` / `[Wood]` / `[Water]` / `[Fire]` / `[Earth]`，长度恒为 1。**「长度恰为 1」是内容编排口径，不是字段约束**——字段本身即为数组，日后引入多灵根角色零结构变更。
+  - **首批只做单灵根**：五个角色 `Affinities` 各为 `[Metal]` / `[Wood]` / `[Water]` / `[Fire]` / `[Earth]`，长度恒为 1。**「长度恰为 1」是内容编排口径，不是字段约束**——字段本身即为数组，引入多灵根角色零结构变更。
+  - **多灵根角色是确定项：后续版本引入、走免费轨道**，首批估计十个（五行恰有 C(5,2) = 10 种双灵根组合）。卡池区分取**双机制组合**：`RequiredAffinities` 多元素 = **复合功法**（双灵根角色的独占亮点），`MaxCharacterAffinityCount` = 数量上限（单灵根角色的专属补偿）——两条机制均已在 `CanLearn` 判定式内，零新字段零新机制；辨识度体系从现在起为宽池角色预留编排空间。编排义务与对铺口径见 `deck/_index.md`。
   - **无契合度设定、无相生相克、没有「天灵根」品级说法。** 五行之间**没有任何规则关系**，关系只存在于「角色灵根 ⊇ 功法要求」这一条包含判定上。品级标签隐含「单灵根最强」，而机制上它只是「池更窄但有专属功法」，标签会制造预期落差。相生相克的位置留着，日后要开是纯加法。
   - **追加成员（雷 / 冰 / 风一类）的成本为零**：`Affinity` 不落存档、不进上行负载 ⇒ 加成员**不 bump `schemaVersion`、无迁移、后端零影响**。今天的不做不构成明天的债。
   - **规则后果只有一处：功法的硬性修习准入**（判定式、单点纯函数、四个取池点的接入位置、`MaxTier` 一律不折减，全部见 `deck/_index.md`「灵根修习准入」）。**灵根此外一格不碰**：不影响 `mana` / `manaLimit` · 道念的产出与削减 · 寿元与 `lifeSpanCost` · 商店价格 · 隐藏属性 · 经验值 · `baseMomentum` · 敌人赋级 · 任何卡牌数值 · 任何战斗内规则。逐条理由：战斗侧那一批根本看不见功法；其余每一项都已有指定的唯一旋钮，往上叠第二个输入正是本库反复否决的「第二条强度曲线」。
@@ -362,7 +367,7 @@
   - **保留理由（防这条被重新提出）：** 把状态机收敛成纯终态图的代价是必须另造一个「境界存档」对象来承载续章，而「篇章继承 = 全部继承、无逐项筛选」意味着该对象的字段面与 `CharacterProfile` **逐格相同**——那是换个名字复制一份第二权威，两份必然漂移。
   - 三层处置、字段三分表、墓碑形态与 snapshot 回收口径见 `systems/services/life-cycle-service.md`「轮回出口的三层处置」；重试模型见 `decisions/ADR-0004-realm-checkpoint-retry-model.md`。
 
-Source: `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-09-06-completed-data-retention.md`
+Source: `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-09-06-completed-data-retention.md` · `handoffs/2026-09-09b-combat-feel-identity.md` · `handoffs/2026-09-10-character-series-identity-and-monetization.md`
 
 ## 子系统导航
 
@@ -384,7 +389,8 @@ Source: `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **全池指定下角色强度差是否仍塌缩为单一最优。** 灵根把差异推向「能修哪一路功法」，但仍可能存在一个综合最优的属性池；ch1 无限重试放大该效应。待实测。→ 本文档。
+- **全池指定下角色强度差是否仍塌缩为单一最优。** 灵根把差异推向「能修哪一路功法」，但仍可能存在一个综合最优的属性池；ch1 无限重试放大该效应。验收目标与处置基准已定（「每个角色都能以合理体验通关」；塌缩即触发内容向修正），**是否真塌缩待实测**。→ 本文档。
+- **`CharacterData` 付费轨道的字段形态、解锁校验与存档 / 契约增量。** 载体路径已定（`PlayerProfile` 具名集合 + 取池过滤 + 一次 bump），具体形态归 `/provide-solution-draft` 推演；首批一格不落。→ 本文档、`systems/monetization.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/_index.md`（待建）。

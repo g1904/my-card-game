@@ -63,7 +63,7 @@
 | 疲劳 | fatigue | **抽牌堆已空时仍尝试抽牌的代价：每张 −1 道念**（一次抽 N 张即 −N，下限 0 照常截断）。前提是**本作的抽牌堆不重洗**——弃牌堆不回流，一场战斗内只在参战方组装时初洗一次。**它是道念的第二条削减通道**（另一条是卡牌）。**它入栈**——以一条栈条目结算，与触发式异能同形，**可被监听、可被响应，其扣减量可被削减至 0**（扣减量与其余数值同经求值管线，故「疲劳时发动」的埋伏、「免疫下一次疲劳」的法宝都成立）；疲劳被削减或推后不会让对局不终止，因为 `EncounterSpec.TurnLimit` 已为双方合计回合数封顶。**不产生 `ActionResult`**（它不是玩家动作），但照常广播一条战报条目。**与满手抽不进互不触发**：牌堆空 → 疲劳；牌堆非空但满手 → 无事发生、不扣道念。归 `systems/scoring.md`、`systems/character-profile/deck/`。 |
 | 先手方 | `FirstSide` | 战斗中先走回合的一方，**由 `EncounterSpec.FirstSide`（可空）承载**：剧情需要时由 future-event-service 物化写入，**`null` 则由 combat 子流掷**。与「**不设先后手抽牌差**」并行不悖——后者说不做补偿（打满回合比总量，先手 tempo 优势不存在），前者说谁先动。归 `systems/services/combat-service.md`。 |
 | 出牌时机（唯一） | —（无借词） | 一张牌只能在**自己回合的行动阶段、且栈为空时**打出。这是**全局规则，不是卡牌属性**——本作不存在第二种出牌时机；**启动式异能与道具的使用窗口与之完全相同**。`instant`（瞬间）**明确不借**；**`sorcery speed` 亦不借**（与之相对的 `instant speed` 不存在，单一取值的维度不是维度，借它会制造「本作有出牌时机之分」的错觉）。 |
-| 经验值 | `experiencePoint` | **等级成长的累积量**，`CharacterProfile.Status` 上的字段：**每个等级各有一个升级所需的经验阈值**，AdventureEvent 的 reward **发放经验值**（而非直接给等级），累积达阈值才升一级。**任何类型的事件都可能给，失败也给**（失败给得少）。它是战斗奖励中「强制自动计入」的那一类。阈值曲线待定，归 `systems/balance.md`；等级模型见 `systems/game-progression.md`。 |
+| 经验值 | `experiencePoint` | **等级成长的累积量**，`CharacterProfile.Status` 上的字段：**每个等级各有一个升级所需的经验阈值**，AdventureEvent 的 reward **发放经验值**（而非直接给等级），累积达阈值才升一级。**任何类型的事件都可能给，失败也给**（失败给得少）。它是战斗奖励中「强制自动计入」的那一类。阈值曲线归 `systems/balance.md`；等级模型见 `systems/game-progression.md`。 |
 | 起始道念 | baseMomentum | 每个**全局等级**对应的战斗起始道念（炼气 1–13 → 1..12, 15；筑基 20 / 24 / 28 / 32；金丹 45 / 55 / 65 / 75；元婴 100）。**境界鸿沟由它承载**（全局等级序基数本身连续无跳变），故等级差直接变成开局的起跑线差。可调数值，归 `systems/balance.md`。 |
 | 法力 | mana | **战斗内的出牌资源**（战斗内另一半是道念）。**无 mana 曲线**：战斗中**每回合开始恢复至 `manaLimit`**，而 `manaLimit` 由事件的 cost / reward 推拉（可升可降），不随境界自动成长，**不设下界护栏**。炼气基线 5/5。对齐 `Status.currentMana / manaLimit`。 |
 | 道统残卷 | PlayerPowerFragment | 元进程的**失败侧产出**：累积的**不是账号级货币**，而是获得新 PlayerPower 的**递增掉落概率**。**三个时刻全部落在 Finale（天劫）上**——**Finale 失败累积、Finale 通过掷骰、在该 Finale 的 eventReward 界面即时发放**；掷中并授予后概率重置为新档地板。上限 / 基础概率 / 适格篇章按 **`x` = 账号已拥有且 `SourceCode == Source.FinaleWin` 的法则数**分档（**只数「靠渡劫拿到的」**，礼包 / 成就奖励得来的不计 ⇒ **礼包与残卷完全解耦**）。落 `PlayerProfile` 上的同名具名小类（5 个字段），**不并入账号级统计计数**。避免引入第二套账号级经济。归 `systems/player-profile/player-power/`。 |
@@ -88,7 +88,7 @@
 | 道心 | faith | **隐藏数值属性**，取值域 `[0, 100]`、轮回起始 50、双向推拉；与 煞气 同属驱动 AdventurePlot 的两个隐藏属性。 |
 | 煞气（点数） | Bloodlust | **隐藏属性**：积累到阈值触发「煞气反噬」剧情线。 |
 | 寿元 | lifeSpan | **角色唯一的资源命线**：既是寿命预算也是失败惩罚承受量——炼气起始 1000、抵达筑基 +1000、抵达金丹 +3000、抵达元婴 +5000（元婴为终点，该增量无玩法影响）；**剩余寿元跨篇章结转**。**两个扣减来源**：每完成一个 AdventureEvent 按其 `lifeSpanCost` 扣、战斗 / 修炼失败按道念差 × `lossPerMomentum` 扣；**战斗过程中不被读写**，只在收口时刻被扣。回复只走 outcome 侧三通道。**明文常驻、恒精确展示**；**递减到 0 → 「大限将至」→ 角色 defeated**。**单值：没有上限字段、没有上限截断**（也不写成 `currentLifeSpan / lifeSpanLimit`）。归 `systems/character-profile/life-span.md`。 |
-| 寿元消耗 | lifeSpanCost | **成本类型 `selectCost` 的一个 element**：完成该事件对角色寿元的扣减。**内容侧以正数量值书写**（「耗 3 点」写 `3`），由 future-event-service 在**物化组装 spec 时取负**填入带符号的 `ChangeElement.BaseValue`。它是**控制篇章时长的主旋钮**（目标：**30–40 / 35–45 / 45–55 分钟**，熟练玩家口径），分档表待定。 |
+| 寿元消耗 | lifeSpanCost | **成本类型 `selectCost` 的一个 element**：完成该事件对角色寿元的扣减。**内容侧以正数量值书写**（「耗 3 点」写 `3`），由 future-event-service 在**物化组装 spec 时取负**填入带符号的 `ChangeElement.BaseValue`。它是**控制篇章时长的主旋钮**（目标：**45–55 / 50–60 / 60–70 分钟**，熟练玩家口径），分档表见 `systems/balance.md`。 |
 | 事件类型 | eventType | AdventureEvent 的共有字段（**五值**）：该事件归属 Combat / Exchange / Research / Explore / Travel 中的哪一类。 |
 | 选择成本 | selectCost | AdventureEvent 的共有字段，且是一个**定制的复合成本类型**：由若干成本 element 组成（`lifeSpanCost` 为其中之一），表示选中该事件以推进轮回所需付出的代价。**代码形态 = `ProfileChangeSpec`，在物化时组装。** **支付它是无条件的可推进行为**——不因「付不起」被拒绝，支付后做状态判定，判负则进失败流程。 |
 | 事件优先级 | eventPriority | AdventureEvent 的共有字段，**取值域两档：`0`**（常态，本批自由择一）与 **`1`**（有效可选集收窄为该档，其余本轮被封锁）。**只由 future-event-service 在物化时置位，PlotManager 不得改变。** 它是**唯一**约束玩家选择权的字段（跳过通道与 `ifMandatory` 已移除）。 |
@@ -118,7 +118,9 @@
 | 未来事件服务 | future-event-service | 服务：依当前 CharacterProfile 产出 eventOptions，每个事件后重算；**eventOptions 唯一出口**。（EventOptionManager、PlotManager） |
 | 隐藏剧本管理器 | PlotManager | **管理器，隶属 future-event-service**：隐藏属性驱动、按 key points 从 ContentRegistry 解析本地剧本节点、eventOptions 调制、DnD 式选分支。**纯本地，永不跨进程边界**。 |
 | 战斗服务 | combat-service | 服务：**定长回合循环**（回合数与胜负判据是 `EncounterSpec` 的遭遇参数，10 回合 / 「道念高者胜」是 `Standard` 档取值）、抽/弃（**不重洗**，抽空即疲劳）、**双方道念与胜负判定**、敌人 AI（**不作任何事前预告**——意图机制已整条移除）；**`combatTier` 三档共用同一套代码**。（TurnManager、CharacterManager、EnemyManager、**BattlefieldManager**、**StackManager**；`DeckModule` 为第三级组件，每个 character / enemy 一份） |
-| 付费礼包 | premium bundle | 唯一已陈述的付费点：购买后给予**随机 1 个 PlayerPower + 随机 2 个 PlayerItem**，并把**第二篇章重试上限 3 → 9、第三篇章 1 → 3**（第一篇章本就无限）。使 ADR-0004 的重试上限从常量变为**基线值**。归 `systems/monetization.md`。 |
+| 付费礼包 | premium bundle | 商业化三支的第一支（MVP 唯一已实施的付费点）：购买后给予**随机 1 个 PlayerPower + 随机 2 个 PlayerItem**，并把**第二篇章重试上限 3 → 9、第三篇章 1 → 3**（第一篇章本就无限）。使 ADR-0004 的重试上限从常量变为**基线值**。归 `systems/monetization.md`。 |
+| 角色系列 | character series | 角色的推出与商业化单元：一个系列 5 或 10 个角色、每批五行对称，**整系列全免费或全付费**（绝不单出一个角色）；「一旦免费永不改付费」是单向棘轮。首批五角即第一个免费系列；付费系列是商业化第三支（严格横向、不卖强度）。归 `systems/monetization.md` 与 `systems/character-profile/_index.md`。 |
+| 复合功法 | compound technique | `RequiredAffinities` 填多个元素的功法：只有同时持有全部所列灵根的角色能修，是多灵根角色的独占亮点（与 `MaxCharacterAffinityCount = 1` 的单灵根专属功法互为对铺）。归 `systems/character-profile/deck/_index.md`。 |
 | 内容注册表 | ContentRegistry | content-service 的管理器：合并后按 `Id` 索引，暴露泛型仓储接口 `Get` / `TryGet` / `AllEnabled` / `AllIncludingDisabled`。**没有中性名 `All()`**（已删除，写下即编译失败）——抽取一律走 `AllEnabled()`。 |
 | 档案管理器 | ProfileManager | profile-service 的管理器：`TryApply(spec)` 原子施加成本 / 产出（**全有或全无**）；modifier pipeline 的生效点。 |
 | 内容覆盖层 | content overlay | `user://overlay/` 下由云端下发、按 `Id` 覆盖 `res://` 基线的热更内容增量。 |

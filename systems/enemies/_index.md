@@ -33,7 +33,7 @@
   |---|---|---|
   | 常用区间 | **10–25 张** | 2–4 门功法 + 0–5 张散牌 |
   | 常态 | **15–18 张** | 3 门功法，与玩家起始卡组对称 |
-  | 轻量档 | **10–12 张** | 2 门功法、少散牌。`Standard` 一场流入 14 张 ⇒ **从第 4 个己方回合起稳定失血**——它正是「牌少而精的对价」在敌人侧的显影处，也是疲劳在常规遭遇里的主要现身点 |
+  | 轻量档 | **10–12 张** | 2 门功法、少散牌。`Standard` 一场流入 14 张（起手 4 + 每回合 2 × 5）⇒ **10–11 张从第 4 个己方回合起失血（−2 / −1），12 张仅最后一回合失血**——它正是「牌少而精的对价」在敌人侧的显影处，也是疲劳在常规遭遇里的主要现身点 |
   | 天劫（`Finale`）定制卡组 | **20–25 张** | 12 回合流入 16 张 ⇒ 恒不疲劳；绝境感由定制卡组强度与 `FinaleDiff` 承担 |
 
   - **规模是编排旋钮而不是难度旋钮**：它调的是失血时机，不是产出上限——后者由 `baseMomentum` 与逐条编排的卡组承载，与层数护栏同属一条纪律。
@@ -171,6 +171,8 @@ public enum LineSlot
 - **两层结构。** ① **通用兜底策略**：任何套牌都能跑的保底出牌逻辑，实现在 EnemyManager 内（AI 行为选择的落点见 `systems/services/combat-service.md`）。② **敌人模板级定制策略**：出牌策略挂在 `EnemyData` 上（「这个敌人该怎么打」），**不挂功法**；字段可空，**空即走兜底**。
 - **策略经 `EnemyInstance.EnemyId` → `ContentRegistry.Get<EnemyData>()` 读取，`EnemyInstance` 六字段不变**——模板常量不是物化产物。战斗内因此不需要认识功法，「功法是战斗外的构筑层，战斗内完全不感知它」一字不动。
 - **定制策略只表达打法风格，不作强度 / 难度旋钮。** 难度仍只由 `baseMomentum` 与内容编排承担——一边否掉层数浮动、一边开 AI 强度通道会自相矛盾。
+- **兜底权重的性格取向 = 镜像玩家基调（承重取向 · 数字归校准）。** 兜底 AI 默认**专注堆自己的道念，威胁大时才反制**——`MomentumGain` 系权重高于 `MomentumDenial` / `Removal`。理由：玩家铺阵法雪球时的**默认**体验不应是被系统性压制，那会把「阵法滚雪球」这条高光通道在常规遭遇里当场按死（三条高光通道见 `systems/character-profile/deck/_index.md`「内容性格」）。**本条只定取向，十项初值仍归量纲阻塞解除后的统计校准**（默认向量与取值域住 `systems/balance.md`）。
+  - **拆台流是逐条目的 `EnemyAiProfileData` 覆写，不是兜底。** 「专门克阵法」的敌人以**具名打法风格**出现，玩家遇到时应能明确感知这一点，并因此成为可辨识、可记入图鉴的对手特色——这与「定制层只提供权重向量」的三条结构性上界完全相容：偏科不等于更强。拆台流是首批敌人条目编排的风格库存之一。
 - **确定性约束**：AI 决策必须是「局面 + `combat` 子流」的纯函数；跨回合记忆必须可重算，否则必须落存档。**本方案不消耗随机**（见下方「零随机」），故「随机只取 `combat` 子流、不再派生新流」当前是一条空约束——保留它，作为日后引入随机化权重项时的约束。
 
 #### 定制策略的表达形态 —— `EnemyAiProfileData`
@@ -245,7 +247,7 @@ public partial class AiWeight : Resource             // 内嵌 Resource + 两个
 - **不另加带数字的胜率口径**（如「定制相对兜底的基准胜率偏差 ≤ ±5pp」）：该数字在量纲基准与首批 starter deck 成型之前无法测量，写下即是一条无人执行的条款。日后确有需要时它是纯加法。
 - 取值域住平衡资源，故可随 overlay 热更收紧，不必发版。
 
-Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-09-07-combat-scale-baseline.md` · `handoffs/2026-09-08-combat-ui-elements.md`
+Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-09-07-combat-scale-baseline.md` · `handoffs/2026-09-08-combat-ui-elements.md` · `handoffs/2026-09-09b-combat-feel-identity.md`
 
 ## 决策(-> ADR)
 
@@ -253,6 +255,7 @@ Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/
 - **enemies 升为与 `adventure-event` 平级的系统；`combatTier` 三档共享同一批条目，由 `EncounterScopes : CombatTier[]` 声明档位作用域、由 `ChapterScope : int[]` 声明篇章归属**。
 - **剧情线不可调制敌人模板；剧情线与地点各自可拥有专属敌人模板池，池归属的唯一权威是敌人条目上的 `PoolScope`**（location 条目不持敌人清单）。
 - **定制 AI 策略 = 权重向量的重新加权：`AiProfile : EnemyAiProfileData`（独立可复用资源、直接类型引用、可空、空即兜底），定制层不提供代码；兜底算法 = 1-ply 加权效用评分 + 确定性 argmax，决策粒度逐张；AI 全流程零随机、零记忆，`ActiveCombat` 一格不加** → `decisions/ADR-0113-enemy-ai-weight-vector.md`（Accepted；它给 `ADR-0092` 的软约束补上了三条结构性上界）。
+- **兜底权重的性格取向 = 镜像玩家基调**（`MomentumGain` 系高于 `MomentumDenial` / `Removal`；只定取向、不定数字）；**拆台流以逐条目 `EnemyAiProfileData` 覆写的具名打法风格存在**，玩家遇到时应能明确感知。
 
 ## 待决问题
 

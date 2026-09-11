@@ -233,7 +233,7 @@
   - **PlotManager 的权力因此收敛为三项：框定用哪个池 · 偏移带内赋级权重 · 拧紧遭遇参数。它碰不到模板的任何字段。**
     这份权力面在内容侧有一个**逐条投影的承载类型 `PlotModulation`**（六个 `[Export]` 字段，一一对应上述三项加事件层的两项权重）：越权的写法在内容层**根本没有字段可填**——`eventPriority`、模板字段、敌人卡组、item / power 列表都不在其中。类型定义见 `plot-manager.md`。
   - **好处**：改写幅度天然有界 · 图鉴词条与玩家实际遭遇恒对得上（专属条目有自己的词条）· 可确定性复算。**代价**：内容量上升（每条专属敌人都是一个完整条目，含图鉴五项词条），归内容排期。
-  - **三个框定字段的缺失语义各不相同**：`EncounterScopes` 空数组 → 加载期 `PushError`（`Contains` 恒假 ⇒ 漏填即写了永不进池的死条目）；`PoolScope` **允许为空**（= 通用池），不报错；`ChapterScope` **空数组合法**（过滤写成 `Length == 0 ||`，空即恒真 ⇒ 漏填只是范围偏宽，不是死条目）。逐字段的校验口径见 `systems/enemies/common-properties.md`。
+  - **三个框定字段的缺失语义各不相同**：`EncounterScopes` 空数组 → 加载期 `PushError`（`Contains` 恒假 ⇒ 漏填即写了永不进池的死条目）；`PoolScope` **允许为空**（= 通用池），不报错；`ChapterScope` **空数组合法**（过滤写成 `Length == 0 ||`，空即恒真 ⇒ 漏填只是范围偏宽，不是死条目）。`ChapterScope` 的字段级校验权威在 `systems/common-properties.md`，其余逐字段口径见 `systems/enemies/common-properties.md`。
   条目定义见 `systems/enemies/`。
 - **遭遇参数由本服务在物化时从 `AdventureEventData` 代入 `EncounterSpec`。** `TurnLimit` / `VictoryRule` / `RewardPoolId` / `BaseReward` 全部在物化时定稿，**`EnemyData` 完全不携带**——否则同一个敌人条目无法同时用于 Practice 与 Combat。**依据 = 唯一物化点 + 产出即定稿**：消费侧不得回查模板重算，故 `EncounterSpec` 必须自带取值，不能只带一个 `EncounterId` 让 combat-service 回查。**物化时代入也是剧本调制的天然挂点**（PlotManager 可拧紧遭遇参数）。类型形态见 `systems/services/combat-service.md`。
 

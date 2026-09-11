@@ -7,7 +7,9 @@
 ### 共有字段（与全库内容条目一致的部分）
 
 - **`Id`（稳定唯一字符串）** —— 一切引用的键：`EnemyInstance.EnemyId`、图鉴词条归属、事件模板的敌人池引用。**绝不用文件路径、数组索引或显示名作键。**
-- **`ContentEnabled : bool = true`** —— 线上放量 / 秒关开关。**过滤只在产出侧**：物化取池必须走 `ContentRegistry.AllEnabled<EnemyData>()`；**读取侧 `Get(id)` 不过滤**，使存档中引用到已关闭条目的 `EnemyId` 仍能正确解析（进行中的战斗不会因为线上关掉一个敌人而崩）。**`ContentEnabled == false` 的条目照常参与全量加载校验。**
+- **`ContentEnabled`（共有字段 · `bool`，默认 `true`）。** 本层落在 `EnemyData` 上 = 敌人条目的线上放量 / 秒关开关。
+  - **本层消费点：** 物化取池 `ContentRegistry.AllEnabled<EnemyData>()`；进行中战斗存档里的 `EnemyId` 走读取侧 `Get(id)`，不因线上关掉该敌人而崩。
+  - 产出侧过滤 / 读取侧不过滤 / disabled 照常全量校验的完整语义见 `systems/common-properties.md`。
 - **显示字符串与 `Id` 分离**（名称、图鉴五项词条），可改动或本地化而不破坏引用。
 - **`Artwork`（共有字段 · 类型 `Texture2D`）。** 本层落在 `EnemyData` 上 = **敌人立绘**。
   - **本层合法取值 / 默认值 =** 可空，默认 `null`（尚未产出 → 呈现层回落占位）。
@@ -25,7 +27,7 @@
 | item 持有列表 | `ItemData.Id[]` | 悬空 id → `PushError` |
 | power 持有列表 | `PowerData.Id[]` | 悬空 id → `PushError`；带 `IgnoresProtection` 者须满足两条硬准入（仅挂 boss 档载体 · 绝不挂玩家可主动获取的内容，见 `systems/balance.md` 的 ≈3% 口径） |
 | `EncounterScopes` | `CombatTier[]`，取值 `{ Practice, Standard, Finale }`（与 `EncounterSpec.Tier` 同一枚举） | **空数组 → `PushError`**（漏填会静默缩小抽取池） |
-| `ChapterScope` | `int[]`，取值 `1..3`（对位 `CharacterProfile.chapter`） | **空数组合法**（= 三章通用，与 `PlotArcData.ChapterScope` 同名同义）；越界值 → `PushError`；重复值 → `PushWarning` |
+| `ChapterScope` | `int[]`（共有字段），本层 = 该敌人可出现的篇章；**空 = 三章通用** | 字段级校验（越界 / 重复 / 空合法）见 `systems/common-properties.md`；本层另叠一条 `(combatTier, 篇章)` 池级断言（见下表末条） |
 | `PoolScope` | 内嵌 `Resource`，两个具名可空字段 `LocationId` / `PlotArcId`（形态见 `_index.md`） | **允许为 `null`**（= 通用池），不报错；校验见下 |
 | `AiProfile` | `EnemyAiProfileData`（`[Export]` 直接类型引用；类形态见 `_index.md`） | **允许为 `null`**（= 走通用兜底），不报错；其余五条校验见下 |
 | `Lines` | `EnemyLine[]`（内嵌 `Resource`，两个具名字段 `Slot : LineSlot` + `Text : LocalizedText`；类形态见 `_index.md`）——稀疏数组，只列要写的场合 | **空数组合法**（= 该敌人无台词）；同一 `Slot` 重复出现 → `PushError`（带敌人 `Id` + 重复 `Slot`）；某条的 `Text == null`、或其默认语言缺失 / 为空串 → `PushError` + 抛（带敌人 `Id` + `Slot`） |
@@ -40,15 +42,13 @@
 - **台词是文本内容，不是音频资产**：它走 `LocalizedText`，与图鉴词条并列为写作口径的对象——标为 `[Practice, Standard]` 的条目，其图鉴与台词必须同时说得通「切磋」与「厮杀」，归 `enemy-codex` 的写作规格。
 - **敌人条目不开音效引用字段。** `art/soundtracks/` 的六个音频类目没有任何一条按敌人条目逐条产出（出牌音属卡牌动作、受击音属道念反馈，两者都已在别的类目名下）；敌人级独有的只剩「入场吼叫」一类，其存在性在全库无一处表述。且多数玩家静音游玩、**音频必须是增益而非承载信息的唯一通道** ⇒ 敌人级音效即便日后有也只承载演出层语义，而演出层的挂点归 `art/visuals/animations/`。**留一个恒无对象的伸缩位只会让每个消费点都要处理一个永不发生的分支**（同「敌方不为天劫开第二条构筑通道」）。日后确有需求是纯加法。类目表见 `art/soundtracks/_index.md`。
 
-### 取池相关字段的加载期校验（六条，全部带定位上下文）
+### 取池相关字段的加载期校验（四条，全部带定位上下文；`ChapterScope` 的字段级校验见 `systems/common-properties.md`，不在本表复述）
 
 | 违规 | 语义 | 处置 |
 |---|---|---|
 | `PoolScope.LocationId` 非空且不在 `LocationData` 仓储内 | 悬空引用 | `PushError`（带敌人 `Id` + 悬空 `LocationId`）+ 抛 |
 | `PoolScope.PlotArcId` 非空且不在 `PlotArcData` 仓储内 | 同上 | `PushError`（带敌人 `Id` + 悬空 `PlotArcId`）+ 抛 |
 | `PoolScope` 非 `null` 但两字段皆空 | 空壳：语义等同通用池，但「填了个空壳」与「有意留通用」不可区分 | `PushWarning`（不阻断） |
-| `ChapterScope` 含 `1..3` 之外的值 | 越界，指向不存在的篇章 | `PushError`（带敌人 `Id` + 越界值）+ 抛 |
-| `ChapterScope` 含重复值 | 无害但多半是手误——重复值对 `Contains(currentChapter)` 无任何影响 | `PushWarning`，**只告警、取池不受影响**（校验是纯只读，绝不写回条目——模板是 ContentRegistry 里的共享只读单例） |
 | 某 `(combatTier, 篇章)` 组合下的**通用池**（`PoolScope == null` 或两字段皆空，且 `ChapterScope` 命中该章）为空 | **能上线、线上不可见的死锁**：物化取不出敌人 ⇒ 「内容池为空 = 坏数据 → `PushError` + 抛」会在玩家进程里炸 | `PushError` + 报出该组合，**启动期早失败**；`Finale` 一行按下述放宽口径 |
 
 - **末条按 `(combatTier × 篇章)` 两维枚举**（3 × 3 = 9）。**枚举面封闭且极小**，故这是纯粹的加法、无组合爆炸风险——这正是「篇章数是固定的游戏结构」这条判据买来的好处。它与「`overlay` 双闸」「`Rarity` 缺失 → `PushError`」同族：把只在线上显形的洞提到启动期。

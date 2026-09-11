@@ -142,7 +142,7 @@ public enum ModifierLayer  { Additive = 0, Multiplicative = 1 }
 public enum ModifierTarget { MomentumProduced = 0, MomentumReduced = 1, CardManaCost = 2, DrawCount = 3, FatigueAmount = 4 }
 ```
 
-- **`Multiplicative` 取万分比整数而非 `float`**：全库数值面是整数（道念 / mana / `counters` 皆然），浮点会在「加法层结果 × 若干乘数」处引入舍入取向。**合并算法 = 同层求和 → 只乘一次 → 只取整一次**，使「舍入只发生一次」成为可断言的不变式；最后按下限 0 截断。
+- **`Multiplicative` 取万分比整数而非 `float`**：全库数值面是整数（道念 / mana / `counters` 皆然），浮点会在「加法层结果 × 若干乘数」处引入舍入取向。**合并算法 = 同层求和 → 只乘一次 → 只取整一次（向下取整，与 `FailureRatio` 的既有先例一致）**，使「舍入只发生一次」成为可断言的不变式；最后按下限 0 截断。
 - **`ModifierTarget` 五项，成员序视同冻结、只能追加**（与 `AccountStream` / `Source` 同款纪律——它会出现在内容 `.tres` 里）。五项逐项都对应一个已被举过的形态：所有『灵兽』获得 +1（产道念）· 削减对方道念的加成 · 「本场所有『符箓』费用 −1」（`CardManaCost`）· 牌流向 build（`DrawCount`）· 免疫 / 削减疲劳（`FatigueAmount`）。**不收 `HandLimit` / `ManaLimit` / `TurnLimit`**：`manaLimit` 是轮回级由事件推拉的量、`TurnLimit` 是物化时定稿的遭遇参数，让战斗内的静止式修正去改它们会跨越已定的层级边界，各需单独论证。
 - **首批内容侧只用加法层的道念修正（编排口径 · 不是字段约束）。** `Layer == Multiplicative` 且 `What ∈ { MomentumProduced, MomentumReduced }` 的条目**首批不编排**——机制完整成立，只是内容侧不填；乘法层的首批用武之地是 `CardManaCost` / `DrawCount` / `FatigueAmount` 三格。**判据是可对账性**：在既定摆幅量级上一条乘区在单回合即值一档 `diff` 落差的六成，而越级追分锚点按「整副卡组整体高一档」标定 ⇒ 乘区会让同一副卡组在不同手牌序列下摆幅相差数档，锚点无法对账，以 `baseMomentum` 计的法则 / 神通闸门也失去可事前估算性。**核对落 `/audit-content` 汇总（只报告不阻断）**，与「负向 `OnFailureRules` 占比」同款处理——焊进加载期只会让日后放开时撞一次 `PushError`。摆幅口径与锚点见 `systems/balance.md`。
 - **「每回合 +X 道念」的永久物允许，配套一条 rate（编排口径）：`ManaCost ≈ X × 3`，且单条 `X ≤ 20% × manaLimit(篇章)`（ch1 ≤ 1 · ch2 ≤ 2 · ch3 ≤ 2）。** 它是 build 的核心表达面，**不受「不得随对局延长而累积」那条禁令约束**——该禁令的作用域是法则与神通（跨轮回累积、不可被针对、无需付费），而卡牌侧的永久物每次都付 mana、可被 `RemoveEntryEffect` 拆掉，三条前提一条都不成立（载体边界表见 `systems/character-profile/power/_index.md`）。**回本点落在打出后第 3 个己方回合**：己方仅 5 个回合，回本点若早于第 3 回合则「先手抢铺场」成为唯一解，与「先手 tempo 优势不存在」的既定结构相抵。
@@ -381,7 +381,7 @@ Source: `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/202
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **起始卡组的具体内容（starter deck）。** `CardData` 的字段清单已收口（见「效果原语与定义体」），装哪些牌仍空白；它同时是原语 / 关键字 / 次类型三份首批清单的共同切入点。→ `systems/balance.md`。
+- **起始卡组的具体内容（starter deck）。** `CardData` 的字段清单已收口（见「效果原语与定义体」），**设计取向也已给出**（`_index.md`「内容性格」：三条高光通道 · 不设统一底盘 · 疲劳协同位 · 削拆并重的反制供给）；装哪些牌仍空白，它同时是原语 / 关键字 / 次类型三份首批清单的共同切入点。→ `systems/balance.md`。
 *（抽 / 弃 / 洗数值已给出取值：起手 4 / 每回合抽 2 / 手牌上限 7 三章统一、起始卡组 15 张，见 `systems/balance.md` 与 `_index.md` 的规模口径。）*
 
 ## 对应

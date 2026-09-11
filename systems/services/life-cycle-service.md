@@ -384,7 +384,7 @@ Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-07-
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **元进程持久化范围：** **`AccountInfo`（仅余合规字段待后端分级）· `GameSetting` · Codex 族的 `CodexEntry` 三者的字段面均已收口**，见 `systems/player-profile/account-info.md`、`game-setting.md`、`codex/common-properties.md`。仍待定：**`Achievement` 的条目 schema 与进度模型**、`PlayerPower` / `PlayerItem` **各自的解锁 / 获取 / 失去触发**，以及 **`PlayerPower` 的平衡边界**（防 pay/grind-to-win、是否影响 cycle seed / 计分公平）。→ `systems/player-profile/`、`systems/services/profile-service.md`。
+- **元进程持久化范围：** **`AccountInfo`（仅余合规字段待后端分级）· `GameSetting` · Codex 族的 `CodexEntry` 三者的字段面均已收口**，见 `systems/player-profile/account-info.md`、`game-setting.md`、`codex/common-properties.md`。**`PlayerPower` 的解锁 / 获取 / 失去触发与平衡边界（防 pay-grind-to-win、与 cycle seed / 计分公平的关系）亦已收口**，见 `systems/player-profile/player-power/_index.md`。仍待定：**`Achievement` 的条目 schema 与进度模型**、`PlayerItem` 的解锁 / 获取 / 失去触发。→ `systems/player-profile/`、`systems/services/profile-service.md`。
 - **后端 / 账号合规落地：** 已定**强制在线 · 云端权威 + 重账号**（`decisions/ADR-0003`）；仅剩实现级待决：后端 / 账号系统具体选型、合规落地（PIPL / 实名 / 防沉迷 / 渠道审核 / 注销 / 数据导出）——这些归**后端库**，见 `backend-design-documents/open-questions.md`。
 - **隐藏属性细节：** 属性隐藏、`faith` = 道心、取值域、档位表、阈值与回滞、跨档叙事形态的权威均在 `systems/services/plot-manager.md`；**仍待定的那一项（增减触发）同样登记在那份文档的「待决问题」小节，本处不复述**——隐藏属性恰**道心 / 煞气两项**，清单已定稿。**寿元的回复通道已成文**（存在，只走 outcome 侧；载体与平衡护栏见 `systems/adventure-event/common-properties.md`）。
 

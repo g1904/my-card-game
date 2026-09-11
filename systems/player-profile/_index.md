@@ -205,7 +205,7 @@ Source: `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **元进程持久化范围与平衡边界：** 各账号级条目的解锁 / 获取触发仍待定；PlayerPower 的平衡边界（防 pay/grind-to-win）同样待定。→ 见 `systems/services/life-cycle-service.md`、`player-power/_index.md`。
+- **`PlayerItem`（古宝）的解锁 / 获取触发仍待定。** 目前明确写下的只有礼包一条；Exchange 购买与事件产出两侧仍是方向而非定案。→ `player-item/_index.md`。（**`PlayerPower`（法则）那一半已收口**：三条获取渠道、失去三形态、cycle seed / 计分公平、防 pay-grind-to-win 的七道护栏与可算的分母均见 `player-power/_index.md`。）
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/_index.md`（待建）。

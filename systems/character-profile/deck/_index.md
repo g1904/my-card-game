@@ -64,7 +64,7 @@
 - **deck 是 CharacterProfile 的一部分。** 卡组、hand、以及打出一张卡的结算，都是单次轮回 / 单角色的状态；deck 随轮回推进被增 / 删 / 升级。
 - **卡牌是道念的唯一产出途径（承重）。** 战斗的胜负标尺是道念（见 `systems/scoring.md`），而**道念由打出的卡牌产生**；卡牌**既能给自己加道念，也能削减对方道念**（削减在 0 处截断，无负道念；**截断发生在每一次结算时，溢出量不结转** —— 见 `systems/scoring.md`）。**推论：卡牌设计的第一维度是「产多少 / 削多少」**——**不是** HP 消耗战里的「打多少伤害 / 挡多少」，也是与 `manaLimit`（每回合刷满）配合出节奏的那一维。战斗**定长**（`Standard` 档 10 个回合、己方 5 个）、**起始道念按等级给**，共同框定了「一张牌该值多少道念」的量纲。
   - **量纲基准 = 1 点 mana ≈ 1 点道念（初值）。** 一张纯产（或纯削）道念的法术，在其所属篇章的基准层数上，效果量 ≈ 它的 `ManaCost` 点道念；**产与削共用同一把刻度**（削减侧受下限 0 截断，实际值可能更低）。它可心算——3 费牌 ≈ 3 点道念，玩家不必记第二张换算表。反推过程、摆幅口径与回代验证的权威在 `systems/balance.md`，**本处不复述数字之外的推导**。
-  - **道念相关的状态与倍率：机制层已完整，内容层首批只用加法层。** 加法层修正（`StaticModifierData{ Layer = Additive, What = MomentumProduced | MomentumReduced }`）启用；**乘法层首批不作用于道念两格**、保留给 `CardManaCost` / `DrawCount` / `FatigueAmount` 三格。理由不是保守而是可对账性：在摆幅约 29 点的量级上，一条 ×1.5 的乘区在单回合即值一档 `diff` 落差的六成，而追分锚点按「整副卡组整体高一档」标定 ⇒ 乘区会让同一副卡组在不同手牌序列下摆幅相差数档，锚点从此无法对账，法则 10% / 神通 25% 两道以 `baseMomentum` 计的闸门也失去可事前估算性。**字段已在，只是内容侧不填；日后要开是纯加法。** 编排口径与校验落点见 `common-properties.md`。
+  - **道念相关的状态与倍率：机制层已完整，内容层首批只用加法层。** 加法层修正（`StaticModifierData{ Layer = Additive, What = MomentumProduced | MomentumReduced }`）启用；**乘法层首批不作用于道念两格**、保留给 `CardManaCost` / `DrawCount` / `FatigueAmount` 三格。理由不是保守而是可对账性：在摆幅约 29 点的量级上，一条 ×1.5 的乘区在单回合即值一档 `diff` 落差的六成，而追分锚点按「整副卡组整体高一档」标定 ⇒ 乘区会让同一副卡组在不同手牌序列下摆幅相差数档，锚点从此无法对账，以 `baseMomentum` 计的强度闸门（法则双闸：单条 ≤10% + 老账号全部法则合计 ≤25%；神通：单条 ≤25%，不设合计闸）也失去可事前估算性。**字段已在，只是内容侧不填；日后要开是纯加法。** 编排口径与校验落点见 `common-properties.md`。
 - **战斗中每个参战方各有一个 `DeckModule`。** 卡组不是战斗内的全局单件：**每个 character、每个 enemy 各持有一个**，由 combat-service 的 CharacterManager / EnemyManager 各自持有（`DeckModule` = 第三级抽象，见 `systems/architecture.md`）。**敌人也出牌**，且敌方卡组同样由功法展开（`Finale` 档天劫这类定制性由 `Pool == Enemy` 的敌方专用功法承担，不另开第二条构筑通道）。本文档持有**角色侧**卡组的设计；敌方卡组的构筑面见 `systems/enemies/`，内容形态见 `systems/adventure-event/combat/`。
 - **卡牌结算 = MTG 的 stack，但**不含交互与优先权**（承重）。** 打出的卡牌**不立即生效**，而是先入栈，按**后进先出（LIFO）**依次结算——**「打出」与「结算」是两个时刻**，结算顺序由此成为一条明确的规则，也为至今空白的**回合内效果 / 状态系统**提供了天然骨架。**但不借交互（instant / 栈非空时出牌）与优先权传递**：它们**把对局拉得太长、决策点过多、复杂度高而深度收益小**。**推论 ①：回合回到「我打完换你打」**——只有回合归属方能在自己的行动阶段出牌。**推论 ②：卡牌不多出「能否响应」这一维**，**instant 一类关键字明确不借**——**出牌时机是唯一的、且是全局规则而非卡牌属性**：一张牌只能在**自己回合的行动阶段、且栈为空时**打出（**`sorcery speed` 一词亦不借**；启动式异能与道具的使用窗口与之完全相同）。**推论 ③：stack 的承重点是触发的解决顺序**——**在栈上的牌可以触发能力，被触发的能力也进栈**，故**即便只打出一张牌，栈深也可以大于 1**；一次结算连锁产生的多个触发按 **LIFO** 解决，**后触发的先生效**，这使结算顺序成为卡牌设计可利用的资源。**「栈非空时不能出牌」对双方都成立**（不为归属方开口子，「行动阶段连续压栈再统一结算」的路线不采用）。
 - **回合结构 = 开始阶段 / 行动阶段 / 结束阶段三步，卡牌侧的落点有三处。** ① **抽牌在开始阶段**（归属方 mana 恢复至 `manaLimit` → 触发「回合开始时」→ 抽牌）；② **行动阶段是唯一出牌阶段**；③ **结束阶段触发「回合结束时」并清理回合内状态**，把状态分成「回合内临时」与「跨回合持续」两档。**三步是回合归属方的流程，双方不同时走。** 完整结构见 `systems/services/combat-service.md`。
@@ -157,9 +157,49 @@ CanLearn(character, technique) :=
   1. **三格取池余量须按收缩后的池重估**——每个角色实际可见的池只有全池的一个子集，阈值必须按**可修功法条目最少的那个灵根**来定（见 `systems/balance.md`）。
   2. **`ADR-0073` 的候选短缺三段处置会被更频繁触发**，三段的边界须按新口径复核。
   3. **内容编排从建议升格为硬约束**：每个在册角色的可修功法条目数须 ≥ 取池余量阈值，低于即加载期 `PushError`（校验 10，见 `../_index.md`）；编排期的提前发现由 `/audit-content` 的对账项承担。
-- **内容编排口径：功法池的形状 = 五份小池 + 一份共享池。** 每个角色的可修池 = 「自己属性的功法」+「无属性要求的通用功法」。通用功法是压低首批内容量的主要手段（否则五个不相交的池各要独立铺够）；但**它的占比须控制**——占比过高会把灵根的辨识度稀释回「五个角色抽到的东西差不多」。编排取向是「底盘共享、亮点分化」：build-around 的高稀有度功法一律带属性、通用功法偏向低稀有度的底盘。**这是编排口径，不是字段约束。**
-- **`MaxCharacterAffinityCount = 1` 的单灵根专属功法首批可以为空**（五个角色全是单灵根，不需要对冲）。它的内容义务在**引入第一个多灵根角色的同一批**产生，须与那批角色同批铺。
+- **五行 = 五个主战斗动词（内容编排口径 · 无规则后果）。** 每个灵根持**一个**主战斗动词，是角色辨识度的骨架，也是每门功法归属哪个灵根小池的编排依据：
+
+  | 灵根 | 主动词 | 战斗内的形态 |
+  |---|---|---|
+  | 金 `Metal` | 锋锐削拆 | 反制的主承载（削道念 + 拆永久物） |
+  | 木 `Wood` | 生长滚雪球 | 阵法运营，先付费后回本 |
+  | 水 `Water` | 绵长连锁 | 触发链与抽牌 |
+  | 火 `Fire` | 直接爆发 | 大额产出、高方差 |
+  | 土 `Earth` | 厚重稳固 | 护阵与低方差的稳定产出 |
+
+  **一灵根一主动词、互不重复。** 它与修仙意象直觉对位，且让三条高光通道各有明确归属（滚雪球落木、连锁落水；埋伏作为智斗手段可跨行分布）。**这是编排口径而不是规则**——五行之间仍没有任何相生相克，灵根唯一的规则后果仍是本节开头那条修习准入判定式（见 `../_index.md`「灵根」段）。
+- **内容编排口径：功法池的形状 = 五份小池 + 一份共享池，通用 / 专属的配比按稀有度分层、无硬限制。** 每个角色的可修池 = 「自己属性的功法」+「无属性要求的通用功法」。通用功法是压低首批内容量的主要手段（否则五个不相交的池各要独立铺够）；配比取**梯度而非一刀切**——每个稀有度档都有通用与带灵根的功法：**稀有度越低通用比例越高，且每种灵根都有低稀有度功法；稀有度越高通用仍存在但比例较少、大多带灵根要求**。一刀切的全池比例与「底盘共享、亮点分化」的分层本性不合，且会把各档的编排自由一并锁死。**辨识度因此是分层的：低稀有度底盘大量共享（省内容、直白），稀有度越高专属比例越高，记忆点全在亮点层**——build-around 的高稀有度功法一律带属性；允许存在的高稀有度通用功法**限于无条件直给型**（大额直接产念、稳定底盘的高级版一类）。配比同时要为未来的宽池（多灵根）角色预留编排空间。**这是编排口径，不是字段约束**；逐档比例数值归内容阶段随 ch1 starter deck 打磨定，`/audit-content` 按稀有度档统计通用 / 专属占比、按角色统计可修池构成作核对面（只报告不阻断）。
+- **`MaxCharacterAffinityCount = 1` 的单灵根专属功法首批可以为空**（五个角色全是单灵根，不需要对冲）。**双灵根批的内容义务是两类专属内容同批对铺**：单灵根专属功法（数量上限 1，补偿窄池角色的深度）+ **复合功法**（`RequiredAffinities` 填两个元素，只有同时持两灵根的角色能修——宽池角色不只是「池更宽」，它有自己修得、别人修不得的独占亮点）。上限语义即现行判定式：上限 2 的功法单、双灵根皆可修（属性要求照常须满足），上限 1 的功法双灵根不可修。**两类专属内容的对铺量待实测**（多灵根角色的强度对齐自此是「两类专属内容对铺」的编排题，不是单一强度公式）。
 - **边界情形：overlay 在轮回中途改了灵根或功法属性。** 已持有的功法若因内容更新而不再通过准入，**读档不拒绝、不没收该功法、不告警玩家**，只是它此后不再出现在 `UpgradeTechnique` 候选中。理由：功法已写进 `CharacterProfile.technique` 且已展开为实际卡组，没收它等于在轮回中途拆掉玩家已获得的构筑；这落在既有的「不承诺跨内容版本复现」之内，不构成新的例外。
+
+### 内容性格：基调 · 高光三通道 · 起始卡组的自由度
+
+量纲与规模口径给出的是「一张牌值多少」，本节给出的是「一张牌该长成什么样」——它是内容编排口径，**不新增任何字段、不改任何规则**。
+
+- **全局基调 = 产道念为主旋律、削减与拆解为反制手段；不设任何配比口径。** 内容侧**不做全局产削比对账**，也不为任一角色或功法规定产削比例——**允许整门功法完全偏离基调**（削拆向的功法、金系角色皆是正当形态）。
+  - 基调本身有两条依据：堆自己的分是最好懂的一条主线（直觉化支柱）；下限 0 截断使削减在炼气早期（`baseMomentum` 仅 1–3）天然贬值、随篇章自然升值，与渐进式复杂度同向。
+  - **不钉数字是有意的**：产削配比与类型配比都是角色辨识度的载体，一个全局比例会把五个角色的手感压成一个。
+- **高光通道三条（首批内容的重点支持面）。** 乘区爆炸已在机制层关死（乘法层首批不作用于道念两格），故爽点不来自数字爆炸，而来自运营与智斗：
+
+  | 通道 | 形态 | 已就位的机制接口 |
+  |---|---|---|
+  | **阵法滚雪球** | 「每回合 +X 道念」永久物的运营盈利，先付费后回本 | rate `ManaCost ≈ X × 3` 与 `X ≤ 20% × manaLimit`（见 `common-properties.md`） |
+  | **触发连锁链** | 触发式异能压栈形成的小型 combo 瀑布，后触发的先生效 | 栈的承重点本就是触发的解决顺序 |
+  | **埋伏兑现** | 读对敌人时机的翻面 | 埋伏（`enchantment.ambush`）与「敌人的行动不作事前预告」互补——你猜他、他不猜你 |
+
+  - **高费重锤收官不作首批设计重心**：不禁止，但不重点铺；ch1 费用带的高费端（3–4）条目稀疏化处理。
+  - **首批卡牌清单的高光位按三通道分配**；关键字与次类型的首批清单从这三条通道的重复组合倒推（准入判据不放松：≥3 条目共享 + ≥1 处 payoff 引用）。
+  - **连锁链的常态形状是 2–3 步小瀑布**：链长受单次动作链的栈条目总数上限与直觉化支柱双重框住，不追求长瀑布。
+- **起始卡组不设统一底盘。** 每个角色起始 15 张的玩法、法术 / 阵法配比、展示哪条高光通道，**完全由该角色与其三门功法的核心决定**；不设统一的类型配比，也不限制起始卡组的复杂度与设计空间。
+  - **逐角色独立立形**，没有「先做一个标准模板再做变体」这一步。
+  - **「新手友好」不由底盘统一性承担**，改由角色选择屏的玩法简介承担（见 `ux/onboarding.md`），并由**首批五角刻意压平在同一复杂度档**兜底——五个都直白，复杂度谱系由后续系列的角色向上展开（见 `../_index.md`「角色模板池的形态」）。压平是内容编排取向，不是配比约束：类型配比仍逐角色独立立形。
+- **极限精简是被支持的高阶构筑路线。** 把卡组精简到疲劳线以下、用疲劳减免换抽牌确定性，是一条**可发现的隐藏流派**：首批就放少量「疲劳减免 / 空堆收益」牌（载体 = `StaticModifierData{ What = FatigueAmount }`，可将疲劳削至 0）。
+  - **后果**：首批卡牌清单预留疲劳协同位；`RemoveLooseCard` 的供给（闭关精简等）按「这条路线可行」校准。
+  - 疲劳因此不是纯惩罚——它同时是小卡组的对价与一条 build 的入口，与「卡组规模是一条真实的构筑取舍」同向。
+- **反制的供给原则：削拆并重，拆解不得稀有化。** 「削对方道念」与「拆对方战场永久物」两类反制在全局内容池里**都须有稳定供给**，不钉比例。
+  - **理由承重**：滚雪球作主高光的前提是雪球可被拆——拆解若稀有，先铺者必胜、敌方雪球无解，滚雪球就从「高光」退化为「唯一解」。
+  - **后果**：`/audit-content` 侧可核「拆解类条目 > 0 且非孤例」；金系（削拆动词的主承载）之外也要有跨灵根可得的基础拆解供给，落在通用池。拆解沿用既有原语 `RemoveEntryEffect`，不为本条新增机制。
+- **业障在 ch1 低频但沉重。** ch1 只有少数事件塞业障，但每一张都来历分明、去除代价真实——**稀疏才沉重**；常态化塞业障会让教学期的卡组膨胀变脏，与直觉化支柱相抵。业障与极限精简路线之间的张力是**有意设计**：想洗掉业障就要付真实代价。
 
 ### 「回合内状态」= 生命周期三件套
 
@@ -230,7 +270,7 @@ public enum CountdownSide
 
 - **「加法先于乘法」写成规则而非实现细节**（与「步内顺序是规则的一部分」同一处理）：否则同一组修正在不同顺序下结果不同，而 LIFO 已经承担了一层顺序敏感性，不宜再叠一层。**一旦有卡牌围绕它设计，日后改动成本很高。**
 - **静止式修正不入栈**，故不参与 LIFO，**只在求值瞬间被读取**——这正是「静止式异能是 BattlefieldManager 的一条与栈无关的写入路径」的落地形态。
-- **乘法层的量纲 = 万分比整数（`10000` = ×1.0），合并算法 = 「同层求和 → 只乘一次 → 只取整一次」。** 全库数值面是整数，浮点会在「加法层结果 × 若干乘数」处引入舍入取向；同层先求和再乘一次，使**舍入只发生一次**成为可断言的不变式，而逐个连乘则每一步都要决定怎么取整。最后按下限 0 截断。
+- **乘法层的量纲 = 万分比整数（`10000` = ×1.0），合并算法 = 「同层求和 → 只乘一次 → 只取整一次（向下取整）」。** 全库数值面是整数，浮点会在「加法层结果 × 若干乘数」处引入舍入取向；同层先求和再乘一次，使**舍入只发生一次**成为可断言的不变式，而逐个连乘则每一步都要决定怎么取整；取整方向定为**向下**（与 `FailureRatio` 的既有向下取整先例一致）。最后按下限 0 截断。
 - **可被静止式修正的量是一份封闭清单**（`ModifierTarget` 首批五项：道念产出 / 道念削减 / 卡牌费用 / 抽牌数 / 疲劳扣减量），成员序视同冻结、只能追加。取值与逐项理由见 `common-properties.md`。
 - **乘法层对道念方差的放大**在内容扩充后的统计校准中一并建模。
 - 性能面：求值遍历战场条目（量级个位数到十几）且不在 `_Process` 热路径上，风险低；但 **BattlefieldManager 应按 `TimingId` / `CardType` 预建索引**，避免在结算中做 LINQ 分配。
@@ -262,7 +302,7 @@ public enum CountdownSide
 - **载体 = 古宝 + 阵法双载体**（前者「关键回合一定拿得到」，后者 build 向：牺牲一次出牌与场上位置换持续的牌序优势）；法则 `Power` 可有但极稀缺；**法术不做**——受抽牌运制约，**这类效果最怕「需要时抽不到」**，且一张只给便利不产道念的牌在 5 回合对局里几乎永远不该打。
 - **花费 = mana 为主 + 古宝上叠 `Charges`，明确排除弃牌**：弃牌把这类成本压在 5 回合对局里极稀缺的**手牌资源**上，代价过重且不可预测；mana 每回合刷满不结转，「花 1 点看一眼牌堆顶 = 这回合少打一张小牌」代价即时、可感、不跨回合累积。
 
-Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-09-02-move-card-effect-side.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15-content-id-technique-shape-and-subtype-reset.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-26b-combat-substream-arbitration.md` · `handoffs/2026-08-27-ability-primitive-grammar.md` · `handoffs/2026-08-27-card-pool-and-reshuffle.md` · `handoffs/2026-09-07-combat-scale-baseline.md`
+Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-09-02-move-card-effect-side.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-11c-combat-turn-flow-fatigue-and-card-type-reduction.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-15-content-id-technique-shape-and-subtype-reset.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16c-effect-keywords-and-targeting.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-26b-combat-substream-arbitration.md` · `handoffs/2026-08-27-ability-primitive-grammar.md` · `handoffs/2026-08-27-card-pool-and-reshuffle.md` · `handoffs/2026-09-07-combat-scale-baseline.md` · `handoffs/2026-09-09b-combat-feel-identity.md` · `handoffs/2026-09-10-character-series-identity-and-monetization.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -276,15 +316,16 @@ Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-09-
 - **功法的两条强度纵轴：层数 = 严格升级；稀有度 = 强度上限与构筑复杂度，不是严格支配**。
 - **功法成员卡由功法引用派生排除于散牌产出侧；不新增字段，`CardData.Rarity` 保持必填但成员卡无规则消费点**。
 - **灵根修习准入 = 灵根的唯一规则后果**：功法增 `RequiredAffinities` / `MaxCharacterAffinityCount` 两格，判定为单点纯函数、由调用方在取池点自叠，不进 `DrawPool<T>`；卡牌侧一格不加，`MaxTier` 不折减，敌人侧不做准入。
+- **ch1 内容性格：** 全局基调 = 产道念为主旋律、削减与拆解为反制，**不设任何产削配比口径**（允许整门功法偏离）；高光由**阵法滚雪球 / 触发连锁 / 埋伏兑现**三条通道承担，高费重锤不作首批重心；**起始卡组不设统一底盘**，玩法由角色与其功法核心决定，**首批五角压平在同一复杂度档**（复杂度谱系由后续系列展开）；**极限精简是被支持的高阶路线**（首批放疲劳减免牌）；反制供给原则 = **削拆并重、拆解不得稀有化**；**五行 = 五个主战斗动词**（编排口径，无规则后果）；ch1 业障低频但沉重。
 - **出牌费用 = mana**：每回合出牌资源为 mana，**每回合开始恢复至 `manaLimit`**（炼气基线 5/5，不结转）；`manaLimit` 由事件 cost / reward 推拉 → `../mana.md`。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **多灵根角色的强度对齐换算尚无解法。** 多灵根角色的可修池天然更宽（池更宽 = 更强）。对冲手段（`MaxCharacterAffinityCount = 1` 的单灵根专属功法）结构已就位，但「多宽的可修池 = 多强的专属功法」这条换算没有答案——量纲基准已就位、可作分母，欠的是换算本身。首批全为单灵根，故在首批不发生；**引入第一个多灵根角色时必须先答**。→ 本文档、`systems/balance.md`。
-- **通用功法（无属性要求）的占比口径。** 占比过高会把灵根辨识度稀释回「五个角色抽到的东西差不多」。编排取向已定（底盘共享、亮点分化），但这是编排口径不是字段约束，取值随 ch1 starter deck 打磨定。→ 本文档。
+- **双灵根批两类专属内容（单灵根专属功法 / 复合功法）的对铺量。** 区分模式已定（双机制组合，见「内容编排口径」），换算题收窄为两类专属内容的编排对铺；具体量待实测且依赖道念量纲。首批全为单灵根，故在首批不发生；引入双灵根批时与那批角色同批答。→ 本文档、`systems/balance.md`。
+- **通用 / 专属分层梯度的逐档比例数值。** 口径已定（按稀有度分层、无硬限制，低档通用比例高、高档通用限无条件直给型），取值随 ch1 starter deck 打磨定，`/audit-content` 按档统计作核对面。→ 本文档。
 - **关键字与次类型的首批清单。** 两套清单当前均为空、机制完整成立；填什么条目要从「哪些组合真的重复了 ≥3 次」倒推，切入点是 starter deck 的设计过程。→ `systems/balance.md`、`common-properties.md`。
-- **起始卡组的具体内容未设计。** `CardData` 的字段清单已收口（类型五分 · 异能三分 · 次类型 · `Pool` · `Subtypes` · 目标声明与效果引用 · `ManaCost` · `OnPlay`，见 `common-properties.md`）；**starter deck 装哪些牌**仍空白——**它正是内容扩充后统计校准的切入点**。
+- **起始卡组的具体内容未设计。** `CardData` 的字段清单已收口（类型五分 · 异能三分 · 次类型 · `Pool` · `Subtypes` · 目标声明与效果引用 · `ManaCost` · `OnPlay`，见 `common-properties.md`）；**设计取向也已给出**（上方「内容性格」小节：三条高光通道 · 不设统一底盘 · 疲劳协同位 · 拆解供给）；**starter deck 装哪些牌**仍空白——**它正是内容扩充后统计校准的切入点**。
 - **逐张卡牌的道念产 / 削取值（承重 · 归内容扩充后的统计校准）。** 量纲基准、规模口径与道念状态 / 倍率的首批取用面均已给出初值（见上方两条）；仍待定的是**每一张牌具体产多少 / 削多少**，切入点是设计起始角色 starter deck 的过程。→ `systems/balance.md`、`systems/scoring.md`。
 
 ## 对应

@@ -324,10 +324,10 @@ public sealed record CardInstanceSave(
 
 **明确不是决策点**（同样重要）：弹栈结算的**每一次**弹出（除非因此进入 D4）· **敌人回合内部**的任何一步（玩家在其中没有输入，D5 一个点即覆盖整个敌人回合，它是一段可确定性重放的区间）· **奖励面板的打开本身**（打开时 `picks` 已由胜负判定那一步算定并写入，这一刻没有新状态产生——与「Exchange 面板打开」同形）。
 
-**每个决策点的提交形态：** `TryApply(EventStateChanges[ActiveCombat = 当前局面] + RngElements[combat 子流终态])` —— D0–D6 各一次，**不新增存档点类型**（这七个点本就是既定存档点），且照常**不计**软阻塞闸门。**D7 并入 `eventEnd` 的那一次**（`ActiveCombat = null`），既定的「收口不单独落点」原样成立。**D6 一场至多 3 次**（候选恒 3 项、每项至多处置一次、不允许反悔），对下方密度口径的增量可忽略。提交前由组装方比对 SeedManager 的未清账子流与 `spec.RngElements`（`#if DEBUG`），见 `systems/services/life-cycle-service.md`。
+**每个决策点的提交形态：** `TryApply(EventStateChanges[ActiveCombat = 当前局面] + RngElements[combat 子流终态])` —— D0–D6 各一次，**不新增存档点类型**（这七个点本就是既定存档点），且照常**不计**软阻塞闸门。**D7 并入 `eventEnd` 的那一次**（`ActiveCombat = null`），既定的「收口不单独落点」原样成立。**D6 一场至多 3 次**（候选恒 3 项、每项至多处置一次、不允许反悔），对下方密度口径的增量可忽略。**`RewardPoolId` 为空的战斗不产生 `D6`**——本场无可选奖励面板，故每场的决策点密度按是否挂池分两档。提交前由组装方比对 SeedManager 的未清账子流与 `spec.RngElements`（`#if DEBUG`），见 `systems/services/life-cycle-service.md`。
 
 - **密度 ≈ 31 个决策点 / 场**（10 回合、玩家 5 个回合、每回合出 2~3 张牌）。**保留 D2**——它是「退出重进得到同一局面」这条承诺在最自然位置的兑现，**不作为超预算时的第一削减对象**——该承诺在强制在线 · 云端权威下是玩家对存档的基本信任。若实测超预算，先动 push 频率而非存档点本身（存档点与 push 已解耦）。
-- **软阻塞闸门不受影响**：`sync-service` 的缓冲上限口径为「未同步的**事件级**存档点 ≥ 3」，**战斗内 D0–D5 照常写本地、照常防抖 push，但不参与软阻塞判定**——否则每场战斗的第三个决策点就会触发模态。**连带：D0 的 `Immediate` flush 失败也不触发阻塞**——同一个点不能一边被排除在闸门计数外、一边又能独立挡住玩家；且此时 `SelectCost` 已施加，挡住 = 付了成本却拿不到事件。「flush 是尝试、闸门是状态」见 `sync-service.md`「`Immediate` flush 的失败语义」。
+- **软阻塞闸门不受影响**：`sync-service` 的缓冲上限口径为「未同步的**事件级**存档点 ≥ 3」，**战斗内 D0–D7 照常写本地、照常防抖 push，但不参与软阻塞判定**——否则每场战斗的第三个决策点就会触发模态。**连带：D0 的 `Immediate` flush 失败也不触发阻塞**——同一个点不能一边被排除在闸门计数外、一边又能独立挡住玩家；且此时 `SelectCost` 已施加，挡住 = 付了成本却拿不到事件。「flush 是尝试、闸门是状态」见 `sync-service.md`「`Immediate` flush 的失败语义」。
 - **战斗前确认页的「进入战斗」按钮不是决策点。** 判据是「这一刻有没有新状态产生」——按下它不产生任何新状态，局面早已由「择一进入」那一次提交定死；它与「Exchange 面板打开 / Research 面板打开」同形，都是呈现层的一次动作而非分叉。故清单不为它加行，`D0` 的 `Immediate` flush 点仍恰好就是「进入战斗前」那一次。确认页的规格见 `ux/screen-flow.md`。
 - **需要选目标的触发式异能按稀缺配额编排**：占全部触发式异能 **≤ 10%**（加载时统计 + `PushWarning`）、一场 `Standard` 档战斗期望进入挂起态 **1~2 次**（编排口径，不可机械化）。频度天然低——玩家**主动出牌**的目标在打出时就由 UI 按 `slotIndex` 顺序一次收齐（`PlayCard(card, targets)`，入栈时 `targetState = Resolved`），挂起态**只**来自「压进去的东西在结算时回头问一句『指谁』」；敌人侧的目标选择由 EnemyManager 自行决定、不产生决策点。**稀少改变的是性能预算，不是正确性要求**：D4 必须在清单里。连带成立——**挂起态存档不做任何专门优化**，`ActiveCombat` 全量序列化足够，**栈的增量写入不做**。
 
@@ -445,8 +445,8 @@ public sealed record EncounterSpec(               // sealed record 而非 struct
     ProfileChangeSpec BaseReward);                // 本场 baseReward，物化时定稿
 
 public readonly record struct VictoryRule(
-    int  WinMargin,          // 角色须领先的点数。Standard = 1（严格高于）、Practice = 0、Finale = 0
-    );                       // d >= WinMargin → Victory；d == WinMargin - 1 且 WinMargin >= 1 → Draw；否则 → Defeat
+    int  WinMargin);         // 角色须领先的点数。Standard = 1（严格高于）、Practice = 0、Finale = 0
+                             // d >= WinMargin → Victory；d == WinMargin - 1 且 WinMargin >= 1 → Draw；否则 → Defeat
                              // ⇒ WinMargin == 0 的两档二值化，Draw 只在 Standard 可达
 
 public readonly record struct CombatResult(
@@ -576,19 +576,20 @@ public readonly record struct MomentumDelta(
   - **这一格不条件填充**：栈是完全公开面（栈上的东西正在结算，逐步演出是硬要求），对有卡牌来源的栈条目恒非空。
 - **`TargetKind` 必须有 `None`**：`PlayCard` 每次都要传一个 `TargetRef` 而大量牌无目标，`None` 使「无目标」成为**已表达的取值**而非 null 约定。**`StackEntry` 不保留**——本作不做「反制栈上条目」这一形态的效果，枚举里不留永无消费者的取值；栈条目只被 `pending` 与结算流程用 `stackEntryId` 引用，**从不作为效果的目标**。
 - **`CombatTier` 是三值枚举而非 bool**：回合数与胜负判据已显式化，**战斗规则不从它派生**；但它是**战斗之外**三处的判据（篇章边界闸门 · ADR-0004 篇章重试 · 道统残卷的累积与兑现），故用三值枚举而非 bool——枚举同时让 `Practice` 有了位置。见 `decisions/ADR-0002-adventure-event-taxonomy.md`。
-- **胜负判据参数化为两个数就够，不做「可替换的判定对象」**：`(1, false)` / `(0, false)` / `(N, false)` 已覆盖全部已陈述需求，无需策略枚举与分发。
+- **胜负判据参数化为一个数就够，不做「可替换的判定对象」**：`WinMargin` 单参数取 `1 / 0 / 0`（Standard / Practice / Finale）已覆盖全部已陈述需求，无需策略枚举与分发。
 - **`BaseReward` 随物化定稿**（热更不影响进行中的遭遇），与「`EventOption` 产出即定稿」一致；代价是与「overlay 热更即生效」略有张力，**取定稿纪律**。
 - **`EncounterSpec` 的可空覆写组 = `InitialDraw` / `DrawPerTurn` / `HandLimit` / `EnemyManaLimit` 四格，`null` = 取 `CombatRulesData` 的默认值。** 它们与 `TurnLimit` / `VictoryRule` 属同一档遭遇参数旋钮——「更宽容的 `Practice`」最自然的形态之一就是多抽一张。取值与逐格理由见 `systems/balance.md`；**疲劳量刻意不在覆写组内**（同处给出理由）。
   - **本服务只见定值，不知道剧本存在。** 前三格连同 `TurnLimit` / `WinMargin` 可能已在物化期被剧本的 `PlotModulation.Tighten` 收紧（形态与合并算子见 `systems/services/plot-manager.md`）；`EncounterSpec` 产出即定稿并落存档，**消费侧不回查模板重算**。
-  - **⚠ 已知例外：参战方对称在 mana 这一项被打破。** 「敌人侧规则数值与玩家侧完全同值」这条对称纪律（它支撑着「敌人回合的可读性依赖对称」）对起手 / 抽牌 / 手牌上限三项成立，**对 `manaLimit` 不成立**：敌方取全局常量 `EnemyManaLimit`（初值 `5`，可被本格覆写），而玩家侧 `manaLimit` 随大境界提升而增长，第三章可达 9~12。玩家因此**无法从自己的 mana 节奏推断敌人的行动空间**，图鉴「关键卡牌」一栏的费用参照系也随之偏移。这是已知并接受的代价——敌人的强度差由 `baseMomentum` 与逐条编排的卡组承载，不由 mana 承载。玩家侧的成长语义见 `systems/character-profile/mana.md`，敌方取值见 `systems/balance.md`。
+  - **⚠ 已知例外：参战方对称在 mana 这一项被打破。** 「敌人侧规则数值与玩家侧完全同值」这条对称纪律（它支撑着「敌人回合的可读性依赖对称」）对起手 / 抽牌 / 手牌上限三项成立，**对 `manaLimit` 不成立**：敌方取全局常量 `EnemyManaLimit`（初值 `5`，可被本格覆写），而玩家侧 `manaLimit` 随大境界提升而增长，第三章可达 10~13。玩家因此**无法从自己的 mana 节奏推断敌人的行动空间**，图鉴「关键卡牌」一栏的费用参照系也随之偏移。这是已知并接受的代价——敌人的强度差由 `baseMomentum` 与逐条编排的卡组承载，不由 mana 承载。玩家侧的成长语义见 `systems/character-profile/mana.md`，敌方取值见 `systems/balance.md`。
 - **`EncounterSpec` 整份嵌在 `EventOption.Encounter` 上，`EncounterId` 与 `EventOption.InstanceId` 同值的冗余是写明的例外、不是先例。** 本服务只见 `EncounterSpec`、不见 `EventOption`；删掉这一格会让战斗侧日志与 `ActiveCombat` 存档失去溯源键。它与 `LifeSpanAfter` 同款处置——**不得据此放宽「重算得出来的不存」这条判据**。
 - **`CombatSnapshot` 按变更广播 + 缓存**，不是每次访问现组装（含两个列表，UI 每帧读会在热路径分配）；调用纪律 = **每回合 / 每次结算后组装一次**。归 `.claude/rules/csharp-godot-rules.md` 热路径不分配。
 - **运行时视图字段 ≠ 存档 schema**：二者大量重合但不应混为一谈（例如 `PendingTargetRequest.LegalTargets` 明确不必存档，恢复时按当前局面重算）。存档 schema 见上方「战斗存档：`ActiveCombat`」。
 
 ### 可选奖励的候选生成
 
-- **固定 3 项候选，不受道念差影响；三项各自独立可领可跳，不是择一。** **道念差的价值全部落在候选质量上**（`Tier` 三档，见 `systems/balance.md`），不落在数量上——这是数量恒定的现行理由。逐项领取使实际到手项数在 0–3 之间由玩家决定，**候选项数恒为 3、到手数不恒定**；**合法池不足 3 条目时显式降级为实际项数**（`PushWarning` + 给出实际能给的项数，不静默给 2 项）。呈现层逐格映射 `picks`、**不渲染空槽**——空槽没有语义，会被读成加载失败（形态见 `ux/combat-ux.md`）。
-- **池 = 事件模板携带的 `RewardPoolId`，经 `AllEnabled()` 取池**，**四类混合（`CardData` / `ItemData` / `CultivationTechniqueData` / `PowerData`）**，去重（本次已抽中的 `Id` 不再出）。**`PowerData` 只在 `combatTier ∈ { Standard, Finale }` 时进候选族，`Practice` 档整族排除**——最轻一档也掉神通会把这条获取面稀释成常规掉落（口径权威见 `systems/character-profile/power/_index.md`「内容编排口径」，此处不复述）。**必须走 `AllEnabled()`**，不得自写 `All().Where(x => x.ContentEnabled)`。**这是一条玩家侧候选池，故另叠一层 `Pool != Enemy`**——卡牌与功法两侧同款过滤（`Pool` 的枚举成员、必填语义与两侧对称的校验口径见 `systems/character-profile/deck/_index.md`，此处不复述）。**`RewardPoolId` 挂 `AdventureEventData` 不挂 `EnemyData`**——「打赢什么敌人」与「这场给什么奖」是两件事，同一个敌人在 Practice 与 Combat 中的奖励池应当能不同。**稀有度权重表按 `RarityTier` 五档索引、由优势档 `Tier` 三档选表**——`RarityTier { Tier1..Tier5 }` 是内容品质档（挂 `CardData` / `ItemData` / `PowerData` / `CultivationTechniqueData`，缺失 → `PushError`），`Tier { Narrow, Solid, Crushing }` 是道念差归一化的优势档，**两者不得复用同一枚举、也不得互相换算**。见 `systems/balance.md`。
+- **`EncounterSpec.RewardPoolId` 为空 ⇒ 本场不开可选奖励面板：** `activeCombat.reward` 恒为 `null`，决策点 `D6` 本场不出现（`D0`–`D5` / `D7` 不变），呈现层不渲染空面板（与下方「不渲染空槽」同一条纪律）。**哪些战斗给可选奖励是内容编排决策**，占比口径与已接受的代价见 `systems/balance.md`。
+- **挂了池的战斗固定 3 项候选，不受道念差影响；三项各自独立可领可跳，不是择一。** **道念差的价值全部落在候选质量上**（`Tier` 三档，见 `systems/balance.md`），不落在数量上——这是数量恒定的现行理由。逐项领取使实际到手项数在 0–3 之间由玩家决定，**候选项数恒为 3、到手数不恒定**；**合法池不足 3 条目时显式降级为实际项数**（`PushWarning` + 给出实际能给的项数，不静默给 2 项）。呈现层逐格映射 `picks`、**不渲染空槽**——空槽没有语义，会被读成加载失败（形态见 `ux/combat-ux.md`）。
+- **池 = 事件模板携带的 `RewardPoolId`，经 `AllEnabled()` 取池**，**四类混合（`CardData` / `ItemData` / `CultivationTechniqueData` / `PowerData`）**，去重（本次已抽中的 `Id` 不再出）。**`PowerData` 只在 `combatTier ∈ { Standard, Finale }` 时进候选族，`Practice` 档整族排除**——最轻一档也掉神通会把这条获取面稀释成常规掉落（口径权威见 `systems/character-profile/power/_index.md`「内容编排口径」，此处不复述）。**必须走 `AllEnabled()`**，不得自写 `All().Where(x => x.ContentEnabled)`。**这是一条玩家侧候选池，故另叠一层 `Pool != Enemy`**——卡牌与功法两侧同款过滤（`Pool` 的枚举成员、必填语义与两侧对称的校验口径见 `systems/character-profile/deck/_index.md`，此处不复述）。**`RewardPoolId` 挂 `AdventureEventData` 不挂 `EnemyData`**——「打赢什么敌人」与「这场给什么奖」是两件事，同一个敌人在 Practice 与 Combat 中的奖励池应当能不同。**稀有度权重表按 `RarityTier` 五档索引、由优势档 `Tier` 三档选表**——`RarityTier { Tier1..Tier5 }` 是内容品质档（挂 `CardData` / `ItemData` / `PowerData` / `CultivationTechniqueData`，缺失 → `PushError`），`Tier { Narrow, Solid, Crushing }` 是道念差归一化的优势档，**两者不得复用同一枚举、也不得互相换算**。权重表由优势档 `Tier` 与**当前篇章**共同索引（篇章位移见 `systems/balance.md`）。**一个具名池是一份逐条编排的成员清单，同一条目可同时属于多个池；每个池在五档上均非空** ⇒ **稀有度的分布完全由权重表给出，池负责的是「抽中某一档时玩家拿到哪一族、什么价位的条目」**。见 `systems/balance.md`。
 - **功法候选的两条口径。**
   - **候选中出现该角色修不了的功法 → 直接排除。** 灵根修习准入在功法族上再叠一层过滤（判定式与单点纯函数见 `systems/character-profile/deck/_index.md`「灵根修习准入」）；它需要读 `Profile` 取角色灵根，故与 `Pool != Enemy` 一样由本服务在把候选交给抽取之前筛掉，不进 `DrawPool<T>`。
   - **候选中出现已持有的功法 → 直接排除，不折算为升阶。** 与闭关三选一的处置一致（见 `systems/character-profile/deck/_index.md` 与 `systems/adventure-event/research/common-properties.md`）：升阶是另一条独立通道，混进奖励抽取会让「抽到什么」与「升什么」两件事互相污染。
@@ -599,7 +600,9 @@ public readonly record struct MomentumDelta(
   - **玩家选中一条神通 = `Spoils` 内一条 `AbilityChangeElement(Grant, Power, Character, id, Source.CombatReward)`**，与商店购买、与「选中功法 = 一条 `DeckChangeElement`」逐格同构，不新增任何结构。
 - **奖励池的 `Card` 部分同样排除「被任一功法引用的成员卡」**，通则与加载期反建索引的权威在 `systems/adventure-event/exchange/common-properties.md`。注意这与上一条不冲突：功法是作为**独立族**进池的，被排除的是散牌产出侧的成员卡。
 - **时点 = 胜负判定之后、奖励领取步骤之前，一次性抽定**，走 `RngStream.Reward` 子流；**`picks` 落 `activeCombat.reward`、与 `rng.State` 一同存档，恢复时直接读已抽定的 `picks`，绝不用同一 `State` 重抽**——后者依赖抽取算法永不变更，是脆弱保证；直接存结果才真正兑现「退出重进得到同一组选项」。
+- **奖励池的 `ItemData` 部分排除「含寿元产出的道具」。** 含 `(CostKey.LifeSpan, BaseValue > 0)` 产出的 `ItemData` 不进战后奖励池；**同一份索引同时作用于开局强制事件的法宝三选一池**（那条通道同样完全免费，口径见 `systems/character-profile/item/_index.md`）。形态与「成员卡不从散牌产出侧发放」同款——加载期反建一份索引、两处取池点共用，**不新增字段、不落存档、不加任何计数器**。三条理由：① 回寿法宝的总量护栏由三格内容编排口径（出现频率 / 库存深度 / 定价）承接，而那三格里唯一的硬闸是货币，**免费通道上定价这一格整条失效**；② 免费候选位的次数正比于**挂了 `RewardPoolId` 的**战斗场数，与商店侧带价曝光差一个量级，一个池占比旋钮同时满足两条通道必然一头松一头紧；开局三选一虽只一次一轮回，但单次给量（大档）是首篇章道具侧整章回寿预算的数倍 ⇒ 「一轮回至多一件」封的是次数、不是量；③ 它让「打输一场」的代价被「打赢下一场」直接抵消，与 Travel 禁令「换图的代价不得被同一事件抵消」逐字同构——寿元合并后战斗失败正是这条压力线的第二个消耗面。**代价明写（被接受）：** 内容侧从此编排不出「打赢一场硬仗掉一颗补天丹」这一风味，开局三选一也不出补天丹；回寿法宝只能靠买与靠事件给。加载期日志：`[ContentRegistry-Validate] lifespan items excluded from free reward pools: count=<n> ids=<...>`。
 - `combatTier` 三档**共用同一条生成路径**，差异只在 `RewardPoolId`、`Tier`，以及 `Practice` 档对 `PowerData` 族的整族排除。
+  - **三档的 `RewardPoolId` 取值按篇章 × `combatTier` 编排（九个具名池）**，厚薄由**挂池率 × 池的族与价位构成 × `Practice` 的神通族排除**三者表达——**不换权重表、不换抽数**（候选数量恒 3）。池成分口径与期望价值算式的权威在 `systems/balance.md`，本处只给维度。
 - **「一项都不领」是合法结局**，它不是一条单独的「放弃全部」通道，而是逐项跳过的自然叠加——面板上没有「放弃全部」按钮，玩家只是把三项都跳过了。**合法池不足 3 条目时显式降级**：`PushWarning` + 给出实际能给的项数，**不静默给 2 项**。
 - 「碾压才有高稀有度」会诱导玩家专挑弱敌刷奖励——但 `±2` 带已从规则层封住碾压深度，该激励天然受限。**这是 `±2` 带的一个正向副作用。**
 
@@ -645,7 +648,7 @@ public enum CombatFeedKind { CardPlay, AbilityActivation, AbilityTrigger, ItemUs
 - **本流不落存档，退出重进战报从空开始。** 这**不是**「可重算所以不存」——feed 是历史，局面重算不出来；它的理由是**明写接受丢失**：`ActiveCombat` 因此一格不加，而「选目标态必须自解释」这条硬要求的承担者是指令条、本就不依赖战报。
 - **本流是 Combat 专属，不外延为跨事件类型的日志。** 见 `systems/adventure-event/common-properties.md`。
 
-Source: `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-08-30-stack-entry-kind-for-item-use.md` · `handoffs/2026-09-03-combat-snapshot-facedown.md`
+Source: `handoffs/2026-09-09d-combat-rarity-and-reward-scale.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md` · `handoffs/2026-09-09f-event-reward-and-hidden-stat-orchestration.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-combat-presentation-and-action-result.md` · `handoffs/2026-08-26c-enemy-ai-strategy-shape.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-08-30-stack-entry-kind-for-item-use.md` · `handoffs/2026-09-03-combat-snapshot-facedown.md`
 
 ## 与其他服务的关系
 
@@ -670,6 +673,7 @@ life-cycle-service.AdvanceEventAsync(eventOption, mode, ct)
 - **`ActiveCombat` 战斗存档 schema（挂 `CharacterProfile`、可空、收口即清）；D0–D7 决策点清单（保留 D2；D6 = 奖励逐项领取）；挂起态恢复回到该选择点、不允许反悔；`ct` 只在决策点被观察；战斗随机不设 `attemptIndex` 派生层**。
 - **`EncounterSpec` 携带 `TurnLimit` / `VictoryRule` / `RewardPoolId` / `BaseReward` 且改为 `sealed record`；`IsFinale` 收编为三值 `CombatTier`；玩家动作的统一返回类型 `ActionResult`（覆盖出牌 / 用道具 / 启动异能 / 结束回合 / 提供目标五个方法）；`MomentumDelta` 四字段（`Declared` = 效果标称量）；可选奖励固定 3 项且预先算定落存档**。
 - **奖励计算归 combat-service、发放属于战斗流程；奖励分强制 / 可选两类，候选预先算定、可选部分逐项领取 / 跳过（每一次处置是决策点 D6）；回合数与胜负判据为遭遇参数**。
+- **`RewardPoolId` 可空 = 本场不开可选奖励面板（`D6` 不出现）；池 = 逐条编排的具名成员清单、一个条目可属多个池、每池五档全非空；含寿元产出的 `ItemData` 不进免费产出通道（战后奖励池 + 开局法宝三选一）**。
 - **卡牌结算 = stack（LIFO），但交互与优先权传递移除；栈深由触发式能力入栈撑起；回合结构 = 开始阶段 / 行动阶段 / 结束阶段三步（归属方各走一套，无战斗步骤、无双主阶段）；出牌时机唯一且为全局规则；手牌上限是恒定不变式、不设弃牌机制**。
 - **借词第一批全部定名；卡牌类型五分 + 异能三分 + 永久物；战场与参战方的划线判据 = 「是否在场上生效」** → `decisions/ADR-0019-card-type-taxonomy-and-battlefield.md`（Accepted）。
 - **先后手由 `EncounterSpec.FirstSide` 决定（null → combat 子流掷）；不设 mulligan；抽牌堆不重洗、抽空即每张扣 1 道念；疲劳入栈，是完全一等的栈条目（可被监听 / 响应，扣减量可被削减至 0），无限对局风险由 `TurnLimit` 封顶；起手 4 / 手牌上限 7 / 卡组规模不设硬限**。

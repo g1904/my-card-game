@@ -42,6 +42,7 @@
 - **同一批库存内不出现重复商品，这条免费成立**：`PickMany` 无放回是既定契约，不需要新规则。
 - **买完即售罄，同一 offer 不可重复购买。** 不设售罄，一个高价值 offer 会把玩家的货币全部单点吸走，库存槽位失去意义。
 - **不设兜底商品 / 保底 offer。** 池不足时店里就少几件，**空池是运营事故，不是玩法分支——不为它设计兜底玩法**。一件为空池而生的保底商品必须有 `Id`、有定价、有稀有度，且它会在正常库存里也被抽到（除非再加一条 `ExclusiveSource` 式的准入标记），代价远大于收益。短缺的层次化处置见 `common-properties.md` 与 `systems/services/future-event-service.md`。
+- **库存深度是一条逐族的编排口径**：单个 Exchange 条目内**逐 `Kind` 的 Σ`SlotCount` 各有上界，五族之和留一格余量给槽位总数上界**。它是 `/audit-content` 的一项汇总、**只报告不阻断**，**不是加载期校验、不落字段**（按 `StockRules` 的 `Kind` 分组求和即得，与闸 ① 是同一次分组）。**逐族取值与逐格依据见 `systems/balance.md`**；`CharacterItem` 那一格另附「不为回寿法宝单设 stock rule、也不用 `RarityFilter` 给它开专属编排位」，理由见 `systems/character-profile/item/_index.md`。
 
 ### 定价与折扣
 
@@ -49,7 +50,7 @@
 - **表的格值 = (支付币种, 基准价)，币种由格决定。** 一件商品收灵石还是仙玉，读的是它所在的「族 × 稀有度」那一格；**内容侧不新增任何书写位**，「条目默认不填、取表值」原样成立。物化时币种随基准价一同抄进 `ExchangeOffer.Currency`。
   - **仙玉的高阶性由它落在哪几档表达，不由新机制表达**——高阶商品之所以是高阶商品，是因为它的族与稀有档在表上收仙玉，而不是因为它带了一个标记。
   - **被接受的代价（正面写明）：** 币种与「族 × 稀有度」全局绑死 ⇒ 编排不出「同一稀有档有的收灵石有的收仙玉」，也编排不出「专收仙玉的商贾」这一风味。换来的是**币种不可被内容条目误填**，且售出侧不产生事实汇率（见「售出」）。
-  - **哪几格填仙玉已定：仅 `PlayerItem` 全五档 · `CharacterPower` 的 Tier4 / Tier5 · `CultivationTechnique` 的 Tier5，其余 18 格全部收灵石。** `CharacterItem` 五档**恒收灵石、一格仙玉都不给**——它是唯一可售出的族，仙玉不落在它上面即让「售出产仙玉」在结构上不可能发生。**代价：从此编排不出「以仙玉计价的法宝」**，含顶级消耗品。逐格基准价见 `systems/balance.md`。
+  - **哪几格填仙玉已定：仅 `PlayerItem` 全五档 · `CharacterPower` 的 Tier4 / Tier5 · `CultivationTechnique` 的 Tier5，其余 17 格全部收灵石。** `CharacterItem` 五档**恒收灵石、一格仙玉都不给**——它是唯一可售出的族，仙玉不落在它上面即让「售出产仙玉」在结构上不可能发生。**代价：从此编排不出「以仙玉计价的法宝」**，含顶级消耗品。逐格基准价见 `systems/balance.md`。
 - **折扣通道一 = `ModifierKey.ShopPrice`（PlayerPower 的具名 modifier）。** 它**在物化时施加、写入 `ExchangeOffer.ListPrice`**，因此**不进 `ResourceElements` 表**：「一个 `ModifierKey` 只能有一个施加点」，而商店价格必须先算才能标价 ⇒ 施加点在物化 / 展示侧。
 - **折扣通道二 = `ExchangeStockRule.DiscountPercent`（内容侧静态折扣）。** 用于表达「这位商贾对同门有优待」一类风味；与玩家侧修正来源不同、可叠加。施加顺序：
 
@@ -58,6 +59,7 @@
   结果 Clamp 到 >= 1
   ```
 
+  **取整方向与 `lifeSpanCost` 定价表同款：四舍五入、半值向上——先算完整式再取整一次，随后 Clamp `>= 1`**；不写死方向，文档与实现会各取一半。`SellRatePercent` / `PackSellRatePercent` 按基准价折算售出所得时同此口径（完整式 × 率 / 100 → 四舍五入半值向上 → Clamp `>= 1`）。
   **免费商品不由折扣产生**——要免费就走非购买 outcome 的赠礼。
 - **`ListPrice` 在物化时定稿，代价明写。** 轮回中途新获得的降价修正（唯一现实路径 = 中途购买 premium bundle）**不影响已定稿的库存**，下一个 Exchange 事件才生效。理由与「产出即定稿、不得回查模板重算」一致；反例（展示时现算）会让同一个 offer 在两次进入之间变价，且违反「重算不保证同结果 ⇒ 必进快照」。
 
@@ -150,7 +152,7 @@
 - **回寿法宝（补天丹一类）是 `CharacterItem` 族的一个普通商品，零机制增量。** 它使商店成为「货币 → 寿元」的一条兑换通道，但**不需要任何新接口**：库存抽取、定价（「族 × 稀有度」表的 `CharacterItem` 行）、购买 spec（`ChangeElement(offer.Currency, -ListPrice)` + `AbilityChangeElement(Grant, Item, Character, id, Source.ExchangePurchase)`）全部照既有路径走。**账号级古宝 `PlayerItem` 一族被结构性排除在这条通道之外**——含寿元产出的 `ItemData.Scope == Player` 在加载期即 `PushError`，见 `systems/character-profile/item/_index.md`。回寿通道的完整形态与平衡护栏见 `systems/adventure-event/common-properties.md`。
 - **商品的内容定义一律归各自的内容子树，Exchange 只承载交易机制。** 五个商品族的定义位置：`Card` → `systems/character-profile/deck/`；`CultivationTechnique` → 同上；`CharacterItem` → `systems/character-profile/item/`；`CharacterPower` → `systems/character-profile/power/`；`PlayerItem` → `systems/player-profile/player-item/`。
 
-Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-purchase-count-statkey.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-09-05-currency-acquisition-and-pricing.md`
+Source: `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-22-purchase-count-statkey.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-09-05-currency-acquisition-and-pricing.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md` · `handoffs/2026-09-10-item-family-supply-guardrails.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

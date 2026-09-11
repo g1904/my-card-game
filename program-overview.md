@@ -284,7 +284,7 @@ IContentRepository<T> where T : Resource
 
 | 是否被存档引用 | 内容 | overlay 权限 |
 |---|---|---|
-| **被存档引用** | `AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表，**含静态展示文案与状态转换触发的定性文案** | **只改不增** |
+| **被存档引用** | `AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PowerData`、平衡表，**含静态展示文案与状态转换触发的定性文案** | **只改不增** |
 | **不被存档引用** | AdventurePlot 的剧本节点 / 分支 / 文本（`CharacterProfile` 只存 key points） | **可新增 `Id`**（唯一例外 ⇒ 新剧情可热更不发版） |
 
 理由与悬空 key point 的降级规则见 `systems/services/content-service.md` 与 `systems/services/plot-manager.md`。

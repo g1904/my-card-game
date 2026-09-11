@@ -22,12 +22,13 @@
 - `draft-<suffix>.md` —— 手写的零散想法。**`<suffix>` = `MMDD` + 序列字母，从 `a` 起，同日依次 `a` · `b` · `c` …**（例：`draft-0816a.md` · `draft-0816b.md`）。
   **当天第一份也带 `a`，不写裸 `draft-MMDD.md`。** 序列位恒定存在，`ls` 与 `log-*` 后缀才能整齐排序、一眼看出同日批次的先后；裸日期与带字母混排时，同日第一份会脱离它自己的序列。
   归档区 `archive/` 里 08-10 之前的裸日期命名是这条约定成文之前的历史，**不追溯重命名**。
+- `design-draft-<slug>.md` —— `/design-direction-interview` 针对某个重大设计主题产出的**方向定案式**草稿。它的「逐轴裁决」是用户在那场 interview 中亲口拍板的定案，`/analyze-new-ideas` 按定案提炼、不再当提案重新发问；「留白」区仍按 Open question 搁置。front-matter `status` 同 solution-draft 的生命周期。
 - `solution-draft-<slug>.md` —— `/provide-solution-draft` 针对某个待答问题产出的**提案式**方案草稿。它有自己的 front-matter `status` 生命周期：`awaiting-review`（待人工评审）→ `reviewed` / `decided`（已裁决，可喂给 `/analyze-new-ideas`）→ `distilled`（已提炼，移入 `archive/`）。
 
 ## 在办清单
 
 | 文件 | status | 说明 | 下一步 |
 |------|--------|------|--------|
-| *（空）* | | | |
+| *（空）* | — | — | — |
 
 清空即为「无在办草稿」。已提炼草稿 → handoff 的对应关系见 `archive/_index.md`。

@@ -13,7 +13,7 @@
 - **强制在线 · 云端权威存档。** 进度实时同步云端；一切以云端为准。见「平台与约束」。
 - **premium bundle 端到端。** 支付接入（Google Play Billing / App Store / 微信支付三渠道）+ Store 屏 + 购后兑现。它是客户端唯一必须引入第三方 SDK 的地方，牵动 Godot 导出配置与各平台构建。形态见 `systems/monetization.md`。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md` · `handoffs/2026-09-10-character-series-identity-and-monetization.md`
 
 ## 范围之外（暂时）
 > _明确推迟——先泊车，以免蔓延进来。_
@@ -21,8 +21,9 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-
 - 第 2、3 篇章（筑基→金丹、金丹→元婴）以及完整的**篇章衔接 / 延续**系统——先设计好衔接契约。
 - 支撑“Reigns”式平衡张力的完整**属性模型**。
 - 超出足以奠定 grimdark 基调之外的深度叙事/剧情内容。
-- 元进程解锁、每日/seeded-轮回分享。
-- **外观装饰 —— 架构预留、首批不做。** 它是付费面的唯一预留方向（零玩法影响）；预留的兑现物是三个加法窗口保持开启，**首批不新增任何字段、屏、内容类型或资产类目**。品类与落地形态见 `systems/monetization.md`。
+- 玩法进度型的元进程解锁（靠通关 / 成就逐步解锁玩法内容）、每日/seeded-轮回分享。角色的「免费 / 付费」轨道不属此列，见下条。
+- **后续角色系列 —— 确定项、后续版本引入。** 角色按系列成批扩张（免费的双灵根批 + 付费的进阶系列；整系列全免费或全付费）；**首批五角永久免费恒可用**；付费解锁角色是商业化第三支，**严格横向、不卖强度**。形态权威见 `systems/monetization.md` 与 `systems/character-profile/_index.md`。
+- **外观装饰 —— 架构预留、首批不做。** 它是付费面的预留方向（零玩法影响）；预留的兑现物是三个加法窗口保持开启，**首批不新增任何字段、屏、内容类型或资产类目**。品类与落地形态见 `systems/monetization.md`。
 - **地区定价**——单一 SKU、单一价格档起步；价格与货币由平台商店按 SKU 返回，客户端不硬编码任何金额（见 `systems/monetization.md`）。多档 SKU 会立刻牵出「哪档给什么」的内容编排。**支付接入与商店 UI 本身已在 MVP 内。**
 - 本地化打磨（让展示字符串与 id 分离，以免日后受阻）。
 

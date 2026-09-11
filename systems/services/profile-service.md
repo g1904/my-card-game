@@ -511,8 +511,7 @@ Source: `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hie
 ## 待决问题
 
 - **元进程字段结构。** 各账号级条目的解锁 / 获取 / 失去的具体触发未定。→ `systems/player-profile/`。
-  - **以下四项不在本条待决范围内，已各有权威：** `PlayerPower` / `PlayerItem` 的持有条目形态（含 `Status` 与「拥有 / 失去」两个正交维度的存档编码，写入通道见上方 `AbilityStatusChanges`）→ `systems/player-profile/_index.md`；`Achievement` / `AchievementGroupState` 的条目形态与两条写入通道 → `systems/player-profile/achievement/common-properties.md` 与上方两列；`AccountInfo` → `systems/player-profile/account-info.md`；`GameSetting` → `systems/player-profile/game-setting.md`。
-- **PlayerPower 的平衡边界。** 方向已定为「轻度提升、PvE-only 可容忍」；具体在哪些 AdventureEvent 获取 / 失去仍待定。
+  - **以下五项不在本条待决范围内，已各有权威：** `PlayerPower` / `PlayerItem` 的持有条目形态（含 `Status` 与「拥有 / 失去」两个正交维度的存档编码，写入通道见上方 `AbilityStatusChanges`）→ `systems/player-profile/_index.md`；`Achievement` / `AchievementGroupState` 的条目形态与两条写入通道 → `systems/player-profile/achievement/common-properties.md` 与上方两列；`AccountInfo` → `systems/player-profile/account-info.md`；`GameSetting` → `systems/player-profile/game-setting.md`；**`PlayerPower` 的获取 / 失去触发与平衡边界**（三条获取渠道 · 失去三形态 · 频次预算 · 防 pay-grind-to-win 护栏；「具体落在哪些 AdventureEvent 上」按定义是内容编排的产物，不是设计层的待决）→ `systems/player-profile/player-power/_index.md`。
 
 Source: `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-09-02-architecture-services-reconcile.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
 

@@ -68,7 +68,7 @@ AchievementConditionData : Resource   （内联，不独立开张内容类型）
 - **恰一条 `Condition`，不做 AND / OR 组合（首批）。** 同库先例 `EffectCondition` 取的是「封闭谓词 + AND 语义 + 单一落点」；组合谓词在本作的正确表达是**再开一条成就**（成就本就分组、权重可调），而不是把条目做成一棵表达式树。**代价明写**：「同时满足 A 与 B」类成就首批写不出来。
 - **`SignalId` 取点分字符串 + 代码侧封闭常量表 `AchievementSignalIds`，不用 C# 枚举。** 点分惯例已由次类型 id 规范立为先例（`terminology.md`），加载期封闭集校验拿到的安全性与枚举等同；而 `.tres` 按序号引用枚举，枚举重排会静默错位。它同时让「加一个信号」不必动一个被 `.tres` 引用的枚举。
 - **`Filter` 的类型安全由配表兜住，不由字段类型兜住。** 每个 `SignalId` 在常量表里占一行 `(FilterKind, 说明)`，`FilterKind ∈ { None, ContentId, Enum, Int }`；加载期按行校验（`None` 却填了 → `PushError`；`ContentId` 经 `ContentRegistry` 解析不到 → `PushError`）。与 `StatusFields` / `SettingFields` 的逐行配表同款判据。
-- **`Weight == 0` → 加载期 `PushError`。** 权重 0 的成就对进度零贡献，达成它什么都不动，是内容缺陷不是编排手段。
+- **`Weight` 越界（`< 1` 或 `> 100`）→ 加载期 `PushError`（带条目 `Id` + 越界值）。** 取值域 `[1, 100]` 两端都要校验：权重 0 / 负值的成就对进度零贡献或倒扣，达成它什么都不动，是内容缺陷不是编排手段；超上界同属声明取值域之外的坏数据，与库内「越界值 → 加载期 `PushError` + 定位上下文」的通例一致。
 - **`AchievementConditionData` 不独立开张为内容类型**——它几乎恒为某条成就的组成部分，照 `AbilityData` 的既定处置内联在宿主条目文档里。条目层的两个类型文件夹见 `content/_index.md`。
 
 **启动期断言（`#if DEBUG`，纪律阶梯第 3 级）：**

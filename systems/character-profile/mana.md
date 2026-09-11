@@ -42,11 +42,12 @@
 
     | | `manaLimit` | 一场可支配 mana（× 己方 5 个回合） | 平均费用 | 可打出张数 | 相对牌流 14 张 |
     |---|---|---|---|---|---|
-    | ch1 末 | **6~7** | 30~35 | 2 | 15~17 | **恰好饱和**（跃升发生在进筑基时，本章不受影响） |
+    | ch1 末 | **6~7** | 30~35 | 2 | 15~18 | **饱和略有富余**（区间整体 ≥ 14；跃升发生在进筑基时，本章不受影响） |
     | ch2 末 | **8~10** | 40~50 | 3 | 13~17 | **恰好饱和** |
     | ch3 末 | **10~13** | 50~65 | 4 | 13~16 | **恰好饱和** |
 
-    - **三章全部落在「恰好饱和」，这正是上移曲线的设计目标**——mana 在三章里始终是紧约束，「有 mana 没牌打」不发生，事件推拉与境界跃升两条成长通道全程有效。
+    - 可打出张数 = 可支配 mana ÷ 平均费用，**取整口径 = 四舍五入、半值向上**（与 `systems/balance.md` 定价表同口径：`17.5 → 18`、`12.5 → 13`）。
+    - **三章全部落在饱和带（ch1 末上沿略有富余），这正是上移曲线的设计目标**——mana 在三章里始终是紧约束，「有 mana 没牌打」不发生，事件推拉与境界跃升两条成长通道全程有效。
     - **「一章净增 +1~+2」这条预算不变**：费用曲线同步上移使每一档 `manaLimit` 的实际购买力逐章递减（ch1 `+1 / 2` = +0.5 张 / 回合、ch2 +0.33、ch3 +0.25），推拉的手感因此不随境界膨胀。
 
 Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-02b-stack-without-interaction-and-three-step-turn.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-16d-cost-side-closure.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-09-07-combat-scale-baseline.md`

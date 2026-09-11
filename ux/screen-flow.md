@@ -65,7 +65,7 @@
 - **角色选择屏(主菜单的一个子步骤)。** 流程 = 主菜单 →「切换篇章」选中炼气 → **角色选择屏** → 确认即 `StartCycle`。**角色选择屏不新增主菜单入口**;ch2 / ch3 续章与重试走角色继承,不经本屏。
   - **布局**:竖屏、角色卡**横滑选择区**——沿用 eventOptions 已定的同款手感,不发明第二种选择语言。**与 eventOptions 选择区共用同一个卡宽基准**（见下「候选项列表语言」的 R2:常态 3 项恰好同屏 + peek），故**本屏的 5 张角色卡照常横滑,不追求一屏看全**。共用基准是「同款手感」这句话的兑现方式:两处各标一套卡宽,会让「同款」退化为「同一种手势、不同的排版」,而把卡宽压到 5 张同屏所需的量级后,事件卡上的副文本与数值行已不可读。
   - **每张卡呈现**:`Artwork`(角色形象)+ **灵根一行**(灵根图标 + 名称,如「灵根:火」)+ 神通名与一行简述 + 两门绑定功法名与各一行简述。**不展示数值**,与「给方向不给数字」一致;**不写灵根品级标签**(本作没有「天灵根」一类说法)。
-  - **首玩局标注推荐项**(内容侧一格标记),**不做「首局跳过选择」的特判**(理由见 `ux/onboarding.md`)。
+  - **给简介,不标推荐。** 卡面已有的灵根行 + 神通与两门功法的简述**即是这个角色的玩法简介**(一句动词级概括的素材就是五行的主战斗动词,见 `systems/character-profile/deck/_index.md`);**首玩局也不标注推荐项**——不新增任何标记格。**不做「首局跳过选择」的特判**(理由见 `ux/onboarding.md`)。
   - **触控**:点选 + 独立确认按钮(防误触即开局);**无 hover-only 可供性**。
   - **文案**走 `res://text/` 的 `MENU_` 分区;角色 / 神通 / 功法的显示文本走 `LocalizedText`。
   - **既有灰态照常适用**:有待兑现购买时「开始新轮回」置灰的判据落在进入本屏**之前**,本屏不新增拦截点。
@@ -126,6 +126,7 @@
 - **元婴界面 = 终局展示面(通关证书)= 篇章结束屏的 ch3 变体。** 抵达元婴 = 第三篇章通关 = 游戏终点;此时呈现的是下方「篇章结束屏(`ChapterEndScreen`)」的 **ch3 变体**——它承担「通关证书」这一角色,不另立一屏。它正是**寿元 +5000 这次最终数值更新的读者**——该界面需读到最终寿元值并正确显示,因此终点处的寿元更新不是死写入(见 `systems/balance.md`)。
 - **寿元恒精确、明文常驻。** 寿元(lifeSpan)是角色唯一的资源命线,**余量常驻角色状态条并恒显示精确数值**;余量低于本章可用预算的 **10%** 时**转红字**——那是纯视觉强调,不是一条叙事通道。
   - **`selectCost` 与回寿数字同样恒精确。** eventOption 上的成本标注与回寿收益标注、回寿法宝的道具描述、结算面板的寿元行,一律给精确数字。**成本侧与产出侧对称**——只精确一侧会让玩家在同一屏上读到两种口径。**道具描述的形态**:正文恒为定性文案(它是 `LocalizedText` 静态文案),精确值由 UI **追加一行**,数值取自 ability 定义、不写进文案。规则与代价见 `systems/adventure-event/common-properties.md`(权威)。
+  - **跌破低位阈值那一刻播一次性低调提示音**（短促低沉，如一声闷钟）:**不循环、不常驻、不震动**,也不因余量持续走低而重复。红字仍是纯视觉强调,提示音是与它并列的**一次听觉确认**——寿元是角色唯一的命线,被削到低位是全局最重的一次状态变化。它与疲劳见底预警「不加音效」并存的判据是**作用域**:寿元是跨事件的全局命线,疲劳是回合内的局部读数。音色与材质归 `art/soundtracks/audio-direction.md`。
   - **不做「大限将至」一类的预警文案。** 余量既已明文常驻且精确,预警型提示文案没有存在理由——玩家随时能自己读出还剩几步。**轮回结束屏对 `DefeatReason` 的呈现照常保留**(那是结果呈现,不是提示;形态见下方「轮回结束屏」)。
 - **EventOption 选择界面上有一条常驻的角色状态条。** 寿元余量的静态标注就落在这里,本次把它明确化为一条**角色状态条 + 一行进度 / 入口**:
 
@@ -144,7 +145,7 @@
   - **配套纪律:eventOption 卡片上不标注该事件的经验产出档位**(与「给方向不给数字」一致)。**玩家看得到自己的进度,看不到单个事件的经验标价。** 这条保护的是**隐藏的**经验档位映射,与寿元恒精确展示不是同一件事——寿元是明文资源、要能被精确规划,经验档位是隐藏的产出映射,两条各自独立成立。 已知风险:新手可能困惑「怎样才能升级」——**若实测确有困惑,「标档位不给数字」是预留的退让位**(属实测调整,不是重新裁决)。
 - **候选项列表语言（横切所有决策面）。** 「一批候选项在竖屏怎么摆、怎么标、怎么解释」有一套全库通用的语言；事件选择区、角色选择屏、战后奖励面板、能力置换面板、闭关构筑面板、Exchange 网格、储物袋 / 图鉴网格一律照它落位，**不逐个决策面重裁一次**。
   - **① 两条排布轴的分工判据。** **推进进程的择一 → 横滑等宽 carousel；面板内 / 事件内的择一与列举 → 纵向堆叠或网格。** 横滑是「推进进程」这一层的专属语汇——Exchange 网格、剧本分支按钮、储物袋均在纵向侧，复用横滑会让两个层级的操作读成同一件事。新增决策面按这条判据落位即可。
-  - **② 统一的「候选条目」构件（六个位，两条轴共用；只有外框比例不同——横滑侧是纵向长卡，纵向侧是横向长条）。**
+  - **② 统一的「候选条目」构件（六个位两条轴共用 + 第七位仅纵向侧；只有外框比例不同——横滑侧是纵向长卡，纵向侧是横向长条）。**
 
     | 位 | 内容 |
     |---|---|
@@ -154,10 +155,12 @@
     | ④ 名称 | 内容层 `LocalizedText`，**单行** |
     | ⑤ 一行副文本 | 描述 / 风味，至多两行 |
     | ⑥ 数值行 | 资源数值与实例信息，恒精确 |
+    | ⑦ 行尾操作控件（**仅纵向侧**） | 行尾一个满足最小触控目标下限的操作控件（开关 / 启动键一类）；横滑侧无此位 |
 
-    - **六个位全部可空，缺位即整格不渲染、其余上移**（`Container` 重排），**不留空占位**——与储物袋「售出后条目直接移出、不留『已售』占位」、战斗前确认页「未解锁则摘要区不出现、不留灰占位」同一条处置。
+    - **⑦ 的开放判据（收窄，不外溢）：** **仅当该行的操作是幂等的账号级开关时**才开放第七位——它的语义是「随时可开可关、开错立刻可关回来、不推进任何进程」，故值得一步直达。**其余决策面一律不开放第七位**：事件选择区 · 角色选择屏 · 战后奖励面板 · 能力置换面板 · 闭关构筑面板 · Exchange 网格 · 储物袋 / 图鉴网格——它们的行内操作都是**推进进程或不可逆的取舍**，一步直达会把「先看后决」压成一次误触。当前用上第七位的是**法则列表屏**（`status` 开关；语义与写入通道见 `systems/player-profile/player-power/_index.md`）与**战斗启动区**（每行的启动键，见 `combat-ux.md`）。法则列表屏一屏一列表、入口已在主菜单、不做分页 / 分类 tab；它的框架文案走 `res://text/` 的 **`PROFILE_`** 分区（PlayerProfile 面板族），法则名 / 描述仍是内容层 `LocalizedText`，**一个字不进 `profile.csv`**（分区表见 `error-and-blocking-ux.md`）。
+    - **六个位（纵向侧七个位）全部可空，缺位即整格不渲染、其余上移**（`Container` 重排），**不留空占位**——与储物袋「售出后条目直接移出、不留『已售』占位」、战斗前确认页「未解锁则摘要区不出现、不留灰占位」同一条处置。
     - **长文本永不截断成省略号**：超出部分归长按详情（见 ④），不在卡上做微缩排版。
-    - **触控目标 = 整个条目**，恒满足最小触控目标下限（横滑侧由卡宽 / 卡高保证，纵向侧由行高保证）。
+    - **触控目标 = 整个条目**，恒满足最小触控目标下限（横滑侧由卡宽 / 卡高保证，纵向侧由行高保证）。**纵向侧允许行尾一个独立操作热区（第七位），其余区域仍为整行**——该热区自身也须满足最小触控目标下限，且只在上一条的开放判据成立时存在；除它之外不得再切出任何次级热区（「ⓘ」一类的小图标仍然禁止，它远小于最小触控目标且会与整行的点按热区争抢）。
   - **③ 标注层：三类标注，位置与优先序固定。**
 
     | 类 | 是什么 | 位置 | 形态纪律 |
@@ -493,16 +496,14 @@
 - **三种终局态共用一个阻塞屏。** 需更新(强更)、被挤下线、存档读取失败三者形态同构,收敛为一个 `BlockingNoticeScreen` + 变体表(全屏 · 无返回 · 主按钮永不是「继续游玩」 · 底部诊断编号可长按复制)。**三个变体不等于三处硬阻塞**——阻塞点仍是既定两处。见 `ux/error-and-blocking-ux.md`。
 - **美术挂点占位。** 循环视频、图标、卡面等 TBA;组合场景时为其保留可轻松替换的挂点,先用占位 / 免费资源。
 
-Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-codex-entry-and-browse.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-03-plot-eventbus-broadcast.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-06-active-discard-entry.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md` · `handoffs/2026-09-08-portrait-option-list.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-codex-entry-and-browse.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-03-plot-eventbus-broadcast.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-06-active-discard-entry.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md` · `handoffs/2026-09-08-portrait-option-list.md` · `handoffs/2026-09-09b-combat-feel-identity.md` · `handoffs/2026-09-09c-audio-direction-nine-axes.md` · `handoffs/2026-09-10-player-power-acquisition-and-balance.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
 
 ## 待决问题
 
-- **寿元余量转红字时是否伴随音效 / 震动:** 视觉形态已定(静态标注于 EventOption 选择界面,< 10% 转红字);**是否附加听觉 / 触觉反馈**未陈述——「静态标注」的措辞倾向于「无强调反馈」,但未明确排除。
-- **揭示转场的时长与音效实测校准:** 形态已定(全屏覆盖层 · 任意触点跳过 · 无确认 · 无震动);**≈ 1.2s 与「一次短音效」是初值**,纯手感项,只能在真机上调。它与「寿元告警是否伴随音效 / 震动」是两条独立的问题,互不预设。
-- **PlayerPower 细化:** 语义已定(全局、可开关、可获取 / 失去);但**获取 / 失去的具体触发**、是否影响 cycle seed / 计分公平性、平衡边界仍待定。→ `systems/player-profile/player-power/`。
+- **揭示转场的时长与音效实测校准:** 形态已定(全屏覆盖层 · 任意触点跳过 · 无确认 · 无震动);**≈ 1.2s 与「一次短音效」是初值**,纯手感项,只能在真机上调。
 
 
 ## 提供给

@@ -26,7 +26,7 @@
 - **战斗过程中不被读写，只在收口时刻被扣（资源纪律 · 承重）。** 战斗内的可读资源是**道念、mana** 两条；寿元既不被消耗也不被读取，胜负由**道念（momentum）**判定（见 `systems/scoring.md`）。
   - **理由：** 战斗内一旦能读写这条命，「留血打」「回血续航」这套以生命值为终止条件的战斗从后门回来，而本作的战斗终止条件是道念比拼。故**战斗内可用的道具与法则不得产出 `LifeSpan`**（加载期校验见 `systems/character-profile/item/_index.md` 与 `systems/character-profile/power/_index.md`）。
   - **战斗结算只会向下推这个值，永不向上。** 胜利不回升；向上只由事件产出与道具承担。
-- **回复三通道。** A 回寿事件产出 · B 补天丹类法宝 · C 商店购入 B —— 三条共用同一条施加路径 `ChangeElement(CostKey.LifeSpan, +n)`，权威见 `systems/adventure-event/common-properties.md`。回复只走 outcome / reward 侧：`selectCost` 内 `LifeSpan` 的取值域收紧为非负。护栏是三道软闸 + 一条 Travel 禁令，**不设硬上限**。
+- **回复三通道。** A 回寿事件产出 · B 补天丹类法宝 · C 商店购入 B —— 三条共用同一条施加路径 `ChangeElement(CostKey.LifeSpan, +n)`，权威见 `systems/adventure-event/common-properties.md`。回复只走 outcome / reward 侧：`selectCost` 内 `LifeSpan` 的取值域收紧为非负。护栏是三道软闸 + **两条结构性禁令**（Travel 条目不得回寿 · 免费产出通道排除含寿元产出的道具），**不设硬上限**。
   - **推论：回复类事件有明确的玩法位置**——它是玩家在「继续冒险」与「买回容错」之间的常态权衡。回寿事件本身也要付 `selectCost`，故净收益恒小于回寿量。
 - **归 0 = `defeated`（大限将至）。** 取值域 `[0, ∞)`，归 0 构成终态。`lifeSpan` 在 `ResourceElements` 表中占一行 `(Min = 0, Max = null, DepletionDefeat = DefeatReason.LifeSpanExhausted, CostModifier = ModifierKey.LifeSpanCost, GainModifier = null, AllowedOps = Add)`：**下界截断到 0**，**上界明确为空**——这正是「只跟踪单值、无上限截断」在施加侧的落地，表里的 `Max = null` 不是待填项而是定值。终态判定读表而非硬编码检查本字段，见 `systems/services/life-cycle-service.md`。
   - **`DefeatReason` 里没有「输掉一场普通战斗」这一项**——`Practice` / `Standard` 档的战斗失败本身不终结角色，扣的是寿元；**`Finale` 档失败另走 `FinaleFailed` 这条独立通道**（它不是资源触底，见 `systems/adventure-event/combat/_index.md`）。
@@ -37,7 +37,7 @@
   - **它不是隐藏属性。** 隐藏属性收敛为**道心 / faith** 与**煞气 / Bloodlust** 两项，归 `systems/services/plot-manager.md`；寿元不在其列。
 - **履历上的寿元曲线。** `PastEventEntry` 带一格 `LifeSpanAfter`（逐事件的结算后余量），使修行历程能画出这条曲线——它现在就是角色的完整生命曲线，回升段与战斗失败的下跌段同图。读取算法见 `systems/character-profile/_index.md`。
 
-Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-09-06-failure-spiral-tolerance.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-09-06-failure-spiral-tolerance.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -47,12 +47,12 @@ Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handof
 - **战斗过程中不读写寿元，只在收口时刻扣减** → `decisions/ADR-0081-hidden-stats-outside-combat.md`（隐藏属性侧）与本文件（资源侧）。
 - **道念差 → 寿元损失的换算与 `lossPerMomentum` 逐篇章系数** → `decisions/ADR-0018-momentum-scoring-model.md`。
 - **寿元明文常驻、恒精确展示，不属于隐藏属性体系** → `decisions/ADR-0016-hidden-stat-band-model.md`。
+- **回复三档的绝对点数：小 50 / 中 100 / 大 200，三章通用、不按篇章分条目**（与 `RarityTier` / 定价一一绑定，见 `systems/character-profile/item/_index.md` 的三档绑定表）；来源分布按 `R_c = R_event,c + R_item,c` 分账（每章事件侧 1 次小档、道具侧由商店购入承担），收支回代见 `systems/balance.md`。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
 - **`lossPerMomentum` 的 ch2 / ch3 系数取值。** ch1 = 10 已锁定；后两章已由形状锚解出候选值 5 / 10（形状锚逐格校验已通过），定案待「典型道念差的实际分布」实测，口径见 `systems/balance.md`。
-- **回复的幅度与来源分布。** 「通过 outcome 侧恢复」已定；三档的绝对点数（按本章可用预算的 5% / 10% / 20% 折算，ch1 即 50 / 100 / 200）仍待定案，归内容扩充后的统计校准。→ `systems/adventure-event/`、`systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/life-span.md`（待建）。

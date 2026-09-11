@@ -112,11 +112,43 @@
     | 四支合计（导出量 · 非闸门） | ≈2.11 | —— | 只作叙事密度 sanity check |
 
     三支持久支之间按「持久度 × 是否经玩家同意」两条轴分配：频次与「持久度 × 无同意」反相关——轮回级的可以最常见（神通随轮回清理、`ThisChapter` 档篇章边界自动恢复），无同意的必须最稀有。**法则禁用是唯一取低值的一格**——禁用是无同意的施加、最伤「构筑投入」契约，让出的份额转给同等严重度但有同意的置换侧（置换是正向决策点）。频次的旋钮全落内容侧、零字段零校验零状态位：带 `AbilityChangeSlots` 的 `AdventureEventData` 条目数 + 各条目的 `SelectionWeight` 档（`Rare` 已是最低档 ⇒ 主旋钮实为条目数，典型每支 1–2 条 `Rare` 档条目）+ 既有 arc 系数（`systems/services/future-event-service.md` 管线 ⑦）；`IgnoresProtection` 的旋钮是带该效果的 boss 档载体条目数与出现权重。
+  - **法宝一族的失去事件同样在上层 ≈1.0 的分子内。** **法宝（`CharacterItem`）置换与法宝 / 古宝禁用一并计入上层 ≈1.0 的分子**；**具体份额归 `../../character-profile/item/` 侧裁定并回链本表**。判据是自持口径的第一条——`IgnoresProtection` 之所以能自持战斗分母，正因为**它不写 Profile**；法宝置换写 `CharacterProfile`，且法宝本就是上层口径所保护的「构筑投入」本身（与 deck、神通并列），故它触碰的恰是上层口径保护的那条心理契约。同层的神通置换（同为轮回级 build 损失、同写 Profile）在上层合计内占 ≈0.5，法宝一族排在合计之外需要一条不存在的新判据。
   - **推论 ④：量级坐实。** 法则置换 ≈0.3 / 轮回、法则禁用 ≈0.2 / 轮回——两支各自落在**一个篇章遇上一次或更少**的量级，两支合计每两个轮回一次。「我的法则会不会被拆」因此是跨篇章尺度的稀有事件，与既定的「内容级稀缺保证而非类型级绝对保证」量级吻合。
+
+- **获取与失去的通道已闭合，本层只余内容口径（承重）。** `(Power, Player)` 域的三个合法 `Source` 已把获取通道逐一命名，每条都有现成的组装者与施加链路，**不需要任何新机制、新字段、新 element、新存档格、新存档点、新枚举**。`EventOutcome` / `ExchangePurchase` 两格是**规则层的封死**，不是「暂不开放」——账号级授予恒走「打 / 买 / 成就」三条：轮回内事件产出会改变账号级经济、绕开这三条既定渠道，且会开出一条**后端无输入可复算的账号级永久授予**（既定防作弊边界是「可复算 `roll`、不复算阈值」，三条现有渠道逐条成立）；同时它会用一条**不受 `x` 调控、随游玩时长线性增长**的平行供给旁路掉残卷那条受调控的递减曲线。「在冒险中拿到东西」的体验位由轮回级的神通 / 法宝 / 卡牌 / 功法四族完整承载，账号级这一层的定位本就是「跨轮回我强了多少」。分域校验表见 `systems/common-properties.md`。
+
+  | # | 渠道 | `SourceCode` | 组装者 | 施加时机 / 链路 | 随机源 |
+  |---|---|---|---|---|---|
+  | ① | 道统残卷（Finale 通过掷中） | `Source.FinaleWin` | `CombatEventResolver` → `CombatResult.Spoils` 的一个 element | Finale 的 `eventEnd` 那一次 `TryApply` | `AccountRng.For(AccountStream.PowerFragment, FinaleWinOrdinal + 1)` |
+  | ② | premium bundle（随机 1 条） | `Source.PremiumBundle` | 兑现事务（读 `BundleGrantOrdinal` 水位） | 兑现事务内一次 `TryApply` | `AccountRng.For(AccountStream.PremiumBundle, 本次 ordinal)` |
+  | ③ | 成就 90% 档一次性奖励（**指定条目，非抽取**） | `Source.AchievementReward` | `AchievementManager` 采集 → `ProfileManager` 单点提交 | 达标那一次 `TryApply`，**零新增存档点** | **无随机**（`AccountStream` 刻意不为它设成员） |
+
+  - ① ② 共用上方那段抽取与同一张 `GrantPoolWeights`；③ 走 `ExclusiveSource == Source.AchievementReward` 的专属条目、按定义不进任何抽取池 ⇒ 三者互不撞车，**成就奖励恒不落空是机械保证**。渠道 ② ③ 不推动 `x`。
+  - **失去侧同样闭合**：三形态（本场移除 < 本轮回禁用 < 账号移除）的触发点、写不写 Profile、element 形态、是否需玩家同意、目标频次均见上方三形态表与四支频次表。**「具体落在哪些 AdventureEvent 上」按定义不是设计层的答案**——它是内容编排的产物，旋钮是带 `AbilityChangeSlots` 的 `AdventureEventData` 条目数 + `SelectionWeight` 档 + 既有 arc 系数，答案形态是「每支 1–2 条 `Rare` 档条目」，具体条目随内容阶段落地。
+- **与 cycle seed 的关系 = 两者不相交；计分公平的刻度已有，且它是评审参考而非机械闸。** 前者是结构性的，不是口径问题：账号级掷骰不派生自 `CycleSeed`、不消耗任何子流 `State`（见上方残卷条），**反向也不成立**——法则的持有不进任何 seeded 抽取的输入（取池链只读「已持有集合」做排重、不读 seed；`status` / `disabledAbility` 更不参与取池过滤，生效维度与持有维度正交）。后者的刻度是道念净贡献占本方 `baseMomentum` 的比例（单条 ≤ 10% · 老账号全开合计 ≤ 25% · 不得随对局延长而累积），系数表与完整论据在 `systems/balance.md`；**这两个百分比落纪律阶梯第 4 级（零保证）、不得被引为任何设计的承重依据，且不为它补代理指标**——承重的是那条定性定位（偏体验改善与容错，允许影响胜负但不应成为胜负的主要来源）。
+- **防 pay-grind-to-win 的护栏已有七道，逐条只回链、不复述对方设计（承重的是这张表的完备性，不是任何一行的措辞）。**
+
+  | # | 风险面 | 护栏 | 纪律阶梯 | 权威 |
+  |---|---|---|---|---|
+  | 1 | 付费直接买战力 | 付费的战斗价值**主要由古宝承载**（`Charges` 是天然节流阀 ⇒「关键时刻多几次转圜」而非「永久变强」）；法则保持稀缺 | 第 4 级（分工纪律） | `systems/monetization.md` |
+  | 2 | 战斗内法则泛滥 | `UsableScene` 含 `InCombat` 的法则 **≤ 1/5 条目**，加载期统计比例、超标 `PushWarning` + 报出当前比例 | **第 3 级（启动期机械检查）** | 本文件「战斗内法则的稀缺性纪律」 |
+  | 3 | 付费买到强度档 | 礼包与残卷**共用同一张 `GrantPoolWeights`**（分表 = 让付费直接买到更高档强度） | 第 3 级（任一档权重为 0 → `PushError`） | `systems/balance.md`「授予池稀有度权重表」 |
+  | 4 | 付费稀释元进程压力线 | 付费面五项明确排除；礼包两个抽取池的条目**一概不得产出寿元**（两条加载期 `PushError`） | **第 1–3 级** | `systems/monetization.md`「负面边界」 |
+  | 5 | 付费成为必需品 | 重试上限**两档**，且**免费档是「游戏应当可通关」的基准** | 第 4 级（校准纪律） | `systems/monetization.md`、`decisions/ADR-0004-realm-checkpoint-retry-model.md` |
+  | 6 | grind 无限堆叠 | 残卷的**递减供给曲线**（`Cap` / `Base` 逐档下降）+ **篇章闸门逐档累加移除** + 全局前置「未拥有法则数 > 0」+「一篇章一个 Finale、败后不可重战」⇒ **残卷不需要任何额外防刷规则** | **第 1 级（结构性）** | `systems/balance.md`「道统残卷的分档表」 |
+  | 7 | 刷 / 篡改 | `FinaleWinOrdinal` 是**幂等键**；`LastRoll` / `LastEffectiveChance` 每次通过必写、供后端逐位复算；随机源是跨语言逐位一致的 SplitMix64 | **第 1–2 级（后端可复算）** | `backend-design-documents/contracts/profile-sync.md` |
+
+  - **两条已知且已被接受的代价，如实并列（不为它们新增护栏）：** ① **礼包是一份净强度增益**——付费收益不附带「下一条法则来得更慢」的代价，这是有意为之，平衡侧按此校准；② **账号级法则总量没有硬上限**，而「老账号全开 ≤ 25%」是**零保证的评审参考**（第 4 级）。两条同时成立即意味着这道口子的最后一格没有机械兜底，全靠内容评审——**这是被接受的取向**：闸 ① 不断言任何单账号可获取上限（「单账号可获取上限」不是一个有定义的量），代理指标也已被否决（为一个不可机械校验的评审参考再加一把同样不可校验的闸，规则密度上升而保证不变）。**本层不新增任何机械闸**；若日后认为需收紧，唯一与既定纪律相容的方向是**降低供给速率**（下调残卷阈值、表结构不变）。
+  - **可算的分母（这才是「按老账号全开校准」缺的东西）。** 「老账号全开」的**现实分母是 `x ≈ 9–12`，不是「池被取尽」**：`x ≥ 15` 是一条**渐近线而非可达点**（按派生量估算需 ≈74 次完整通关；`x = 9` ≈第 14 个、`x = 12` ≈第 34 个完整轮回）。校准 ≤ 25% 时按 `x ≈ 12` + 礼包所得 + 成就 90% 档所得取分母。**派生量的推导表、两个方向相反的偏差与「不得被当作独立锚引用」的题注在 `systems/balance.md`**（推导来源，不进 `.tres`、不进任何 `Resource`、待实测校准）；本处只承载它的读法。
+- **`status` 开关的呈现面 = 法则列表屏一屏一列表，开关落条目的行尾操作控件。** 入口在主菜单（`ux/screen-flow.md`），写入走 `SetAbilityStatus`，**零新增存档字段、零新增服务方法**。不做分页 / 分类 tab——法则总数量级是个位到十几条，分类是为不存在的规模付版式成本。
+  - 行本身复用**候选项列表语言**的统一构件，开关落其中**第七位「行尾操作控件」（仅纵向侧）**；构件表、触控目标纪律与该位的外溢判据（**仅当该行的操作是幂等的账号级开关时**才开放）的权威在 `ux/screen-flow.md`，本处不复述。
+  - `status == false` 时**整行弱化但不移出列表**，与禁用态灰态呈现同款语汇（避免同一屏出现两种「不生效」的表达）。
+  - **本轮回禁用的行上开关仍可操作**——`status` 与 `disabledAbility` 是两个正交维度，把开关一并锁掉会让玩家以为自己永久失去了这条法则。
+  - **零 hover 通道**；描述超长走长按详情。框架文案走 `res://text/` 的 `PROFILE_` 分区（PlayerProfile 面板族），法则名 / 描述仍是内容层 `LocalizedText`，**一个字不进 `profile.csv`**。见 `ux/error-and-blocking-ux.md`。
 
 > `status` 开关模型与 capability flag / modifier 的**声明面**见 `common-properties.md`（`ADR-0116`）；`PowerData` 字段清单见 `../../character-profile/power/_index.md`；触发器体系与效果原语语法见 `../../character-profile/deck/common-properties.md`（`ADR-0115`）。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md` · `handoffs/2026-09-06-chapter-duration-rescale.md` · `handoffs/2026-09-06-ability-loss-frequency-budget.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25b-event-cost-fields-capability-flags-and-service-hierarchy.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09b-player-power-fragment-finale-bound-drop-chance.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12b-grant-source-per-kind-scope.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-25-numeric-philosophy-and-balance-anchors.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md` · `handoffs/2026-09-06-chapter-duration-rescale.md` · `handoffs/2026-09-06-ability-loss-frequency-budget.md` · `handoffs/2026-09-10-player-power-acquisition-and-balance.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -124,10 +156,8 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adv
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **PlayerPower 平衡边界待定。** 是否影响 cycle seed / 计分公平、防 pay/grind-to-win 的边界均待定。→ 见 `systems/services/life-cycle-service.md`。
-- **获取触发未设计（残卷 / 礼包之外）。**（失去的语义见上方三形态表；剩余的是形态问题，已单列。）开关 UI 亦未细化。是否还有第三条获取渠道（事件 outcome 直接给予？）未陈述。→ `systems/adventure-event/common-properties.md`。
 - **`Rarity` 的分布与权重表。** 五档 `RarityTier` 已定名并挂上 `PowerData` / `ItemData` / `CardData`；**授予池（残卷 / 礼包）的权重表已给出结构与初值**（40/27/18/10/5，见 `systems/balance.md`）。仍待定：**战后奖励池**的各档权重（按优势档 `Tier` 三档各一张表），以及内容侧「每档应有多少条目」的编排口径。（**置换候选池不需要权重表**——它按锚定稀有度过滤后同档等概率。）→ `systems/balance.md`。
-- **relic / joker 的内容条目仍为空（属内容阶段，不是设计缺口）。** 类型面已闭合：`PowerData` 字段清单（`../../character-profile/power/_index.md`）· 触发条件与效果原语语法（`ADR-0115`）· capability flag / modifier 声明面（`ADR-0116`）均已定案；缺的只是条目目录本身，开张动作归 `/scaffold-content-type player-power`。
+- **relic / joker 的内容条目仍为空（属内容阶段，不是设计缺口）。** 类型面已闭合：`PowerData` 字段清单（`../../character-profile/power/_index.md`）· 触发条件与效果原语语法（`ADR-0115`）· capability flag / modifier 声明面（`ADR-0116`）均已收口；缺的只是条目目录本身，开张动作归 `/scaffold-content-type player-power`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/player-power/_index.md`（待建）；`PowerData` 见 `.claude/knowledge/data/_index.md`。

@@ -45,5 +45,5 @@ Research（闭关）是轮回内构筑的唯一落点，但它此前只有语义
 
 - 开局构筑事件成为「`Priority = 1` 依什么条件抬升」那条待答项的**第二个确定答案**（第一个是配额闸门的 Travel）。
 - 它可以**缺席**而开局流程仍然成立：两槽 `AllowDecline = false` ⇒ 取池期前置逐槽收紧为「必须能产出 ≥ 1 条候选」，不满足则该条目不进批次、首批退化为常规批。缺席是一次**大声失败的运营事故**（`PushError` + 上报），**不新增任何降级路径或补发机制**。
-- 数值格（走火入魔候选权重、功法层数上限）**留待内容扩充后的统计校准**；风险档的竖屏呈现仍未设计。
+- 数值格（走火入魔候选权重）**留待内容扩充后的统计校准**；功法层数上限已定 `MaxTier = 5`（`systems/character-profile/deck/_index.md`）；风险档的竖屏呈现仍未设计。
 - 影响文档：`systems/adventure-event/research/_index.md`（权威）· `research/common-properties.md` · `systems/character-profile/deck/_index.md` · `systems/architecture.md`（`DeckChangeElement` / `DeckChangeOp` / `ResearchSlots`）· `systems/services/future-event-service.md`（候选取池与短缺处置）· `systems/balance.md`。

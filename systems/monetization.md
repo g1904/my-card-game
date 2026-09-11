@@ -1,11 +1,11 @@
 # monetization（商业化）
 
-> 付费形态与其对玩法的影响面。**当前只有一个付费点：premium bundle（付费礼包）。**
+> 付费形态与其对玩法的影响面。**商业化三支：① premium bundle（付费礼包，MVP 唯一已实施的付费点）· ② 纯外观（架构预留，首批不做）· ③ 付费解锁角色系列（后续版本引入）。**
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
 
-### premium bundle（唯一已陈述的付费点）
+### premium bundle（第一支 · MVP 唯一已实施的付费点）
 
 **可重复购买**；每次购买给予：
 
@@ -29,7 +29,7 @@
   - **不设规则禁令，代价由稀缺性承担** —— premium bundle 是花钱买的，理应让体验更好，而战斗是核心体验的关键一环；用内容配额而非硬编码规则表达这条边界。
   - **它同时满足「花钱体验更好」与「不滑向 pay-to-win」，不需要任何新机制。** 但**法则不可被针对且跨轮回永久持有**，其价值随账号年龄单调累积——平衡时须按「**老账号全开**」校准难度曲线，见 `systems/balance.md`。
 - **付费获得的法则不会被游戏销毁（承重）。** 事件侧「失去法则」**永远不强制剥夺**：真正从账号移除只发生在**玩家自愿接受的置换**中（有对价，例如换成另一条法则），其余事件一律降级为**「本轮回禁用」——不从账号删除**。**推论：「花钱买到的东西可能被一个事件拿走」这条风险彻底关闭**，它免去了一整类客诉与退款争议，并让「失去法则」成为一条有梯度的压力线（本场移除 < 本轮回禁用 < 自愿置换）而非二元惩罚。**置换本身是卡组构筑式的取舍，是正向设计而非负向条目。** 见 `player-profile/player-power/`。
-  - **古宝同样开放到「本轮回禁用」的 `ThisCycle` 档——这不构成冲突。** 禁用**不销毁、不扣 `Charges`、轮回结束即恢复**，与法则可被本轮回禁用完全对称；对法则开放而对古宝不开放，反而会让内容侧多背一条「哪些层能用哪些档」的例外表。但它确实是对付费内容的一次**可感知削弱**，故补一条**内容侧纪律**：**禁用古宝的事件应比禁用法宝显著更稀有，且一并计入既定的 1% 分子**——评审清单级，不加代码硬规则，与 `IgnoresProtection` 的 1% 同性质。
+  - **古宝同样开放到「本轮回禁用」的 `ThisCycle` 档——这不构成冲突。** 禁用**不销毁、不扣 `Charges`、轮回结束即恢复**，与法则可被本轮回禁用完全对称；对法则开放而对古宝不开放，反而会让内容侧多背一条「哪些层能用哪些档」的例外表。但它确实是对付费内容的一次**可感知削弱**，故补一条**内容侧纪律**：**禁用古宝的事件应比禁用法宝显著更稀有，且一并计入「失去能力」频次预算的分子**（「次 / 轮回」口径，上层合计 ≈1.0 次 / 完整轮回，见 `systems/player-profile/player-power/_index.md`）——评审清单级，不加代码硬规则。
 - **随机 PlayerPower 与道统残卷共用同一个获取面，但二者完全解耦（承重）。** 残卷是 Finale 失败累积、Finale 通过掷定的 PlayerPower 掉落概率（见 `player-profile/player-power/`）。
   - **礼包不重置 `Accumulated`** —— 重置只发生在残卷自己掷中并发放时。
   - **礼包也不改变残卷的档位。** 残卷的分档自变量 `x` **只数 `SourceCode == Source.FinaleWin` 的法则**（即「靠渡劫拿到的」），礼包给的法则 `SourceCode == Source.PremiumBundle`，**不计入 `x`**。
@@ -141,7 +141,12 @@
   - **诚实性纪律（承重）**：第二次及以后的购买，**UI 必须在付款前**如实标注「本次仅含随机 1 法则 + 2 古宝；重试上限已达上限，不再提升」。付了钱却没拿到宣传的四项之二是退款争议的标准形态——与「把失败点挪到掏钱之前」同一条纪律。
   - **定价：起步单一 SKU、单一价格档**；金额属发行侧，**不落客户端**（价格与货币由平台商店按 SKU 返回，客户端不硬编码任何金额）。多档 SKU 会立刻牵出「哪档给什么」的内容编排，而内容池规模尚未明朗。
   - **连带：闸 ① 的口径改写为「支撑 K 次重复购买」**，余量语义变为「留给第 K+1 次的缓冲」；`K` 与 `GrantPoolMargin` 数值仍待内容规模明朗（见 `systems/balance.md`）。
-- **付费面的边界：五项明确排除 + 一个唯一预留方向（负面边界）。**
+- **付费解锁角色系列（第三支 · 后续版本引入）。** 后续新角色可为付费解锁；角色按**系列**成批推出，一个系列 5 个或 10 个、每批保持五行对称，**整系列全免费或全付费，绝不单出一个角色**。
+  - **首批五角永久免费恒可用**（它就是第一个免费系列）；后续角色不全付费——角色条目带「免费 / 付费」轨道属性，**「一旦免费永不改付费」是单向棘轮**（内容纪律 + `/audit-content` 核对项候选）。双灵根首批（十角）走**免费**轨道。
+  - **礼包 = 整系列解锁**：5 个的系列付 4 个单解之价，10 个的系列付 8 个单解之价。
+  - **强度边界：严格横向、不更强（承重）。** 付费角色卖的是新玩法与复杂度（更繁的运营、多灵根组合空间），不卖强度；同样纳入「每个角色都能以合理体验通关」的验收（目标胜率与免费角色同带，验收口径不分轨道）。与「付费的战斗价值主要由古宝承载」的既有分工自洽——角色轨道不为付费提供任何数值优势。
+  - **解锁载体与购买流程的形态待方案推演**（`PlayerProfile` 具名集合 + 取池过滤 + 一次 `schemaVersion` bump 是既知起点；`CharacterData` 需一格轨道标记；SKU 形态、验票写入与封闭表加行等后端承接随该方案同批产生）→ `/provide-solution-draft`。角色池与轨道语义的权威在 `systems/character-profile/_index.md`「角色模板池的形态」。
+- **付费面的边界：五项明确排除 + 纯外观预留方向（负面边界）。** 五项排除对全部三支付费面一体适用；付费解锁角色系列不在排除之列——它是买断式的横向内容扩张，不触碰任何一条排除项的理由（不撤销失败、无随机付费、无消耗货币、无加速、无广告）。
 
   | 排除项 | 理由 |
   |---|---|
@@ -151,7 +156,7 @@
   | **体力 / 付费加速** | 本作无体力、无 grind、无等待——没有可被加速的对象 |
   | **广告变现（激励视频）** | 与买断式增值路线不冲突但稀释格调，且「看广告换重试」等价于付费续命的免费版本 |
 
-  - **唯一预留方向 = 纯外观**：唯一零玩法影响、可无限扩展、不触及任何平衡讨论的付费面。**架构预留、首批不做。**
+  - **预留方向 = 纯外观（第二支）**：零玩法影响、可无限扩展、不触及任何平衡讨论的付费面。**架构预留、首批不做。**
 
     **「预留」的兑现物 = 下列三个加法窗口保持开启，首批不为外观增加任何字段、屏、内容类型或资产类目（承重 · 明确否决占位字段）。**
 
@@ -183,12 +188,13 @@
   - **重试次数耗尽时不提示购买**，两条独立理由——① 那是玩家刚失去一个角色的时刻，此处推销正是「付费才玩得下去」观感的经典成因，且会把 ③ ④ 从「宽松化」在观感上变成「解锁继续游玩」；② **它在结构上本就不可行**（购买只在主菜单发起、待发队列为空，而重试耗尽是轮回内 / 结算流程内的时刻）。
   - **允许的全部呈现穷举为三处**：主菜单入口本身；礼包详情页内如实列出四项权益（及第二次起的删减说明）；**兑现结果态**（列出本次获得的 1 法则 + 2 古宝）。这句穷举约束的是**推销面**——兑现结果不是推销：它发生在付款之后、内容已定，且「付了钱看不到货」与本文件反复出现的诚实性纪律正面相悖，也是退款争议的常见诱因。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md` · `handoffs/2026-09-08-combat-portrait-layout.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md` · `handoffs/2026-09-08-combat-portrait-layout.md` · `handoffs/2026-09-10-character-series-identity-and-monetization.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
-- **premium bundle = 唯一已陈述的付费点；重试上限是基线值而非常量**（付费放宽为有意的口径变化，见 `decisions/ADR-0004-realm-checkpoint-retry-model.md`）。**上限的载体形状与选行链路** → `decisions/ADR-0117-chapter-retry-limit-carrier.md`（Accepted：两档表住 `ChapterRetryLimitsData`、按 `HasPremiumBundle` 选行、**不新增任何存档结构**）；**计数落 `CharacterProfile.chapterRetry`** → `decisions/ADR-0101-chapter-retry-counter-carrier.md`（Accepted）。
+- **商业化 = 三支**（premium bundle · 纯外观预留 · 付费解锁角色系列）；**付费解锁角色系列**（系列化轨道、单向棘轮、整系列礼包定价、严格横向不卖强度）已定案，**ADR 候选待 `/write-adr` 立档**。
+- **premium bundle = MVP 唯一已实施的付费点；重试上限是基线值而非常量**（付费放宽为有意的口径变化，见 `decisions/ADR-0004-realm-checkpoint-retry-model.md`）。**上限的载体形状与选行链路** → `decisions/ADR-0117-chapter-retry-limit-carrier.md`（Accepted：两档表住 `ChapterRetryLimitsData`、按 `HasPremiumBundle` 选行、**不新增任何存档结构**）；**计数落 `CharacterProfile.chapterRetry`** → `decisions/ADR-0101-chapter-retry-counter-carrier.md`（Accepted）。
 - **付费凭证 = `PlayerEntitlement` 的两字段（后端写的授予序号 `BundleGrantOrdinal` + 客户端写的兑现水位 `BundleRedeemedOrdinal`）；序号只由后端推进、兑现由客户端逐一按序演算、只在主菜单发起；可重复购买且 ③ ④ 不叠加；付费面五项明确排除** → `decisions/ADR-0023-premium-entitlement-and-redemption.md`（Accepted）。
 - **平台内购三渠道（Google Play Billing / App Store / 微信支付）纳入 MVP** → `decisions/ADR-0024-in-app-purchase-channels-in-mvp.md`（Accepted）。
 
@@ -197,6 +203,9 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 
 - **`GrantPoolMargin` 的数值与 `K`。** 闸 ① 的口径已改写为「支撑 K 次重复购买 + 留给第 K+1 次的缓冲」，**结构已定、数值待内容规模明朗**。→ `systems/balance.md`。
 - **合规。** 付费与实名 / 防沉迷 / 渠道分成 / 退款的交互归后端与合规侧；客户端不读年龄、不做任何本地拦截，只承接后端 `code` 展示对应 `ERR_*` 文案。→ `backend-design-documents/`。
+- **付费角色系列的解锁载体与购买流程形态。** 字段形态、解锁校验、存档 / 契约增量与后端承接（SKU、验票写入、封闭表加行）归 `/provide-solution-draft` 推演。→ 本文档、`systems/character-profile/_index.md`。
+- **双灵根批与付费系列的推出时点与主题包装。** 未讨论。→ 本文档。
+- **付费角色与专属剧情的关系**（是否附带专属剧情、剧情是否构成付费面一部分）。留给叙事落地专场或商业化后续。→ 本文档、`systems/services/plot-manager.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/monetization.md`（待建）。

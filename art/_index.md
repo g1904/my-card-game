@@ -61,7 +61,7 @@ Source: `handoffs/2026-08-25-combat-presentation-and-action-result.md`
 
 ## 当前状态
 
-**脚手架阶段。** 结构已立、内容待填——各文档的 `> _..._` 占位段落即待写处。美术与音频的实际推进归开发路线的靠后阶段（框架 → 内容 → 平衡与体验 → 社交及其他），当前不作为焦点；待答条目见 `../open-questions/deferred-content.md` 的「美术与音频」小节。
+**两侧方向文档均已成文。** `visuals/art-direction.md` 的方向层内容整体落笔（含制作路径与 guide 粒度两项，见 `visuals/_index.md`）；`soundtracks/audio-direction.md` 同样整体落笔（基调 · 四层配器 + 诡暗层 · 调式与节奏 · 耳机基准的混音 · 场景与篇章性格 · 音效材质 · 禁用清单），只余格式与包体预算一格随预算定。`references/` 两侧均已登记参照锚；`guides/` 两侧尚无条目。美术与音频的实际推进归开发路线的靠后阶段（框架 → 内容 → 平衡与体验 → 社交及其他），当前不作为焦点；待答条目见 `../open-questions/deferred-content.md` 的「美术与音频」小节。
 
 ## 待决问题
 
@@ -69,4 +69,4 @@ Source: `handoffs/2026-08-25-combat-presentation-and-action-result.md`
 
 - **AI 生成资产的商用授权与参考素材来源的合规口径。** 生成工具的商用条款（Midjourney / 音频工具各自不同）、以及参考素材的版权边界——`vision/references.md` 的「借什么 / 不借什么」约定解决的是**风格一致性**，不解决**法律边界**。游戏是要发行的产品，两侧迟早都需要一个明确立场；**它同时是选工具的一个前置**（条款不可接受的工具从一开始就不该投入 guide 编写）。→ `vision/scope.md`、`art/visuals/_index.md`、`art/soundtracks/_index.md`。
 - **参考素材的二进制是否入库。** 本库是纯文档孤儿分支；图片 / 音频文件放进 `**/references/` 会让分支变重且 git 历史不可压缩。**暂定「只登记来源与描述」**，尚未正式拍板。→ `art/visuals/references/_index.md`、`art/soundtracks/references/_index.md`。
-- **各方向文档的实质内容整体待写。** `visuals/art-direction.md` 的色彩 / 光照 / 构图 / 尺寸格式、`soundtracks/audio-direction.md` 的配器 / 调式 / 混音 / 预算、两侧的禁用清单——目前均为 `> _..._` 占位。它不是取向问题，是**待写**。
+- **两份方向文档各余一格「格式与预算」。** 视觉侧留待首批 guide 按 Midjourney 输出规格与 Godot 导入实测反推；音频侧的导出格式 / 码率 / 单曲时长随包体预算一同定。两格均非取向问题。

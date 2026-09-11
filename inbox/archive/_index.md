@@ -6,6 +6,16 @@
 
 | 草稿 | 类型 | 日期 | 去向 handoff | answer log |
 |------|------|------|--------------|------------|
+| `solution-draft-experience-supply-accounting.md` | solution-draft | 2026-09-10 | `handoffs/2026-09-10-experience-supply-accounting.md` | `answer-logs/log-experience-supply-accounting.md`（移出 1 全条 · 合并 interview 改判 2 项〔`K` = 5/6/9 · 改写 `ADR-0176`〕· 标准默认 13 项 · 新增 2 条） |
+| `solution-draft-player-power-acquisition-and-balance.md` | solution-draft | 2026-09-10 | `handoffs/2026-09-10-player-power-acquisition-and-balance.md` | `answer-logs/log-player-power-acquisition-and-balance.md`（移出 1 全条〔索引正文 + `deferred-content.md` 两处同题条目〕· 合并 interview 定 3 项 · 标准默认 13 项含 5 处直读更正 · 新增 0 条） |
+| `solution-draft-item-family-supply-guardrails.md` | solution-draft | 2026-09-10 | `handoffs/2026-09-10-item-family-supply-guardrails.md` | `answer-logs/log-item-family-supply-guardrails.md`（移出 1 条部分〔「种类目录本身」仍留清单〕· 合并 interview 改判 4 项 · 标准默认 9 项 · 新增 0 条） |
+| `design-draft-character-technique-identity.md` | design-draft | 2026-09-10 | `handoffs/2026-09-10-character-series-identity-and-monetization.md` | `answer-logs/log-character-technique-identity.md`（移出 3 条部分收窄 · 记方向裁决 10 项、推翻 2 项〔付费解锁角色系列 · 首批复杂度压平〕与标准默认 6 项 · 新增 3 条） |
+| `solution-draft-event-reward-and-hidden-stat-orchestration.md` | solution-draft | 2026-09-09 | `handoffs/2026-09-09f-event-reward-and-hidden-stat-orchestration.md` | `answer-logs/log-event-reward-and-hidden-stat-orchestration.md`（移出 3 全条 · 另改写 `04` 映射值条去阻塞句 · 新增 0 条） |
+| `solution-draft-lifespan-item-supply-guardrail.md` | solution-draft | 2026-09-09 | `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md` | `answer-logs/log-lifespan-item-supply-guardrail.md`（移出 3 条，其中 2 条部分移出 · 新增 0 条 · 供给缺口并入既有道具口径条） |
+| `solution-draft-combat-rarity-and-reward-scale.md` | solution-draft | 2026-09-09 | `handoffs/2026-09-09d-combat-rarity-and-reward-scale.md` | `answer-logs/log-combat-rarity-and-reward-scale.md`（移出 3 条，其中 1 条部分移出 · 新增 1 条：九行表与篇章乘数的实测校准） |
+| `design-draft-audio-direction.md` | design-draft | 2026-09-09 | `handoffs/2026-09-09c-audio-direction-nine-axes.md` | `answer-logs/log-audio-direction.md`（移出 2 全条 + 1 收窄 · 记方向裁决 9 项、推翻 1 项与标准默认 5 项 · 新增 0 条） |
+| `design-draft-combat-feel-identity.md` | design-draft | 2026-09-09 | `handoffs/2026-09-09b-combat-feel-identity.md` | —（本次无问题移出：九轴定案给的是设计取向，`01-combat.md` 的取值格照旧待校准） |
+| `design-draft-art-direction.md` | design-draft | 2026-09-09 | `handoffs/2026-09-09-art-direction-nine-axes.md` | `answer-logs/log-art-direction.md`（移出 2 全条 + 1 收窄 · 记方向裁决 7 项与标准默认 4 项 · 新增 0 条） |
 | `solution-draft-portrait-option-list.md` | solution-draft | 2026-09-08 | `handoffs/2026-09-08-portrait-option-list.md` | `answer-logs/log-portrait-option-list.md`（移出 2 条） |
 | `solution-draft-combat-ui-elements.md` | solution-draft | 2026-09-08 | `handoffs/2026-09-08-combat-ui-elements.md` | `answer-logs/log-combat-ui-elements.md`（移出 6 条） |
 | `solution-draft-combat-portrait-layout.md` | solution-draft | 2026-09-08 | `handoffs/2026-09-08-combat-portrait-layout.md` | `answer-logs/log-combat-portrait-layout.md`（移出 5 条） |

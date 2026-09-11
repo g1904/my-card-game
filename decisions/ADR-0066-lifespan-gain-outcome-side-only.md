@@ -16,7 +16,7 @@
 
 回寿数字与 `selectCost` **同样恒精确展示**——成本侧与产出侧对称，只精确一侧会让玩家在同一屏上读到两种口径。
 
-**平衡护栏 = 三道软闸 + 一条结构性禁令，不设硬上限。**
+**平衡护栏 = 三道软闸 + 结构性禁令，不设硬上限。**
 
 三道软闸与禁令 → `systems/adventure-event/common-properties.md`；数值 → `systems/balance.md`；回寿法宝 → `systems/character-profile/item/_index.md`。
 
@@ -37,4 +37,5 @@
 - 回寿法宝的总量护栏后来因储物袋取消容量上限而少了一道软闸，护栏落到内容编排面（→ `ADR-0097`）。
 - 两道加载期校验保留，**理由各自独立**：`Scope == Player` 且产出 `LifeSpan` → 拒（付费面「付费续命」那条排除）；`LifeSpan` 产出 + `UsableScene` 含 `InCombat` → 拒（**战斗内不得读写这条命**，否则以生命值为终止条件的消耗战从后门回来——资源纪律见 `systems/character-profile/life-span.md`）。`PowerData` 不得含 `LifeSpan` 产出的同族禁令同理。
 - **回寿的三条通道是寿元回升的全部路径**：Research 一类的构筑面板不承载回寿（→ `ADR-0022`），故软闸 ①「回寿事件照常付 `selectCost` ⇒ 净收益恒小于回寿量」在每一条通道上都成立。
+- **结构性禁令有两条。** 除 Travel 条目不得回寿之外，**免费产出通道排除含 `(CostKey.LifeSpan, BaseValue > 0)` 产出的 `ItemData`**——战后奖励池与开局强制事件的法宝三选一两处，落成加载期反建索引 + 取池时过滤。它不是上限、不计数、不落存档，是一条取池侧过滤，与已容纳的 Travel 禁令同族；它补的是免费通道上「定价闸整条失效」这个缺口 → `systems/services/combat-service.md`、`systems/adventure-event/common-properties.md`。
 - **软闸的射程延及战斗失败扣减**：合并后寿元同时承接失败惩罚，回寿因此也是「买回容错」，其总量护栏的重要性随之上升（→ `open-questions/01-combat.md` 的回寿法宝总量口径）。

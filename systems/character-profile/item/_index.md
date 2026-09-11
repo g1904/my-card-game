@@ -19,7 +19,7 @@
 
 - **角色级道具随轮回存在。** CharacterProfile 通过 `magicPack: List<CharacterItem>` 持有，与账号级的 **PlayerItem**（`player-profile/player-item/`）区分开：CharacterItem 属单次轮回 / 单角色，**储物袋的轮回级那一半（`magicPack`）随轮回清理、账号级古宝不受影响**；PlayerItem 跨轮回持久、有使用次数限制。
 
-- **开局的强制 buff 事件给一件法宝，三选一。** 起始事件中必有一个**强制事件**，玩家在其中同时选**一门功法**与**一件法宝**——各三选一（完整形态见 `../deck/_index.md`）。**这是法宝的第一条确定获取渠道**；候选须经 `AllEnabled()` 取抽取池并由带种子的 RNG 子流掷定。**事件侧的其余获取途径（哪些事件给、给几件）仍待定**。
+- **开局的强制 buff 事件给一件法宝，三选一。** 起始事件中必有一个**强制事件**，玩家在其中同时选**一门功法**与**一件法宝**——各三选一（完整形态见 `../deck/_index.md`）。**这是法宝的第一条确定获取渠道**；候选须经 `AllEnabled()` 取抽取池并由带种子的 RNG 子流掷定，**含寿元产出的道具不进该池**（见下方「补天丹一类的回寿法宝」条）。**事件侧的产出量口径见下方「战斗外可写 key 的白名单」条**。
 
 - **见过的角色道具会进 CharacterItemCodex。** 图鉴族（见 `../../player-profile/codex/`）为角色道具单列一本——**图鉴是账号级、跨轮回持久的**，而 `magicPack` 随轮回清理：轮回结束后道具没了，但「见过它」这条知识留下。解锁触发（获得即记？见到即记？）未定，见图鉴族的待决问题。
 
@@ -33,9 +33,9 @@
   - **推论：道具的强度必须比同费法术低**——「确定性 + 不占手牌位 + 不受抽牌运」三重优势若再配同等强度，会让卡牌相形见绌。**折价系数已按 `Charges` 分层定案**，见下。
 - **同一 `ItemId` 的道具可以持有多份。** 储物袋按 `ItemId` **堆叠显示 `×N`**，让「同名道具满屏」的视觉噪音消失——**堆叠是呈现层的聚合，不承载任何容量语义**。**推论：`Charges` 是每一份实例各自的次数，不是「一个条目带一个总次数」。** **这正是集合元素类型必须是单数 `CharacterItem`（一份实例）而非「一条 Id 一行」的实证；按 `ItemId` 堆叠是呈现层的聚合，不是存储形态**。
 - **折价系数 `itemPowerRatio` 按 `Charges` 分层，不是单一常数。** 判据一句话：**`道具的效果量 ≤ 同 ManaCost 法术的效果量 × itemPowerRatio(Charges)`**。
-  - 三重优势逐项估价：不受抽牌运 **×1.40**（单张特定牌本场可用概率 ≈ 0.7）· 不占手牌位 **×1.10** · 使用时机确定 **×1.15** → 合计 ≈ ×1.77 → 等价折价 ≈ 0.57。
-  - 但 **`Charges` 是一个反向修正**：次数越少，三重优势越不成立（只能用一次的道具，「不受抽牌运」只兑现一次）。故分层为 **-1（无限法宝）0.55 / ≥5 0.65 / 2–4 0.75 / 1（一次性）0.90**。
-  - **这条分层让 monetization 的既定分工有了数字**：古宝（必有 `Charges`）落在 **0.75–0.90**，单次强度接近法术但总量被次数封死，正是「付费收益 = 关键时刻多几次转圜，而非永久变强」。单一常数会把**最该强的一次性古宝**削到与无限法宝同价。
+  - 三重优势逐项估价：不受抽牌运 **×1.40**（单张特定牌本场可用概率 ≈ 0.7）· 不占手牌位 **×1.15**（手牌上限 7 在平均费用 2 下确实咬合，取 1.15–1.20 区间的下沿）· 使用时机确定 **×1.15** → 合计 ≈ ×1.85 → 等价折价 ≈ 0.54。
+  - 但 **`Charges` 是一个反向修正**：次数越少，三重优势越不成立（只能用一次的道具，「不受抽牌运」只兑现一次）。故分层为 **-1（无限法宝）0.52 / ≥5 0.62 / 2–4 0.72 / 1（一次性）0.87**。
+  - **这条分层让 monetization 的既定分工有了数字**：古宝（必有 `Charges`）的常见编排（`Charges` 1–4）落在 **0.72–0.87**（`Charges ≥ 5` 者合法、落 0.62 档），单次强度接近法术但总量被次数封死，正是「付费收益 = 关键时刻多几次转圜，而非永久变强」。**单一常数 0.62** 会把**最该强的一次性古宝**削到与无限法宝同价。
   - **「不受抽牌运的溢价」写成公式而非常数**：`1 / P(本场见到该牌)`，`P` 由卡组规模与抽牌数算出，随二者调整自动跟随。
   - 系数表与前置依赖（「同费法术的效果量」本身仍待内容扩充后的统计校准定出）见 `systems/balance.md`。
 - **`ItemData` 的字段形态。** `Id` · `DisplayName` / `Description`（`LocalizedText`）· `Scope: AbilityScope { Character, Player }`（决定持久层：CharacterProfile / PlayerProfile；**不按 Power / Item 分裂成两个 scope 枚举**）· `UsableScene { InCombat, OutOfCombat, Both }`（**必填**，非 `InCombat` / `Both` 者不进战斗道具区）· `ManaCost`（可选，允许为 0）· `Charges`（使用次数；古宝必有，法宝可为「无限 = -1」）· **`MaxUsesPerCombat`**（本场配额）· **`CombatUseEffects: EffectData[]`** · **`OutOfCombatUseOutcome: ProfileChangeSpec`** · `Rarity: RarityTier`（**必填**，缺失 → `PushError`）· `Subtypes` · `ExclusiveSource` / `ContentEnabled` / `CodexFlavor`（顶层共有）· 美术引用。**使用窗口是全局规则，不是字段。** 校验：`UsableScene` 缺失 → `PushError`（默认值会让漏填的东西悄悄进战斗）；`Scope == Player` 时 `Charges > 0` → 否则 `PushError`。**`SourceCode`（授予来源）不在此列——它是持有条目的字段，不是内容定义的字段**（见 `common-properties.md`）。
@@ -57,7 +57,7 @@
 
   | 列 | 是否开放 | 理由 |
   |---|:--:|---|
-  | `Elements` | ✅ | 回寿、给灵石 / 仙玉、给经验——道具战斗外产出的主体 |
+  | `Elements` | ✅ | 回寿——道具战斗外产出的主体；可写 key 由 `I-13` 的白名单收窄为 `{ LifeSpan }`（拒绝面与理由见下方「战斗外可写 key 的白名单」） |
   | `CodexElements` | ✅ | 「使用后解锁一条图鉴词条」是幂等收录、无副作用；不开它日后必然再开一格 |
   | `Stats` | ✅ | 纯计数自增、失败不阻断，天然安全 |
   | `AbilityElements` | ❌ 恒空 | 道具不得授予 / 移除 / 禁用能力。账号级资产的授予渠道受 `ExclusiveSource` 与残卷机制约束，一件可购道具若能直接给法则，那两套约束全部旁路；与「事件产出不能给账号级法则或古宝」同一条理由，而道具比事件更易获取 |
@@ -110,6 +110,7 @@
   | I-10 | `CombatUseEffects` 的槽位总数 `> 32` | `PushError`（`FizzledSlots` 位掩码的硬上限，与卡牌侧同一条） |
   | I-11 | 同上 `> 4` | `PushWarning`（清单式软检查） |
   | I-12 | `Charges == -1`（无限）且 `UsableScene` 含 `OutOfCombat` | `PushError`。战斗外效果恒是一份写 Profile 的 `ProfileChangeSpec` 模板 ⇒ 一件无限次可用的战斗外道具就是一个**没有次数上限的重复消费源**：玩家可在批次层无限次点它，`pastItemUse` 被刷成一条无界序列。与既有两条准入校验（`PowerData` 不得产寿元、含寿元产出者不得含 `InCombat`）是**同一条判据的第三个实例**。代价明写：内容侧就此关掉「无限次可用的战斗外道具」整类书写位 |
+  | I-13 | `OutOfCombatUseOutcome.Elements` 中任一行的 `Key ∉ { CostKey.LifeSpan }` | `PushError` + 条目 `Id` + **报出该 `Key`**。与事件侧 `OutcomeRule` 的可写 key 校验同款，**两张表各自独立、不合并**——事件与道具是两条产出路径。**与 `I-6` 并存亦不合并**：`I-6` 管 `Op` 是否在该行 `AllowedOps` 内，`I-13` 管 key 的编排准入，形态照事件侧的 key 校验与 `ResourceElements` 表并存 |
 
   两条 `LifeSpan` 校验（见下方「回寿法宝」条）与本表并列，合起来是 `ItemData` 侧加载期校验的全部。
 
@@ -124,7 +125,7 @@
   - **随售的来源标注 = `Source.PackSell`**（成员表与 `(CarrierKind, Scope)` 合法子集表的权威在 `systems/common-properties.md`）。它进 `TryApply` 的可追溯性日志与客服溯源，**不进存档**——随售没有 `PastEventEntry` 可挂，又不落 `SourceCode`（东西已不在），故**事后不可重建**，这条代价被明写接受。不新开 `PastEventEntry` 通道，不为「售出次数」设 `StatKey`。
   - **售出即时提交**，沿用既有路径，不新增存档点类型（玩家主动发起且本身自足）。它与战斗外使用同属批次层的储物袋操作，**push 走同一个 `SavePointReason.InventoryChanged`**（见 `systems/services/sync-service.md`）；随售的其余规则一字不变。
 
-- **补天丹一类的回寿法宝 = 战斗外效果的第一个具体条目形态。** 它是寿元回复通道的载体之一（通道形态、展示门控与平衡护栏的权威在 `systems/adventure-event/common-properties.md`）：`Scope = AbilityScope.Character` · `UsableScene = OutOfCombat` · `Charges` 为有限正整数，其 `OutOfCombatUseOutcome.Elements` 里有一行 `(CostKey.LifeSpan, +n)`，使用时**即时经 `ProfileManager.TryApply` 写档**（与既定的「消耗即时写、不攒到收口」同一条纪律）。它同时是 `ExchangeGoodsKind.CharacterItem` 一族的普通商品，可经商店购入。
+- **补天丹一类的回寿法宝 = 战斗外效果的第一个具体条目形态。** 它是寿元回复通道的载体之一（通道形态、展示门控与平衡护栏的权威在 `systems/adventure-event/common-properties.md`）：`Scope = AbilityScope.Character` · `UsableScene = OutOfCombat` · **`Charges = 1`（一次性）**，其 `OutOfCombatUseOutcome.Elements` 里有一行 `(CostKey.LifeSpan, +n)`，使用时**即时经 `ProfileManager.TryApply` 写档**（与既定的「消耗即时写、不攒到收口」同一条纪律）。它同时是 `ExchangeGoodsKind.CharacterItem` 一族的普通商品，可经商店购入。
   - **两条加载期校验（`PushError` + 条目 `Id`）：**
 
     | 违规 | 依据 |
@@ -133,13 +134,60 @@
     | `OutOfCombatUseOutcome.Elements` 含 `(Key == CostKey.LifeSpan && BaseValue > 0)` 且 `UsableScene` 含 `InCombat` | **战斗内不得读写这条命**：一旦能在战斗里回寿，以生命值为终止条件的消耗战就从后门回来，而本作的战斗终止条件是道念比拼（资源纪律见 `systems/character-profile/life-span.md`） |
 
   - **能力条目一概不得产出寿元**（`PowerData` 两个 `Scope` 皆然），判据是次数——它没有 `Charges`，见 `../power/_index.md`。回寿只挂在**有明确次数上限的一次性消费**与**占事件位的事件产出**上。
-  - **回寿的总量护栏在内容编排面**（出现频率、商店库存深度、定价），**规则层不设持有上限**——上方两道加载期校验管的是条目合法性，能囤多少交给编排。口径未定，见待决问题。
+  - **`Charges = 1`（一次性），四条依据。** ① 次数补充机制尚未设计，`ItemChargeElement.Delta > 0` 是 `PushError` ⇒ 多次数的回寿法宝是一个不可续的消耗池，与字段语义不对齐；② `Charges > 1` 会把价格闸按次数稀释——一颗 `Charges = 3` 的小档丹等于 40 灵石买 150 点寿元，单位价从 0.80 掉到 0.27，与下方定价绑定的恒定单位价直接冲突；③ **一颗 = 一档回寿**是最可读的映射，「买三颗」的数量语义已由储物袋按 `ItemId` 堆叠 `×N` 承载，不需要用 `Charges` 表达数量；④ `Charges == -1`（无限）在这一族上本就被 `I-12` 挡死。
+  - **回寿的总量护栏在内容编排面**（出现频率、商店库存深度、定价），**规则层不设持有上限**——上方两道加载期校验管的是条目合法性，能囤多少交给编排。四条获取通道与三格口径如下。
+
+    **四条获取通道，逐条给闸：**
+
+    | # | 通道 | 量级 | 闸 |
+    |---|---|---|---|
+    | ① | 开局强制事件的法宝三选一 | ≤ 1 次 / 轮回 | **L-0 排除**（完全免费，定价闸不作用） |
+    | ② | Exchange 商店库存 | ≈ 10 / 10 / 12 次 Exchange / 章 | 三格口径的主战场（**有定价闸**） |
+    | ③ | 事件产出（模板侧 `OutcomeRule.Kind == GrantFromPool` + `PoolKind == CharacterItem`，物化为 `AbilityElements` 的 `Grant`；点名或池抽） | 由编排决定 | 与回寿事件同性质（占事件位、付 `selectCost`），**并入事件侧一本账**，不单列旋钮 |
+    | ④ | 战后奖励池 | ≈ 4–5 次奖励面板 / 章 × 3 项候选（面板出现率由挂 `RewardPoolId` 的战斗占比决定，见 `../../adventure-event/combat/_index.md`） | **L-0 排除**（完全免费，定价闸不作用） |
+
+    - **L-0（取池侧排除）：含 `(CostKey.LifeSpan, BaseValue > 0)` 产出的 `ItemData` 不进战后奖励池，也不进开局强制事件的法宝三选一池。** 加载期反建一份索引、两处取池点共用，形态照「成员卡不从散牌产出侧发放」——**不新增字段、不落存档、不加任何计数器**。理由与取池链见 `systems/services/combat-service.md`，本处不复述。**两条免费通道各自的量级理由：** 战后奖励的次数正比于挂池的战斗场数，与商店侧带价曝光（≈ 1.2 次 / 章）差一个量级；开局三选一虽只 1 次 / 轮回，但单次给量（大档 200 点）是 ch1 道具侧整章预算（50 点）的 4 倍 ⇒ 「一轮回至多一件」封的是次数，而这条护栏要封的是量。**代价明写（被接受）：** 内容侧编排不出「打赢一场硬仗掉一颗补天丹」，开局三选一也不出补天丹——一颗满血时用不掉的丹本就是三选一里的坏选项。
+
+    **三格编排口径（落 `/audit-content` 的一项汇总，只报告不阻断——它是编排口径不是数据合法性，与「负向 `OnFailureRules` 占比 ≤ 10%」同款处理）：**
+
+    | 编号 | 口径 | 首批等价形态 |
+    |---|---|---|
+    | **L-1** 出现频率 | 含 `(CostKey.LifeSpan, BaseValue > 0)` 产出的 `ItemData(Scope == Character)`，在**每一个抽取池的每一个 `RarityTier` 档内**的条目数占该池该档 `Scope == Character` 条目总数的比例 **≤ 6%**。**逐池逐档核算，不按整池核算**——与 Exchange 闸 ①「逐 `Kind` 逐 `RarityTier` 档位」同一条理由：整池够而某档扎堆同样失控，而抽取恰是在档内进行的。**「每池每档至多 1 条」与 6% 的等价按目标态内容量成立（要求该池该档条目数 ≥ 17）；内容量未铺满期间以「至多 1 条」为准，6% 上限暂不机械核验** | 每池每档至多 **1** 条 |
+    | **L-2** 库存深度 | 单个 Exchange 条目内 `CharacterItem` 族的 Σ`SlotCount` **≤ 3**（槽位总数上界见 `systems/balance.md`，五族共享）；**不为回寿法宝单设 stock rule，也不用 `RarityFilter` 给它开专属编排位**——一旦开出「这家店专卖补天丹」的编排位，池占比口径即被绕过，而校验无从判断作者是不是故意的（判据同「售出准入写成代码级常量而非内容可配的族白名单」） | 同左 |
+    | **L-3** 定价 | 回寿档与 `RarityTier` 一一绑定，定价直接读「族 × 稀有度」表，**不填 `PriceOffset`、不新开任何格** | 见下方绑定表 |
+
+    **三档绑定表：**
+
+    | 回寿档 | 绝对回寿量 | `RarityTier` | 定价（`CharacterItem` 行 · 恒灵石） | 单位价 |
+    |---|---|---|---|---|
+    | 小 | **50** | **Tier2** | **40 灵石** | 0.80 灵石 / 点 |
+    | 中 | **100** | **Tier3** | **80 灵石** | 0.80 灵石 / 点 |
+    | 大 | **200** | **Tier4** | **160 灵石** | 0.80 灵石 / 点 |
+
+    - **两条 ×2 曲线天然对齐** ⇒ 绑定后单位价恒定，玩家在三档之间读不出套利，不需要任何新表、不需要 `PriceOffset`。**`Tier1` / `Tier5` 留空不编排**：Tier1（20 灵石）碎到没有决策感；Tier5（320 灵石）单件即吃掉 ch1 全章灵石收入的 2.5 倍，作为一件消耗品定价失真。
+    - **绝对点数三章通用、不按篇章分条目。** 道具是跨篇章持有物（`magicPack` 随轮回清理、不随篇章清理），而 `OutOfCombatUseOutcome.Elements` 的 `BaseValue` 是定值、读不到当前篇章 ⇒ 「占本章预算百分比」这个书写口径在道具侧结构上用不了。
+    - **「同一家店至多一件同 `Id` 回寿法宝」免费成立**（`PickMany` 无放回是既定契约）；不同 `Id` 的两件同店在 6% 口径下 ≈ 1.2%，量级可忽略，**不为它加规则**。
+    - **收支回代（`R_c` 的道具侧分账 `R_item,c`、期望遇到次数、囤积自然贬值与价格闸随篇章松开两条结构性推论）见 `systems/balance.md`**，本处不复述数字。
+    - **首批 3 条回寿法宝的条目本体不在本文件** —— 条目层归 `content/character-item/`（该类型尚未开张），本处只给类型级口径。
+
+- **战斗外可写 key 的白名单 = `{ CostKey.LifeSpan }`（`I-13`，承重）。** `OutOfCombatUseOutcome` 是**内容侧模板**，与事件侧的 `OutcomeRule` 同层同性质，故适用同一条纪律：**「模板可声明的 key」与「物化后可出现的 key」是两张表**。拒绝面逐条点名——`SpiritStone` · `ImmortalJade` · `ManaLimit` · `ExperiencePoint` · `Faith` · `Bloodlust` · 六个账号层 `CostKey`（`PowerFragment*` × 5 · `BundleRedeemedOrdinal`）。
+  - **不收窄，三个已封的口全部从道具侧重开：** `ExperiencePoint` 只能走 `ExperienceGrade` 枚举档 + 平衡表映射，一件「+30 经验」的法宝当场是裸数字的第二书写位、且直改经验供给账；`Faith` / `Bloodlust` 只能走 `HiddenStatGrant(Stat, Grade, Direction)` 的档位映射，`Elements` 是绝对量值、写下即绕开档位表并让逐篇章推拉供给对账失真；账号层六个 `CostKey` 中一件写 `PowerFragmentAccumulated` 的法宝就是一条绕开残卷机制的道统碎片通道，与 `AbilityElements` 恒空那一格封的是同一件事。
+  - **`ManaLimit` 在拒绝面内，两条依据：** 载体判据不成立——`manaLimit +1` 是**永久增量**，花掉一次得到一个不再消失的提升，`Charges` 这个节流阀名存实亡，它在载体判据上属神通 / 法则那一侧；且 `manaLimit` 一章的推拉预算（净增 +1~+2，含 `Finale` 每篇章一次 +1 的保底）已被事件侧铺满，道具侧再开一条即账外增量，而三章末「恰好饱和」正是这条预算被守住的结果，溢出即「有 mana 没牌打」。
+  - **两种货币在拒绝面内，三条依据：** 商店侧结构上无意义（`CharacterItem` 五档恒收灵石 ⇒ 一件产灵石的法宝是「用灵石买灵石」：产出 < 价格则无人买，≥ 价格则套利，任何定价都落在这两侧之一）；免费通道上它是账外的货币增量（货币账只含战斗 `BaseReward` + 道念差加成 + 事件 outcome 三条口子，而战后奖励一轮回给出 ≈ 18.5 件法宝——≈ 30 候选槽 × 领取率 0.75 × 法宝占比 ≈ 82%，见 `systems/balance.md`「战后奖励的内容编排口径」）；仙玉尤甚——一枚的量级即占一章仙玉收入的两到五成，与「仙玉一格都不落 `CharacterItem` 族」那条结构性关闭同向。
+  - **代价明写（被接受）：** 内容侧编排不出经验丹 / 静心符 / 血煞珠 / 碎片袋 / 灵石袋 / 储物锦囊的**道具形态**；同名风味改由战斗 `BaseReward` 与事件 outcome 承载，两处都在账内。
+  - **方向可逆，条件记在这里以免重开会：** 要开货币须**同时**补三样——加回白名单一格 · L-0 同构的免费通道排除 · 商店侧「产灵石的法宝不进 `CharacterItem` 库存」排除；要开 `ManaLimit` 须**同时**补三样——`|BaseValue| == 1` 的加载期闸（与事件侧同源那条逐字同构）· `Charges == 1` 强制 · L-0 同构排除。三样缺一，对应那本账即不可复算。
+  - **法宝的其余三格编排口径落别处：** 事件产出侧的期望到手量（通道 ③ 的量）与商店逐族库存深度见 `systems/balance.md`；法宝置换的目标频次同在那里，而**该频次的份额如何计入「失去能力」上层 ≈ 1.0 的合计归本文件侧裁定**（法宝置换写 `CharacterProfile`，故不适用自持口径），四支频次表见 `systems/player-profile/player-power/_index.md`。
+
+- **一个道具功能族需要独立的供给护栏，当且仅当它产出的量进入某条已被反推封账的预算线**（λ 反推的寿元账 · 货币账 · 经验账 · 卡组规模口径）。**日后新增效果原语或放宽某一列时照这条核对。**
+  - **战斗外三列逐列过一遍：** `Elements` 收到 `{ LifeSpan }` 后只剩回寿一族，其口径已由上方四条通道 + L-0 / L-1 / L-2 / L-3 给全；`CodexElements` 是幂等收录、`Stats` 是纯计数自增，**两族一条都不进任何账** ⇒ 同样不需要三格口径。故「战斗外的族」不止一个，只是其中只有一个进账。
+  - **战斗内八原语的六族一条都不进任何账**——它们的产出**随战斗结束一并消失**：不落 Profile、不跨事件、不进任何一本预算。`counters` 那一支更是由 `I-9` 封在「写不出来」这一级（道具没有宿主 `AbilityData`，键拼不出）。故战斗内族由「强度」维度的既有三件套完整承接：`itemPowerRatio(Charges)` 折价系数 · 「族 × 稀有度」定价表 · 稀有度权重表，**不需要第四套口径**。
+  - **推论：三格口径在战斗内族上退化为既有物** —— L-1（出现频率）退化为族占比 + 条目数矩阵，L-3（定价）退化为「读表、不填 `PriceOffset`」，两者都已存在；战斗内族只欠 L-2（库存深度）那一半，它由逐族库存深度表补齐（见 `systems/balance.md`）。
 
 - **什么该做成一件法宝而不是一张卡 / 一个神通**：判据 = **有明确的使用次数上限、由玩家主动在某一刻花掉**（`Charges` 是节流阀；`ItemData` 不设 `Abilities` ⇒ 它写不出常驻 / 触发式效果）。三者共用的完整判据表与四条推论在 `../power/_index.md`，本文件**不复述**。
 
 > 本文件夹为「每类角色道具 / 每份道具设计一个 Markdown」预留结构；具体语义见 `common-properties.md` 与待决问题。
 
-Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12c-identifier-singular-collapse.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md`
+Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12c-identifier-singular-collapse.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md` · `handoffs/2026-09-10-item-family-supply-guardrails.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -147,9 +195,8 @@ Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **角色级道具的内容目录未设计。** **已定：战斗内形态 = `CardType.Item`、储物袋、`UsableScene` 三档、`ItemData` 字段形态与两格使用效果面、本场配额格、加载期校验、消耗即时写 Profile、以及战斗外效果的第一个具体条目形态（回寿法宝）**（见上）；**载体判据亦已给出**，见 `../power/_index.md` 的跨载体边界判据表。**仍未设计**：道具的种类目录本身。
-- **道具的获取途径：哪些事件给、给几件。** 战斗内形态与折价系数均已给出；**获取途径已有三条**（开局强制事件三选一 · 商店购入 · 事件产出），仍未给的是各条通道的分布与数量口径。→ `systems/adventure-event/`、`systems/balance.md`。
-- **回寿法宝的总量护栏在内容编排面的具体口径未定（承重）。** 规则层不设持有上限后，出现频率 / 商店库存深度 / 定价共同承接这条护栏，而三者的口径都还空着——它是寿元这条压力线的唯一剩余数量闸。→ 本文档、`systems/adventure-event/`、`systems/balance.md`。
+- **角色级道具的内容目录未设计。** **已定：战斗内形态 = `CardType.Item`、储物袋、`UsableScene` 三档、`ItemData` 字段形态与两格使用效果面、本场配额格、加载期校验、消耗即时写 Profile、以及战斗外效果的第一个具体条目形态（回寿法宝）**（见上）；**载体判据亦已给出**，见 `../power/_index.md` 的跨载体边界判据表。**仍未设计**：道具的种类目录本身。首批已有一族落到条目级取值——回寿法宝三条（见上方三档绑定表），它是**分母之外的一个已知分子**，目录设计时须把这三条与上方的可写 key 白名单一并计入。
+- **法宝置换在「失去能力」上层 ≈ 1.0 合计中占多少份额。** 口径结构已定（它计入上层分子，不自持分母），待定的只有那个份额；定它时须同时看四支频次表的其余三格（见 `systems/player-profile/player-power/_index.md`）。
 
 > **储物袋的 UI 形态**（不进主菜单、纵向滚动网格 + 筛选 chip、战斗内视图称「随身」= 角标 + 底部抽屉），见 `ux/screen-flow.md` 与 `ux/combat-ux.md`。条目数不设上限、可观 ⇒ **筛选 chip 与排序是必要的**，具体排布归 UX 侧。
 

@@ -18,7 +18,7 @@
 
 ## 理由
 
-- **七个挂载面里能被境界索引的只有 `CharacterData` 一个**：敌人的境界是 `EnemyInstance` 的物化产物、不在模板上（`decisions/ADR-0044-enemy-leveling-band.md`），地域三章共用同一张图（`decisions/ADR-0042-location-flat-set-and-single-map.md`），其余各类与境界正交。按判据卡「只有一个落点的字段不进 `common-properties.md`」，境界维度即属 `CharacterData` 自有字段。
+- **八个挂载面里能被境界索引的只有 `CharacterData` 一个**：敌人的境界是 `EnemyInstance` 的物化产物、不在模板上（`decisions/ADR-0044-enemy-leveling-band.md`），地域三章共用同一张图（`decisions/ADR-0042-location-flat-set-and-single-map.md`），其余各类与境界正交。按判据卡「只有一个落点的字段不进 `common-properties.md`」，境界维度即属 `CharacterData` 自有字段。
 - **敌人不换相不是「不值得做」，而是没有可索引的键**：`ChapterScope` 空 = 三章通用是常态 ⇒ 按境界分版必有恒空格，而恒空格叠上「缺失即回落占位」= 玩家看到的是占位图而不是这个敌人，且该故障被「逐条目不告警」的既定告警形态屏蔽。它与「三章共用同一张地图、难度的篇章差异不由换一张更难的图承载」是同一道题的同一个答案：**结构保持简单，难度放进数值。**
 - **取稀疏而非定长四格**：定长里「这一档没画」与「这一档就用基础图」不可区分，而两者的正确行为不同；稀疏把它变成干净可判的条件。
 - 与同批的 `EnemyData.Lines : EnemyLine[]` 完全同构，不引入新的结构范式。
@@ -26,7 +26,7 @@
 
 ## 备选方案
 
-- **`Artwork` 升为按境界索引的结构（共有字段层面）** — 只有一个落点却上移到七个挂载面，其余六类恒空。
+- **`Artwork` 升为按境界索引的结构（共有字段层面）** — 只有一个落点却上移到八个挂载面，其余七类恒空。
 - **定长四格数组** — 「没画」与「就用基础图」不可区分。（草稿否决它时用的第二条理由「把 `Realm` 的成员序变成序列化契约」**不采用**：稀疏数组里的 `[Export] Realm Realm` 在 `.tres` 中同样序列化为整数，对两种形态同样成立。）
 - **字段名与元素类型名逐字相同（`RealmArtwork` / `RealmArtwork`）** — 类内成员查找会遮蔽同名类型，`new RealmArtwork()` 在 `CharacterData` 内无法解析。
 - **敌人按境界分版立绘** — 见上，无可索引的键。

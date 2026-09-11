@@ -34,7 +34,7 @@ ContentRegistry（内存）       按 Id 索引，全游戏唯一内容读取入
 
 例外的边界必须写窄，两条：
 
-1. **只覆盖剧本内容类型本身**（AdventurePlot 的节点 / 分支 / 文本条目）。`CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PlayerPowerData` / 平衡表 / **状态转换触发的定性文案**（隐藏属性跨档叙事、Finale 的渡劫身死文案）**照旧只改不增**——后者有稳定 `Id` 且需启动期校验，不在例外内。
+1. **只覆盖剧本内容类型本身**（AdventurePlot 的节点 / 分支 / 文本条目）。`CardData` / `AdventureEventData` / `ItemData` / `EnemyData` / `PowerData` / 平衡表 / **状态转换触发的定性文案**（隐藏属性跨档叙事、Finale 的渡劫身死文案）**照旧只改不增**——后者有稳定 `Id` 且需启动期校验，不在例外内。
 2. **新增的剧本条目不得引用本次 overlay 之外的新 `Id`。** 一条新剧本 arc 若需要一张新卡或一个新 AdventureEvent，那两者仍只能随版本发版；剧本条目只能引用**已存在**的非剧本 `Id`。这保住合并后强校验的「交叉引用不悬空」。
 
 **残留风险与其处置：** key points 是指向剧本节点的持久化锚点，所以 overlay 或客户端版本回退可使 key point 悬空。处置为 **`PushWarning` + 叙事降级、不阻塞轮回**（与本服务「读取侧不过滤」的不对称原则同构），完整规则见 `plot-manager.md`。
@@ -419,7 +419,7 @@ public interface ISingletonContent { }
 
 | 是否被存档引用 | 内容 | overlay 权限 |
 |---|---|---|
-| **被存档引用** | `AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PlayerPowerData`、平衡表，**含静态展示文案与状态转换触发的定性文案** | **只改不增** |
+| **被存档引用** | `AdventureEventData`、`CardData`、`EnemyData`、`ItemData`、`PowerData`、平衡表，**含静态展示文案与状态转换触发的定性文案** | **只改不增** |
 | **不被存档引用** | AdventurePlot 的剧本节点 / 分支 / 文本（`CharacterProfile` 只存 key points，剧本正文永不进存档） | **可新增 `Id`** |
 
 > **脚注 —— 平衡表列于「被存档引用」一栏的判据是「必须只改不增」，而非字面上被存档引用。** 存档里没有任何平衡表 `Id`（存档只受它的数值间接影响）。本表唯一的作用是决定 overlay 权限，故按结论归栏：平衡表**绝不可**由 overlay 新增一份——新增即触发单例条数校验，且合并期闸 A 本就会拦。按字面去找「存档哪里引用了平衡表」会一无所获，那不是归栏错误。
