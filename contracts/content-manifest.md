@@ -2,7 +2,7 @@
 
 > 覆盖 `content-service` 边界的全部报文：overlay 的 **manifest**、内容文件 **blob**、以及 `ContentEnabled` 的 **flags** 通道。**剧本文本亦走本通道**（见下方「剧本文本」一节）。
 > 客户端侧门面见 `game-design-documents/systems/services/content-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md` · `handoffs/2026-08-23b-flags-version-monotonic.md`（服务端保证重构为两组 + flags 三条单调条款）· `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` · `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md`（传播窗口主体改为多实例 + 头永不领先）· `handoffs/2026-09-07-manifest-schema-path-branch-and-cdn-failure-codes.md`（端点路径分支 · 双发保留时长 · CDN 三端点失败状态码）。
+> Source: `handoffs/2026-08-11-content-delivery-manifest-signing-and-flags.md` · `handoffs/2026-08-23b-flags-version-monotonic.md`（服务端保证重构为两组 + flags 三条单调条款）· `handoffs/2026-08-30-client-flag-cache-and-binary-overlay.md` · `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md`（传播窗口主体改为多实例 + 头永不领先）· `handoffs/2026-09-07-manifest-schema-path-branch-and-cdn-failure-codes.md`（端点路径分支 · 双发保留时长 · CDN 三端点失败状态码）· `handoffs/2026-09-09-flags-zero-load-no-dedicated-code.md`（B 组末段：flags 不引入专属错误码）。
 
 > 序列化与命名约定（lowerCamelCase · RFC 3339 UTC · 忽略未知字段）、端点风格与错误码分层归 `envelope.md`，本文件不另立一套、也不复述。
 
@@ -64,6 +64,8 @@ flags 不是内容寻址的静态对象，故 A 组的保证对它不成立，�
 **若引入按账号的解析结果缓存层，缓存键必须包含 `flagsVersion`**，且缓存条目**不得跨版本复用**、不得在版本提升后继续被读到。缓存键只按 `accountId` 时，版本提升后设备拉到的仍是旧结果——但版本号已经增大 ⇒ 客户端认为「已同步到最新」⇒ 此后「等值不拉」⇒ **这一批秒关对该账号永不生效**。这与「手工改规则」同一病理，只是发生在缓存层。**是否引入缓存层本身不在此裁决**：形态（缓存对象为规则集本身、键取 `flagsVersion`）见 `systems/content-delivery.md`「规则集缓存」，「改为按账号结果缓存」的触发判据见 `operations/content-delivery-ops.md`「数值初值一览」。
 
 **B 组零报文成本**：不新增任何字段、`flagsSchema` 不提升、客户端无需任何改动。→ `ADR-0009`。
+
+**flags 端点不引入任何 flags 域专属错误码**，错误一律走 `envelope.md` 的共有码。其中「本实例一个规则集版本都没装载且回源失败」这一失败面用兜底的 `server.unavailable`（`Retryable`），判据与「为什么不值一条专属码」见 `envelope.md` §6「台账的承重项」；服务端侧对该失败面的可见性由指标承担，不由 `code` 承担。
 
 ## manifest schema（`manifestSchema: 1`）
 

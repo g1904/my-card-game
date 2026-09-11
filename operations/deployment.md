@@ -48,13 +48,14 @@
 
 ## 发布前置清单：首次面向公众发行之前
 
-合规域的另两项能力**不绑上一份清单那个不可逆时刻**——它们后加不产生存量追溯动作；绑的是渠道闸：**首次面向公众发行**。因此单列一份，与域名备案 / 国内发行资质同批推进（`environments.md` 已定二者是上线时序的前置）。
+合规域的另两项能力**不绑上一份清单那个不可逆时刻**——它们后加不产生存量追溯动作；绑的是渠道闸：**首次面向公众发行**。因此单列一份，与域名备案 / 国内发行资质、以及内部处置台同批推进（`environments.md` 已定二者是上线时序的前置）。
 
 | # | 项 | 过闸断言 |
 |---|---|---|
 | 1 | **注销两端点可用** | `POST /v1/compliance/deletion` 与 `POST /v1/compliance/deletion/cancel` 在 `backend-testing` 走通一次完整的申请 → 撤销，且客户端**有 App 内可达入口**（客户端侧对位，权威在 `game-design-documents/systems/services/account-service.md`，本库不复述）。PIPL 要求删除权，国内应用商店审核实测「App 内可注销」，而走站外已被 `contracts/compliance.md` §1 否决 |
 | 2 | **导出两端点可用** | `POST /v1/compliance/export` 与 `GET /v1/compliance/export/{taskId}` 走通一次异步任务，且产物白名单三条断言（`operations/compliance-ops.md`）在流水线上绿灯 |
 | 3 | **域名备案与国内发行资质到位** | 权威在 `environments.md`，此处只作过闸登记 |
+| 4 | **内部处置台可用** | 在 `backend-testing` 走通一次完整的昵称复核（领取 → 判定 `Violation` → `nickname_scan.review_state` 落「须改名」档、云端 `/accountInfo/nickname` 一字未变）与一次完整的工单处置（领取 → `Ban` → 该账号全部会话被吊销 → 一条 `operator_audit` 已落）；且 `realName` / `idNumber` 在两条链路的应答与日志中零出现；入站运维通道（堡垒机或 VPN）已就位、内部监听不对公网暴露。形态见 `operations/internal-tools.md`。公开发行后复核级命中与风控阈值触发会持续产生待办，无人能处置即合规敞口，且「人必须在回路里」在没有面的情况下无法兑现 |
 
 **两份清单的未就绪处置相同：推迟上线，不降级放行。** 合规项没有「先上线后补」的形态——拦截只在 `signin`、四条码的求值顺序写死、无灰度旋钮，能力关掉会让求值顺序出现一个未定义的空档。这与第一份清单第 4 项对微信资质的处置是同一条纪律（`decisions/ADR-0042-*`），不新造。
 
@@ -89,4 +90,4 @@
 
 它否决的是**跨边界的编译期依赖**，不是同语言本身：共享 DTO 会把两条独立的分支线焊在一起，使客户端发版节奏与后端发版节奏互为约束，而契约的单一事实来源是 spec，不是任何一侧的代码。**要复议，须先驳倒这一条。**
 
-Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-06-spec-check-automation-hosting.md`（「契约变更的完成判据与机检断言」节）· `handoffs/2026-09-06-trusted-server-clock.md` · `handoffs/2026-09-06-compliance-domain-storage.md`（「启动自检与周期性运维日程」节）· `handoffs/2026-09-06-external-provider-selection-dr.md`（前置清单第 4 项）· `handoffs/2026-09-07-compliance-launch-tiering.md`（两份发布前置清单与合规四项的落位）。
+Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-06-spec-check-automation-hosting.md`（「契约变更的完成判据与机检断言」节）· `handoffs/2026-09-06-trusted-server-clock.md` · `handoffs/2026-09-06-compliance-domain-storage.md`（「启动自检与周期性运维日程」节）· `handoffs/2026-09-06-external-provider-selection-dr.md`（前置清单第 4 项）· `handoffs/2026-09-07-compliance-launch-tiering.md`（两份发布前置清单与合规四项的落位）· `handoffs/2026-09-09-internal-ops-tools-and-operator-identity.md`（第二份清单第 4 项）。

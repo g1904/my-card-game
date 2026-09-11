@@ -3,7 +3,7 @@
 > 覆盖**全部端点共有**的那一层：契约用什么表达、报文怎么序列化、信封带什么、错误长什么样、版本怎么协商。
 > 各端点的报文本体在 `auth.md` / `profile-sync.md` / `content-manifest.md` / `purchase.md` / `compliance.md`；它们**不另立一套**错误码或版本机制。
 > 客户端侧门面见 `game-design-documents/systems/services/`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md`、`handoffs/2026-08-13-auth-endpoint-contract.md`（§4a 的 auth 例外域 · 台账两条新 `code` 与 `session_revoked.detail`）、`handoffs/2026-08-14-profile-sync-contract.md`（§2 的超 2⁵³ 整数判据 · §8 可见字段子集回链）、`handoffs/2026-09-06-spec-check-automation-hosting.md`（§1 机检承载与降级形态的指路 · §3 端点全集与 P-3 · §6 台账 P-1）、`handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 端点清单 · §4a 无鉴权例外判据 · §6 台账四条 `compliance.*`）、`handoffs/2026-09-03-compliance-endpoint-payloads.md`（§4a 撤销端点方法 · §6 台账三条合规域端点错误码）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§7e 登记流程指路 · §8 统计层推论的两条限定）。
+> Source: `handoffs/2026-08-11-contract-expression-envelope-and-error-codes.md`、`handoffs/2026-08-13-auth-endpoint-contract.md`（§4a 的 auth 例外域 · 台账两条新 `code` 与 `session_revoked.detail`）、`handoffs/2026-08-14-profile-sync-contract.md`（§2 的超 2⁵³ 整数判据 · §8 可见字段子集回链）、`handoffs/2026-09-06-spec-check-automation-hosting.md`（§1 机检承载与降级形态的指路 · §3 端点全集与 P-3 · §6 台账 P-1）、`handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 端点清单 · §4a 无鉴权例外判据 · §6 台账四条 `compliance.*`）、`handoffs/2026-09-03-compliance-endpoint-payloads.md`（§4a 撤销端点方法 · §6 台账三条合规域端点错误码）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§7e 登记流程指路 · §8 统计层推论的两条限定）、`handoffs/2026-09-09-flags-zero-load-no-dedicated-code.md`（§6 承重项：flags 零装载刻意不给专属码）、`handoffs/2026-09-09-internal-ops-tools-and-operator-identity.md`（§3 表下 `/internal/` 永不进表的护栏）。
 
 ## 1. 表达形式与文档分工
 
@@ -75,6 +75,7 @@ Source: `handoffs/2026-08-14-openapi-spec-timing-and-consistency.md`。
 
 - **`/v1/` 与 `schemaVersion` 的分工**：URL 主版本 = **端点集与传输信封**的破坏性变更（并存两版一段时间，同 `manifestSchema` 的处理）；报文内的 `schemaVersion` = **存档负载**自身的版本（见 §8）。二者不复用一个数字——变更节奏完全不同。
 - **`/v1/content/flags` 归 API 域，不在 `contentRoot` 下。** 它需鉴权、按账号计算、`no-cache`——本质是 API 而非静态对象。放在 CDN 域会诱导中间层按静态对象缓存，导致**灰度分桶串号**：这类事故只在放量时显形且极难定位。
+- **`/internal/` 前缀被保留给内部运营工具面，它永不出现在 `/v1/` 下、永不进本表**（非规范性说明，为 P-3 的读者而写）。内部端点不跨客户端边界 ⇒ 它们在六份契约正文中永不出现 ⇒ 一旦有人「顺手补全」把它们登进本表，断言③当场红灯。同理它们不进 `openapi.yaml`、不进 §6 错误码台账。形态与接入面见 `operations/internal-tools.md`。
 
 ## 4. 信封：传输信封（HTTP 头）与负载信封（body 段）
 
@@ -205,7 +206,7 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 
 **P-1 —— 本表首列是机器读取面。** 它是机检断言② / ②′ 的**输入**（台账 `code` 集合 ⇔ 六份契约正文中出现的 `code` 字面量，双向；spec 落笔后再与 spec 的错误码枚举双向，见 `_index.md`「契约变更的完成判据」）。因此首列必须是**反引号包裹的裸 `code` 字面量**——无附加文字、无换行、无合并单元格；**本表自此改结构须同批改提取脚本**。首列一旦混入说明文字，②的失败形态是「少了一条」而非「解析失败」，而这条断言存在的全部理由就是它守的漂移是静默的。
 
-**台账的五条承重项：**
+**台账的承重项**（条数随台账扩张，此处不写死一个会漂移的数）**：**
 
 - **「刷新失败」按判据拆成两条路径，判据是「有没有收到明确应答」而非「失败了」。** 网络失败（请求发不出 / 应答收不到 / `server.unavailable`）→ 视同断线走 sync 缓冲通道 + 指数退避，**不硬阻塞**；收到 `auth.session_revoked` → **硬阻塞重登 + 暂停退避**（重试必然成功不了）。收不到应答一律算网络失败——弱网下二者不可区分，且误判成硬阻塞的代价远大于多退避几次。`POST /v1/auth/refresh` 的错误清单因此**只有两条**（`auth.session_revoked` · `server.unavailable`），使这个判据在报文层面无歧义（见 `auth.md` §8 §10）。
 - **`auth.session_revoked` 的触发源必须进 `detail.reasonKey`，不能只写在 `message` 里。** §5a 已定客户端不得解析 `message`，而「另一设备登录」与「账号被运营吊销」对玩家是两句完全不同的话却共用同一个 `code`——触发源必须对代码可见。三处 `reasonKey` 的形态（PascalCase）、二级文案键的机械变换与兜底纪律统一在 `auth.md` §10，**台账不复述取值表**。
@@ -214,6 +215,7 @@ Source: `handoffs/2026-08-13-auth-endpoint-contract.md`。
 - **限流是 `Retryable`，不是 `Conflict`。** 限流不改变 `cloudRevision`，客户端原样重试即可（`pushId` 保证幂等）；映成 `Conflict` 会丢弃本地缓冲，等于把一次限流变成一次进度丢失。
 - **`purchase.*` 四条映 `OpError.Purchase`，只有 `purchase.payload_invalid` 映 `Validation`。** 判据是玩家面 / bug 面之分：`receipt_invalid` / `receipt_claimed` / `receipt_pending` / `channel_disabled` 是玩家可见的终态或等待，须出客服入口或专属文案；`payload_invalid` 是报文不合法，走上报路径。把玩家面挤进 `Validation` 会让客户端上报而不出客服入口，挤进 `Conflict` 更会把一次验票失败变成一次进度丢失。
 - **`purchase.receipt_pending` 与 `server.unavailable` 分列。** 二者 `class` 与退避形态相同、含义相反（一个是我方查不到平台，一个是平台明说钱没到位），合并会让线上探针无法区分「我方故障」与「玩家用了慢速支付」——这两条曲线一个叫人、一个不叫人。同理 `channel_disabled` 与 `receipt_invalid` 分列：前者发生在下单、玩家尚未付款，后者是已付款后的终态失败。
+- **`GET /v1/content/flags` 在「本实例零装载 + 回源失败」这一失败面上刻意不给专属码，沿用 `server.unavailable`。** 判据三条，任一条成立即应当独立成码，而三条全不成立：① **客户端处置逐字相同**——该端点上的失败处置只有一条（告警 + 降级到本地缓存的那批 flags，无缓存则回落 overlay 布尔，指数退避、绝不阻塞），新码登进 `code → (OpError, 处置)` 表后那一行会与 `server.unavailable` 完全一致，不登则走「未知 `code` 按 `class` 降级」，结果同样一致；② **玩家面为空**——flags 拉取失败从不落屏，机械变换出的 `ERR_*` 键永远不会被取用，登表反而逼客户端配一条永不显示的文案；③ **区分所需的事实在服务端自己的进程内**——「本实例已装载的键集是否为空」是服务端已有的取数面，打一条计数器即可，不必借道一个**给客户端读的键**（同 `sync.conflict` 由指标层分辨 CAS 冲突与回声拒绝的既定解法）。**不给码不等于不留痕**：该失败面的可见性由 `operations/observability.md` 的零装载失败计数器承担，与 `/v1/auth/refresh` 刻意不给 `rate.limited`、改由网关记账加告警是同一手法。**台账表本身不加行**（P-1：首列是机器读取面，台账有而正文无会让断言②在这一侧永久失衡）。
 - **`Cancelled` 与 `Migration` 不得有任何后端 `code` 映射到它们。** 前者是客户端 `CancellationToken` 的本地语义；后者是**客户端本地**存档迁移失败（`MigrationManager`）。后端拒绝一个它不认识的 `schemaVersion` 是**上行校验失败**（`Validation`），不是迁移——映到 `Migration` 会让客户端去跑一条本地迁移路径，而问题根本不在本地。
 
 **客户端侧的映射落地形态**（供跨库 handoff 参考，不在本库定稿）：映射应是**数据**而非 switch 语句——一张 `code → (OpError, 处置)` 的表，未知 `code` 落到按 `class` 的四条默认路径。这与客户端「新增内容 = 新增数据，不编辑 switch」的可加性纪律一致。

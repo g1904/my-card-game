@@ -103,6 +103,8 @@
 
 **自动化止步于「观察」与「生成工单」；`restricted` / `banned` 一律需人工确认。** 两条依据：`status` 变更连带吊销全部会话（一次误判 = 一次强制下线，撞 pillar #4）；且全局熔断的存在本身就意味着必须有人在回路里判断「这是作弊还是我方 bug」。
 
+**工单与人工确认的落点：本库自己的 `ops_ticket` 表 + 内部端点。** 不进外部工单系统——处置必须与 `account.status` 写入同一次事务（含会话吊销），跨系统即让「工单已关、`status` 未改」成为可达状态。工单形态、领取语义、处置端点、`baseAccountStatus` 前置条件与内部人员身份见 `operations/internal-tools.md`；表的承重列与事务边界见 `systems/account.md`。复核台判违规落「须改名」档、以及 `restricted` / `banned` 的人工确认，都经这一个面写回。
+
 **线上探针的采集口径：** **复算不一致率与「本地领先」两条探针由本事件流聚合得出，不另建第二条采集路径**（分别对应 `RollMismatch` 与 `RevisionAhead`）——两条采集路径必然漂移，而漂移时没有任何机制会报错。**`pushId` 去重命中率不是风控事件**：它是同步通道的常规计数（弱网下的去重命中是常态，不是异常信号），做成风控事件会淹没事件流；透明路径缺失告警同理，仍走告警台账。
 
 ## 数值初值（全部待实测校准，落后端配置）
@@ -220,13 +222,16 @@
       FROM picked WHERE r.review_id = picked.review_id
     RETURNING …
   判定：state = 'Claimed' AND claimed_by = :reviewer 的条件 UPDATE，按受影响行数分支
-  租约回收：state = 'Claimed' AND claim_expires_at_utc <= now() ⇒ 置回 'Pending'，claim_attempts += 1
+  租约回收：state = 'Claimed' AND claim_expires_at_utc <= now() ⇒ 置回 'Pending'，claim_attempts += 1，
+           并一并置空 claimed_by 与 claim_expires_at_utc
   ```
 
   - 多副本 / 多复核员安全由 `SKIP LOCKED` + 受影响行数分支共同兑现，**仍是零分布式锁、零调度中间件**。
   - 判定写的是条件 `UPDATE`，因此租约过期后原复核员的迟到提交会命中 0 行而被拒——不会覆盖已被他人处置的条目。
   - **租约超时初值 30 分钟**：一次昵称复核是秒级判断，30 分钟覆盖一次中途被打断的班次；上界的代价只是条目滞留，下界的代价是复核员正在看的条目被他人抢走。
   - `claim_attempts` 反复升高 = 某条目每次被领走都无人判定（多为疑难条目），出一条指标即可，不自动升级。
+  - **`:reviewer` 恒为 `operator_id`**，由服务端从本次内部请求已认证的凭据解析得出，**绝不接受请求体传入**——允许传入即任何持凭据者都能冒名判定。取值域、外键与内部身份形态见 `operations/internal-tools.md`。
+  - **租约回收一并置空 `claimed_by`**：留着旧值会让「谁在办」这一列在 `Pending` 行上说谎，而它是审计要读的列。（迟到提交被拒不依赖这一点——`state` 已变即命中 0 行。）
 - **入队去重落成数据库不变式**：`UNIQUE (account_id) WHERE state IN ('Pending','Claimed')` ——同一账号在办至多一条。同一玩家反复改名撞复核级会连开多条条目、让人工对同一账号重复判定；应用层「先查再插」挡不住并发，与 `export_task` 的部分唯一索引、`session` 的活跃会话上限 1 是同一手法。命中冲突 ⇒ **更新既有在办条目的提交串 / 词表版本 / `requestId` 为最新一次**，不新插行（判定要针对当前值）。
 - **终态条目按批 `DELETE`**，挂既有周期通道，保留期 180 天（条目含玩家提交的昵称串，属可关联到个人的行为数据，不宜永久）。**注销执行时按 `account_id` 硬删。**
 
@@ -272,4 +277,4 @@
 
 **四张表都是新建，不涉及 `expand → deploy → contract` 的迁移三步**（`operations/deployment.md`）——首版即建。**不触碰任何契约**：全是后端内部状态，报文一字不改，`profile` 的 `doc` 不新增字段。
 
-Source: `handoffs/2026-09-08-risk-ledger-storage-shapes.md`。
+Source: `handoffs/2026-09-08-risk-ledger-storage-shapes.md` · `handoffs/2026-09-09-internal-ops-tools-and-operator-identity.md`（`:reviewer` 的来源与租约回收的置空 · 工单落点）。

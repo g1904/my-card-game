@@ -4,7 +4,7 @@
 
 公共的存储与并发前提（单库 PostgreSQL · 并发单元 = `account` 行 · 约束即不变式）见 `_index.md`。
 
-Source: `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md`（应答体版本取值 · 头的下发算式 · 取数面）· `handoffs/2026-09-08-flags-service-internal-doc-home.md`（本文件 · 版本预热 · 回源失败的降级 · 缓存容量上限）。
+Source: `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md`（应答体版本取值 · 头的下发算式 · 取数面）· `handoffs/2026-09-08-flags-service-internal-doc-home.md`（本文件 · 版本预热 · 回源失败的降级 · 缓存容量上限）· `handoffs/2026-09-09-flags-zero-load-no-dedicated-code.md`（零装载失败的错误码取值与可见性落点）。
 
 ## 存储形态：承重列
 
@@ -75,7 +75,7 @@ single-flight 回源失败时的处置由头的不对称性直接给出：
 - **本实例已装载过更旧的版本** → **用它兑现应答**，应答体与头都是那个更旧的版本号，**不返回错误**。这正是这套设计要覆盖的情形：头落后在客户端侧零告警、零上报，只是晚一拍。
 - **本实例一个版本都没装载**（冷启动首个请求且回源失败）→ **返回错误应答，绝不以空 `disabledIds` 兑现**。空集合语义上是「什么都没关」，会让秒关静默失效，且客户端会把它当作一批合法的 flags 持久化下来作降级值。
 - **失败不写负缓存**——一次瞬时存储故障会被缓存住，把秒级抖动放大成 TTL 级失效。
-- 错误应答用 `Retryable` 类；本文件不新增 `code`，是否值得一条专属码归 `contracts/envelope.md` §6 台账裁决。
+- 错误应答用**兜底码 `server.unavailable`**（`class: Retryable`），**不给这个失败面专属码**——客户端在本端点上的处置与一般断线降级逐字相同、玩家面为空，而「区分零装载与一般不可达」所需的事实就在服务端进程内，打点即可。判据见 `contracts/envelope.md` §6「台账的承重项」；该失败面的可见性由 `operations/observability.md` 的零装载失败计数器承担。
 
 ### 规则集缓存的容量上限
 

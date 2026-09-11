@@ -6,6 +6,8 @@
 
 | 草稿 | 对应 handoff | 日期 |
 |------|--------------|------|
+| `solution-draft-internal-ops-tools.md` | `handoffs/2026-09-09-internal-ops-tools-and-operator-identity.md` | 2026-09-09 |
+| `solution-draft-flags-zero-load-code.md` | `handoffs/2026-09-09-flags-zero-load-no-dedicated-code.md` | 2026-09-09 |
 | `solution-draft-risk-ledger-storage-shapes.md` | `handoffs/2026-09-08-risk-ledger-storage-shapes.md` | 2026-09-08 |
 | `solution-draft-flags-service-internal-doc-home.md` | `handoffs/2026-09-08-flags-service-internal-doc-home.md` | 2026-09-08 |
 | `solution-draft-compliance-launch-tiering.md` | `handoffs/2026-09-07-compliance-launch-tiering.md` | 2026-09-07 |

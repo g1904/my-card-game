@@ -23,6 +23,8 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-internal-ops-tools.md` | 2026-09-09 | `inbox/archive/solution-draft-internal-ops-tools.md` → `handoffs/2026-09-09-internal-ops-tools-and-operator-identity.md` | 2（`07` 两条同源一并裁决：昵称人工复核台的形态含 `claimed_by` 取值域 · 风控工单的落点。答案同为「本库自己的 `operator_id` + `/internal/` 面 + CLI」；同批裁决四项取向 / 张力并按标准默认采纳一项。新增 `07` 两条待答，`07` 分片不清零） |
+| `log-flags-zero-load-code.md` | 2026-09-09 | `inbox/archive/solution-draft-flags-zero-load-code.md` → `handoffs/2026-09-09-flags-zero-load-no-dedicated-code.md` | 1（`01` 唯一待答项：flags 零装载失败不值得专属 `code`，维持 `server.unavailable`；**`01` 分片待答清单随之清零**。零取向项、零新增待答、零新增 ADR） |
 | `log-risk-ledger-storage-shapes.md` | 2026-09-08 | `inbox/archive/solution-draft-risk-ledger-storage-shapes.md` → `handoffs/2026-09-08-risk-ledger-storage-shapes.md` | 1（风控三张台账的存储形态整条——该条此前**不在任一分片跟踪**，只挂在 `operations/moderation.md` 末行的一句悬空指路上；同批裁决一项：两个删除类 `kind` 另落 `deletion_audit`、保留 3 年、注销执行不删。残余 `riskEventBufferRows` 取值转 `06`，新开 `07` 两条） |
 | `log-flags-service-internal-doc-home.md` | 2026-09-08 | `inbox/archive/solution-draft-flags-service-internal-doc-home.md` → `handoffs/2026-09-08-flags-service-internal-doc-home.md` | 1（A6–A9 的文档归属整条——同样不在任一分片跟踪，只记于 `open-questions.md`「最短解锁路径」第 3 条；同批裁决一项：只迁 A6–A9，回链方向反转被接受。新增 `01` 一条不阻塞的台账待核） |
 | `log-compliance-launch-tiering.md` | 2026-09-07 | `inbox/archive/solution-draft-compliance-launch-tiering.md` → `handoffs/2026-09-07-compliance-launch-tiering.md` | 2（`02`「合规能力的上线分级」整条含从属项 · `06`「昵称审核阈值取值」改造为条件化核对项；同批裁决两项外部事实：首版 = 中国大陆正式发行 · 署方实名系统接入暂挂账） |

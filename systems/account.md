@@ -54,7 +54,7 @@ deletion_audit (event_id PK, account_id, kind, occurred_at_utc,
 
 nickname_review (review_id PK, account_id, submitted_nickname, wordlist_version,
                  request_id, enqueue_reason, state, decision,
-                 claimed_by, claim_expires_at_utc, claim_attempts,
+                 claimed_by REFERENCES operator(operator_id), claim_expires_at_utc, claim_attempts,
                  enqueued_at_utc, decided_at_utc,
                  UNIQUE (account_id) WHERE state IN ('Pending','Claimed'),
                  索引 (state, enqueued_at_utc),
@@ -65,6 +65,31 @@ nickname_scan  (account_id PK, last_accepted_nickname, accepted_at_utc,
                 reviewed_wordlist_version, review_state, last_scanned_at_utc,
                 索引 (reviewed_wordlist_version),
                 索引 (last_scanned_at_utc))
+
+operator       (operator_id PK, display_name, role, credential_hash,
+                created_at_utc, disabled_at_utc,
+                索引 (disabled_at_utc))
+
+operator_identity (operator_id FK, issuer, subject, bound_at_utc,
+                UNIQUE (issuer, subject),
+                UNIQUE (operator_id, issuer))
+
+ops_ticket     (ticket_id PK, account_id, kind, severity,
+                trigger_occurred_at_utc, trigger_event_id,
+                state, decision, decided_status, note,
+                claimed_by REFERENCES operator(operator_id),
+                claim_expires_at_utc, claim_attempts,
+                opened_at_utc, decided_at_utc,
+                UNIQUE (account_id) WHERE state IN ('Open','Claimed'),
+                索引 (state, opened_at_utc),
+                索引 (state, claim_expires_at_utc),
+                索引 (account_id, opened_at_utc))
+
+operator_audit (audit_id PK, operator_id, action, occurred_at_utc,
+                account_id, target_kind, target_id, request_id, context jsonb,
+                索引 (occurred_at_utc),
+                索引 (account_id, occurred_at_utc),
+                索引 (operator_id, occurred_at_utc))
 ```
 
 - `identity` 的两条唯一约束分别兑现「一个渠道身份只属于一个账号」与「一个账号在同一渠道最多一条 identity」（`contracts/auth.md` §1a）。
@@ -79,6 +104,11 @@ nickname_scan  (account_id PK, last_accepted_nickname, accepted_at_utc,
 - **`deletion_audit` 与 `risk_event` 分表**：`DeletionRequested` / `DeletionCancelled` 服务于举证而非风控判定，保留期 3 年且**注销执行时不删**（条目不含个人信息，与 `account` 墓碑同一性质）。它与 `account_deletion` 的插入 / 删除同事务，是撤销这个动作在库内的唯一留痕。
 - **`nickname_review` 的部分唯一索引兑现「同一账号在办至多一条待复核」**——同一玩家反复改名撞复核级会连开多条条目、让人工重复判定；命中冲突即更新既有在办条目为最新一次提交，不新插行。它的领取走**条件 `UPDATE` 取租约**（不持锁到人工判定结束），理由与形态在运维侧。
 - **`nickname_scan` 独立成表、不给 `account` 加列**：`account` 行是全库唯一的并发单元，一条纯离线批处理去批量更新 `last_scanned_at_utc` 会与 `signin` / `push` / `bind` 争同一把行锁。它一行一账号、不随时间增长，故不分区、无到期过期。
+- **末四张表的写入方是内部运营工具面**，故承重列在此、工具面形态（内部身份 · 接入面 · 复核台与工单台的动作语义 · 可见字段范围 · 服务端保证 I*）在 `operations/internal-tools.md`——与上一条同一分工。四张表都是新建，不涉及迁移三步。
+- **内部人员不挂进 `account`**：`account` 是合规删除权的对象、`session` 上有「单账号活跃会话上限 1」、`identity` 的渠道取值域封闭为三条登录渠道，三条中任一条都会在内部人员身上给出错误行为。`operator_id` 是本库分配的稳定内部键（非外部身份源的登录名 / subject），与 `accountId` 是两个永不相交的命名空间；`credential_hash` 存 SHA-256，**明文凭据绝不落库**（同 `ticket_hash` / `identifier_mac` 的纪律）。**只停用不删行**——删行会让 `claimed_by` / `operator_audit` 的外键悬空，而审计的价值恰在于人走了记录还在（同 `account` 墓碑行的取向）。
+- **`nickname_review.claimed_by` 与 `ops_ticket.claimed_by` 的外键是承重的**：它把「持有租约的是一个真实存在的内部人员」落成数据库不变式而非应用层约定。`operator` 只停用不删行 ⇒ 外键不阻碍任何既有路径；两张表终态行按批 `DELETE` 的方向是 ticket / review → operator，同样不受影响。
+- **`ops_ticket` 的触发事件是软引用的两列，不建外键。** `risk_event` 主键含分区键 ⇒ 引用需两列；而到期整分区 `DROP` 会让指向它的外键失效或阻塞裁剪。工单可能活得比它的触发事件更久，这被接受——`ops_ticket` 自身已记下 `kind` / `severity` / 时间。它的部分唯一索引兑现「同一账号在办至多一条工单」，判据与 `nickname_review` 那条逐字相同。
+- **`operator_audit` 的 `context` 只装内部键与结果，绝不装昵称串、`note` 或任何个人信息。** 这是刻意设计出的性质：**「这张表含不含个人信息」决定它的保留期与是否进注销删除清单**。⇒ 保留 3 年、注销执行不删，与 `deletion_audit` 同判据；存 `account_id` 不破坏这一点。可关联到个人的载荷留在 `nickname_review` / `ops_ticket`（180 天 + 注销硬删）。
 
 ## 事务边界
 
@@ -93,7 +123,10 @@ nickname_scan  (account_id PK, last_accepted_nickname, accepted_at_utc,
 | 实名兑付 `POST /compliance/realname` | ①条件更新 `compliance_ticket` 占位消费（`WHERE consumed_at_utc IS NULL`）并提交 · ②调核验（外部 HTTP，**不在事务内**）· ③第二次事务写核验结果与 `response_snapshot` | 受影响行数分支，无需行锁；②③ 之间崩溃 ⇒ 回 `server.unavailable`（`Retryable`），玩家重走 `signin` 取新 ticket |
 | `POST /compliance/deletion` | `account_deletion` 的 `INSERT … ON CONFLICT (account_id) DO NOTHING`，`previous_status = account.status` | `SELECT … FOR UPDATE` on `account`；插入 0 行即回既有 `deletionEffectiveAtUtc` + `deduplicated`，**绝不顺延** |
 | `POST /compliance/deletion/cancel` | 删除 `state='CoolingOff'` 的 `account_deletion` 行 · 同事务把 `account.status` 恢复为 `previous_status` · 落一条 `DeletionCancelled` 风控事件 | 同上；0 行且无行 ⇒ `204`（幂等）；行为 `Executing` / `Executed` ⇒ `compliance.deletion_irrevocable` |
-| 注销执行（周期任务） | 按数据类别逐表硬删（`identity` · 实名材料 · `profile` · `signin_replay` · `compliance_ticket` · `session` · `export_task` 与其对象 · `risk_event` · `nickname_review` · `nickname_scan` · `push_idem`）· `account` 行降为墓碑 · `state='Executed'`；**`deletion_audit` 不在删除清单内**——条目不含个人信息，且它正是这次删除的举证依据 | `FOR UPDATE SKIP LOCKED` 领取，逐账号各自一次事务；**全有或全无**，中途崩溃即回滚，下一轮重新领取 |
+| 复核领取 | 条件 `UPDATE nickname_review` 取租约（`SKIP LOCKED` 只在选行那一条语句内，事务立即提交）；`claimed_by` 取自本次内部请求已认证的凭据 | 无行锁跨人工时长 |
+| 复核判定 | `nickname_review` 转终态 ·（判 `Violation` 时）一条 `NicknameViolation` 落 `risk_event` · `nickname_scan.review_state` / `reviewed_wordlist_version` 更新 · 一条 `operator_audit` | 条件 `UPDATE` 的受影响行数分支 |
+| 工单处置 | `account.status` 更新 · 该账号全部会话吊销（`OperatorRevoked`）· `ops_ticket` 转终态 · 一条 `operator_audit` | `SELECT … FOR UPDATE` on `account`；**`baseAccountStatus` 与库内当前值不等即拒**，无任何写入（形态与理由见 `operations/internal-tools.md`） |
+| 注销执行（周期任务） | 按数据类别逐表硬删（`identity` · 实名材料 · `profile` · `signin_replay` · `compliance_ticket` · `session` · `export_task` 与其对象 · `risk_event` · `nickname_review` · `nickname_scan` · `ops_ticket` · `push_idem`）· `account` 行降为墓碑 · `state='Executed'`；**`deletion_audit` 与 `operator_audit` 不在删除清单内**——两者的条目都不含个人信息，且它们正是这次删除与历次内部处置的举证依据；`operator` / `operator_identity` 与玩家删除路径无关，永不涉及 | `FOR UPDATE SKIP LOCKED` 领取，逐账号各自一次事务；**全有或全无**，中途崩溃即回滚，下一轮重新领取 |
 
 `bind` / `unbind` 推进 `revision` 是通则的一例——后端对 profile 的任何写入都推进它（`contracts/profile-sync.md` §5）。profile 侧的写入形态见 `profile-store.md`。
 
@@ -154,7 +187,7 @@ nickname_scan  (account_id PK, last_accepted_nickname, accepted_at_utc,
 
 适配接口的形状要求、四个签名与硬超时、多供应商灾备与切换、选型判据与凭据托管见 `operations/external-providers.md`。
 
-Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-07-refresh-expiry-reasonkey.md`（refresh 校验流程两处叶子的 `reasonKey`）· `handoffs/2026-09-08-risk-ledger-storage-shapes.md`（四张台账的承重列 · 注销执行的删除清单）。
+Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-07-refresh-expiry-reasonkey.md`（refresh 校验流程两处叶子的 `reasonKey`）· `handoffs/2026-09-08-risk-ledger-storage-shapes.md`（四张台账的承重列 · 注销执行的删除清单）· `handoffs/2026-09-09-internal-ops-tools-and-operator-identity.md`（内部工具面四张表的承重列 · 三行事务边界 · `claimed_by` 的取值域与外键）。
 
 ## 昵称判定链与存量扫描的服务内部形态
 

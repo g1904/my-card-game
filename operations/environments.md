@@ -20,7 +20,7 @@
 |---|---|---|
 | 编译期常量 | 协议不变式、SplitMix64 常量、判定顺序 | 代码 |
 | 环境配置 | 连接串、区域、bucket、KMS 密钥别名、日志级别 | 环境变量 + 云 Secrets |
-| **运行期可调旋钮** | 契约里全部标注「初值 / 待实测校准 / 落后端配置而非代码常量」的数值 | `config_knob` 表（`key` 主键 + `value` + 更新者与时间）+ 进程内缓存约 30 秒 TTL，**改值不发版** |
+| **运行期可调旋钮** | 契约里全部标注「初值 / 待实测校准 / 落后端配置而非代码常量」的数值 | `config_knob` 表（`key` 主键 + `value` + 更新者与时间）+ 进程内缓存约 30 秒 TTL，**改值不发版**。**更新者取 `operator_id`**（`operations/internal-tools.md`），同 KMS 解包事件审计里「谁」的取值域 |
 
 **密钥永不进环境变量明文、不进镜像、不进 git**——环境配置里出现的只有 KMS 密钥别名，见下方「密钥保管」。
 
@@ -48,6 +48,7 @@
 | 注销审计保留期 | 同上（`deletion_audit`，与风控事件不同期） |
 | 旁路缓冲上界（行数） | 同上（待上线后按事件速率标定） |
 | 复核租约超时 · 复核终态条目保留期 | 同上（`nickname_review`） |
+| 工单租约超时 · 工单终态条目保留期 · 内部动作审计保留期 · 内部凭据校验失败告警阈值 | `operations/internal-tools.md`（数值初值） |
 | 定期兜底扫描周期 | 同上（存量扫描 T3） |
 | 导出下载链接的单次签发有效期 | `operations/compliance-ops.md`（数据导出） |
 | 导出生成重试上限 | 同上 |
@@ -115,7 +116,7 @@ verify  ≈ 每账号个位数 / 年
 
 - **KMS 只保管被包裹的私钥，签名在进程内完成。** 进程启动时向 KMS 解包一次，私钥只在内存：不落盘、不进环境变量、不进镜像。
 - **KMS 因此不在签发热路径上**——它停机不影响登录。把全站登录能力的可用性押给一个外部托管服务，是用一次审计换一个单点。
-- **代价如实记下**：失去逐次签名审计，降级为**解包事件审计**（谁、在哪个环境、什么时候解包过）。这是被接受的取舍。
+- **代价如实记下**：失去逐次签名审计，降级为**解包事件审计**（谁、在哪个环境、什么时候解包过）。这是被接受的取舍。「谁」取 `operator_id`（`operations/internal-tools.md`）。
 - **轮换**：JWT header 带 `kid`；旧 `kid` 只需保留 ≥ access token TTL + 时钟偏移余量，建议 1 小时后退役。轮换**纯服务端、零客户端义务、不需要发版**。例行 90 天轮换 + 疑似泄漏时立即轮换（立即轮换的代价上限 = 一个 access token TTL 内的在途请求）。
 - **`refreshSecret`** 同处 KMS、带自己的 `kid`（落会话行的 `refresh_key_id`），轮换时旧 secret 保留至最长 refresh 链自然到期（绝对寿命上限）。
 
@@ -141,6 +142,10 @@ verify  ≈ 每账号个位数 / 年
 
 托管形态的权威在 `operations/external-providers.md`（云 Secrets 条目 · **能力 × 供应商 × 环境** · 独立审计线 · `credentials[]` 新旧并存），本文件不复述。它**自成一类托管条目与轮换流程**，不与既有各类钥匙共用——轮换节奏由各自的外部方驱动，共用一份托管配置会让最慢的那条绑架其余。
 
+### 内部访问凭据（运营工具面）
+
+托管形态的权威在 `operations/internal-tools.md`（云 Secrets 条目 · **operator × 环境** · `credential_hash` 存 SHA-256、明文绝不落库 · 轮换 = 新增 `operator` 行 + 停用旧行），本文件不复述。它**自成一类托管条目与轮换流程**，不与既有各类钥匙共用——**各类钥匙不共用托管配置**。本地 feature 环境用开发专用 operator，与线上 `operator_id` 空间**隔离、永不共用**（同下一节开发专用 `kid` 的纪律）。
+
 ### 本地 feature 环境
 
 本地不接 KMS，用**开发专用密钥与开发专用 `kid`**，与线上 `kid` 空间**隔离、永不共用**。轮换演练在非生产环境用新 `keyId` 走完整条流水线后再上生产。
@@ -164,4 +169,4 @@ verify  ≈ 每账号个位数 / 年
 
 **注销执行是本库唯一不可逆的周期动作**：时钟异常（NTP 失同步 / step 级跳变）期间暂停一轮，其余判定照常。判据与降级语义见 `operations/compliance-ops.md`。
 
-Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-06-iap-channel-integration.md`（旋钮清单一行 · 密钥保管指路） · `handoffs/2026-09-06-compliance-domain-storage.md` · `handoffs/2026-09-06-trusted-server-clock.md` · `handoffs/2026-09-06-external-provider-selection-dr.md` · `handoffs/2026-09-06-receipt-idem-cold-archive.md` · `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md`（旋钮清单 · fail-closed 例外判据 · 定时任务出口 · 外接能力凭据）· `handoffs/2026-09-08-risk-ledger-storage-shapes.md`（风控四张台账的旋钮与定时任务）。
+Source: `handoffs/2026-09-03-backend-stack-and-hosting.md` · `handoffs/2026-09-06-iap-channel-integration.md`（旋钮清单一行 · 密钥保管指路） · `handoffs/2026-09-06-compliance-domain-storage.md` · `handoffs/2026-09-06-trusted-server-clock.md` · `handoffs/2026-09-06-external-provider-selection-dr.md` · `handoffs/2026-09-06-receipt-idem-cold-archive.md` · `handoffs/2026-09-06-flags-propagation-window-and-instance-skew.md`（旋钮清单 · fail-closed 例外判据 · 定时任务出口 · 外接能力凭据）· `handoffs/2026-09-08-risk-ledger-storage-shapes.md`（风控四张台账的旋钮与定时任务）· `handoffs/2026-09-09-internal-ops-tools-and-operator-identity.md`（第五类托管条目 · 旋钮清单一行 · `config_knob` 更新者与解包审计「谁」的取值域）。
