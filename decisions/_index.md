@@ -4,12 +4,57 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| [ADR-0268](ADR-0268-power-fragment-account-rate-table.md) | 账号级法则获取速率落 `balance.md` 派生表；「老账号全开」的现实分母是 `x ≈ 9–12` | Accepted | 2026-09-10 | systems/balance.md, systems/player-profile/player-power/_index.md |
+| [ADR-0267](ADR-0267-player-power-three-acquisition-channels.md) | 法则获取通道恰三条；`EventOutcome` / `ExchangePurchase` 三格改判为规则层封死 | Accepted | 2026-09-10 | systems/player-profile/player-power/_index.md, systems/common-properties.md, systems/services/future-event-service.md |
+| [ADR-0266](ADR-0266-lifespan-recovery-split-refill.md) | `R_c` 两格按实际可供给重填；回代式 `P` 必须含档内条件概率层 | Accepted | 2026-09-10 | systems/balance.md, systems/character-profile/life-span.md, systems/character-profile/item/_index.md |
+| [ADR-0265](ADR-0265-item-swap-in-ability-loss-budget.md) | 法宝置换与法宝 / 古宝禁用一并计入「失去能力」上层 ≈1.0 分子；份额归 item 侧 | Accepted | 2026-09-10 | systems/player-profile/player-power/_index.md, systems/character-profile/item/_index.md, systems/balance.md |
+| [ADR-0264](ADR-0264-barter-tier-gap-and-count-cap.md) | barter 两格护栏：对价按档差 `≤ 支付物 + 1`，条数 ≤ 1 条 / 店 | Accepted | 2026-09-10 | systems/adventure-event/exchange/common-properties.md, systems/balance.md |
+| [ADR-0263](ADR-0263-event-side-item-grant-volume.md) | 事件侧给法宝 ≈1.5 件 / 轮回、每条 `Count == 1`；新增软校验 `X-1` | Accepted | 2026-09-10 | systems/balance.md, systems/character-profile/item/_index.md, systems/adventure-event/exchange/common-properties.md |
+| [ADR-0262](ADR-0262-exchange-per-kind-stock-depth.md) | Exchange 逐族库存深度上界 3 / 2 / 1 / 1 / 0，Σ 7 ≤ 8 刻意留一格余量 | Accepted | 2026-09-10 | systems/balance.md, systems/adventure-event/exchange/common-properties.md, content/_index.md |
+| [ADR-0261](ADR-0261-family-guardrail-necessity-criterion.md) | 族护栏判据：产出进入某条已被反推封账的预算线才需独立护栏 | Accepted | 2026-09-10 | systems/character-profile/item/_index.md, systems/balance.md |
+| [ADR-0260](ADR-0260-item-outofcombat-key-whitelist.md) | 道具战斗外可写 key 收窄为白名单 `I-13` = `{ LifeSpan }` | Accepted | 2026-09-10 | systems/character-profile/item/_index.md, systems/balance.md |
+| [ADR-0259](ADR-0259-first-batch-flattened-complexity.md) | 首批五角刻意压平在同一复杂度档；复杂度谱系由后续系列展开 | Accepted | 2026-09-10 | systems/character-profile/_index.md, systems/character-profile/deck/_index.md, ux/onboarding.md |
+| [ADR-0258](ADR-0258-multi-affinity-free-track-and-pool-split.md) | 多灵根角色走免费轨道；卡池区分 = 复合功法 + 数量上限双机制组合 | Accepted | 2026-09-10 | systems/character-profile/_index.md, systems/character-profile/deck/_index.md |
+| [ADR-0257](ADR-0257-generic-technique-ratio-by-rarity.md) | 通用 / 专属功法配比 = 按稀有度分层的梯度，无硬限制 | Accepted | 2026-09-10 | systems/character-profile/deck/_index.md, content/_index.md |
+| [ADR-0256](ADR-0256-all-characters-clearable-acceptance-goal.md) | 「每个角色都能以合理体验通关」= 全体角色的验收目标；塌缩触发内容向修正 | Accepted | 2026-09-10 | systems/character-profile/_index.md, systems/monetization.md |
+| [ADR-0255](ADR-0255-paid-character-series-track.md) | 付费解锁角色系列 = 商业化第三支：系列化 · 单向棘轮 · 整系列礼包 · 严格横向 | Accepted | 2026-09-10 | systems/monetization.md, systems/character-profile/_index.md, vision/scope.md |
+| [ADR-0254](ADR-0254-hidden-stat-side-story-shape.md) | 两条隐藏属性剧情线的结构形态：`SideStory` · `ChapterScope` 恒空 · 3–4 节点 · boss 走 `PlotModulation` | Accepted | 2026-09-09 | systems/services/plot-manager.md |
+| [ADR-0253](ADR-0253-dao-heart-default-ascent-narrative.md) | 道心默认叙事「修行本身即精进」；心魔滋生退化为主动选择型剧情线 | Accepted | 2026-09-09 | systems/services/plot-manager.md, systems/balance.md, systems/adventure-event/common-properties.md |
+| [ADR-0252](ADR-0252-hidden-stat-travel-distance-metric.md) | 隐藏属性的「行程」= `Σ\|Δ\|`、方向不参与；反向供给面是必要条件 | Accepted | 2026-09-09 | systems/balance.md, systems/adventure-event/common-properties.md, content/_index.md |
+| [ADR-0251](ADR-0251-hidden-stat-semantic-orchestration-table.md) | 语义 → `(Stat, Direction, Grade)` 是编排判据表不是校验；`Travel` 一律不填且不立加载期校验 | Accepted | 2026-09-09 | systems/adventure-event/common-properties.md, content/_index.md |
+| [ADR-0250](ADR-0250-combat-tier-hidden-stat-ladder.md) | Combat 三档的默认 `HiddenStatGrade` 阶梯；煞气默认档比道心高一档 | Accepted | 2026-09-09 | systems/adventure-event/combat/_index.md, systems/balance.md |
+| [ADR-0249](ADR-0249-base-reward-single-element-slot.md) | `BaseReward` 的默认 element 面 = 灵石一格，其余恒空 | Accepted | 2026-09-09 | systems/balance.md |
+| [ADR-0248](ADR-0248-lifespan-item-tier-binding.md) | 回寿三档 50/100/200 与 `RarityTier` 一一绑定；`Charges = 1`，Tier1/Tier5 留空 | Accepted | 2026-09-09 | systems/character-profile/item/_index.md, systems/balance.md |
+| [ADR-0247](ADR-0247-lifespan-item-orchestration-guardrails.md) | 回寿法宝三格编排口径：逐池逐档 ≤6% · Σ`SlotCount` ≤3 · 定价直读族 × 稀有度表 | Accepted | 2026-09-09 | systems/character-profile/item/_index.md, systems/adventure-event/exchange/_index.md, content/_index.md |
+| [ADR-0246](ADR-0246-lifespan-recovery-budget-split.md) | `R_c` 拆成事件侧 / 道具侧两格书写口径，Σ 不变 | Accepted | 2026-09-09 | systems/balance.md, systems/character-profile/life-span.md |
+| [ADR-0245](ADR-0245-advantage-thresholds-uniform-across-chapters.md) | `advantage` 三档边界三章恒 `0.25 / 0.75`，不按篇章分格 | Accepted | 2026-09-09 | systems/balance.md, decisions/ADR-0163-no-ante-intra-chapter-difficulty-ladder.md |
+| [ADR-0244](ADR-0244-single-strength-gate-baseline-momentum.md) | 战斗内法则 / 神通强度闸维持单闸，只以 `baseMomentum` 计 | Accepted | 2026-09-09 | systems/balance.md |
+| [ADR-0243](ADR-0243-item-power-ratio-and-discount-tiers.md) | `itemPowerRatio` 的「不占手牌位」上调至 ×1.15，四档折价整体下移 0.03 | Accepted | 2026-09-09 | systems/balance.md |
+| [ADR-0242](ADR-0242-reward-entry-count-matrix-and-family-mix.md) | 首批奖励条目数矩阵与族占比是编排目标而非不变式，核对只报告不阻断 | Accepted | 2026-09-09 | systems/balance.md, content/_index.md |
+| [ADR-0241](ADR-0241-named-reward-pools-per-chapter-tier.md) | 奖励池 = 篇章 × `combatTier` 九个具名成员清单；厚薄轴就是换池 | Accepted | 2026-09-09 | systems/balance.md, systems/services/combat-service.md, systems/scoring.md |
+| [ADR-0240](ADR-0240-reward-pool-id-nullable-throughput.md) | `EncounterSpec.RewardPoolId` 明确可空；吞吐量节流落在「哪些战斗挂池」 | Accepted | 2026-09-09 | systems/services/combat-service.md, systems/balance.md, systems/adventure-event/combat/_index.md |
+| [ADR-0239](ADR-0239-non-combat-draws-use-solid-table.md) | 非战斗产出侧固定取「`Solid` 表 × 本篇章 `m(c)`」 | Accepted | 2026-09-09 | systems/adventure-event/common-properties.md, systems/adventure-event/exchange/common-properties.md, systems/balance.md |
+| [ADR-0238](ADR-0238-every-pool-covers-all-five-tiers.md) | 每个具名奖励池五档全非空：表管分布，池管族成分与具体条目 | Accepted | 2026-09-09 | systems/balance.md, systems/services/combat-service.md, systems/adventure-event/exchange/common-properties.md, systems/adventure-event/common-properties.md |
+| [ADR-0237](ADR-0237-rarity-weight-tables-and-chapter-multiplier.md) | 奖励稀有度权重 = 三张优势档表 × 篇章乘数 `m(c)` 共九行；配三条加载期校验 | Accepted | 2026-09-09 | systems/balance.md, systems/services/content-service.md |
+| [ADR-0236](ADR-0236-lifespan-low-threshold-audio-cue.md) | 寿元跌破低位播一次性低调提示音：不循环、不常驻、不震动 | Accepted | 2026-09-09 | ux/screen-flow.md, art/soundtracks/_index.md, art/soundtracks/audio-direction.md |
+| [ADR-0235](ADR-0235-karma-cards-rare-but-heavy-in-ch1.md) | 业障在 ch1 低频但沉重：稀疏才沉重 | Accepted | 2026-09-09 | systems/character-profile/deck/_index.md |
+| [ADR-0234](ADR-0234-first-play-brief-without-recommendation.md) | 角色选择屏给玩法简介、不标推荐项；首玩局同样不标 | Accepted | 2026-09-09 | ux/onboarding.md, ux/screen-flow.md, systems/character-profile/_index.md |
+| [ADR-0233](ADR-0233-fallback-ai-mirrors-player-tone.md) | 敌人兜底 AI 的默认性格 = 镜像玩家基调；拆台流走逐条目覆写 | Accepted | 2026-09-09 | systems/enemies/_index.md |
+| [ADR-0232](ADR-0232-affinity-combat-verb-mapping.md) | 五行各持一个主战斗动词；纯编排口径，无规则后果 | Accepted | 2026-09-09 | systems/character-profile/deck/_index.md |
+| [ADR-0231](ADR-0231-counterplay-supply-principle.md) | 反制的供给原则：削与拆并重，拆解不得稀有化 | Accepted | 2026-09-09 | systems/character-profile/deck/_index.md |
+| [ADR-0230](ADR-0230-minimal-deck-as-supported-route.md) | 极限精简是被支持的高阶构筑路线：首批就放疲劳协同牌 | Accepted | 2026-09-09 | systems/character-profile/deck/_index.md, systems/character-profile/deck/common-properties.md |
+| [ADR-0229](ADR-0229-no-shared-starter-deck-baseline.md) | 起始卡组不设统一底盘：15 张的形态完全由角色与其功法决定 | Accepted | 2026-09-09 | systems/character-profile/deck/_index.md |
+| [ADR-0228](ADR-0228-three-highlight-channels.md) | 首批高光三通道：阵法滚雪球 · 触发连锁链 · 埋伏兑现 | Accepted | 2026-09-09 | systems/character-profile/deck/_index.md |
+| [ADR-0227](ADR-0227-momentum-gain-as-main-theme.md) | 战斗基调 = 产道念为主旋律、削拆为反制；不设任何全局配比口径 | Accepted | 2026-09-09 | systems/character-profile/deck/_index.md, systems/enemies/_index.md |
+| [ADR-0226](ADR-0226-card-frame-color-vocabulary.md) | 五类卡框色取仙侠意象色，明确不套五行；意象服从可辨性 | Accepted | 2026-09-09 | art/visuals/art-direction.md, ux/combat-ux.md |
+| [ADR-0225](ADR-0225-guide-granularity-category-plus-variables.md) | art guide 粒度 = 一类目一份 + 逐条目变量段；例外升格须登记指针 | Accepted | 2026-09-09 | art/visuals/_index.md, art/visuals/guides/_TEMPLATE.md |
+| [ADR-0224](ADR-0224-ui-asset-production-path-split.md) | UI 元件制作路径按材质分两半：扁平底子人工做，古物点缀走 AI | Accepted | 2026-09-09 | art/visuals/_index.md, art/visuals/art-direction.md |
 | [ADR-0223](ADR-0223-research-risk-neutral-annotation.md) | 走火入魔风险档用中性标记 + 明写规则，不用告警色、不做二次确认 | Accepted | 2026-09-08 | ux/screen-flow.md, systems/adventure-event/research/_index.md, systems/adventure-event/research/common-properties.md |
 | [ADR-0222](ADR-0222-research-build-panel-portrait-form.md) | 闭关构筑面板竖屏形态：全部槽同屏一个滚动容器，不做分步向导 | Accepted | 2026-09-08 | ux/screen-flow.md, systems/adventure-event/research/_index.md, systems/adventure-event/research/common-properties.md |
 | [ADR-0221](ADR-0221-shared-card-width-baseline.md) | 角色选择屏与事件选择区共用同一卡宽基准；5 张角色卡照常滑动 | Accepted | 2026-09-08 | ux/screen-flow.md |
 | [ADR-0220](ADR-0220-event-option-carousel-n-adaptation.md) | 选择区卡宽恒定、逐项吸附、按常态 3 项同屏标定；N 变只改「要不要滑」 | Accepted | 2026-09-08 | ux/screen-flow.md |
 | [ADR-0219](ADR-0219-event-option-focus-tap-entry.md) | 事件选项的进入手势 = 焦点制：点焦点卡才支付进入 | Accepted | 2026-09-08 | ux/screen-flow.md |
-| [ADR-0218](ADR-0218-candidate-item-widget-and-annotation-layers.md) | 统一「候选条目」构件六个位 + 三类标注层 + 长按说明通道；三条标注禁则 | Accepted | 2026-09-08 | ux/screen-flow.md, ux/_index.md, ux/combat-ux.md, systems/adventure-event/research/_index.md |
+| [ADR-0218](ADR-0218-candidate-item-widget-and-annotation-layers.md) | 统一「候选条目」构件六个位（纵向侧第七位行尾操作控件）+ 三类标注层 + 长按说明通道；三条标注禁则 | Accepted | 2026-09-08 | ux/screen-flow.md, ux/_index.md, ux/combat-ux.md, systems/adventure-event/research/_index.md, systems/player-profile/player-power/_index.md |
 | [ADR-0217](ADR-0217-option-list-layout-axis-criterion.md) | 候选项排布轴判据：推进进程的择一走横滑，面板内的择一与列举走纵向 | Accepted | 2026-09-08 | ux/screen-flow.md, ux/_index.md, ux/combat-ux.md |
 | [ADR-0216](ADR-0216-enemy-line-slots-and-flavor-only.md) | 敌人台词进战斗屏、`LineSlot` 首批五成员；台词永不承载规则信息 | Accepted | 2026-09-08 | ux/combat-ux.md, systems/enemies/_index.md, systems/enemies/common-properties.md |
 | [ADR-0215](ADR-0215-post-combat-reward-panel-form.md) | 战后奖励面板 = 全屏一屏纵向堆叠，绝不横滑；已处置项两键移除而非置灰 | Accepted | 2026-09-08 | ux/combat-ux.md, ux/error-and-blocking-ux.md, systems/services/combat-service.md |
@@ -51,7 +96,7 @@
 | [ADR-0179](ADR-0179-store-channel-wrapper-in-sync-service.md) | 购买段渠道封装落 sync-service：`StoreChannelManager` 持 `IStoreChannel`，运行时探测选实现 | Accepted | 2026-09-06 | systems/services/sync-service.md, systems/services/_index.md, systems/architecture.md, system-overview.md |
 | [ADR-0178](ADR-0178-iap-sdk-selection-and-ios-floor.md) | 三渠道内购 SDK 一律自维护插件；iOS 走 StoreKit 2，部署下限 15 | Accepted | 2026-09-06 | systems/monetization.md, vision/scope.md |
 | [ADR-0177](ADR-0177-no-finale-distance-foresight.md) | 轮回内不提供任何「距 Finale / 距圆满」前瞻读数，三章一律不显示 | Accepted | 2026-09-06 | systems/game-progression.md, systems/services/future-event-service.md |
-| [ADR-0176](ADR-0176-accept-tight-tolerance-no-knobs.md) | 失败容错的偏紧如实入账：A3 不达标不调阈值、ch3 最薄不加旋钮 | Accepted | 2026-09-06 | systems/balance.md, decisions/ADR-0175-failure-tolerance-n-equals-two.md |
+| [ADR-0176](ADR-0176-accept-tight-tolerance-no-knobs.md) | 失败容错的偏紧靠调构成收口：不上调阈值、不加旋钮，ch3 最薄如实入账 | Accepted | 2026-09-06 | systems/balance.md, decisions/ADR-0175-failure-tolerance-n-equals-two.md |
 | [ADR-0175](ADR-0175-failure-tolerance-n-equals-two.md) | 失败容错量标定为 N = 2 三章统一，「典型失败」五格口径锁死 | Accepted | 2026-09-06 | systems/balance.md, systems/game-progression.md, systems/character-profile/life-span.md |
 | [ADR-0174](ADR-0174-type-modifier-guardrail-audit-only.md) | 类型修正的护栏咬归一化后占比、不咬系数；只审计不钳制 | Accepted | 2026-09-06 | systems/balance.md, systems/game-progression.md, systems/services/plot-manager.md |
 | [ADR-0173](ADR-0173-combat-tier-mix-authoring-only.md) | `combatTier` 配比是内容编排口径：`Practice : Standard = 1 : 1` 三章统一，管线不掷 tier | Accepted | 2026-09-06 | systems/adventure-event/combat/_index.md, systems/balance.md, systems/services/future-event-service.md |
