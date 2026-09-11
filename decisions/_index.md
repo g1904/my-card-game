@@ -4,6 +4,9 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| `ADR-0063` | 人类身份对业务表恒只有 `SELECT`，一切写入经服务端受控面 | Accepted | 2026-09-09 | `operations/internal-tools.md`, `operations/content-delivery-ops.md`, `operations/environments.md`, `operations/moderation.md` |
+| `ADR-0062` | 内部运营工具面不属于契约面，`/internal/` 永不进端点全集表 | Accepted | 2026-09-09 | `operations/internal-tools.md`, `contracts/envelope.md`, `operations/deployment.md` |
+| `ADR-0061` | 内部人员身份自成一套 `operator_id`，与 `account` 完全分离 | Accepted | 2026-09-09 | `operations/internal-tools.md`, `systems/account.md`, `operations/moderation.md`, `operations/environments.md`, `operations/content-delivery-ops.md` |
 | `ADR-0060` | flags 规则集的装载必须有请求无关的触发 | Accepted | 2026-09-08 | `systems/content-delivery.md`, `operations/observability.md` |
 | `ADR-0059` | 风控事件默认走有界旁路缓冲批量写入，三类例外必须同事务 | Accepted | 2026-09-08 | `operations/moderation.md`, `operations/environments.md`, `systems/_index.md`, `operations/observability.md` |
 | `ADR-0058` | 复核队列取条件 `UPDATE` 租约，不照抄合规域的持锁 `SKIP LOCKED` | Accepted | 2026-09-08 | `operations/moderation.md`, `operations/environments.md` |
