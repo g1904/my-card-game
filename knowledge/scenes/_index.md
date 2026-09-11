@@ -26,7 +26,7 @@
 | `RealNameScreen.tscn` | 实名屏，**未登录态可达**；客户端只做长度 / 字符集约束，判定权在后端 | `decisions/ADR-0155-compliance-client-split-criterion.md` |
 | `MainMenu.tscn` | 篇章选择 + 入口按钮列；**入口个数不写死**，判据是「Store 恒排末位、安静呈现」；`ongoing` 行的「放弃」是玩家主动终结角色的**唯一入口** | `ux/screen-flow.md`「主菜单入口按钮」、`decisions/ADR-0162-active-character-discard.md` |
 | `PlayerProfileScreen.tscn` | **账号级低频操作的唯一落点**——这些一律不新增主菜单入口、不落设置屏 | `ux/screen-flow.md`「玩家档案屏」 |
-| `CharacterSelect.tscn` | 角色选择屏；横滑区**与 eventOptions 共用同一卡宽基准**，5 张角色卡照常横滑、不追求一屏看全 | `decisions/ADR-0221-shared-card-width-baseline.md` |
+| `CharacterSelect.tscn` | 角色选择屏；横滑区**与 eventOptions 共用同一卡宽基准**，5 张角色卡照常横滑、不追求一屏看全；每角色一段玩法简介（走既有 `LocalizedText`），**不标推荐项、不按复杂度排序**（排序即隐式推荐） | `decisions/ADR-0221-shared-card-width-baseline.md`、`ADR-0234-first-play-brief-without-recommendation.md` |
 | `Cycle.tscn` | 轮回外壳：当前事件屏 + 常驻角色状态条（字段面与排版见权威；状态条只常驻灵石，寿元告警只落 EventOption 选择界面） | `ux/screen-flow.md`「角色状态条」 |
 | `EventOptions.tscn` | 轮回内主导航面：**横滑等宽 carousel + 焦点制进入**；消费定稿 `EventOption`（只读），`SelectCost` 恒精确显示、`Priority` 不作数字呈现、付不起也不设灰态 | `decisions/ADR-0219-event-option-focus-tap-entry.md`、`ADR-0220`、`systems/adventure-event/common-properties.md` |
 | `StoragePack.tscn` | 储物袋：**全屏面板**（不是抽屉），跨轮回级 / 账号级两持久层 | `decisions/ADR-0097-storage-pack-two-layer-view.md` |
@@ -34,7 +34,7 @@
 | `Exchange.tscn` | 交易屏：纵向滚动网格，**与其余非战斗事件不同构** | `ux/screen-flow.md`「Exchange（交易）屏」 |
 | `Research.tscn` | **闭关构筑面板**：全部槽同屏一个纵向滚动容器，不做分步向导 | `decisions/ADR-0222-research-build-panel-portrait-form.md`、`ADR-0223`、`systems/adventure-event/research/_index.md` |
 | `Combat.tscn` | 战斗视图，三档 `combatTier` 复用；**无意图区**（意图机制整条移除）；**六区屏高预算表见权威，不抄进代码以外的任何地方** | `ux/combat-ux.md`「竖屏分区」、`decisions/ADR-0202-combat-portrait-zone-height-budget.md`、`ADR-0059` |
-| `CombatReward.tscn` | **战斗流程内的一屏，不进屏幕栈、无返回键**；强制自动计入项 + 候选项逐项领取 / 跳过（**不是三选一**），预先算定落存档、退出重进不重抽 | `decisions/ADR-0215-post-combat-reward-panel-form.md`、`ADR-0082` |
+| `CombatReward.tscn` | **战斗流程内的一屏，不进屏幕栈、无返回键**；强制自动计入项 + 候选项逐项领取 / 跳过（**不是三选一**），预先算定落存档、退出重进不重抽；**`EncounterSpec.RewardPoolId` 为空的战斗根本不开这一屏**（不渲染空面板、决策点 `D6` 不出现） | `decisions/ADR-0215-post-combat-reward-panel-form.md`、`ADR-0082`、`ADR-0240-reward-pool-id-nullable-throughput.md` |
 | `CycleEndScreen.tscn` | 轮回结束屏 = 一屏三变体（`DefeatReason`），不进屏幕栈、无返回、非弹层 | `decisions/ADR-0148-cycle-end-screen.md` |
 | `ChapterEndScreen.tscn` | 篇章结束屏 = 一屏三变体（按 `chapter`），ch3 变体即通关证书、不另立一屏 | `decisions/ADR-0143-chapter-end-screen.md` |
 | `CodexIndexScreen.tscn` / `CodexBookScreen.tscn` / `CodexEntryScreen.tscn` | 图鉴族三层浏览；**词条页只有敌人本是全屏，其余六本走 bottom sheet**；单本页逐字复用储物袋网格语汇 | `decisions/ADR-0147-codex-single-entry-three-layer-browse.md` |
@@ -61,7 +61,8 @@
 
 ### 候选项与排布（横切六个以上面，新增决策面必读）
 
-- **新增任何决策面前，先按排布轴判据落位：推进进程的择一 → 横滑等宽 carousel；面板内 / 事件内的择一与列举 → 纵向堆叠或网格。** 用错轴等于在视觉上否定该面的语义（战后奖励三项独立可领，横滑会把它读成三选一）。条目构件六个位、三类标注层与三条禁则见权威。→ `decisions/ADR-0217-option-list-layout-axis-criterion.md`、`ADR-0218`、`ux/screen-flow.md`「候选项列表语言」
+- **新增任何决策面前，先按排布轴判据落位：推进进程的择一 → 横滑等宽 carousel；面板内 / 事件内的择一与列举 → 纵向堆叠或网格。** 用错轴等于在视觉上否定该面的语义（战后奖励三项独立可领，横滑会把它读成三选一）。条目构件六个位（**纵向侧七个位**，见下条）、三类标注层与三条禁则见权威。→ `decisions/ADR-0217-option-list-layout-axis-criterion.md`、`ADR-0218`、`ux/screen-flow.md`「候选项列表语言」
+- **第七位「行尾操作控件」仅纵向侧开放，且判据收窄、不外溢：仅当该行的操作是幂等的账号级开关时**——语义须是「随时可开可关、开错立刻可关回来、不推进任何进程」。**其余决策面一律不开放**（事件选择区 · 角色选择屏 · 战后奖励面板 · 能力置换面板 · 闭关构筑面板 · Exchange 网格 · 储物袋 / 图鉴网格）——它们的行内操作推进进程或不可逆，一步直达会把「先看后决」压成一次误触。当前只两处用上：**法则列表屏**的 `status` 开关与**战斗启动区**每行的启动键。⇒ **「触控目标 = 整个条目」收窄为「纵向侧允许行尾一个独立操作热区，其余仍为整行」**，该热区自身须满足最小触控目标下限，**除它之外不得再切出任何次级热区**。→ `decisions/ADR-0218-candidate-item-widget-and-annotation-layers.md`、`ux/screen-flow.md`（位表与判据的权威）
 - **说明通道全库只有一条：恒常可见 → 长按升半屏 bottom sheet → 再叠一层；绝不用悬停、绝不用「ⓘ」小图标**（前者无触控等价物，后者与整条目的点按热区争抢）。→ `decisions/ADR-0218-candidate-item-widget-and-annotation-layers.md`
 - **事件选项 = 焦点制两段进入**：点非焦点卡只把它移到中心、不支付不进入；点焦点卡才支付 `selectCost` 并进入。支付不可逆且可能当场终结角色，这是零新增控件下的两段确认。→ `decisions/ADR-0219-event-option-focus-tap-entry.md`、`ADR-0220`
 - **战后奖励面板的已处置项：行保留、状态标记就位，两个按钮同时移除而非置灰**——已成事实没有说明可给，留灰键只会诱导点击；面板逐格映射 `picks`，不渲染空槽。→ `decisions/ADR-0215-post-combat-reward-panel-form.md`
@@ -107,6 +108,7 @@
 - **剧本层在 UX 上只有一个落点：事件结算面板底部追加一段。** 不新增屏、不新增弹层；有分支时分支按钮取代「继续」。→ `decisions/ADR-0150-plot-segment-in-outcome-panel.md`
 - **合规呈现落发起该操作的那一屏，一屏也不进阻塞屏**；**「可再来的时刻」只做绝对时刻格式化、不做倒计时**（本地时钟不可信）。→ `decisions/ADR-0155-compliance-client-split-criterion.md`
 - **图鉴只在主菜单可达**：战斗内与轮回内的 EventOption 选择界面都不设入口。→ `decisions/ADR-0147-codex-single-entry-three-layer-browse.md`
+- **寿元低位提示音按「跨越阈值」的边沿触发一次**，不是「余量 < 阈值」的状态判断——写成状态判断会每次刷新都重播，编译得过、线上表现错；不循环、不常驻、不震动、不新增预警文案，且须有视觉等价物（静音容错）。→ `decisions/ADR-0236-lifespan-low-threshold-audio-cue.md`
 - **三样明确不是屏**：须改名模态 · Explore 揭示转场 · Store 结果态——都不进屏幕栈。→ `ux/screen-flow.md`
 
 ## 如何添加一条场景说明

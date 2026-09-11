@@ -47,6 +47,18 @@
 11. **敌人池归属的唯一权威是 `EnemyData` 上的作用域字段**（`LocationData` 不持敌人清单）；地域 / arc 专属条目是**叠加而非替代**——通用敌人恒可在任何地域出现。取池是叠在 `AllEnabled()` 之后的三层过滤，**各层「空」的语义不对称是有意的，别当漏写去「修正」**。→ `systems/enemies/_index.md`、`systems/enemies/common-properties.md`
 12. **`MoveCardEffect` 只有一格 `Side`，`From` 与 `To` 恒同侧——跨方搬牌在结构上写不出来，这是有意的**（闭集不变式按侧成立）；别拆成 `FromSide` / `ToSide`。配套校验：`Selection == Chosen` 且 `Side != Self` → `PushError`。→ `systems/character-profile/deck/common-properties.md`
 13. **本作不存在多敌人场景**——敌人实例单数，嵌在 `EventOption.Encounter` 内，不要预留 `List<EnemyInstance>`。→ `systems/adventure-event/combat/common-properties.md`、`systems/enemies/_index.md`
+14. **奖励池是 `.tres` 上的具名成员清单（id 形态 `reward.<chN>.<tier>`），不是过滤器组**——`EncounterSpec` 携带的是 `string` id（过滤器组装不出 id），且「取池不足」的加载期断言要求加载期能数出条数；`combatTier` 的厚薄差异**只换池，不换权重表、不换抽数**。→ `decisions/ADR-0241-named-reward-pools-per-chapter-tier.md`
+15. **`EncounterSpec.RewardPoolId` 可空**——别照第 10 条 `Pool` 必填的样子把它也写成必填：为空 ⇒ 本场不开可选奖励，`activeCombat.reward` 恒 `null`、决策点 `D6` 不出现、呈现层不渲染空面板。→ `decisions/ADR-0240-reward-pool-id-nullable-throughput.md`
+16. **`RarityFilter` 只表达族 / 档倾向，绝不用来整档排除**——三处产出面五档一律可达，卡档会让权重表某几格变成死配置且篇章维静默归零；「每池五档非空」是 `/audit-content` 的报告项、不是加载期硬闸。→ `decisions/ADR-0238-every-pool-covers-all-five-tiers.md`
+17. **稀有度权重表与授予表同住一份 `ISingletonContent`（`RarityWeightsData`），且权重表不进 `DrawPool<T>`**；加载期三闸缺一不可——权重 > 0、逐篇章随机占优、任一 `r_eff < 1`（漏掉上界闸即分布单调上升、最稀有档反成最常见）。取值表去权威看。→ `decisions/ADR-0237-rarity-weight-tables-and-chapter-multiplier.md`、`systems/balance.md`
+18. **事件掉散牌与商店库存恒取 `Solid` 权重表 × 本篇章 `m(c)`，不新增表也不新增字段**——这两侧没有 `advantage` 可填，必须硬走 Solid 分支，别留空或默认取第一张表。→ `decisions/ADR-0239-non-combat-draws-use-solid-table.md`
+19. **起始卡组逐角色独立立形，不建「共享底盘 + 变体覆写」的模板层**；**角色选择屏不得新增 `IsRecommended` 一类推荐标记字段、不得按复杂度排序**（排序即隐式推荐），玩法简介走既有 `LocalizedText`。→ `decisions/ADR-0229-no-shared-starter-deck-baseline.md`、`ADR-0234-first-play-brief-without-recommendation.md`
+20. **`BaseReward` 的默认 element 面结构上只有灵石一格**——不得开第二格、不得改成集合；额外惩罚一律写成 `Spoils` 内的负向 `ChangeElement`。开第二格即与仙玉 / 经验 / 回寿 / `ManaLimit` / 四族内容各自已有的通道构成双发放通道。→ `decisions/ADR-0249-base-reward-single-element-slot.md`
+21. **`HiddenStatGrants` 对五类事件一律开放；「`Travel` 不带推拉」与语义 → `(Stat, Direction, Grade)` 映射表只做 `/audit-content` 汇总项，绝不写成加载期校验**——顺手补一条 `if (type == Travel && grants.Count > 0) PushError` 编译得过、看着更严谨，却在结构上推翻了「五类无一例外开放」。→ `decisions/ADR-0251-hidden-stat-semantic-orchestration-table.md`
+22. **回寿法宝的频率 / 深度 / 定价三格只进 `/audit-content` 报告，不写成加载期 `PushError`**（铺内容途中会持续报错，该写法已被明确否决）；不为它单设 stock rule、不开 `RarityFilter` 专属位、不填 `PriceOffset`。→ `decisions/ADR-0247-lifespan-item-orchestration-guardrails.md`
+23. **道具战斗外可写 key 是白名单 `{ CostKey.LifeSpan }`，加载期硬校验 `I-13`（`PushError` + 条目 `Id` + 报出该 `Key`）**——货币 / `ManaLimit` / `ExperiencePoint` / `Faith` / `Bloodlust` 与六个账号层 `CostKey` 全在拒绝面。**`I-13` 与 `I-6` 并存不合并**（`I-6` 管 `Op` 是否在 `AllowedOps` 内，`I-13` 管 key 的编排准入），**事件侧与道具侧的两张 key 表各自独立、永不合并**。放开任一格即从道具侧重开已封的经验 / 隐藏属性 / 道统碎片三个口。→ `decisions/ADR-0260-item-outofcombat-key-whitelist.md`、`systems/character-profile/item/_index.md`
+24. **只有产出进入某条已被反推封账的预算线的道具族才需要独立供给护栏**（寿元账 / 货币账 / 经验账 / 卡组规模口径）——战斗内八原语的六族一条都不进，由既有的折价系数 + 定价表 + 稀有度权重表承接，**不要为它们补第四套口径**。→ `decisions/ADR-0261-family-guardrail-necessity-criterion.md`
+25. **Exchange 逐族库存深度上界按 `Kind` 分组求和即得，不新开字段**（与槽位总数上界是同一次分组）；它与 barter 的两格护栏（档差对价、≤ 1 条 / 店）**一律只进 `/audit-content` 汇总、不落加载期硬校验**——编排口径不是不变式，合理例外存在。事件侧给法宝的 `X-1` 是 `PushWarning` 而非拒绝，职责是让每个例外被看见。→ `decisions/ADR-0262-exchange-per-kind-stock-depth.md`、`ADR-0264-barter-tier-gap-and-count-cap.md`、`ADR-0263-event-side-item-grant-volume.md`
 
 ## 三层覆盖来源与热更边界
 
