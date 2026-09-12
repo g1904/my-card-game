@@ -59,13 +59,13 @@
 
 ## 两库的结构差异（技能必须按库调整的部分）
 
-同名同形的部分：`handoffs/`、`inbox/`（含 `archive/`）、`decisions/`、`requirements/`（父 + 子模板 + `_index.md`）、`open-questions.md`（索引）+ `open-questions/`（分片 + `update-log.md`）、`answer-logs/`。**这些在两库中的约定完全一致**，技能无需分支处理（**分片编号与附加分片各库自定**；`content/` 只客户端库有）。
+同名同形的部分：`handoffs/`、`inbox/`（含 `archive/`）、`decisions/`、`requirements/`（父 + 子模板 + `_index.md`）、`open-questions.md`（索引）+ `open-questions/`（分片 + `update-log.md`）、`answer-logs/`。**这些在两库中的约定完全一致**，技能无需分支处理（**分片编号与附加分片各库自定**；`content/` 与 `narrative/` 只客户端库有）。
 
 差异：
 
 | | `game-design-documents/` | `backend-design-documents/` |
 |---|---|---|
-| 主题文档区 | `vision/` · `systems/` · `content/` · `art/` · `ux/` | `vision/` · `contracts/` · `systems/` · `operations/`（**无 `content/`**） |
+| 主题文档区 | `vision/` · `systems/` · `content/` · `narrative/` · `art/` · `ux/` | `vision/` · `contracts/` · `systems/` · `operations/`（**无 `content/`**、**无 `narrative/`**） |
 | 根级横切文件 | `terminology.md` · `program-overview.md` · `system-overview.md` | 无（术语沿用客户端库的 `terminology.md`） |
 | 需求模板差异 | `Data & state touchpoints` | 另有 `Contract touchpoints` 与**强制**的 `Failure & retry semantics` |
 | 验收标准的可验证方式 | 在 Godot 编辑器里运行游戏观察 | 请求 → 应答 / 存储状态（只写可验证的断言形态，不指定测试工具） |

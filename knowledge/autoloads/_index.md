@@ -37,6 +37,7 @@
 - **两条唯一入口：** 内容读取经 `ContentRegistry`（不散落 `ResourceLoader.Load`；**抽取走 `AllEnabled()`**）；档案写入经 `ProfileManager.TryApply(spec)`，**收口前的重算走只读投影 `Project(spec)`，不开第二个写入面**。
 - **四类持有条目的 `bool Status` 只经 `AbilityStatusChanges` 列写入**（门面 `SetAbilityStatus`）；**`StatusChanges` 不承载这一维**——它绑的是数值型规则字段，名字撞车、语义无交集，不写下这句就几乎必然被误推。→ `systems/services/profile-service.md`
 - **autoload 一律直接指向 `.cs`，无例外**（不为服务包一层 `.tscn`）⇒ **服务级配置走 ProjectSettings，`[Export]` 只留给场景组件**——没有场景实例，`[Export]` 既无存储处也无检视器落点。这是技术互斥，不是风格偏好。
+- **账号侧的准入过滤落服务层，绝不落注册表**：付费角色的解锁过滤在 `life-cycle-service.GetSelectableCharacters()` 内叠在 `AllEnabled<CharacterData>()` 之上（签名不变、`StartCycle` 零改动、零 RNG）；**绝不写成 `AllEnabled(accountContext)` 一类**——注册表一旦吃账号上下文，同一个 `Id` 在不同账号下返回不同结果，它就不再可缓存、可校验、可在启动期全量验完。→ `decisions/ADR-0272-character-unlock-filter-in-life-cycle-service.md`
 - **离线 stub 是「换一个实现」，不是在服务里插 `if (offline)`**：三个边界服务持**四个**窄后端接口（`IPurchaseBackend` 与 `IProfileBackend` 同宿主 sync-service），每个两份实现经唯一选择点 `BackendSelector` 取得，`OfflineXxxBackend` 整类包在 `#if DEBUG` 内（Release 里不存在；条件编译清单穷举、不得扩张），开关走 ProjectSettings 而非 `[Export]`。**渠道封装 `IStoreChannel` 不是后端接口**——渠道可用性是运行时事实，走运行时探测，不占 `#if` 位点。→ `systems/architecture.md`「总则 7」、`systems/services/sync-service.md`、`system-overview.md` 第四节
 
 ## 装配顺序（规划）

@@ -26,7 +26,7 @@
 | `RealNameScreen.tscn` | 实名屏，**未登录态可达**；客户端只做长度 / 字符集约束，判定权在后端 | `decisions/ADR-0155-compliance-client-split-criterion.md` |
 | `MainMenu.tscn` | 篇章选择 + 入口按钮列；**入口个数不写死**，判据是「Store 恒排末位、安静呈现」；`ongoing` 行的「放弃」是玩家主动终结角色的**唯一入口** | `ux/screen-flow.md`「主菜单入口按钮」、`decisions/ADR-0162-active-character-discard.md` |
 | `PlayerProfileScreen.tscn` | **账号级低频操作的唯一落点**——这些一律不新增主菜单入口、不落设置屏 | `ux/screen-flow.md`「玩家档案屏」 |
-| `CharacterSelect.tscn` | 角色选择屏；横滑区**与 eventOptions 共用同一卡宽基准**，5 张角色卡照常横滑、不追求一屏看全；每角色一段玩法简介（走既有 `LocalizedText`），**不标推荐项、不按复杂度排序**（排序即隐式推荐） | `decisions/ADR-0221-shared-card-width-baseline.md`、`ADR-0234-first-play-brief-without-recommendation.md` |
+| `CharacterSelect.tscn` | 角色选择屏；横滑区**与 eventOptions 共用同一卡宽基准**，5 张角色卡照常横滑、不追求一屏看全；每角色一段玩法简介（走既有 `LocalizedText`），**不标推荐项、不按复杂度排序**（排序即隐式推荐）；**未拥有的付费角色完全不出现——不设卡位、不灰显、不加底部入口**（留灰位会把玩法入口变成橱窗） | `decisions/ADR-0221-shared-card-width-baseline.md`、`ADR-0234-first-play-brief-without-recommendation.md`、`ADR-0277-paid-series-surface-enumeration.md` |
 | `Cycle.tscn` | 轮回外壳：当前事件屏 + 常驻角色状态条（字段面与排版见权威；状态条只常驻灵石，寿元告警只落 EventOption 选择界面） | `ux/screen-flow.md`「角色状态条」 |
 | `EventOptions.tscn` | 轮回内主导航面：**横滑等宽 carousel + 焦点制进入**；消费定稿 `EventOption`（只读），`SelectCost` 恒精确显示、`Priority` 不作数字呈现、付不起也不设灰态 | `decisions/ADR-0219-event-option-focus-tap-entry.md`、`ADR-0220`、`systems/adventure-event/common-properties.md` |
 | `StoragePack.tscn` | 储物袋：**全屏面板**（不是抽屉），跨轮回级 / 账号级两持久层 | `decisions/ADR-0097-storage-pack-two-layer-view.md` |
@@ -39,7 +39,7 @@
 | `ChapterEndScreen.tscn` | 篇章结束屏 = 一屏三变体（按 `chapter`），ch3 变体即通关证书、不另立一屏 | `decisions/ADR-0143-chapter-end-screen.md` |
 | `CodexIndexScreen.tscn` / `CodexBookScreen.tscn` / `CodexEntryScreen.tscn` | 图鉴族三层浏览；**词条页只有敌人本是全屏，其余六本走 bottom sheet**；单本页逐字复用储物袋网格语汇 | `decisions/ADR-0147-codex-single-entry-three-layer-browse.md` |
 | `BlockingNoticeScreen.tscn` | 三终局态共用一屏 + 数据驱动变体表；**准入判据在权威，别自行扩表**（三个变体 ≠ 三处硬阻塞） | `ux/error-and-blocking-ux.md` |
-| `Store.tscn` | 礼包详情与购买入口；购买处理中 / 兑现结果是**结果态、不是两屏** | `ux/screen-flow.md`、`systems/monetization.md` |
+| `Store.tscn` | 礼包详情与购买入口；购买处理中 / 兑现结果是**结果态、不是两屏**。付费角色系列在此再加**三个结果态**（系列列表 / 系列详情 / 解锁结果态）——**不新增屏、不新增主菜单入口**；详情页付款前列全本系列角色（复用角色选择屏卡面构件），**不展示数值、不标推荐、不写「更强」暗示、不把专属剧情列为付费权益** | `ux/screen-flow.md`、`systems/monetization.md`、`decisions/ADR-0277-paid-series-surface-enumeration.md`、`ADR-0283-story-is-not-a-paywall.md` |
 | `Settings.tscn` | 音频、显示、辅助功能 | `ux/screen-flow.md` |
 
 > **非战斗四类不共享同一个屏幕形状。** 「差异只在数据」这条只对**代码分层**成立（两个 `IEventResolver`），**不对呈现成立**：Exchange 是滚动网格屏、Research 是复数决策槽的构筑面板、Explore 另有一层全屏揭示转场、Travel 无自有面板。别照着「一个通用事件屏」去搭。
@@ -100,7 +100,7 @@
 
 ### 其余屏与横切
 
-- **付费入口只有主菜单那一个**：轮回内 / 战斗内 / 结算流程内不存在第二条通往付费的路径；永不带红点 / 角标 / 倒计时，已购不隐藏。**非商店平台（桌面 / 网页）入口不渲染、不置灰**。→ `ux/screen-flow.md`、`decisions/ADR-0181-hide-store-entry-off-channel-platforms.md`
+- **付费入口只有主菜单那一个**：轮回内 / 战斗内 / 结算流程内不存在第二条通往付费的路径；永不带红点 / 角标 / 倒计时，已购不隐藏。**非商店平台（桌面 / 网页）入口不渲染、不置灰**。**付费系列的在售窗口外取置灰 + 一行说明（`STORE_UNAVAILABLE_SERIES_WINDOW`）而非移除控件**——窗口不绝版、会重开，正命中「暂不可用、会恢复」那一档；这批 `STORE_*` 是本地业务拒绝、**不占 `ERR_` 前缀**（`ERR_*` 由后端 `code` 机械变换而来，手写会撞键）。→ `ux/screen-flow.md`、`decisions/ADR-0181-hide-store-entry-off-channel-platforms.md`、`ADR-0276-paid-series-sale-window.md`、`ADR-0277-paid-series-surface-enumeration.md`
 - **设置滑条：拖动实时预览、释放才提交，离屏时强制提交一次**——一次提交 ⇒ 一次本地原子写。→ `ux/screen-flow.md`
 - **「离线 · 待同步 N」指示在战斗屏内必须可见**：它是「进入战斗前同步失败不额外提示」那条静默纪律成立的前提。**该指示有三取值，`UpgradeRequired == true` 时必须换掉「离线」二字**。→ `ux/screen-flow.md`
 - **Exchange 的 barter 格不按持有面过滤呈现**：不持有支付物则灰显、支付要求保持可见——过滤会让同一个 `EventOption` 在两次进入之间呈现不同内容。→ `ux/error-and-blocking-ux.md`「灰态判据」、`decisions/ADR-0126-exchange-barter-payment.md`

@@ -16,6 +16,7 @@ MyCardGame 的**导航文件**。本层不复述设计——只回答三件事�
 | `scenes/*` | `ux/`（screen-flow、combat-ux、onboarding） |
 | ViewModel 层（知识层无对应文件） | `systems/viewmodel.md`（呈现期对象的横切纪律：依赖方向 / 生命周期 / 组装源 / 重组装触发面 / 缓存归属） |
 | `autoloads/*` | `systems/services/`（七服务 + 层级词表 + 各服务 API 契约表；**另住一份非服务 / 非 manager 文档 `profile-schema-versions.md` —— 存档 `schemaVersion` 逐版登记表，宿主 sync-service**） |
+| 世界观 / 叙事（知识层无对应文件） | `narrative/`（**顶层分区**，与 `systems/` · `content/` 平级：世界观设定 · 时间线 · 人物关系 · 碎片台账。它是二者共同的**上游内部事实源，不是玩家可见面**——lore 只撒在轮回内、不进图鉴、不做任何可回看档案面）→ `decisions/ADR-0278-narrative-top-level-partition.md`、`ADR-0279-lore-ephemeral-in-cycle-only.md` |
 | 美术 / 音频（知识层无对应文件） | `art/`（`visuals/` · `soundtracks/`；只存 vision / 参考登记 / guide，**生成出的二进制资产归 `game-feature-branch/`**——目前一件都还没有） |
 | 协议契约（客户端只有投影） | `backend-design-documents/contracts/`——**报文形态的权威在后端库**，本库只定客户端的调用形状 |
 | 范围与支柱（知识层无对应文件） | `vision/`（`pillars.md` 支柱 · `scope.md` 范围内 / 外清单——「加一条新机制」类提案的终审面） |

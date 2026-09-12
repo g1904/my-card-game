@@ -46,7 +46,7 @@ Godot **4.7**，渲染器 **GL Compatibility**（`renderer/rendering_method = gl
 
 ## 知识导航（按需加载）
 
-- **设计意图 / 交接（内容 + 技术结构的双重事实来源）** → `game-design-documents/`（`handoffs/`、类模型化的 `systems/`、`art/`、`ux/`、`content/`、`decisions/`）。**`systems/` 持有类定义、平级的 `content/` 持有条目实例**；`.claude/knowledge/*` 是**指向本库的引用层**。库内布局、状态词汇与维护约定见 `game-design-documents/README.md`。
+- **设计意图 / 交接（内容 + 技术结构的双重事实来源）** → `game-design-documents/`（`handoffs/`、类模型化的 `systems/`、`content/`、`narrative/`、`art/`、`ux/`、`decisions/`）。**`systems/` 持有类定义、平级的 `content/` 持有条目实例**；`.claude/knowledge/*` 是**指向本库的引用层**。库内布局、状态词汇与维护约定见 `game-design-documents/README.md`。
 - **功能需求（设计→代码的桥梁）** → 写 / 改需求前先读 `requirements/_index.md`：`FR-*` 是片区级规格、`FR-*/FR-*-NN-*` 是可 blueprint 的子需求，`draft → ready` 由用户签核。跳过这一层直接 blueprint 会做出没有验收标准、无法核对覆盖的实现。→ `game-design-documents/requirements/_index.md`
 - **后端设计意图** → `backend-design-documents/`（`backend-design` 分支）。后端待答清单在 `backend-design-documents/open-questions.md`，与客户端清单互不覆盖。
 - **跨 session 待答清单（客户端）** → 只跟踪**仍待答**的问题（无「已解决」区），答定即移出并记入 `answer-logs/`；写入者只有 `/analyze-new-ideas` 与 `/summarize-open-questions`。绕过它们手改会让分片与归档台账对不上。→ `game-design-documents/open-questions.md`
@@ -55,6 +55,7 @@ Godot **4.7**，渲染器 **GL Compatibility**（`renderer/rendering_method = gl
 - **玩法系统** → `game-design-documents/systems/_index.md`（权威）；导航 → `.claude/knowledge/systems/_index.md`
 - **数据定义**（卡牌、道具、敌人、修行事件、剧本、平衡）→ `game-design-documents/systems/common-properties.md` + `game-design-documents/content/_index.md`（权威）；导航 → `.claude/knowledge/data/_index.md`
 - **内容条目（实例层）** → 写条目只填「值 + 权威回链」，字段的类型 / 取值域 / 枚举 / 校验语义一律留在 `systems/`。在 `content/` 复述字段定义即制造第二权威，两份表各自漂移而本库无机制发现。→ `game-design-documents/content/_index.md`
+- **世界观 / 叙事事实源（内部，非玩家可见面）** → 写剧本 arc、事件正文、角色背景前先来这里查设定；**碎片 lore 只撒在轮回内、读过即过——不进图鉴、不做任何可回看档案面**，调子是冷的残缺文献体。→ `game-design-documents/narrative/_index.md`、`game-design-documents/decisions/ADR-0278-narrative-top-level-partition.md`
 - **美术 / 音频方向与资产生成指导** → `game-design-documents/art/_index.md`。该库只存 vision 文本、参考登记与 art / audio guide（prompt）；**生成出的二进制资产归 `game-feature-branch/`**——写进设计库会让它变成二进制仓库。**二进制资产也不经 overlay 下发**（换图随版本发布）→ `game-design-documents/decisions/ADR-0125-no-binary-over-overlay.md`。
 - **场景目录** → `.claude/knowledge/scenes/_index.md`
 - **自动加载 / 单例** → `.claude/knowledge/autoloads/_index.md`

@@ -1,4 +1,4 @@
-﻿# knowledge 保鲜基线 —— 由 check-knowledge-staleness.ps1 -Update 写入（2026-09-10）
+﻿# knowledge 保鲜基线 —— 由 check-knowledge-staleness.ps1 -Update 写入（2026-09-12）
 # 每行：<worktree 目录名> <当时的 HEAD>。应在 /sync-knowledge 对账完成后刷新。
 game-feature-branch d41e0bc100e302966c6c525f7ab9790fbd53a666
-game-design-documents d7df54184c31351330e1da16f80a458da60e78f5
+game-design-documents 23258c397b67b195217bb9d92a6df9a3f2ebec36

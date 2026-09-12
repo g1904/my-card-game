@@ -31,8 +31,10 @@
 17. **集合字段名与类型名恒为单数**（边界 = 两层 Profile 及其子对象的存档字段名）——字段名机械映射为 JSON path，改名即破坏性契约变更。→ `systems/character-profile/_index.md`
 18. **改了两层 Profile 的序列化形状 = 登记表上必须有一行**，护栏是 `ProfileShapeCheck`（序列化形状 ⟷ 该版 golden JSON 快照逐字比对，打包管线不通过不产包 + `#if DEBUG` 启动期兜底）；golden 快照签入 `game-feature-branch/`，是生成物不是规格。分界：**引入一个顶层键要进版本行，已登记顶层键内向对象追加字段不一定**。→ `game-design-documents/systems/services/profile-schema-versions.md`
 19. **`SavePointReason` 另有批次层的储物袋通道**：战斗外道具使用 / 随售是**即时提交**（一次 `TryApply` + 一次本地原子写），**不是事件内决策点、不触发 `RefreshAfterEvent`、不计软阻塞闸门**，但**照跑终态判定**（否则会出现「资源触底而角色仍 `ongoing`」）。→ `decisions/ADR-0122-batch-layer-inventory-commit-and-trace.md`
-20. **后端主动写入只有购买段一处，靠时机纪律关闭冲突窗口**：购买只能在主菜单（轮回外）发起、进入付费前待发队列须为空，购后强制一次 pull、pull 失败即阻塞在主菜单重试。否则后端 `+1` 会让云端 revision 领先本地基线、CAS 判 `Conflict` ⇒ 丢掉玩家刚打完的战斗。→ `game-design-documents/systems/services/sync-service.md`
-21. **一个角色恒为存档里的一条 `characterProfile` 记录**，原地跨三篇章推进；「清理」分三层——运行时拆解 / 运行态字段清空两条出口都做，**角色实体状态只在 `defeated` 处置（留墓碑）、`completed` 保留（= 境界存档）**；`pastEvent` / `pastItemUse` **跨篇章只追加，不在篇章边界清空、不随重试回滚**（本篇章切片由篇章起始 `Seq` 锚点求差得出）。→ `decisions/ADR-0165-cycle-exit-three-layer-teardown.md`、`decisions/ADR-0166-trace-append-only-across-chapters.md`
+20. **后端主动写入只有购买段一处，靠时机纪律关闭冲突窗口**：购买只能在主菜单（轮回外）发起、进入付费前待发队列须为空，购后强制一次 pull、pull 失败即阻塞在主菜单重试。否则后端 `+1` 会让云端 revision 领先本地基线、CAS 判 `Conflict` ⇒ 丢掉玩家刚打完的战斗。**「购后 pull 失败阻塞开新轮回」这一条只适用于存在客户端兑现动作的付费点（premium bundle），不是全部付费点的通则**——付费角色系列的兑现段整段不存在（发货在后端），未到账的最坏后果只是几个角色暂时选不到。→ `game-design-documents/systems/services/sync-service.md`、`decisions/ADR-0274-character-series-no-redemption-stage.md`
+21. **`PlayerEntitlement.CharacterSeries`（`/entitlement/characterSeries`）只由后端在验票事务内尾部追加**：客户端**无写入通道**（不进任何 `ProfileChangeSpec` 列、`ResourceElements` 不加行），且对该 path **不改写、不去重、不归一化**——对侧按有序逐元素做回声比对，任一侧单独破会在**正常账号**上稳定失败。不配兑现水位。**它是本库第一次真实 `schemaVersion` bump（v2）的来源**（条件分支：若在首发前落地则并入 v1）。→ `decisions/ADR-0270-player-entitlement-character-series.md`
+22. **回声路径的「老档缺字段」分两个时点、口径不同**：迁移时点写入空列表（迁移是结构搬运，不是造值去回声）；**迁移之后的读档时点缺失即真异常**——`PushError` + 该顶层键本次不进 diff + 触发一次 pull，**不补默认值**。这是通则，不逐付费点各推演一遍。→ `decisions/ADR-0271-echo-path-missing-field-two-timepoints.md`
+23. **一个角色恒为存档里的一条 `characterProfile` 记录**，原地跨三篇章推进；「清理」分三层——运行时拆解 / 运行态字段清空两条出口都做，**角色实体状态只在 `defeated` 处置（留墓碑）、`completed` 保留（= 境界存档）**；`pastEvent` / `pastItemUse` **跨篇章只追加，不在篇章边界清空、不随重试回滚**（本篇章切片由篇章起始 `Seq` 锚点求差得出）。→ `decisions/ADR-0165-cycle-exit-three-layer-teardown.md`、`decisions/ADR-0166-trace-append-only-across-chapters.md`
 
 ## 存什么（判据，不是字段表）
 

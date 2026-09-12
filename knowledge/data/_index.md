@@ -4,7 +4,7 @@
 
 ## 代码现状
 
-**尚未编写任何内容。** `game-feature-branch/` 无 `.tres`、无 `XxxData : Resource` 类、无 `res://content/` 目录。**`content/` 也尚无任何已开张的类型**（只有 `_index.md` 与模板）。下表是**规划**。
+**尚未编写任何内容。** `game-feature-branch/` 无 `.tres`、无 `XxxData : Resource` 类、无 `res://content/` 目录。设计库 `content/` 侧**已开张一个类型档案：`content/character/`**（角色，尚无条目文档）；其余类型仍只有 `_index.md` 与模板。下表是**规划**。
 
 ## 内容类型 → 权威位置
 
@@ -13,7 +13,8 @@
 | Card（卡牌） | `CardData` | `character-profile/deck/` |
 | 卡牌次类型 | `CardSubtypeData` | `character-profile/deck/`（`.tres` 注册表，**不是 C# 枚举**；**清单已归零、机制保留**——`enchantment.ambush` 是埋伏定名而非清单条目 → `content/_index.md`） |
 | 功法 | `CultivationTechniqueData` | `character-profile/deck/`——**卡组的构筑单位** |
-| 角色（模板） | `CharacterData` | `character-profile/`（≠ 轮回态 `CharacterProfile`） |
+| 角色（模板） | `CharacterData` | `character-profile/`（≠ 轮回态 `CharacterProfile`；另带 `SeriesId` + `Track : CharacterTrack` 两格轨道标记，**存档增量为 0**） |
+| 角色系列 | `CharacterSeriesData` | `character-profile/`（**无任何规则字段**：`Id` + 名称 + 概述 + 可空 `Artwork`；`CharacterData.SeriesId` 指向它，悬空即加载期 `PushError`）→ `decisions/ADR-0282-character-series-as-worldbuilding-slice.md` |
 | 法则 / 神通（Power） | **两层共用 `PowerData`**（层级由 `AbilityScope` 声明） | `player-profile/player-power/`、`character-profile/power/` |
 | 异能 / 效果原语 / 触发条件 | `AbilityData` / `EffectData` / `TriggerConditionData` / `StaticModifierData` | `character-profile/deck/common-properties.md`「效果原语与定义体」；**异能不独立开张为内容文件夹**，先内联在宿主条目内 → `content/_index.md` |
 | Enemy（敌人） | `EnemyData` ↔ `EnemyInstance` | `enemies/`（与 adventure-event 平级） |
@@ -58,14 +59,15 @@
 22. **回寿法宝的频率 / 深度 / 定价三格只进 `/audit-content` 报告，不写成加载期 `PushError`**（铺内容途中会持续报错，该写法已被明确否决）；不为它单设 stock rule、不开 `RarityFilter` 专属位、不填 `PriceOffset`。→ `decisions/ADR-0247-lifespan-item-orchestration-guardrails.md`
 23. **道具战斗外可写 key 是白名单 `{ CostKey.LifeSpan }`，加载期硬校验 `I-13`（`PushError` + 条目 `Id` + 报出该 `Key`）**——货币 / `ManaLimit` / `ExperiencePoint` / `Faith` / `Bloodlust` 与六个账号层 `CostKey` 全在拒绝面。**`I-13` 与 `I-6` 并存不合并**（`I-6` 管 `Op` 是否在 `AllowedOps` 内，`I-13` 管 key 的编排准入），**事件侧与道具侧的两张 key 表各自独立、永不合并**。放开任一格即从道具侧重开已封的经验 / 隐藏属性 / 道统碎片三个口。→ `decisions/ADR-0260-item-outofcombat-key-whitelist.md`、`systems/character-profile/item/_index.md`
 24. **只有产出进入某条已被反推封账的预算线的道具族才需要独立供给护栏**（寿元账 / 货币账 / 经验账 / 卡组规模口径）——战斗内八原语的六族一条都不进，由既有的折价系数 + 定价表 + 稀有度权重表承接，**不要为它们补第四套口径**。→ `decisions/ADR-0261-family-guardrail-necessity-criterion.md`
-25. **Exchange 逐族库存深度上界按 `Kind` 分组求和即得，不新开字段**（与槽位总数上界是同一次分组）；它与 barter 的两格护栏（档差对价、≤ 1 条 / 店）**一律只进 `/audit-content` 汇总、不落加载期硬校验**——编排口径不是不变式，合理例外存在。事件侧给法宝的 `X-1` 是 `PushWarning` 而非拒绝，职责是让每个例外被看见。→ `decisions/ADR-0262-exchange-per-kind-stock-depth.md`、`ADR-0264-barter-tier-gap-and-count-cap.md`、`ADR-0263-event-side-item-grant-volume.md`
+25. **角色轨道 `Track` 必须是带 `Unspecified = 0` 哨兵的枚举 `CharacterTrack`，绝不写 `bool IsPaid`**——`[Export]` 漏填即取 0，`bool` 会静默落进**发布后不可逆**的免费轨道；哨兵把漏填变成加载期 `PushError`。同系列 `Track` 一致 / 条目数 ∈ {5, 10} / 付费禁永久退役三条**一律走 `AllIncludingDisabled()`**（flags 不参与合并后强校验，按 `AllEnabled()` 统计会让「线上秒关一个问题角色」把启动打崩）。**五行对称不做代码校验**，归 `/audit-content`。**在售系列清单同样由内容层自给**（`AllIncludingDisabled<CharacterData>()` 按 `SeriesId` 归组——用 `AllEnabled()` 会让一次 flags 止血动作在商店里表现为商品蒸发），`productId` 由 `SeriesId` **机械变换**拼出，客户端不硬编码 `productId` 字面量、不持任何映射表（映射表即内容编排知识的第二副本）。→ `decisions/ADR-0269-character-series-id-and-track-fields.md`、`ADR-0275-store-listing-self-derived-and-gate-scoping.md`
+26. **Exchange 逐族库存深度上界按 `Kind` 分组求和即得，不新开字段**（与槽位总数上界是同一次分组）；它与 barter 的两格护栏（档差对价、≤ 1 条 / 店）**一律只进 `/audit-content` 汇总、不落加载期硬校验**——编排口径不是不变式，合理例外存在。事件侧给法宝的 `X-1` 是 `PushWarning` 而非拒绝，职责是让每个例外被看见。→ `decisions/ADR-0262-exchange-per-kind-stock-depth.md`、`ADR-0264-barter-tier-gap-and-count-cap.md`、`ADR-0263-event-side-item-grant-volume.md`
 
 ## 三层覆盖来源与热更边界
 
 `res://content/` 基线 < `user://overlay/` 热更 < **flags**（只覆盖 `ContentEnabled` 一个布尔），合并后统一校验 → ContentRegistry 按 `Id` 索引。**完整形状、校验闸与下载事务见 `systems/services/content-service.md`，此处只留边界纪律：**
 
 - **热更范围 = 只改不增；剧本内容是唯一例外**，且该例外已是合并期硬校验、不再是约定。→ `systems/services/content-service.md`
-- **发版通道的反方向同样封死：随包基线只增不删——跨发版的基线 `Id` 集合单调不减。** 超集**只在 `Id` 集合层面**成立（字段值与 `ContentEnabled` 可自由改，那正是退役路径的载体）；退役 = 置 `ContentEnabled = false` / 合规移除**掏空而非删除**；**改名 = 删 + 增，同样禁止**。机械闸在基线快照归档步，按 semver 版本序与上一版比对，出现「上一版有、本版无」的 `Id` → 非零退出。删一条 = 老档 `Get(id)` 抛错 ⇒ **升级即废档**。→ `decisions/ADR-0182-baseline-id-superset-invariant.md`
+- **发版通道的反方向同样封死：随包基线只增不删——跨发版的基线 `Id` 集合单调不减。** 超集**只在 `Id` 集合层面**成立（字段值与 `ContentEnabled` 可自由改，那正是退役路径的载体）；退役 = 置 `ContentEnabled = false` / 合规移除**掏空而非删除**；**改名 = 删 + 增，同样禁止**。**退役路径已按角色轨道收窄：`Track == Paid` 的条目在基线里置 `ContentEnabled = false`（永久退役）是加载期 `PushError`**，付费角色只能靠 flags 临时关闭或改内容修。→ `decisions/ADR-0273-paid-track-retirement-policy.md`机械闸在基线快照归档步，按 semver 版本序与上一版比对，出现「上一版有、本版无」的 `Id` → 非零退出。删一条 = 老档 `Get(id)` 抛错 ⇒ **升级即废档**。→ `decisions/ADR-0182-baseline-id-superset-invariant.md`
 - **flags 只能覆盖 `ContentEnabled`，不得携带任何数值 / 文案 / 新 `Id`**——它能秒关正因为被限制得足够窄；作用点唯一 = `AllEnabled()` 取池。→ `systems/services/content-service.md`
 - **结构性查表类与一切 `ISingletonContent` 恒启用**：`ContentEnabled == false` 即加载期 `PushError`、flags 对其不生效——线上关掉一条即结构空洞（邻接集合为空、轮回死锁），**清单去权威看、别在此处抄**。→ `systems/services/content-service.md`
 - **不冻结轮回的 `contentVersion`**：overlay 更新对进行中的轮回立即生效，已放弃跨内容版本的 seed 可复现。→ `standards/rng-determinism.md`

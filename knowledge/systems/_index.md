@@ -36,7 +36,7 @@
 | └ 游戏设置 | `player-profile/game-setting.md` | TODO | 音频 / 显示 / 辅助功能等玩家设置。 |
 | 服务层 | `services/_index.md` | TODO | 层级词表 + 七服务；各服务文档带 API 契约表。**服务清单见 `autoloads/_index.md`。** |
 | 计分 | `scoring.md` | TODO | **计分模型 = 道念（momentum）**：既是胜利点数，也**就是战斗的胜负判据**。 |
-| 商业化 | `monetization.md` | TODO | **商业化三支**：① premium bundle（**MVP 唯一已实施的付费点**、可重复购买——能力 / 道具项每次都给，重试上限项只在首购生效、不叠加；授予按账号级序号水位**逐次兑现**，授予内容 / 三道空池闸 / 序号形态见权威）· ② 纯外观（架构预留）· ③ **付费解锁角色系列**（后续版本引入；系列化推出、单向棘轮、整系列礼包定价、**严格横向不卖强度**）。② ③ **首批均一格不落**。法则闸门配额。→ `decisions/ADR-0255-paid-character-series-track.md` |
+| 商业化 | `monetization.md` | TODO | **商业化三支**：① premium bundle（**MVP 唯一已实施的付费点**、可重复购买——能力 / 道具项每次都给，重试上限项只在首购生效、不叠加；授予按账号级序号水位**逐次兑现**，授予内容 / 三道空池闸 / 序号形态见权威）· ② 纯外观（架构预留）· ③ **付费解锁角色系列**（后续版本引入；系列化推出、**双向棘轮**（`Free → Paid` 与 `Paid → Free` 都是违规）、整系列礼包定价、限时在售窗口但**不绝版**、**严格横向不卖强度**、剧情不作付费权益）。② **首批一格不落**；③ 的载体形态已定（见下方承重纪律）。法则闸门配额。→ `decisions/ADR-0255-paid-character-series-track.md`、`ADR-0276-paid-series-sale-window.md`、`ADR-0283-story-is-not-a-paywall.md`、`ADR-0284-series-release-order-paid-advanced-batch-first.md` |
 
 ## 承重纪律
 
@@ -60,7 +60,8 @@
 - **引入多灵根角色是零结构变更**：区分模式取 `RequiredAffinities` 多元素（复合功法）+ `MaxCharacterAffinityCount`（数量上限）的**双机制组合，两条均已在现行 `CanLearn` 判定式内**——零新字段、零新机制、零新枚举；`Affinities` 本就是数组，「首批长度恰为 1」是内容编排口径而非字段约束，别把它写成校验。**通用 / 专属功法配比同样是编排口径、不是字段约束**（`/audit-content` 只报告不阻断）。→ `decisions/ADR-0258-multi-affinity-free-track-and-pool-split.md`、`ADR-0257-generic-technique-ratio-by-rarity.md`
 - **能力的「启用开关」与「拥有 / 失去」是两条互不覆盖的写入通道**：`Status` 走 `AbilityStatusChanges`（绝对置值），获得 / 失去走 `AbilityElements` 的 `Grant` / `Remove`；**`StatusChanges` 不承载 `Status`**——它绑的是 `CharacterProfile.Status` 上的数值格，名字撞车、语义无交集，写错即把开关写进数值面。→ `systems/player-profile/_index.md`
 - **成就的达成态与发放水位一律不可由派生量反推**：`Completed` 不写成 `Progress >= Target`（`Target` 可 overlay 上调 ⇒ 已达成的里程碑会在一次内容更新后回退，而奖励不可补发），`RewardedTierPercent` 也不由「奖励条目已在持有列表」反推。→ `decisions/ADR-0196-achievement-save-shape-two-keys.md`
-- **后两支付费面都是「加法窗口保持开启」而非「先埋占位」**：外观首批不得增加任何字段（含 `PlayerEntitlement.Cosmetic`）、屏、内容类型或资产类目；**付费角色轨道同理——解锁载体（`PlayerProfile` 具名集合 + 取池过滤 + 一次 `schemaVersion` bump）与 `CharacterData` 的轨道标记字段首批一格不落**，形态待 `/provide-solution-draft` 推演。预先埋格没有收益且要多 bump 一次 schema。→ `systems/monetization.md`、`decisions/ADR-0255-paid-character-series-track.md`
+- **外观支（第二支）仍是「加法窗口保持开启」而非「先埋占位」**：首批不得增加任何字段（含 `PlayerEntitlement.Cosmetic`）、屏、内容类型或资产类目——预先埋格没有收益且要多 bump 一次 schema。→ `systems/monetization.md`
+- **付费角色轨道的载体形态已定，不再是待推演项**：`CharacterData` 加 `SeriesId` + `Track : CharacterTrack`（**带哨兵的枚举，不写 `bool IsPaid`**——`[Export]` 漏填会静默落进不可逆的免费轨道），两格皆模板静态字段、**存档增量为 0**；解锁载体是 `PlayerEntitlement.CharacterSeries`（**只由后端写、客户端无写入通道**，本库第一次真实 `schemaVersion` bump v2）；取池过滤落 `life-cycle-service.GetSelectableCharacters()`、**绝不落 `ContentRegistry`**（注册表不吃账号上下文），`StartCycle` 零改动、零 RNG。→ `decisions/ADR-0269-character-series-id-and-track-fields.md`、`ADR-0270-player-entitlement-character-series.md`、`ADR-0272-character-unlock-filter-in-life-cycle-service.md`、`ADR-0273-paid-track-retirement-policy.md`
 - **法则（`(Power, Player)` 域）的合法 `Source` 恰三个**：`FinaleWin`（道统残卷）· `PremiumBundle` · `AchievementReward`（成就 90% 档）。**`EventOutcome` / `ExchangePurchase` 是规则层封死、不是「暂不开放」**——分域校验表上三格（`EventOutcome × (Power, Player)` · `EventOutcome × (Item, Player)` · `ExchangePurchase × (Power, Player)`）一律拒绝，顺手放开即开出一条后端无输入可复算的账号级永久授予，并旁路掉残卷那条受调控的递减曲线。→ `decisions/ADR-0267-player-power-three-acquisition-channels.md`、`systems/player-profile/player-power/_index.md`
 
 > 横切的引擎层关注（存档 / 读档、UI / 屏幕、输入 / 触摸、音频）不在 `systems/` 内单列——代码承载形式见 `autoloads/_index.md`、`scenes/_index.md` 与 `standards/*`。
