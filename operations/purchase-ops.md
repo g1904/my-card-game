@@ -36,6 +36,36 @@
 - **Google 侧首版用服务账号 key + 例行 90 天轮换。** 「工作负载身份联合」（免长期 key）是更优方向，但跨云 OIDC 联合的配置与排障成本高、可行性待接入实测核实——**留作后续优化，不作首版前提**（备选记录：首版即上联合被否决——配置与排障成本高，而渠道接入本身已在首版关键路径上）。
 - **微信条目随资质开通时再建。** Secrets 结构按三渠道设计、条目后补——契约面与托管结构零变更，与 `purchase.channel_disabled` 的「开通时只删实现分支」（`contracts/purchase.md` §3b）同一形态。
 
+## 1a. SKU 表：类别、渠道商品类型与上架窗口
+
+**SKU 表不在契约内**（`contracts/purchase.md` §3a）：契约只要求「后端与自己的 SKU 表比对，不匹配即无效」。表本身是运维配置，落旋钮 / 配置层、改值不发版。
+
+| 列 | 取值 | 用途 |
+|---|---|---|
+| `productId` | 各渠道商店后台配置的商品 id | 验票比对的键；`kind == CharacterSeries` 时须能机械反解出 `character_series.<snake_case_slug>` 形态的 `seriesId`（规则见契约 §3a） |
+| `kind` | `PremiumBundle` \| `CharacterSeries` | **验票通过后的写入动作按它分流**；也是 verify / 补查应答的判别式 |
+| 渠道商品类型 | `PremiumBundle` → consumable；`CharacterSeries` → non-consumable（微信支付无此概念） | 商店后台的商品配置；非消耗型是「重复购买已拥有系列」的**主防线** |
+| 上架窗口 | 可空的 `[startAtUtc, endAtUtc)`；**空 = 常驻商品** | 验票时 `productId` 不落在窗口内 ⇒ `purchase.receipt_invalid` + 风控事件（零新增 `code`，见契约 §3a） |
+
+**上架窗口是限时销售，不是绝版。**
+
+- 窗口关闭后该系列**可以重新上架**（新开一个窗口），也可以**转为常驻**（窗口置空，只是失去限时优惠价）。限时的是价格与销售节奏，不是可得性。
+- **已购玩家不受任何影响**：下架的只是购买入口，已写入 `/entitlement/characterSeries` 的元素永不被移除（`contracts/purchase.md` §6 保证 8）。
+- **窗口只活在本表**：不进 profile、不进契约报文、不经 manifest / flags 通道下发。客户端侧「商店该列哪些系列」由它自己的内容层给出（`game-design-documents/systems/monetization.md`）。
+- **后端这道校验是兜底，不是主防线。** 主防线是窗口外把 SKU 在各渠道商店后台下架；后端这一道覆盖「下架动作未及时同步」与商户侧下单渠道。
+
+### 发版前核对清单（`kind == CharacterSeries` 的每一个新 SKU，逐条）
+
+后端**不持有任何内容编排知识**（它不知道存在哪些合法 `seriesId`），因此「这个 `productId` 对不对」的真实防线只在发版前的人工核对，不是运行时：
+
+| # | 核对项 | 漏掉的后果 |
+|---|---|---|
+| 1 | 三渠道商店后台的 `productId` 与机械变换结果**逐字一致** | 玩家付款后验票稳定失败（反解不出合法形态 → `receipt_invalid`），钱已扣、只能走工单 |
+| 2 | 商品类型配置为 **non-consumable**（微信渠道无此项，跳过） | 平台层不再拦重复购买，兜底路径（§5）成为常态 |
+| 3 | 本表已登记该 `productId`，且 `kind` 填 `CharacterSeries` | 缺行 ⇒ `receipt_invalid`；`kind` 填错 ⇒ 写入动作走错分支 |
+| 4 | 上架窗口的起止时刻与商店后台的上下架排期**对齐**（时区一律 UTC） | 两侧不对齐 ⇒ 商店里买得到、后端拒收，玩家在付款之后撞失败面 |
+| 5 | 该系列在客户端内容层已随同一版本发布 | 客户端解析不到该 `seriesId`，走它自己的降级处置 |
+
 ## 2. 退款 / 撤单的对账通道
 
 | 渠道 | 对账通道 | 补漏手段 |
@@ -109,7 +139,7 @@
 | `tier`（`hot` \| `archived`） | 读路径判断要不要走第二跳 |
 | `record_at_utc` = `COALESCE(verified_at_utc, ordered_at_utc)` | **二跳的分区剪枝键**。缺它，按 `receipt_id` 查温层会广播到全部年度分区——正是 3b 拒绝在线时间分区的那条退化 |
 
-其余列（`channel` · `bundle_grant_ordinal` · `revision` · `ordered_at_utc` · `verified_at_utc` · 退款 / 关单等运维侧字段）是**记录体**，归档时写入温层并在热层置 `NULL`。`archived_at_utc` 为可空的运维列。
+其余列（`channel` · `product_id` · `kind` · `bundle_grant_ordinal` · `granted_series_id` · `revision` · `ordered_at_utc` · `verified_at_utc` · 退款 / 关单等运维侧字段）是**记录体**，归档时写入温层并在热层置 `NULL`。`archived_at_utc` 为可空的运维列。
 
 **归档因此不触碰任何事务路径**：verify 与下单仍只写 `receipt_idem` 一张表、仍是一次本地事务，3a 的 S1 / S2 逐字不变。
 
@@ -178,7 +208,10 @@ receipt_idem                                   -- 热层，PARTITION BY HASH (re
   record_at_utc         timestamptz NOT NULL   -- 哨兵：COALESCE(verified_at_utc, ordered_at_utc)
   archived_at_utc       timestamptz            -- 可空，运维列
   channel               text                   -- ↓ 记录体，归档后置 NULL
-  bundle_grant_ordinal  bigint
+  product_id            text                   -- 原值，SKU 下架后仍可定位
+  kind                  text                   -- PremiumBundle | CharacterSeries
+  bundle_grant_ordinal  bigint                 -- 按 kind 二选一
+  granted_series_id     text                   -- 按 kind 二选一，解析结果的快照
   revision              bigint
   ordered_at_utc        timestamptz
   verified_at_utc       timestamptz
@@ -242,6 +275,16 @@ receipt_idem_archive                           -- 温层，PARTITION BY RANGE (r
 
 ## 5. 风控事件
 
-验票路径产出的风控事件（账号 · 平台 · 失败项 · `requestId`）落同一条风控通道，**高优项**为：收据环境与部署环境不符 · 微信必查四项不符 · 已消费但本库无记录 · 同一 `receiptId` 被他账号提交。`message` 的落日志纪律（不得含完整凭据，标识按前缀截断）沿用 `_index.md`「版本兼容矩阵与错误码台账」一节，本文件不另立一套。
+验票路径产出的风控事件（账号 · 平台 · 失败项 · `requestId`）落同一条风控通道，**高优项**为：收据环境与部署环境不符 · 微信必查四项不符 · 已消费但本库无记录 · 同一 `receiptId` 被他账号提交。
 
-Source: `handoffs/2026-09-03-purchase-channel-integration.md` · `handoffs/2026-09-06-iap-channel-integration.md`（§1 托管形态）· `handoffs/2026-09-06-receipt-idem-cold-archive.md`（§3d 归档形态 · §4 阈值 N 的旋钮与校准）。
+### 重复购买一个已拥有的角色系列：工单处置
+
+契约对这一情形的处置是**接受写入 + 打风控事件、绝不拒绝**（`contracts/purchase.md` §3c——钱已扣，付款后的失败面是最糟的失败时机）。运维侧因此要承接「那笔钱怎么办」：
+
+- **事件字段**：账号 · `seriesId` · 两个 `receiptId`（本次与首次授予的那次）· `requestId`。
+- **不自动退款。** 自动退款要求后端持三渠道的**退款 API 写权限凭据**——§1 的凭据面当前只覆盖查询 / 核销，加写权限是一次显著的攻击面扩大；且退款成败异步不可控，要多一条补偿任务与一个运维状态机。
+- **处置路径 = 人工工单**，与 §2 的退款 / 撤单处置同一条通道（权益不回收、序号不回退，只在幂等记录的运维侧字段上打标）。
+- **触发率预期近乎为零**：主防线是平台侧非消耗型商品（§1a），而微信渠道随资质开通才启用。**若实测触发率超预期，改为自动退款是纯加法**，契约条款一条都不用改。
+- **指标形态**：一条按周计数的 gauge，**不做逐账号告警**——与 §4 三条对账信号同一形态。`message` 的落日志纪律（不得含完整凭据，标识按前缀截断）沿用 `_index.md`「版本兼容矩阵与错误码台账」一节，本文件不另立一套。
+
+Source: `handoffs/2026-09-03-purchase-channel-integration.md` · `handoffs/2026-09-06-iap-channel-integration.md`（§1 托管形态）· `handoffs/2026-09-06-receipt-idem-cold-archive.md`（§3d 归档形态 · §4 阈值 N 的旋钮与校准）· `handoffs/2026-09-12-premium-character-series-unlock.md`（§1a SKU 表与上架窗口 · §5 重复购买的工单处置）。

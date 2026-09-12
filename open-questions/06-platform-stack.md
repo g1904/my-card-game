@@ -2,7 +2,7 @@
 
 > 后端尚未开工（`backend-feature-branch/` 只有 README），但**技术栈与托管形态已落定**：C# / ASP.NET Core · 腾讯云托管容器 · 云数据库 PostgreSQL（单主）· 云 Redis · 云 KMS · CDN；两套云上环境 + 本地 docker-compose。
 >
-> **八条已于 2026-09-03 答结** → `systems/_index.md`（共用的存储与并发形态 · 明确不引入）· `systems/account.md`（会话表与并发语义 · `tokenId` 与 `sid` 的分工 · refresh token 的派生形态 · access token 签发）· `systems/profile-store.md`（`revision` CAS · 两类幂等记录 · 读己所写的落地）· `operations/environments.md`（区域与合规 · 拓扑与副本 · 两把密钥的保管与轮换）· `operations/deployment.md`（环境分层与发布线 · 迁移三步 · 网关纪律）· `operations/observability.md`（可观测性口径与四条探针）· `operations/version-matrix.md`。移出记录见 `answer-logs/log-backend-stack-and-hosting.md`。
+> **八条已于 2026-09-03 答结** → `systems/_index.md`（共用的存储与并发形态 · 明确不引入）· `systems/account.md`（会话表与并发语义 · `tokenId` 与 `sid` 的分工 · refresh token 的派生形态 · access token 签发）· `systems/profile-store.md`（`revision` CAS · 两类幂等记录 · 读己所写的落地）· `operations/environments.md`（区域与合规 · 拓扑与副本 · 两把密钥的保管与轮换）· `operations/deployment.md`（环境分层与发布线 · 迁移三步 · 网关纪律）· `operations/observability.md`（可观测性口径与四条探针）· `operations/version-matrix.md`。移出记录见 `../answer-logs/log-backend-stack-and-hosting.md`。
 >
 > **四条已于 2026-09-06 答结** → `operations/compliance-ops.md`（可信服务端时钟 · 合规域的存储与产物）· `operations/purchase-ops.md` §3d §4（`receiptId` 幂等记录的冷存归档与对账阈值形态）· `operations/external-providers.md`（外接原子能力的选型判据、灾备与切换、凭据托管、微信资质时序）。移出记录见 `../answer-logs/log-trusted-server-clock.md` · `log-compliance-domain-storage.md` · `log-receipt-idem-cold-archive.md` · `log-external-provider-selection-dr.md`。
 >

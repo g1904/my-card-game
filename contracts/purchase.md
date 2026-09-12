@@ -18,7 +18,15 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 
 ## 2. 验票的权威分配：写入只由 verify 承担
 
-- **验票必须由后端向平台服务器校验，不信客户端自述。** 客户端已明写「付费凭证不能只信客户端」，`bundleGrantOrdinal` 的推进权因此只能在后端——否则整套防篡改归零。
+- **验票必须由后端向平台服务器校验，不信客户端自述。** 客户端已明写「付费凭证不能只信客户端」，**本次 profile 写入**的权威因此只能在后端——否则整套防篡改归零。
+- **写入动作按 SKU 类别分流，权威分配不因此分叉**（类别的判定见 §3a）：
+
+  | `kind` | 验票通过时的 profile 写入 |
+  |---|---|
+  | `PremiumBundle` | `/entitlement/bundleGrantOrdinal += 1` |
+  | `CharacterSeries` | `/entitlement/characterSeries` 尾部追加一个元素（后端保证元素唯一，见 §6 保证 8） |
+
+  两类共有：**与 `cloudRevision += 1` 同一次事务**。元素的形状由客户端的存档字段面定义，后端按对方定义的形状原样写入，不在本库复述（`game-design-documents/systems/player-profile/_index.md`）。
 - **渠道回调只作对账 / 补偿通道，不作写入路径。** 渠道回调的时序不可控：可能早于、晚于、或永不到达客户端的 verify。把它作为写入路径会让「玩家已付款但序号未涨」无处排查，且要额外处理「回调与 verify 竞态」——而那条竞态的收益仅在「客户端崩溃且从不回来」这一场景。**回调记账与补偿任务归 `operations/`**，作为「已付款但从未 verify」的兜底发现手段。
 - **兑现段仍由客户端掷骰、后端复算**（`profile-sync.md` §6 §7），本域不参与兑现。
 
@@ -29,16 +37,21 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 | ↑ | `platform` | 枚举字符串，取值与客户端 C# 成员名逐字相同（`envelope.md` §2）。**取值域封闭为三条渠道**：Google Play Billing · App Store（StoreKit）· 微信支付（范围权威在 `game-design-documents/vision/scope.md`；成员名两侧同批冻结） |
 | ↑ | `receiptId` | 收据唯一 id —— **幂等键**（取值见 §3a，窗口见 §7） |
 | ↑ | `receipt` | 平台原始收据负载，形态**逐渠道不同**（§3a）。**请求体整体是一个以 `platform` 为判别式的三分支联合**，见下 |
-| ↓ | `bundleGrantOrdinal` | `+1` 后的新序号（**兑现段掷骰的 `ordinal`**） |
-| ↓ | `revision` | `+1` 后的新 `cloudRevision` |
-| ↓ | `deduplicated` | boolean；同一 `receiptId` 重复提交时为 `true`，序号与 `revision` 回上次结果 |
+| ↓ | `kind` | SKU 类别，`PremiumBundle` \| `CharacterSeries` —— **后端权威回显**该 `productId` 的类别；应答的判别式 |
+| ↓ | `bundleGrantOrdinal` | **仅 `kind == PremiumBundle` 时存在**；`+1` 后的新序号（**兑现段掷骰的 `ordinal`**） |
+| ↓ | `revision` | `+1` 后的新 `cloudRevision`（两类同有） |
+| ↓ | `deduplicated` | boolean；同一 `receiptId` 重复提交时为 `true`，结果回上次的值（两类同有） |
 
+- **请求侧不因 SKU 类别分形，一格不加。** `seriesId` 不进 `VerifyRequest`——它是客户端自述，正面违反本域「客户端提交的一切只作索引、不作判据」（§3a）。类别与 `seriesId` 一律由后端从 `productId` 机械解析（§3a），而 `productId` 本就在 `receipt` 分支内。
+- **应答按 `kind` 分形，spec 层取 `oneOf` + `discriminator: { propertyName: "kind" }`**，与请求根判别式同构（`ADR-0018`），必填性因此同样可被 schema 层校验。分形的理由：`bundleGrantOrdinal` 的存在意义是「兑现段掷骰的 `ordinal`」，而系列解锁**没有兑现段**，无条件回一个对本类别无意义的序号会让同一字段在两类 SKU 下语义不同。
+- **系列解锁的应答不回 `seriesId`。** 客户端知道自己点的是哪个 SKU，解锁的正确性由购后 pull 读到的 `/entitlement/characterSeries` 承载——与「应答只回序号 + revision，不内联新 profile」同一条取向。
+- **新增一类 SKU = 新增一个应答分支 + 一个枚举值**，对既有客户端是纯追加 ⇒ `openapi.yaml` 的 `info.version` bump minor，`/v1/` 不动；与下方对新增渠道的处置逐字同构。
 - **幂等键不由客户端生成。** 两家商店渠道取平台发放的 id，微信渠道取后端在下单时分配的商户订单号（§3a · §3b）。承重的是「不由客户端生成」——防篡改；「由渠道方发放」只是商店渠道的事实描述，不是这条纪律本身。这与 `profile-sync` 为同一场景引入 `pushId` 是同一条理由，只是这里的键不需要客户端造。
 - **判别式发生在请求根，不在 `receipt` 内部。** `VerifyRequest` 定义为 `oneOf` 三个分支（`GooglePlay` / `AppStore` / `WeChatPay`），每个分支内 `platform` 为 const、`receipt` 为该渠道的具体对象；spec 层即 JSON Schema `oneOf` + `discriminator: { propertyName: "platform" }`。`platform` 是 `receipt` 的兄弟字段，而 `discriminator` 要求判别属性出现在每个子 schema 内——把 `platform` 复制进 `receipt` 会造出同一事实的两个落点，两者不等时报文层无从裁决哪个为准。判别提到根则一处判别、一处校验，`receipt` 保持纯净。
 - **必填性因此可被 schema 层校验**：缺字段 / 类型不符 → `purchase.payload_invalid`。`envelope.md` §2 的「忽略未知字段」管的是**多余**字段，与必填校验不同轴，两者不冲突。
 - **新增第四条渠道 = 新增一个 `oneOf` 分支 + 一个枚举值**，对既有客户端是纯追加（老客户端从不发送新值）⇒ `openapi.yaml` 的 `info.version` bump minor，`/v1/` 不动。**明确否决把 `receipt` 定义为不透明字符串**（base64 / 原样 JSON 串）：三渠道的必填性会全部退化为运行时判断，「字段形态由 spec 单点承载」（`envelope.md` §1）对本域就等于没写。
-- **同一 `receiptId` 重复提交绝不重复 `+1`**，直接回上次结果（与 `pushId` 的 `deduplicated = true` 同构）。缺这一条，移动网络下的重试会让玩家的序号跳号、掷骰序列错位。
-- **`bundleGrantOrdinal += 1` 与 `cloudRevision += 1` 必须在同一次事务内**——与 `profile-sync.md` §8 的「禁止先写 profile 再改 revision 的两步非原子形态」同一条。
+- **同一 `receiptId` 重复提交绝不重复写入**，直接回上次结果（与 `pushId` 的 `deduplicated = true` 同构）。缺这一条，移动网络下的重试会让玩家的序号跳号、掷骰序列错位。**两类 SKU 都走 `receiptId` 幂等，不按类别分叉**：集合追加虽是自然幂等的，但 `cloudRevision` 的推进不是（重复验票会白推 revision 并撞 CAS），「已被其他账号核销」的判定又依赖 `receiptId` 全局唯一，且 §6 的保证是对全域的承诺。
+- **本次 profile 写入与 `cloudRevision += 1` 必须在同一次事务内**——与 `profile-sync.md` §8 的「禁止先写 profile 再改 revision 的两步非原子形态」同一条。
 - **verify 不接受 `baseRevision`、不做 CAS 判定。** 它是后端权威写入，不是客户端提交的 diff；且客户端此刻的 `baseRevision` 必然落后，走 CAS 只会失败。客户端拿新 `revision` 的路径是**购后强制一次 pull**（客户端已定）。
 - **应答只回序号 + revision，不内联新 profile。** 客户端本就会另发一次 pull，两侧形态因此一致；且让 verify 保持**窄接口**，不与 profile 的下行形态耦合。否决内联：省一个 RTT，却把 profile 的完整下行形态复制进购买域，两处形态从此要同步演进。
 
@@ -65,6 +78,35 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 
 **贯穿三张表的一条纪律：客户端提交的一切只作「去哪里查」的索引，不作判据。** 权威状态一律由后端向渠道服务器查询取得——这是 §2「不信客户端自述」在字段层的兑现，也解释了三张表为什么都这么窄。**三套服务端验票凭据只在服务端、绝不进客户端二进制**（`auth.md` §3a 义务 1 逐字同构）；凭据形态与轮换窗口见 `operations/purchase-ops.md`。
 
+### SKU 类别与 `productId ↔ seriesId` 的机械变换
+
+**SKU 表本身不进契约**——契约只写「后端与自己的 SKU 表比对，不匹配即无效」。本小节加的是**类别这一维度**与它的解析规则，SKU 表的列形态、上架窗口与发版前核对归 `operations/purchase-ops.md`。
+
+| `kind` | 含义 | 渠道商品类型 |
+|---|---|---|
+| `PremiumBundle` | 礼包，可重复购买 | Google Play / App Store：**consumable**；微信支付无此概念 |
+| `CharacterSeries` | 一个角色系列的整系列解锁 | Google Play / App Store：**non-consumable**；微信支付无此概念 |
+
+**可购商品只有整系列礼包一种，不存在角色级 SKU。** 单个角色零售已在客户端侧被否决（`game-design-documents/decisions/ADR-0255-*`），定价上的「几个单解之价」是记账用的定价锚，不对应任何可购商品。⇒ **一个角色系列 = 一个 SKU**，后端因此**不持有「这个系列包含哪几个角色」的任何知识**——那是内容编排，抄进本库即制造第二权威，而两库都没有机制能发现它漂移。
+
+**`seriesId` 由 `productId` 机械变换得出，不建第二张手写表：**
+
+```
+productId  =  "series_" + <seriesId 的 slug 段>
+              例：seriesId = character_series.wu_xing_chu_zu  →  productId = series_wu_xing_chu_zu
+```
+
+- 判据是本域已行使过一次的那条：**能机械变换的绝不建第二张手写表**（`receiptId` = 渠道前缀 + 平台 id，见下方「`receiptId` 的取值」同理）。给 SKU 表加一列手工维护的 `seriesId` 会让同一事实有两个落点。
+- **后端校验的是形态，不是存在性。** 它没有内容知识，故只要求 `productId` 能机械反解出一个符合 `character_series.<snake_case_slug>` 形态的 `seriesId`；**反解失败 → `purchase.receipt_invalid` + 风控事件**，与「`productId` 不在 SKU 表」逐字同一处置。
+- **存在性的真实防线在发版前的商店配置核对**（`operations/purchase-ops.md`），不是运行时。客户端读到一个解析不到内容条目的 `seriesId` 时的降级处置在客户端侧（`game-design-documents/systems/monetization.md`）。
+- **推论：零新增下发面、零新增端点。** 「商店该列哪些系列」由客户端内容层自行归组、`productId` 由同一条变换拼出——不需要 catalog 端点，也不经 manifest / flags 通道下发。
+
+**上架窗口：窗口外的新购在 verify 侧被拒。** 每个 `kind == CharacterSeries` 的 SKU 在 SKU 表上带一格上架窗口（形态与运营流程见 `operations/purchase-ops.md`）。验票时该 `productId` 不落在其上架窗口内 ⇒ **`purchase.receipt_invalid` + 风控事件**，与「`productId` 不在 SKU 表」同码：两者对玩家是同一件事——**这个商品此刻不可售**，而该 `code` 的 `message` 必含项已覆盖「判定失败的那一项 = SKU」（`envelope.md` §6）。**不新增 `code`**：客户端处置逐字相同，独立成码只会让处置表多一行走同一条路径。
+
+- **窗口约束的是「能不能买」，不是「拥有什么」。** 它**不进 profile、不进 `/entitlement/characterSeries`、不进 §5 的任何封闭表**，也不下发给客户端作判据。
+- **窗口关闭不等于绝版**：窗口可重开，或该系列转为常驻商品。**已写入的解锁记录不受任何影响**，下架的只是购买入口——这正是 §6 保证 8「只增不删」要守的东西。
+- 主防线仍在平台侧：窗口外的 SKU 在各渠道商店后台下架，玩家根本买不到。后端这一道是兜底，覆盖「下架动作未及时同步」与商户侧下单渠道。
+
 ### `GooglePlay` —— `GooglePlayReceipt`
 
 | 字段 | 必填 | 来源与用途 |
@@ -74,7 +116,7 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 | `orderId` | ➖ | 测试 / 促销购买可能缺省。**仅进日志与工单**，不参与任何判定 |
 
 - **不接收 `originalJson` / `signature`**（客户端本地签名校验的那一对）。收下它等于把客户端提交的 JSON 变成事实来源；服务端 API 校验本就更强，两条并存只会让「以哪条为准」再成一题。**`packageName` 不由客户端提交**，后端取自身配置——客户端提交的包名对防伪毫无贡献。
-- **商品须配置为 consumable**（可重复购买是既定语义）。**acknowledge / consume 只能在 `+1` 事务提交之后由后端发起**，失败进补偿队列重试，客户端不承担该动作：提前 consume 而事务失败 ⇒ 玩家付了钱、票被消掉、序号没涨，且再也查不回来。
+- **商品类型按 `kind` 配置**（见上方「SKU 类别」表）：`PremiumBundle` 为 consumable（可重复购买是既定语义），`CharacterSeries` 为 non-consumable——平台层即拒绝重复购买，是本域对「重复购买已拥有系列」的主防线（§3c）。**acknowledge / consume 只能在写入事务提交之后由后端发起**，失败进补偿队列重试，客户端不承担该动作：提前 consume 而事务失败 ⇒ 玩家付了钱、票被消掉、序号没涨，且再也查不回来。
 
 | 渠道侧情形 | `code` | 附加动作 |
 |---|---|---|
@@ -159,9 +201,23 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 - **未支付订单的清理：记录本身不删。** 预落的 `Unknown` 记录若在订单有效期后仍未转 `Verified`，由对账任务标记为关单（运维侧字段，`operations/purchase-ops.md`）。删除会让同一 `outTradeNo` 的迟到查询查不到记录，正是 §7 拒绝设 TTL 所要堵的那条路径。
 - **渠道未开通时回 `purchase.channel_disabled`（`Fatal`），不复用 `receipt_invalid`。** 未开通发生在下单、玩家**尚未付款**：对他呈现「收据无效 + 客服入口」是错的话，且会让线上「无效收据」曲线被未开通渠道的调用污染。渠道开通时只需删掉实现分支，**契约面零变更**。`platform` 取值域仍封闭为三条渠道——**不实现 ≠ 从契约删除**（`auth.md` §3 的登录渠道先例逐字适用；删掉再加回是破坏性契约变更，追加实现不是）。
 
+## 3c. 重复购买一个已拥有的角色系列：接受写入 + 风控事件，绝不拒绝
+
+**主防线在平台侧**：`kind == CharacterSeries` 的 SKU 一律配置为非消耗型商品，Google Play 与 App Store 在平台层即拒绝重复购买。**但微信支付没有「非消耗型商品」这一概念**，且多设备并发能绕过客户端「已拥有即置灰」的前置，故后端需要一道兜底。
+
+> 验票通过、该 `seriesId` 已在该账号的 `characterSeries` 内、且本次 `receiptId` 是**新的**（不是幂等命中）
+> ⇒ **接受写入**（集合追加保证唯一 ⇒ 实际无变化）· `cloudRevision` 仍 `+1` · 回 `deduplicated = false` · **打一条风控事件**（账号 · `seriesId` · 两个 `receiptId` · `requestId`）· 退款处置走人工工单。
+
+- **绝不拒绝（承重）。** 钱已经扣了。回一个 `Fatal` 只会让玩家在付款之后撞上失败面，而这是整条链上最糟的失败时机——客户端侧反复引用的「把失败点挪到掏钱之前」在这里已经挪不动，只能不失败。
+- **处置形态与 `profile-sync.md` §7a 逐字同构**（接受写入 + 打风控事件、不拒绝、不改写），**不新开处置语义**。
+- **不自动发起渠道退款。** 与 §7 的既有形态一致（退款整体放在人工侧，退款态只记在幂等记录的运维侧字段上）。**代价如实写下**：玩家要主动找客服，而客服可达面只有 `#requestId` 一条。自动退款要求后端持有三家渠道的**退款 API 写权限凭据**（当前凭据面只覆盖查询 / 核销，见 `operations/purchase-ops.md` §1），是一次显著的攻击面扩大，还要引入一条异步补偿状态机——而本情形的触发率在可预见期内近乎为零（主防线是平台侧非消耗型商品，微信渠道首版不开通）。**若实际触发率超预期，改为自动退款是纯加法**，不需要回头改任何契约条款。
+- **玩家面为空 ⇒ 不新增 `code`**（判据见 `envelope.md` §6 台账下方的三条）。
+
 ## 4. `GET /v1/purchase/receipt/{receiptId}`
 
-回 `status ∈ { Unknown, Verified, Rejected }`（取值与客户端 C# 成员名逐字相同，`envelope.md` §2）；`Verified` 时附 `bundleGrantOrdinal` 与 `revision`；`Rejected` 时附 `code`（取值 ⊂ { `purchase.receipt_invalid`, `purchase.receipt_claimed` }，即该收据**最近一次 verify 的终态 `code`**）与可选 `detail`（形状同 `envelope.md` §6 台账该 `code` 的 `detail` 列——只作日志，客户端不解析）。**纯读、幂等、不产生任何写入。**
+回 `status ∈ { Unknown, Verified, Rejected }`（取值与客户端 C# 成员名逐字相同，`envelope.md` §2）；`Verified` 时附 `kind` 与 `revision`，并在 `kind == PremiumBundle` 时附 `bundleGrantOrdinal`（**与 §3 的 verify 应答同款分形，同一条判别式**）；`Rejected` 时附 `code`（取值 ⊂ { `purchase.receipt_invalid`, `purchase.receipt_claimed` }，即该收据**最近一次 verify 的终态 `code`**）与可选 `detail`（形状同 `envelope.md` §6 台账该 `code` 的 `detail` 列——只作日志，客户端不解析）。**纯读、幂等、不产生任何写入。**
+
+**`Verified` 应答的条件化不是破坏性变更，但它依赖一个必须写明的前提：老客户端不可能持有一张系列 SKU 的 `receiptId`**（它买不到这类 SKU）⇒ 它查到的收据恒为 `kind == PremiumBundle`，该分支的字段集一字不变。前提写在这里而不是留作默认，是因为它是**这次分形成立的条件**：若日后出现任何能让不认识 `kind` 的客户端拿到系列 SKU 收据的路径，条件化对它就表现为字段缺失，届时须重新评估而非沿用本结论。
 
 **`Rejected` 的原因是应答体普通字段，不是错误体**——本次请求本身是成功的，收据状态是数据不是错误。取值域是 §6 台账既有条目的**子集**而非新枚举：**只有这两条 `code` 能把记录置为 `Rejected`**（`receipt_pending` / `server.unavailable` 不写终态、`payload_invalid` 不落幂等记录、`channel_disabled` 发生在下单且无收据）——与 verify 失败面同源，**不新造取值集、不给 §6 台账加行**，客户端处置照既有 `code` 映射零新增。`receipt_claimed` 的脱敏纪律照 §3：**绝不含另一账号的任何标识**。
 
@@ -170,6 +226,8 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 **这个端点是承重的，不是可选便利。** 客户端在「已付款、后端已 `+1`、但响应丢失」这一移动网络常态下**必须**有一条查得回来的路径；客户端据此把玩家阻塞在主菜单重试直到拿到序号（形态归客户端，见 `game-design-documents/systems/monetization.md`）。没有这条通道，那里的阻塞就变成死等。`receiptId` 由客户端随待兑现态持久化，**跨启动也能补查**。
 
 ## 5. 复算：与残卷共用同一条链，不新开
+
+**本节整节只对 `kind == PremiumBundle` 适用**：角色系列解锁**没有兑现段**（发货动作在后端，验票成功的那一刻权益已在云端），不掷骰、不复算、不配兑现水位。
 
 客户端兑现段用 `(accountSeed, stream = PremiumBundle, ordinal = bundleGrantOrdinal)` 掷骰抽 3 条，后端以同一三元组复算——**这正是 `profile-sync.md` §6 已定义的 SplitMix64**（`PremiumBundle = 1` 已在那里冻结）。**本契约不定义任何新的随机源**，只回链。
 
@@ -180,12 +238,16 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 ## 6. 服务端保证（栈中立的验收断言）
 
 1. 同一 `receiptId` 提交 N 次，`bundleGrantOrdinal` 恰好 `+1`；第 2..N 次回 `deduplicated = true` 且序号与第 1 次逐位相同。
-2. `bundleGrantOrdinal` 与 `revision` 的自增**要么都发生、要么都不发生**。
+   **对位（`kind == CharacterSeries`）**：同一 `receiptId` 提交 N 次，该 `seriesId` 在 `/entitlement/characterSeries` 中**恰好出现一次**、`cloudRevision` 恰好 `+1`；第 2..N 次回 `deduplicated = true` 且结果逐位相同。
+2. **本次的 profile 写入**与 `revision` 的自增**要么都发生、要么都不发生**。
 3. **读己所写（对读路径的一致性要求，不只是一条测试断言）**：verify 应答返回之后，同一账号的任何后续 `GET /v1/profile/pull` 与 `GET /v1/purchase/receipt/{receiptId}` 都必须读到该次写入的结果（`bundleGrantOrdinal` 与 `revision` 均不早于 verify 应答中的值）。**同一条约束覆盖 `POST /v1/purchase/order` 预落的 `status = Unknown` 记录**：下单应答返回之后，`GET /receipt/{receiptId}` 必须立即读到它——否则客户端在阻塞态下读到「不存在」，与「下单失败」不可区分。
 4. `bundleGrantOrdinal` 账号级**严格单调递增、不清零**（与 `finaleWinOrdinal` 同一条纪律）。
 5. 上行 `playerDiff.entitlement.bundleGrantOrdinal` 与云端当前值不等 ⇒ 上行被拒（`sync.conflict`，`profile-sync.md` §5c），且 `bundleGrantOrdinal` / `bundleRedeemedOrdinal` / `cloudRevision` 三者皆不变。
 6. 同一 `receiptId` 在首次 verify 之后**任意时间跨度**（含 > 30 天）重复提交，仍回 `deduplicated = true`，序号与 `revision` 与第一次逐位相同。
 7. 上行使 `bundleRedeemedOrdinal > bundleGrantOrdinal` ⇒ **接受写入**，记一条告警级台账 + 风控事件（不拒绝，`profile-sync.md` §7a）。
+8. `/entitlement/characterSeries` **只增不删、元素唯一**：客户端读到的数组中同一 `seriesId` 至多出现一次，且任一已写入的元素**永不被后端移除**——包括其上架窗口关闭的情形（窗口关闭改的是「能不能买」，不是「拥有什么」）。
+
+- **保证 4 与 7 对 `kind == CharacterSeries` 不适用**（本类无序号、无兑现水位），保证 5 由 `profile-sync.md` §5c 的适用面恒等式**自动覆盖**新路径，无需在此加字。
 
 **保证 3 是一条要求，不是一种实现。** 客户端拿到新序号的唯一路径是 verify 应答后强制一次 pull（§3 已定 verify 不内联 profile）。若这次读落在滞后的只读副本上，客户端读到旧序号 ⇒ 判定「无待兑现」⇒ **玩家付了钱、客户端认为没有货可发，且不会再重试**（它已经不觉得自己欠什么）——这是整条链上唯一一个无人重试的失败点，客户端也无从区分「副本滞后」与「verify 其实没成功」。因此它排除「读走可能滞后的只读副本」这一部署形态，或要求该形态附带会话粘滞 / `revision` 下界等待；**具体实现不指定**，跨区域侧的对应约束见 `profile-sync.md` §8。**代价如实记下**：这是本库唯一一条对读路径提出的实现约束，须在栈选型时带上。**明确否决**「后端主动推送新序号给客户端」——新增一条通道与平台推送依赖，而它解决的问题已被强制 pull 解决。
 
@@ -197,7 +259,12 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 |---|---|---|
 | 唯一键 | **`receiptId` 全局唯一**，不带 `accountId` 前缀 | 「已被其他账号核销」是既定失败面（§3），它要求跨账号可查重；`pushId` 取 `(accountId, pushId)` 是因为那个键由客户端生成、只在账号内有意义 |
 | 保留时长 | **永久（不设 TTL）** | 过期代价不对称：`pushId` 过期只降级为一次进度丢失（既定语义已接受），`receiptId` 过期是**重复 `+1`**——第二次提交查不到记录即当作新票，玩家白得一份，且这是发放侧漏洞、线上不可发现。记录体量与购买次数同阶（每账号个位数 / 年），存储成本可忽略 |
-| 存储形态 | `receiptId → { accountId, bundleGrantOrdinal, revision, verifiedAtUtc, status }` | 与 `bundleGrantOrdinal` / `cloudRevision` 的写入**同一次事务**——分开写会出现「revision 已 `+1` 但幂等记录未落」，正是重放会重复发放的那一刻。**选型判据、分区与索引、不合表与 TTL 禁用断言见 `operations/purchase-ops.md`** |
+| 存储形态 | `receiptId → { accountId, productId, kind, bundleGrantOrdinal?, grantedSeriesId?, revision, verifiedAtUtc, status }` | 与 profile 写入 / `cloudRevision` 的写入**同一次事务**——分开写会出现「revision 已 `+1` 但幂等记录未落」，正是重放会重复发放的那一刻。**选型判据、分区与索引、不合表与 TTL 禁用断言见 `operations/purchase-ops.md`** |
+
+- **存 `productId` 原值，而不是只存解析结果。** SKU 会下架（上架窗口关闭即是常规情形），靠反查商店后台会断，而幂等记录是客服工单与退款对账的唯一落点。
+- **`grantedSeriesId` 是解析结果的快照。** 机械变换规则日后若调整，历史工单仍要能定位当时到底发了什么。
+- **`bundleGrantOrdinal` 与 `grantedSeriesId` 按 `kind` 二选一存在**，与 §3 的应答分形对位。
+- **退款态仍记在运维侧字段上，不进 §4 的 `status` 枚举**（见下）。
 
 **幂等记录的存储选型、分区与冷存归档归 `operations/purchase-ops.md`**，**不回头改契约**。本节只定语义：**永不过期**。那里以三条**选型判据**（同事务写入 · 唯一性由存储层保证 · 读路径受同一条读己所写约束）约束选型，而不是替选型下结论；具体存储产品与事务实现随栈落定。
 
@@ -238,10 +305,23 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 - **`Rejected` 原因放进错误体、让补查直接回错误**（§4） — 本次请求成功，收据状态是数据不是错误；且与端点「纯读、幂等」的定位相抵。
 - **退款回收权益 / 回退 `bundleGrantOrdinal`**（§7） — 与保证 4「严格单调不清零」直接冲突，且条目已写进玩家存档，回收比不发更糟。
 - **把「已退款」加进 §4 的 `status` 枚举**（§7） — 三值已封定，且客户端对它没有任何动作可做，下发只会诱导实现一条不存在的处置。
+- **角色级 SKU（单个角色零售）**（§3a） — 客户端侧已明确否决（破坏系列的五行对称，且会把「买哪个最强」变成事实上的强度选择）；这是对侧已 Accepted 的决策，后端无权单方面改它。
+- **新开端点 `POST /v1/purchase/verify-series`**（§3） — 验票逻辑（渠道校验、幂等、事务、读己所写）逐字相同，分端点即写两遍；且 `envelope.md` §3 端点全集表、两条机检断言与 `receiptId` 幂等窗口全要分叉。「新增渠道加分支不加端点」已为这类扩展定下形态。
+- **请求里带 `seriesId`**（§3） — 客户端自述，正面违反 §3a「客户端提交的一切只作索引、不作判据」。
+- **应答复用 `bundleGrantOrdinal`，在系列购买时回「云端当前值」**（§3） — 同一字段在两类 SKU 下语义不同（「`+1` 后的新序号」vs「当前值」），正是本契约反复分列所要避免的歧义。
+- **后端持一张「系列 → 角色 id 列表」表**（§3a） — 内容编排知识的第二权威，两库都没有机制能发现它漂移。
+- **SKU 表加一列手工维护的 `seriesId`**（§3a） — 能机械变换的绝不建第二张手写表。
+- **给角色系列另设一条兑现水位（对称于 `bundleRedeemedOrdinal`）**（§5 · §6） — 水位存在的理由是「发货动作在客户端、云端需要一个可见的已发货记号」；本类的发货动作在后端，没有任何东西需要被记号。
+- **重复购买已拥有系列时回一个新的 `Fatal` code**（§3c） — 钱已扣，让玩家在付款后撞失败面是最糟的失败时机；且玩家面为空者不应独立成码。
+- **重复购买时自动发起渠道退款**（§3c） — 要求后端持三渠道退款 API 写权限（凭据面当前只覆盖查询 / 核销），并引入一条异步补偿状态机，成本远高于它要解决的问题频次。
+- **把上架窗口下发给客户端 / 写进 profile**（§3a） — 它约束「能不能买」而非「拥有什么」；进 profile 会让一条纯运营配置占一格存档并背上路径稳定性约束。
+- **窗口外购买新造一个 `code`**（§3a） — 与「`productId` 不在 SKU 表」的客户端处置逐字相同，多一行映射表换零收益。
 
 ## Open questions
 
-**无待答项。** 实现侧的落点分工如下，**契约层不因此改动**——§7 的语义（永不过期）不依赖选型，对账信号只作人工 / 工单入口、不驱动任何自动写入：
+- **商户侧下单渠道（微信）在上架窗口外的下单请求如何应答？** §3a 的窗口校验落点在 verify（付款之后）。把同一道校验前移到 `POST /v1/purchase/order` 更符合「把失败点挪到掏钱之前」，但下单端点当前没有一条语义合身的既有 `code`：`purchase.channel_disabled` 讲的是渠道未开通、不是商品不可售，而 `purchase.receipt_invalid` 的客户端处置（终态失败 + 客服入口 + 解除待兑现态）针对的是已付款的玩家。**微信渠道首版不开通 ⇒ 本项不阻塞首版**；它在微信开通前须答定，且答案可能触及 `envelope.md` §6 台账（这是本次唯一一处可能破坏「`code` 零新增」的地方）。
+
+实现侧的落点分工如下，**契约层不因此改动**——§7 的语义（永不过期）不依赖选型，对账信号只作人工 / 工单入口、不驱动任何自动写入：
 
 | 实现侧的事 | 落点 |
 |---|---|
@@ -250,4 +330,4 @@ POST /v1/purchase/order               为需商户侧下单的渠道创建订单
 | 幂等记录体量增长后的冷存归档形态（触发条件与三层分工） | `operations/purchase-ops.md` §3d · `decisions/ADR-0045-receipt-idem-tiered-archival.md` |
 | 对账信号「`bundleGrantOrdinal > bundleRedeemedOrdinal` 持续 N 天」的**阈值 N** 及其校准口径 | `operations/purchase-ops.md` §4（N 落旋钮表，不落契约） |
 
-Source: `handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 的失败面：verify 不返回 `compliance.*`）· `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§3 渠道取值域 · §4 与 §6 读己所写 · §5 判据 · §7 收据幂等窗口）· `handoffs/2026-09-03-purchase-channel-integration.md`（§1 三端点 · §3 判别式与失败面 · §3a 逐渠道形态与 `receiptId` 取值 · §3b 下单端点 · §6 保证 3 覆盖面 · §7 回链）· `handoffs/2026-09-06-iap-channel-integration.md`（§4 `Rejected` 附 `code` · `status` 三值 PascalCase）。
+Source: `handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md` · `handoffs/2026-08-16c-compliance-contract-and-session-arbitration.md`（§3 的失败面：verify 不返回 `compliance.*`）· `handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§3 渠道取值域 · §4 与 §6 读己所写 · §5 判据 · §7 收据幂等窗口）· `handoffs/2026-09-03-purchase-channel-integration.md`（§1 三端点 · §3 判别式与失败面 · §3a 逐渠道形态与 `receiptId` 取值 · §3b 下单端点 · §6 保证 3 覆盖面 · §7 回链）· `handoffs/2026-09-06-iap-channel-integration.md`（§4 `Rejected` 附 `code` · `status` 三值 PascalCase）· `handoffs/2026-09-12-premium-character-series-unlock.md`（§2 写入动作分流 · §3 应答按 `kind` 分形 · §3a SKU 类别与机械变换与上架窗口 · §3c 重复购买处置 · §4 同款分形 · §6 保证 8 · §7 幂等记录存储形态）。

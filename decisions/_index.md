@@ -4,6 +4,11 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| `ADR-0068` | 角色系列的上架窗口只约束「能不能买」，不进 profile、不进任何封闭表 | Accepted | 2026-09-11 | `contracts/purchase.md`, `operations/purchase-ops.md` |
+| `ADR-0067` | 重复购买一个已拥有的角色系列：接受写入 + 风控事件，绝不拒绝、不自动退款 | Accepted | 2026-09-11 | `contracts/purchase.md`, `operations/purchase-ops.md` |
+| `ADR-0066` | `/entitlement/characterSeries` 进后端写入字段封闭表（该表的第一次扩表） | Accepted | 2026-09-11 | `contracts/profile-sync.md`, `contracts/purchase.md`, `operations/version-matrix.md` |
+| `ADR-0065` | 验票应答按 `kind` 分形，请求侧一格不加 | Accepted | 2026-09-11 | `contracts/purchase.md`, `contracts/envelope.md` |
+| `ADR-0064` | 付费角色系列取系列级 SKU，`seriesId` 由 `productId` 机械变换，后端零内容知识 | Accepted | 2026-09-11 | `contracts/purchase.md`, `operations/purchase-ops.md` |
 | `ADR-0063` | 人类身份对业务表恒只有 `SELECT`，一切写入经服务端受控面 | Accepted | 2026-09-09 | `operations/internal-tools.md`, `operations/content-delivery-ops.md`, `operations/environments.md`, `operations/moderation.md` |
 | `ADR-0062` | 内部运营工具面不属于契约面，`/internal/` 永不进端点全集表 | Accepted | 2026-09-09 | `operations/internal-tools.md`, `contracts/envelope.md`, `operations/deployment.md` |
 | `ADR-0061` | 内部人员身份自成一套 `operator_id`，与 `account` 完全分离 | Accepted | 2026-09-09 | `operations/internal-tools.md`, `systems/account.md`, `operations/moderation.md`, `operations/environments.md`, `operations/content-delivery-ops.md` |

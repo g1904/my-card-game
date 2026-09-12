@@ -1,13 +1,13 @@
 # ④ 内容分发（协议与运维形态均已成文 · 待答清单已清零）
 
-> **协议侧四条已于 2026-08-11 全部答结** → `contracts/content-manifest.md`（manifest schema 与三版本号分工、blob 内容寻址、ES256 detached 签名与 `keyId` 轮换、`ContentEnabled` 的 flags 第三层）。移出记录见 `answer-logs/log-content-delivery-manifest-and-flags.md`。
+> **协议侧四条已于 2026-08-11 全部答结** → `contracts/content-manifest.md`（manifest schema 与三版本号分工、blob 内容寻址、ES256 detached 签名与 `keyId` 轮换、`ContentEnabled` 的 flags 第三层）。移出记录见 `../answer-logs/log-content-delivery-manifest-and-flags.md`。
 > 客户端侧见 `game-design-documents/systems/services/content-service.md`。
 
-> **三条运维形态已于 2026-09-03 答结** → `operations/content-delivery-ops.md`（flags 规则集的存储形态与变更通道 · 签名私钥的五条保管判据与 `keyId` 轮换的触发 / 节奏 / 覆盖率口径 · 发布侧内容校验闸 C1–C6 与留痕八字段）。移出记录见 `answer-logs/log-content-delivery-ops.md`。
+> **三条运维形态已于 2026-09-03 答结** → `operations/content-delivery-ops.md`（flags 规则集的存储形态与变更通道 · 签名私钥的五条保管判据与 `keyId` 轮换的触发 / 节奏 / 覆盖率口径 · 发布侧内容校验闸 C1–C6 与留痕八字段）。移出记录见 `../answer-logs/log-content-delivery-ops.md`。
 
 > **剧本内容的体积与分发形态已由对侧答结**（2026-09-05 核对移出）→ 客户端裁定**剧本树不按篇章分包**、整体随 `res://` 基线发布、更新走 overlay 的文件级增量热更，权威见 `game-design-documents/decisions/ADR-0029-plot-tree-single-baseline-package.md`（Accepted）与 `game-design-documents/systems/services/plot-manager.md`。**本库零机制增量**：manifest 不加字段、`manifestSchema` 不提升、报文无变化。余下的下载量上界与 CDN 成本已并入 `06-platform-stack.md` 的成本模型条。移出记录见 `../answer-logs/log-0905.md`。
 
-> **多区域一致性与传播窗口 T 已于 2026-09-06 答结** → CDN 侧三问以**否定结论**收口：单区域部署下不存在「多区域」这个对象（`operations/environments.md`「拓扑与副本」），`contentRoot` 按区域下发**不启用**（自由度保留，用途改述为域名 / 厂商切换与日后独立部署），区域间时序差降格为边缘缓存传播、已被「先 blob 后 manifest + 内容寻址 + 两类 TTL」覆盖，另补两条 CDN 负缓存要求。**T 重定义为跨实例窗口**（主体由「全部区域」改为「全部对外服务的实例」）并取初值 **60 秒**，配 A7–A9 三条服务端纪律（头永不领先于本实例可兑现的规则集）使其降级为纯延迟 SLO。→ `contracts/content-manifest.md`「服务端保证」B 组 · `operations/content-delivery-ops.md` · `operations/observability.md` · `decisions/ADR-0009`。移出记录见 `../answer-logs/log-cdn-multi-region-propagation-window.md`。
+> **多区域一致性与传播窗口 T 已于 2026-09-06 答结** → CDN 侧三问以**否定结论**收口：单区域部署下不存在「多区域」这个对象（`operations/environments.md`「拓扑与副本」），`contentRoot` 按区域下发**不启用**（自由度保留，用途改述为域名 / 厂商切换与日后独立部署），区域间时序差降格为边缘缓存传播、已被「先 blob 后 manifest + 内容寻址 + 两类 TTL」覆盖，另补两条 CDN 负缓存要求。**T 重定义为跨实例窗口**（主体由「全部区域」改为「全部对外服务的实例」）并取初值 **60 秒**，配三条服务端纪律（头永不领先于本实例可兑现的规则集）使其降级为纯延迟 SLO——该三条现落 `systems/content-delivery.md`（实现纪律与 F1–F8），**旧编号 A7–A9 已不存在于任何文档，按该标签检索会零命中**。→ `contracts/content-manifest.md`「服务端保证」B 组 · `systems/content-delivery.md` · `operations/content-delivery-ops.md` · `operations/observability.md` · `decisions/ADR-0009` · `ADR-0047`。移出记录见 `../answer-logs/log-cdn-multi-region-propagation-window.md`。
 
 ## 条件化核对项（不是待办）
 

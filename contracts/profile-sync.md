@@ -2,7 +2,7 @@
 
 > 覆盖 `/v1/profile/…` 两个端点的报文本体。**边界层不在此重复**：序列化与命名约定、`/v1/` 主版本、传输信封、错误体形状、错误码台账、版本协商、Profile 三段可见性的分界——全部见 `envelope.md`，本文件只写 sync 域**相对它的差异与细化**。
 > 客户端侧门面见 `game-design-documents/systems/services/sync-service.md`（那里描述**客户端怎么用**；此处描述**报文长什么样**）。
-> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）、`handoffs/2026-08-23c-echo-validation-scope.md`（§5c 适用面恒等式 + 比较口径 + 追加字段刚性）、`handoffs/2026-08-25-codex-key-count-neutralization.md`（§5 排除清单去计数化）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§4 `reason` 宽容不适用于 `schemaVersion` 的不对称声明 · §5b 登记表回链）、`handoffs/2026-09-03-backend-stack-and-hosting.md`（CAS 与两类幂等记录的存储 · 限流实现分层 · 单区域拓扑与读己所写的落地）、`handoffs/2026-09-03-nickname-moderation-and-risk-control.md`（§5c / §7a 风控事件的落地形态）——**后两份均只落实现侧，契约一字未改**。
+> Source: `handoffs/2026-08-14-profile-sync-contract.md`、`handoffs/2026-08-12-grant-source-code-contract.md`、`handoffs/2026-08-14-splitmix64-test-vectors.md`（§6a 向量填值）、`handoffs/2026-08-16-purchase-contract-and-cross-boundary-ledger.md`、`handoffs/2026-08-16b-account-identity-model.md`（§5 后端写入字段表与白名单补行）、`handoffs/2026-08-17-profile-field-naming.md`（§5 白名单集合字段单数化 + §5b 命名通则 + §7 `ordinal` 口径消歧）、`handoffs/2026-08-22-entitlement-echo-and-receipt-idempotency.md`（§4 所有权类拒绝 + §5 水位路径与 §5c 回声校验 + §7a 判据边界 + §8 读路径要求）、`handoffs/2026-08-23c-echo-validation-scope.md`（§5c 适用面恒等式 + 比较口径 + 追加字段刚性）、`handoffs/2026-08-25-codex-key-count-neutralization.md`（§5 排除清单去计数化）、`handoffs/2026-09-03-schema-bump-ledger-authority.md`（§4 `reason` 宽容不适用于 `schemaVersion` 的不对称声明 · §5b 登记表回链）、`handoffs/2026-09-03-backend-stack-and-hosting.md`（CAS 与两类幂等记录的存储 · 限流实现分层 · 单区域拓扑与读己所写的落地）、`handoffs/2026-09-03-nickname-moderation-and-risk-control.md`（§5c / §7a 风控事件的落地形态）——**后两份均只落实现侧，契约一字未改**；`handoffs/2026-09-12-premium-character-series-unlock.md`（§5 后端写入字段表与透明白名单各加一行 · §5c 具体面表与比较口径表各加一行）。
 
 ## 1. 端点集：两个，封定
 
@@ -43,7 +43,7 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 
 后端不懂 Profile 结构（pillar #1），因此账号创建时它能写的只有**它自己持有真值的那几项**（种子、注册时刻、首条 identity）；其余默认字段由客户端在 `isNewAccount` 时本地构造，随首次 push 补齐。初始 `revision = 1`（账号创建即一次写入），客户端 `baseRevision` 初值为 `0` ⇒ 首次 pull 必然推进，**不存在「空 profile」这个分支**。
 
-账号创建之后，后端还能写入的只有两处：`bind` / `unbind` 成功时的 `identities`、验票通过时的 `bundleGrantOrdinal` —— 完整清单与写入时机见 §5 的**后端写入字段表（封闭）**。
+账号创建之后，后端还能写入的只有两个时机：`bind` / `unbind` 成功时的 `identities`、验票通过时的 profile 写入（按 SKU 类别落在 `bundleGrantOrdinal` 或 `characterSeries` 上，见 `purchase.md` §2）—— 完整清单与写入时机见 §5 的**后端写入字段表（封闭）**。
 
 **`accountSeed` 以 16 位小写十六进制字符串下发**（无 `0x` 前缀，定长便于校验）。`AccountSeed` 是 `ulong` 随机数，**几乎必然超出 2⁵³**——JSON number 在双精度实现里会静默丢低位，而它是**逐位复算的输入**：丢一位则两侧算出不同的 `roll`，且该缺陷只在部分账号上显形。选 hex 而非十进制字符串：定长、与「种子是一段比特」的语义相符、不会被中间层当数字重新解析。`envelope.md` §2 的整数通则因此**补了一个判据而非开例外**（「可能超出 2⁵³ 的整数一律字符串」），其论据与该条原论证同源。
 
@@ -112,7 +112,7 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 `envelope.md` §8 已定 Profile 分三段可见；本节给出第二段（**透明子集**）的逐字段清单。三条纪律：
 
 - **未在下表出现的一切字段都是不透明段**——不另写「不可见清单」，白名单的补集即是。
-- **后端对透明段只读，除下表四项外。透明 ≠ 可改写。**
+- **后端对透明段只读，除下表五项外。透明 ≠ 可改写。**
 
   **后端写入字段表（封闭）**
 
@@ -122,10 +122,11 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
   | `/accountInfo/createdAtUtc` | 账号创建时（与上一行同一步） | 一次，此后不变 | `auth.md` §1a |
   | `/accountInfo/identities` | 建号 / `bind` / `unbind` 成功时 | 反复 | `auth.md` §1a |
   | `/entitlement/bundleGrantOrdinal` | 每次验票通过时 `+1` | 反复 | `purchase.md` |
+  | `/entitlement/characterSeries` | 验票通过且该 SKU 的 `kind == CharacterSeries` 时，**尾部追加一个元素** | 反复 | `purchase.md` |
 
   **其余一切字段后端只读。本表封闭——新增后端写入字段是破坏性契约变更，须两侧同批评审。**
 
-  > **护栏是承重的，规则的措辞不许改。** 规则是「后端只读，**除表内四项外**」，**不是**「后端可写的字段有……」——列举式措辞会让这张表读起来像一个可增长的清单，而例外式措辞使它读起来像一道需要论证才能通过的门。任何要求扩表的提案，须显式引用本条护栏并说明为何不能用别的通道，**不得静默加行**。
+  > **护栏是承重的，规则的措辞不许改。** 规则是「后端只读，**除表内五项外**」，**不是**「后端可写的字段有……」——列举式措辞会让这张表读起来像一个可增长的清单，而例外式措辞使它读起来像一道需要论证才能通过的门。任何要求扩表的提案，须显式引用本条护栏并说明为何不能用别的通道，**不得静默加行**。
   >
   > **「写入时机」列同样是封闭的**，且比字段清单更能挡住下一次扩表：它使「哪些时机后端会写」本身也有边界——建号 / 验票 / `bind`·`unbind` 之外的任何时机，后端一律不写。
   >
@@ -136,12 +137,18 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
   > **反例二：`/statistics`** —— 真值在客户端，永远不够格。
   > **反例三：`/entitlement/bundleRedeemedOrdinal`** —— 兑现水位的真值产生在客户端的兑现事务里，第 ① 条即不满足；它与表内的 `bundleGrantOrdinal` 同处 `entitlement` 键**不构成进表理由**，同键不等于同所有权。
   >
+  > **为什么 `/entitlement/characterSeries` 在表内**（本表成文以来的**第一次扩表**，按本护栏逐条论证）：
+  > 判据 ① 成立——解锁是付费凭证的兑现结果，客户端写入即等于客户端有权发货，而那条路径已由 `purchase.md` §2 与 `ADR-0007` 关死。
+  > 判据 ② 成立——与 `bundleGrantOrdinal` 不同，本 path **没有兑现段**：没有客户端掷骰、没有可由本地事实派生的值、没有第二个字段能承载它；不进本表就没有任何通道能让解锁到达客户端。
+  > **「写入时机」列不被触碰**：本行落在**既有的「验票」时机**下，建号 / `bind`·`unbind` 两个时机一字不动。
+  > 与上方三条反例逐条不同：`nickname` 与 `/statistics` 的真值在客户端（判据 ① 即不满足）；`bundleRedeemedOrdinal` 的真值产生在客户端的兑现事务里。本 path 与 `bundleGrantOrdinal` **同所有权、同写入时机**。
+  >
   > **为什么 `bundleGrantOrdinal` 在表内。** 它的推进权**只能在后端**，否则付费防篡改归零（客户端侧承重定案，不可绕过）。
   > **已否决的替代**：把它移出 profile 聚合、单独存在后端的购买域（客户端只读取、不落存档）。代价更高——它会让兑现段的掷骰 `ordinal` 来自一个不在 profile 里的字段，破坏「整次授予由 `(域, 序号)` 完全确定且随授予事务同一次持久化」这条客户端承重纪律，且 `AccountRng` 的两个域会有两套来源。
   >
-  > **如实记下的代价**：一条**无例外**的「后端只读」规则本来最省心，读者不必记例外。有了四条例外之后，每一条「能不能让后端也写这个」的提议都会引用它们作先例——这正是上面那条判据存在的理由：**它把「引先例」变成一次必须逐条通过的检验。**
+  > **如实记下的代价**：一条**无例外**的「后端只读」规则本来最省心，读者不必记例外。有了这几条例外之后，每一条「能不能让后端也写这个」的提议都会引用它们作先例——这正是上面那条判据存在的理由：**它把「引先例」变成一次必须逐条通过的检验。**
 
-  **后端对 profile 的任何写入均推进 `revision`。** 建号骨架写入（`revision = 1`）· `bind` / `unbind` 的 `identities` 更新 · 验票的 `bundleGrantOrdinal += 1`，三处一律 `+1`；`revision` 是「profile 的写入计数器」这一不变式，是读己所写下界、CAS 三分支与副本一致性判据的共同地基。
+  **后端对 profile 的任何写入均推进 `revision`。** 建号骨架写入（`revision = 1`）· `bind` / `unbind` 的 `identities` 更新 · 验票的 profile 写入（按 SKU 类别是 `bundleGrantOrdinal += 1` 或 `characterSeries` 追加，见 `purchase.md` §2），三处一律 `+1`；`revision` 是「profile 的写入计数器」这一不变式，是读己所写下界、CAS 三分支与副本一致性判据的共同地基。
 - **⚠ 承重：透明字段的 JSON path 是契约的一部分。** 客户端把 `playerPowerFragment` 挪个位置、或把 `sourceCode` 改个名，在客户端侧是纯重构（老档靠迁移无损通过），但**在后端侧会静默变成「这个字段消失了」**——复算退化为空操作，且两侧都不会报错。因此：**移动或重命名任一透明字段的路径 = 破坏性契约变更，必须 bump `schemaVersion` 并与后端同批改**，与「重命名跨边界枚举值即破坏性变更」（`sync-service.md`）同一条纪律。后端对**缺失的透明路径**一律记一条告警级台账（**不拒绝上行**），使这类漂移在线上可见。
 
 | JSON path（相对 `profile` / `playerDiff` 根） | 类型 | 后端用途 |
@@ -158,6 +165,7 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 | `/playerPower[*]/powerId` | string | `x` 的计数对象 |
 | `/playerPower[*]/sourceCode` | string enum | `x = count(sourceCode == "FinaleWin")` |
 | `/entitlement/bundleGrantOrdinal` | number int | 复算 `PremiumBundle` 域掷骰的 `ordinal`；**单调 `+1` 校验**；**后端写入**（见上方封闭表与 `purchase.md`）；受 §5c 回声校验约束 |
+| `/entitlement/characterSeries` | array of `{ seriesId }` | 角色系列解锁集合；**后端写入**（验票通过且 `kind == CharacterSeries` 时尾部追加）；受 §5c 回声校验约束。**后端不做除回声比对之外的任何校验**——它不是任何复算的输入，也没有区间 / 单调不变式可查；唯一的不变式「只增不删、元素唯一」由后端自己在写入侧保证（`purchase.md` §6 保证 8）。元素的字段面由客户端定义（`game-design-documents/systems/player-profile/_index.md`），本库不复述 |
 | `/entitlement/bundleRedeemedOrdinal` | number int | 兑现水位，**后端只读**（写入方是客户端的兑现事务）。不变式校验：`0 ≤ bundleRedeemedOrdinal ≤ bundleGrantOrdinal` 且单调不减；违反走 §7a（记账 + 风控，**不拒绝**）。**不受 §5c 约束**——判据是所有权，客户端有权写它 |
 
 **明确落在不透明段的（各有理由）：**
@@ -222,6 +230,7 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 | `/accountInfo/createdAtUtc` | `accountInfo` | 同上 |
 | `/accountInfo/identities` | `accountInfo` | 同上 |
 | `/entitlement/bundleGrantOrdinal` | `entitlement` | **兑现** |
+| `/entitlement/characterSeries` | `entitlement` | 同上——浅合并下客户端改动 `entitlement` 内任一格都会把整键提交上来 |
 
 **受约束的顶层键因此恰有两个。** 两者的共同形状是「同一顶层键内混有后端写入路径与客户端写入路径」——这正是整键替换把覆写窗口变成**常规路径**（而非罕见窗口）的充要条件：每次改昵称、每次兑现都会走一遍。
 
@@ -234,11 +243,12 @@ POST /v1/profile/push     diff 上行（CAS + 幂等）                 —— �
 | 整数（`bundleGrantOrdinal`） | 数值相等 |
 | 定长 hex 串（`accountSeed`） | **逐字相等**——形态已被 §2 钉死为 16 位小写 hex，两侧无归一化自由度 |
 | RFC 3339 时间串（`createdAtUtc`） | **按时刻相等**，不按字面相等 |
-| 对象数组（`identities`） | **有序逐元素**，元素内**逐字段**按上述口径递归 |
+| 对象数组（`identities` · `characterSeries`） | **有序逐元素**，元素内**逐字段**按上述口径递归 |
 
 - **`createdAtUtc` 必须按时刻比较。** 客户端持有的是强类型时间值，反序列化 → 再序列化会在 `Z` / `+00:00`、小数秒位数上产生合法但不同字面的表示。按字面比较等于要求两侧的时间序列化器逐字一致——**那是一条无人声明、无处校验、一次库升级就会静默破坏的隐含契约**，而它破坏时的症状是「所有玩家改昵称都丢一次进度」。
 - **不按原始字节比较**，同理并追加一条：JSON 对象的键序与空白不稳定，字节比较把序列化器实现细节抬成契约。
 - **`identities` 取有序而非集合相等**：顺序由后端产出、客户端原样回声，要求有序既更严格也更便宜；宽松只会掩盖客户端的重排 bug。若日后确有重排需求，那是后端自己的变更，不构成客户端义务。
+- **`characterSeries` 同取有序，不另开一种无序集合口径。** 后端恒在尾部追加、客户端对该 path 不改写 / 不去重 / 不归一化（客户端侧纪律，`game-design-documents/systems/player-profile/_index.md`）⇒ 有序天然成立；另开一种比较语义要在这张口径表上多一种读法，为零收益付一次歧义。
 
 **⚠ 连带刚性：向受约束顶层键内的对象追加字段，是需要两侧同批落笔的变更。** 客户端对这些路径持有强类型 record，强类型往返会**静默丢掉**它不认识的字段 ⇒ 下一次回声当场失败 ⇒ 整批拒绝。这与「重命名跨边界枚举值」同档。**它是 `envelope.md` §8「客户端加字段不需要后端配合」的例外**——那句话讲的是不透明段，本条讲白名单内。
 

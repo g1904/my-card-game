@@ -16,9 +16,11 @@
 
 ## 待承接
 
-- `game-design-documents/decisions/ADR-0255-paid-character-series-track.md`#决策 | 2026-09-11 | `contracts/purchase.md` · `systems/`（承接文档待定） | **客户端开了商业化第三支「付费解锁角色系列」，给后端新增三项义务：① 系列级 SKU（整系列礼包定价：5 个的系列付 4 个单解之价、10 个的系列付 8 个）· ② 购买验票后由后端主动写入解锁 · ③ 封闭表加行。** 具体载体与字段形态在客户端侧同样明写「首批一格不落、归 `/provide-solution-draft` 推演」，故本条现阶段是**待答 / 提案形态**，不是等落笔的已定案承接项——后端侧要决的是「SKU 粒度是系列级还是角色级」与「封闭表加的是哪张表」。裁决权在用户，本条不预设形态；口径一律回链对侧 ADR，本库不复述。
+*（空）*
 
 ## 对账基线（不是待办）
+
+- **付费角色系列的后端承接已完成**（客户端 `ADR-0255` 2026-09-11 定案 → 本库 2026-09-12 落笔）：登记时留的两问均已答结——**SKU 粒度 = 系列级且只有这一种**（单解 SKU 不存在，「付 N 个单解之价」是定价锚，不对应任何可购商品）· **封闭表两张都加**（后端写入字段封闭表 4 行 → 5 行，透明字段白名单同加一行；两表正交、非二选一）。本库落笔面：`contracts/purchase.md`（§2 写入动作按 `kind` 分流 · §3 / §4 应答分形 · §3a 机械变换与上架窗口 · §3c 重复购买处置 · §6 新增保证 8 · §7 幂等记录三格）· `contracts/profile-sync.md` §5 §5c · `operations/version-matrix.md`（`schemaVersion` 子表 +`2`）· `operations/purchase-ops.md` §1a §5 · `systems/profile-store.md`。**`envelope.md` 零改动、`code` 与端点零新增。** 客户端半见 `game-design-documents/handoffs/2026-09-12-premium-character-series-unlock.md`，**本库不复述其形态**。**两侧无遗留欠账**；余下一条实现面待答项（微信下单端点在上架窗口外的应答）落 `01-contracts.md`，不属跨边界承接。移出记录见 `../answer-logs/log-premium-character-series-unlock.md`。
 
 - **四条 `compliance.*` 拦截码的「客户端处置」列已于 2026-09-06 改为回链客户端库**（`contracts/envelope.md` §6：呈现形态见 `game-design-documents/ux/error-and-blocking-ux.md`，仅保留凭 ticket / 供数字段等契约事实）。语义不变、只消除措辞不一致；对侧 handoff `game-design-documents/handoffs/2026-09-03-compliance-client-surface.md`。**两侧无遗留欠账。** 移出记录见 `../answer-logs/log-0906.md`。
 

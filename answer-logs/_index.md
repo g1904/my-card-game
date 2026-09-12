@@ -23,6 +23,7 @@
 
 | Log | 日期 | 来源 | 移出条数 |
 |-----|------|------|----------|
+| `log-premium-character-series-unlock.md` | 2026-09-12 | `inbox/archive/solution-draft-premium-character-series-unlock.md` → `handoffs/2026-09-12-premium-character-series-unlock.md` | 1（`cross-boundary.md`「待承接」第一条整条，内含两小问：**SKU 粒度 = 系列级且唯一** · **封闭表两张都加**；同批按标准默认采纳一项〔重复购买不自动退款、走人工工单〕，并承接客户端评审新增的「上架窗口」机制。新增 `01` 一条实现面待答〔微信下单端点在窗口外的应答码〕，`01` 分片由清零转为 1 条。跨库，客户端半见 `game-design-documents/answer-logs/log-premium-character-series-unlock.md`） |
 | `log-internal-ops-tools.md` | 2026-09-09 | `inbox/archive/solution-draft-internal-ops-tools.md` → `handoffs/2026-09-09-internal-ops-tools-and-operator-identity.md` | 2（`07` 两条同源一并裁决：昵称人工复核台的形态含 `claimed_by` 取值域 · 风控工单的落点。答案同为「本库自己的 `operator_id` + `/internal/` 面 + CLI」；同批裁决四项取向 / 张力并按标准默认采纳一项。新增 `07` 两条待答，`07` 分片不清零） |
 | `log-flags-zero-load-code.md` | 2026-09-09 | `inbox/archive/solution-draft-flags-zero-load-code.md` → `handoffs/2026-09-09-flags-zero-load-no-dedicated-code.md` | 1（`01` 唯一待答项：flags 零装载失败不值得专属 `code`，维持 `server.unavailable`；**`01` 分片待答清单随之清零**。零取向项、零新增待答、零新增 ADR） |
 | `log-risk-ledger-storage-shapes.md` | 2026-09-08 | `inbox/archive/solution-draft-risk-ledger-storage-shapes.md` → `handoffs/2026-09-08-risk-ledger-storage-shapes.md` | 1（风控三张台账的存储形态整条——该条此前**不在任一分片跟踪**，只挂在 `operations/moderation.md` 末行的一句悬空指路上；同批裁决一项：两个删除类 `kind` 另落 `deletion_audit`、保留 3 年、注销执行不删。残余 `riskEventBufferRows` 取值转 `06`，新开 `07` 两条） |

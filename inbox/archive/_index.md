@@ -6,6 +6,7 @@
 
 | 草稿 | 对应 handoff | 日期 |
 |------|--------------|------|
+| `solution-draft-premium-character-series-unlock.md` | `handoffs/2026-09-12-premium-character-series-unlock.md` | 2026-09-12 |
 | `solution-draft-internal-ops-tools.md` | `handoffs/2026-09-09-internal-ops-tools-and-operator-identity.md` | 2026-09-09 |
 | `solution-draft-flags-zero-load-code.md` | `handoffs/2026-09-09-flags-zero-load-no-dedicated-code.md` | 2026-09-09 |
 | `solution-draft-risk-ledger-storage-shapes.md` | `handoffs/2026-09-08-risk-ledger-storage-shapes.md` | 2026-09-08 |
