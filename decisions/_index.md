@@ -4,6 +4,22 @@
 
 | id | 标题 | 状态 | 日期 | 影响文档 |
 |---|---|---|---|---|
+| [ADR-0284](ADR-0284-series-release-order-paid-advanced-batch-first.md) | 系列推出次序首次定序：先单灵根五角进阶付费批，双灵根免费批在后 | Accepted | 2026-09-12 | systems/monetization.md, vision/scope.md, systems/character-profile/_index.md |
+| [ADR-0283](ADR-0283-story-is-not-a-paywall.md) | 剧情不是付费面：免费与付费角色叙事待遇一视同仁 | Accepted | 2026-09-12 | systems/monetization.md, narrative/_index.md, systems/services/plot-manager.md |
+| [ADR-0282](ADR-0282-character-series-as-worldbuilding-slice.md) | 角色系列 = 世界观切片、对成员零规则强制；名与概述落 `CharacterSeriesData` | Accepted | 2026-09-12 | systems/character-profile/_index.md, narrative/_index.md, content/_index.md, content/character/_index.md |
+| [ADR-0281](ADR-0281-story-crossover-implicit-only.md) | 故事线交叉纯隐式、游戏从不点破；成就不为 lore 串联开条目 | Accepted | 2026-09-12 | narrative/_index.md, systems/services/plot-manager.md |
+| [ADR-0280](ADR-0280-lore-cold-fragmentary-documentary-voice.md) | lore 调子 = 冷的残缺文献体；素语纪律射程收窄为框架 / 系统文案 | Accepted | 2026-09-12 | narrative/_index.md, vision/pillars.md |
+| [ADR-0279](ADR-0279-lore-ephemeral-in-cycle-only.md) | 碎片 lore 只撒轮回内、读过即过、不进图鉴；与支柱 9 的边界写明 | Accepted | 2026-09-12 | narrative/_index.md, vision/pillars.md, vision/scope.md, systems/services/plot-manager.md |
+| [ADR-0278](ADR-0278-narrative-top-level-partition.md) | 新建顶层 `narrative/` 分区：叙事的内部事实源，不是玩家可见面 | Accepted | 2026-09-12 | narrative/_index.md, README.md, vision/scope.md |
+| [ADR-0277](ADR-0277-paid-series-surface-enumeration.md) | 推销面穷举：Store 屏三结果态，角色选择屏完全不出现未拥有项 | Accepted | 2026-09-12 | ux/screen-flow.md, systems/monetization.md, ux/error-and-blocking-ux.md |
+| [ADR-0276](ADR-0276-paid-series-sale-window.md) | 付费系列限时在售窗口：不绝版 · 已购永久可用 · 窗口是内容层属性不进存档 | Accepted | 2026-09-12 | systems/monetization.md, ux/error-and-blocking-ux.md |
+| [ADR-0275](ADR-0275-store-listing-self-derived-and-gate-scoping.md) | 在售清单由内容层自给、`productId` 机械变换；前置条件表两段化 + 三行 | Accepted | 2026-09-12 | systems/monetization.md, ux/error-and-blocking-ux.md |
+| [ADR-0274](ADR-0274-character-series-no-redemption-stage.md) | 付费系列购买段复用、**兑现段整段不存在**；跨启动补入口两条、购后不阻塞 | Accepted | 2026-09-12 | systems/monetization.md, systems/services/sync-service.md, ux/screen-flow.md |
+| [ADR-0273](ADR-0273-paid-track-retirement-policy.md) | `Track == Paid` 退役口径：flags 临时关闭允许，基线永久退役禁止 | Accepted | 2026-09-12 | systems/services/content-service.md, systems/character-profile/_index.md, systems/monetization.md |
+| [ADR-0272](ADR-0272-character-unlock-filter-in-life-cycle-service.md) | 解锁过滤落 `GetSelectableCharacters()`，绝不落 `ContentRegistry` | Accepted | 2026-09-12 | systems/services/life-cycle-service.md, systems/services/content-service.md |
+| [ADR-0271](ADR-0271-echo-path-missing-field-two-timepoints.md) | 回声路径「老档缺字段」分两时点：迁移写空列表、读档即真异常 | Accepted | 2026-09-12 | systems/player-profile/_index.md, systems/services/profile-schema-versions.md |
+| [ADR-0270](ADR-0270-player-entitlement-character-series.md) | `PlayerEntitlement.CharacterSeries` 只由后端写、无客户端通道；`schemaVersion` v2 | Accepted | 2026-09-12 | systems/player-profile/_index.md, systems/services/profile-schema-versions.md, systems/monetization.md |
+| [ADR-0269](ADR-0269-character-series-id-and-track-fields.md) | `CharacterData` 加 `SeriesId` + `Track`；哨兵枚举而非 `bool`，配校验 #14~#18 | Accepted | 2026-09-12 | systems/character-profile/_index.md, content/character/_index.md, content/_index.md |
 | [ADR-0268](ADR-0268-power-fragment-account-rate-table.md) | 账号级法则获取速率落 `balance.md` 派生表；「老账号全开」的现实分母是 `x ≈ 9–12` | Accepted | 2026-09-10 | systems/balance.md, systems/player-profile/player-power/_index.md |
 | [ADR-0267](ADR-0267-player-power-three-acquisition-channels.md) | 法则获取通道恰三条；`EventOutcome` / `ExchangePurchase` 三格改判为规则层封死 | Accepted | 2026-09-10 | systems/player-profile/player-power/_index.md, systems/common-properties.md, systems/services/future-event-service.md |
 | [ADR-0266](ADR-0266-lifespan-recovery-split-refill.md) | `R_c` 两格按实际可供给重填；回代式 `P` 必须含档内条件概率层 | Accepted | 2026-09-10 | systems/balance.md, systems/character-profile/life-span.md, systems/character-profile/item/_index.md |
@@ -17,7 +33,7 @@
 | [ADR-0258](ADR-0258-multi-affinity-free-track-and-pool-split.md) | 多灵根角色走免费轨道；卡池区分 = 复合功法 + 数量上限双机制组合 | Accepted | 2026-09-10 | systems/character-profile/_index.md, systems/character-profile/deck/_index.md |
 | [ADR-0257](ADR-0257-generic-technique-ratio-by-rarity.md) | 通用 / 专属功法配比 = 按稀有度分层的梯度，无硬限制 | Accepted | 2026-09-10 | systems/character-profile/deck/_index.md, content/_index.md |
 | [ADR-0256](ADR-0256-all-characters-clearable-acceptance-goal.md) | 「每个角色都能以合理体验通关」= 全体角色的验收目标；塌缩触发内容向修正 | Accepted | 2026-09-10 | systems/character-profile/_index.md, systems/monetization.md |
-| [ADR-0255](ADR-0255-paid-character-series-track.md) | 付费解锁角色系列 = 商业化第三支：系列化 · 单向棘轮 · 整系列礼包 · 严格横向 | Accepted | 2026-09-10 | systems/monetization.md, systems/character-profile/_index.md, vision/scope.md |
+| [ADR-0255](ADR-0255-paid-character-series-track.md) | 付费解锁角色系列 = 商业化第三支：系列化 · **双向棘轮** · 整系列礼包 · 严格横向 | Accepted | 2026-09-10 | systems/monetization.md, systems/character-profile/_index.md, vision/scope.md |
 | [ADR-0254](ADR-0254-hidden-stat-side-story-shape.md) | 两条隐藏属性剧情线的结构形态：`SideStory` · `ChapterScope` 恒空 · 3–4 节点 · boss 走 `PlotModulation` | Accepted | 2026-09-09 | systems/services/plot-manager.md |
 | [ADR-0253](ADR-0253-dao-heart-default-ascent-narrative.md) | 道心默认叙事「修行本身即精进」；心魔滋生退化为主动选择型剧情线 | Accepted | 2026-09-09 | systems/services/plot-manager.md, systems/balance.md, systems/adventure-event/common-properties.md |
 | [ADR-0252](ADR-0252-hidden-stat-travel-distance-metric.md) | 隐藏属性的「行程」= `Σ\|Δ\|`、方向不参与；反向供给面是必要条件 | Accepted | 2026-09-09 | systems/balance.md, systems/adventure-event/common-properties.md, content/_index.md |
@@ -159,7 +175,7 @@
 | [ADR-0098](ADR-0098-item-sell-two-channels.md) | 只有法宝可售；售出两条通道、回收率两档，随售档恒劣于商店档 | Accepted | 2026-08-26 | systems/character-profile/item/_index.md, systems/adventure-event/exchange/, systems/common-properties.md, systems/balance.md |
 | [ADR-0097](ADR-0097-storage-pack-two-layer-view.md) | 储物袋是跨两个持久层的呈现视图，容量不设上限 | Accepted | 2026-08-26 | systems/character-profile/item/_index.md, systems/player-profile/player-item/_index.md, terminology.md |
 | [ADR-0096](ADR-0096-codex-chain-unlock.md) | 收录一个敌人即收录其全部功法词条；`eventEnd` 入账只收窄到两本 | Accepted | 2026-08-25 | systems/player-profile/codex/_index.md, codex/common-properties.md |
-| [ADR-0095](ADR-0095-technique-codex.md) | 新增 `TechniqueCodex`；词条不列卡牌清单 | Accepted | 2026-08-25 | systems/player-profile/codex/_index.md, codex/technique-codex.md |
+| [ADR-0095](ADR-0095-technique-codex.md) | 新增 `TechniqueCodex`；词条列出逐层卡牌清单 | Accepted | 2026-09-11 | systems/player-profile/codex/_index.md, codex/technique-codex.md, codex/enemy-codex.md |
 | [ADR-0094](ADR-0094-pre-combat-confirmation-page.md) | 图鉴战斗内一律不可查；事前知识集中在战斗前确认页，该页不构成决策点 | Accepted | 2026-08-25 | ux/screen-flow.md, systems/player-profile/codex/_index.md, ux/combat-ux.md |
 | [ADR-0093](ADR-0093-information-through-encounter.md) | 「信息靠遭遇获得，不靠资源购买」升格为设计支柱 | Accepted | 2026-08-25 | vision/pillars.md |
 | [ADR-0092](ADR-0092-enemy-ai-two-layer.md) | 敌人 AI = 通用兜底 + 挂 `EnemyData` 的模板级定制策略（不挂功法） | Accepted | 2026-08-25 | systems/enemies/_index.md, systems/services/combat-service.md |
@@ -180,7 +196,7 @@
 | [ADR-0080](ADR-0080-refresh-token-client-custody.md) | refresh token 归 `AuthManager` 私有；续期软信号不做任何本地时钟判断 | Accepted | 2026-08-22 | systems/services/account-service.md, ux/screen-flow.md, ux/error-and-blocking-ux.md |
 | [ADR-0079](ADR-0079-flags-monotonic-fetch.md) | flags 收紧为「增大即拉、增大即应用」；护栏移到失败路径 | Accepted | 2026-08-22 | systems/services/content-service.md, systems/balance.md |
 | [ADR-0078](ADR-0078-outcome-spec-reuses-profile-change-spec.md) | `OutcomeSpec` 复用 `ProfileChangeSpec`、只开放三列；能力授予恒 `Character` | Accepted | 2026-08-22 | systems/adventure-event/common-properties.md, systems/services/future-event-service.md |
-| [ADR-0077](ADR-0077-encounter-tighten-increments.md) | `Tighten` = 五格带方向约束的增量；对 `Finale` 整档豁免、不落存档 | Accepted | 2026-08-22 | systems/services/plot-manager.md, systems/services/combat-service.md |
+| [ADR-0077](ADR-0077-encounter-tighten-increments.md) | `Tighten` = 四格带方向约束的增量；对 `Finale` 整档豁免、不落存档 | Accepted | 2026-08-22 | systems/services/plot-manager.md, systems/services/combat-service.md, systems/services/future-event-service.md, systems/balance.md |
 | [ADR-0076](ADR-0076-no-extra-defeat-consequences.md) | `Practice` / `Standard` 两档战斗失败不另加规则层的额外后果 | Accepted | 2026-08-22 | systems/adventure-event/combat/_index.md |
 | [ADR-0075](ADR-0075-combat-counters-key-space.md) | `counters` 键空间只有 `<abilityId>[#<子名>]` 一种形态，子名须登记 | Accepted | 2026-08-22 | systems/services/combat-service.md, systems/character-profile/deck/common-properties.md |
 | [ADR-0074](ADR-0074-balance-resource-is-the-only-config-layer.md) | 凡可调数值一律住平衡资源；本库不存在「服务配置」这一层 | Accepted | 2026-08-22 | systems/balance.md, systems/services/content-service.md |

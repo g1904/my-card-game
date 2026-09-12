@@ -192,7 +192,7 @@
   | 1 | `baseMomentum`（战斗起跑线 · 强度主刻度） | 全局等级 1–22 | `systems/balance.md` | 已定，表已完整 |
   | 2 | 敌人赋级带 + 带内权重 + `FinaleDiff`（`EnemyLevelingData`） | 篇章（三行，当前同值）× 相对 `diff` | `systems/balance.md` | 已定（含加载期校验） |
   | 3 | `combatTier` 遭遇参数（`TurnLimit` / `WinMargin`，落 `EncounterSpec`） | 档（三档） | `systems/adventure-event/combat/_index.md` | 已定 |
-  | 4 | 负侧 `lossPerMomentum` | 篇章 | `systems/balance.md` | ch1 锁定；ch2 / ch3 候选值待定 |
+  | 4 | 负侧 `lossPerMomentum` | 篇章 | `systems/balance.md` | 已定，三格 10 / 5 / 10（恒定占比） |
   | 5 | 胜侧 `rewardPerMomentum`（支路 A 单价） | 篇章 × element | `systems/balance.md` | 已定 |
   | 6 | 胜侧 `advantage` 三档（支路 B） | 归一化道念差 | `systems/balance.md` | 形态已定；各档稀有度权重待取值 |
   | 7 | 灵石给予量 `S(c)` + `combatTier` 偏置（书写口径） | 篇章 × 档 | `systems/balance.md` | 已定 |

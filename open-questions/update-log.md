@@ -7,6 +7,74 @@
 > **只保留最近 10 条。** 更早的条目原样移入 [`update-log-archive.md`](update-log-archive.md)（按时间正序），
 > 一字未改、仅换了文件——本日志与归档合起来即全部历史（`decisions/ADR-0005`：台账不无限膨胀）。
 
+## 2026-09-12b（`/summarize-open-questions --lib=game` · 全量整理 · `/progress-sync` 波次 3 · **移出 0 条** · 归拢 1 · 索引导航订正 3 · 矛盾登记 1 · 单库）
+
+- **范围：** 该库全部主题文档区（`vision/` · `systems/**` · `art/**` · `ux/` · `narrative/` + 根级横切 3 份，**79 份 `.md` 全量机械提取 `## 待决问题` 小节**）+ `handoffs/` 未 `distilled` 项（唯一 `raw` 是示例占位 ⇒ 无未消化输入）+ 现有 8 份问题分片 + `answer-logs/` 全量文件名。**无人值守口径**：不 interview、不裁决，判不准的一律原样留下并进报告。
+- **移出 0 条，故本次不建 answer log。** 逐条比对后确认：清单上的每一条在其权威主题文档中**仍无定论**。本波次前两轮（`/write-adr` 固化 16 份 ADR、`/assess-derive-readiness` 重估）**均未产生新的答定** —— `/write-adr` 只把已落进正文的决策补上编号，不改变任何待答项的状态；`ADR-0276` 更明写「在售窗口的具体承载形态**仍未定**」。
+- **归拢 1 条（跨主题文档同题合一）：** `systems/character-profile/_index.md` 的「首批付费系列的 `SeriesId` 取值、系列名与五行构成」与 `systems/monetization.md` 的「各系列的具体名字与主题」是**同一个待决点**（同一前置：`narrative/` 世界观底稿），合并进 `06-meta-progression.md` 那一条，三份主题文档一并回链。
+- **索引 `## 分片导航` 订正 3 处（描述与分片实况脱节）：** ① **②** 的描述仍列着七个主题，而该分片**只剩两条**（事件类型配比实测校准 · `LocationCodex` 词条深度）—— 改为如实列出；② **④** 的描述仍写「逐条目的推拉映射与两条剧情线的具体内容」为待答，而推拉触发已于 09-09 答结、余下是纯内容编排工作量 —— 收窄为**只剩三条**；③ **⑥** 的描述把「胜侧 `experiencePoint` 单价是否计入供给账」列为待答，而它已于 09-10 答结移出（`answer-logs/log-experience-supply-accounting.md`）—— 删去该项。
+- **矛盾登记 1 条（`deferred-content.md`「数值标杆的取值」条内）：** 回寿量三档绝对点数上 `systems/balance.md:1240`（「折算不等于定案、仍欠取值」）与 `decisions/ADR-0248` + `systems/character-profile/life-span.md:50`（**50 / 100 / 200 已写死**，且该文档 `## 待决问题` 明写「无」）**正面相抵**。本清单**不裁决**：条目保留在待答区并加 ⚠ 标注与解读（大概率是 `balance.md` 陈旧措辞未清），待用户确认后方可移出。
+- **`cross-boundary.md` 一处陈旧句订正：** 账号身份模型那条基线里「余下的 `deviceId` 落点与 refresh token 持有形态是本库自己的待决问题」—— 两条分别已于 08-19 / 08-22 答定，改为指向对应 answer log。**「待承接」仍为 2 条**（`backend ADR-0051` / `ADR-0052`，均 09-07 定案、连续三版一字未动，落点同为 `systems/services/content-service.md`）。
+- **跨边界零新欠账，无需转交对侧库。** 本批 16 份 ADR 中涉及边界的 9 份（`ADR-0269` ~ `ADR-0277`）其后端半已于 09-12 同批落笔（`backend-design-documents/contracts/purchase.md` · `profile-sync.md` · `operations/purchase-ops.md` 均已命中 `characterSeries`）；`ADR-0278` ~ `ADR-0284` 为叙事分区，对后端零义务。故本次**未在对侧库补登任何条目**。
+- **`## derive 就绪度` 与 `## 下一阶段` 两节一字未动**（分属 `/assess-derive-readiness` 与 `/write-adr` 独占写入）。
+- **台账对账：** `open-questions/` **10 份文件 ↔ 索引分片导航 10 行**；`answer-logs/` **181 份 log ↔ `_index.md` 181 行**（台账表混用两种行式 —— 旧行 `` `log-x.md` ``、新行 `[log-x](log-x.md)`，两式合计恰好 181，零缺口零重号；**仅为版式不一，未强行统一**）。`update-log.md` 保留最近 10 条，溢出的 2 条（09-10 `/write-adr` · 09-09 `/batch-analyze-new-ideas`）原样移入 `update-log-archive.md` 尾部并按时间正序排好。
+
+## 2026-09-12（`/write-adr game` · 范围 `all` · 固化 16 份 · 就地改写 1 份 · 候选清单零变动 · 单库）
+
+- **范围：** 候选清单（`## 下一阶段`）**当时为空**，本次全部来自第 2.4 步逐份核对「未被任何 ADR 引为来源的 handoff」——扫出 5 份未引用 handoff，其中 3 份判定不建档（`2026-07-12-example` 模板示例 · `2026-08-02c` 意图族已被 `ADR-0059` 整条推翻 · `2026-08-12b` 已由 `ADR-0051` 承载，三份均沿用 09-07 的既有判定），实际来源为 09-12 的两份：`2026-09-12-premium-character-series-unlock.md` 与 `2026-09-12-series-packaging-and-narrative.md`。
+- **固化 16 份新 ADR（`ADR-0269` ~ `ADR-0284`），全部 `Accepted`、日期均 2026-09-12：**
+  - **付费角色系列的解锁与购买形态 9 条：** `ADR-0269`（`CharacterData` 加 `SeriesId` + `Track`，哨兵枚举而非 `bool`，配校验 #14~#18 与两条「不做」）· `ADR-0270`（`PlayerEntitlement.CharacterSeries` 只由后端写、无客户端通道、不配水位；`schemaVersion` v2 本库第一次真实 bump）· `ADR-0271`（回声路径「老档缺字段」分迁移 / 读档两时点，对 `Cosmetic` 同款适用）· `ADR-0272`（解锁过滤落 `GetSelectableCharacters()`，绝不落 `ContentRegistry`）· `ADR-0273`（`Track == Paid` 禁止永久退役、flags 临时关闭允许）· `ADR-0274`（购买段复用、**兑现段整段不存在**、跨启动补入口两条、购后不阻塞开新轮回）· `ADR-0275`（在售清单由内容层自给走 `AllIncludingDisabled()`、`productId` 机械变换、前置条件表两段化 + 三行）· `ADR-0276`（限时在售窗口三条语义：不绝版 · 已购永久可用 · 不进存档）· `ADR-0277`（推销面穷举：Store 三结果态、角色选择屏完全不出现未拥有项）。
+  - **系列包装与叙事承载 7 条：** `ADR-0278`（新建顶层 `narrative/` 分区）· `ADR-0279`（碎片 lore 只撒轮回内、不进图鉴；与支柱 9 的边界）· `ADR-0280`（冷的残缺文献体；素语射程收窄为框架 / 系统文案）· `ADR-0281`（交叉纯隐式、成就不为 lore 串联开条目）· `ADR-0282`（系列 = 世界观切片、零规则强制；建 `CharacterSeriesData`）· `ADR-0283`（剧情不是付费面）· `ADR-0284`（推出次序：先付费进阶批、双灵根免费批在后）。
+- **就地改写 1 份，不新增编号：`ADR-0255` 的棘轮由单向改双向。** `Free → Paid` 与 `Paid → Free` **都是违规**，`Track` 发布后完全不可变；禁反方向的理由是本作**没有补偿通道**。承「改决定直接改 ADR」，标题 / 决策 / 后果三处同改并同步 `decisions/_index.md` 该行标题；同时把该 ADR 原写「解锁载体归 `/provide-solution-draft` 推演，首批一格不落」改写为指向本批 8 份 ADR 的回链（推演已兑现）。
+- **一条判定不建档（查无实据，原样留在报告）：** 「首批五角 = **互不相干的五个独行者、共享同一套世界观架构**」——该措辞在全库主题文档零命中，只活在 `inbox/archive/` 草稿与 handoff 正文；`narrative/_index.md` 从未点名首批五角的相互关系。其**另一半**（交叉是内容层编排义务）已落地并已由 `ADR-0281` 承载。
+- **候选清单零变动**（本就为空，无条目可移出）；`## 下一阶段` 只更新 ADR 计数（267 → **283** Accepted）与追加本次运行摘要。**`derive 就绪度` 小节一字未动。**
+- **台账对账：** `decisions/` **284 份文件 ↔ 284 行**，零孤儿、零悬空、零重号；`decisions/` 内 `单向棘轮` grep 零残留。
+- **落笔前必清的两处陈旧副本（本技能范围外，交用户 / `/analyze-new-ideas` 处置）：** ① `terminology.md:123`「角色系列」词条仍写「『一旦免费永不改付费』是**单向棘轮**」，与 `character-profile/_index.md:102` 及 `content/character/_index.md:55` 的双向口径相抵；② `systems/monetization.md:196` 仍写「付费解锁角色系列……**ADR 候选待 `/write-adr` 立档**」，该批已于本次立档。
+
+## 2026-09-12（`/analyze-new-ideas game` · design-draft-monetization-packaging-and-narrative · 移出 2 全条 · 新增 3 条 · 推翻 0 项 · 单库）
+
+- **范围：** `inbox/design-draft-monetization-packaging-and-narrative.md`（`/design-direction-interview` 09-12 专场，十轴定案）→ `handoffs/2026-09-12-series-packaging-and-narrative.md`。逐轴裁决视同用户当面拍板，未重问；张力区为空，**未改写任何 ADR**。
+- **移出 2 全条（均出自 `06-meta-progression.md`）→ `answer-logs/log-monetization-packaging-and-narrative.md`：** ① **推出时点与主题包装**（次序 = 先单灵根五角进阶付费批、双灵根免费批在后；系列 = 世界观切片、对成员零规则强制）· ② **付费角色与专属剧情的关系**（**剧情不是付费面**，两轨道叙事待遇一视同仁）。
+- **一项库结构变更：新建顶层 `narrative/` 分区**（与 `vision/` · `systems/` · `content/` · `art/` · `ux/` 平级），放世界观设定 / 时间线 / 人物关系 / 碎片台账。它是**内部事实源、不是玩家可见面**——碎片 lore 只撒在轮回内、读过即过，不进图鉴、不做可回看档案面。连带两处结构登记同改：本库 `README.md` 文件夹图例、`.claude/rules/design-library-routing.md` 两库结构差异表（该表明写两库结构变更时须同改）。
+- **一个内容类型开张就绪：`CharacterSeriesData`**（`Id` + `LocalizedText` 名称 + `LocalizedText` 概述 + 可空 `Artwork`，**无规则字段**）。`character-profile/_index.md` 原写「现在不建该内容类型」的悬置理由（主题包装未定）**已达成**，那处改写为字段面与校验；`content/_index.md` 类型登记表加一行（🟢 · 未开张），依赖链加一支。**开张仍需一轮 `/scaffold-content-type character-series`。**
+- **加载期校验 +2：** `PlotArcData.CharacterIds` 悬空 → `PushError`（唯一一格此前无处置的引用）· `CharacterData.SeriesId` 悬空 → `PushError`（建类型后才有对象）。系列层既有两条（条目数 ∈ {5, 10}、`Track` 一致）不变。
+- **三处笔误订正：** `character-profile/_index.md` 两处与 `player-profile/_index.md` 一处写作 `PlotNodeData.CharacterIds` → **`PlotArcData.CharacterIds`**（schema 权威把它放在 arc 上；gating 落 arc 才与「arc 是激活单元、node 是步骤」自洽）。`handoffs/` 与 `answer-logs/` 中的同一写法**未改**（会话档案）。
+- **素语纪律的射程被澄清（不是修改）：** 框架 / 系统文案仍是纯数据陈述；lore 与剧本正文另属一档——冷的残缺文献体，允许语调与暗示但情绪必须冷、不用第一人称 ⇒ 「全作唯一一处第一人称是那三句终结台词」不破。支柱 9 与 lore 的边界同批写进 `pillars.md`：lore 不可换取、不影响决策、不进图鉴，不属支柱 9 管的「情报」。
+- **新增 3 条：** `04-hidden-attributes-plot.md` 两条（**角色专属 SideStory 的激活口** —— 专属剧情一视同仁地铺已定案，而现有两条 arc 激活通路都不覆盖它；**`CharacterIds` 的 gating 语义**；两条同批归一次 `/provide-solution-draft`）· `deferred-content.md` 一条（`narrative/` 的内部结构与世界观底稿）。另 `06-meta-progression.md`「在售窗口的内容层承载形态」**收窄半条**（「类型建不建」已答定，剩 `CharacterData` / `CharacterSeriesData` 两个载体择一）。
+- **零 schema 改动、零存档增量、后端零影响**（`CharacterData` 是模板、不落存档；`CharacterSeriesData` 同理）。
+
+## 2026-09-12（`/batch-analyze-new-ideas` · 5 份已评审草稿 · 移出 4 全条 · 新增 1 条 · 推翻 1 项 · **跨两库**）
+
+- **范围：** 客户端 4 份 + 后端 1 份（其中付费角色系列是一对 counterpart，成对提炼、两侧互相回链）。三个 worker 单波次并行，run 目录 `.claude/batch-runs/2026-09-12-five-reviewed-drafts/`。**五份草稿的取向项已于 2026-09-11 批量评审全部裁定并写回草稿正文，本次视同用户当面拍板：无 Phase A、无合并 interview、零重开。**
+- **移出 4 全条 → 四份 answer-log：** ① `01-combat.md`「**灵石账 `I(ch1)` 与战斗场数口径**」（含三条子项）· ② `01-combat.md`「**`EncounterTighten` 三格牌流量的六个界常量取值**」· ③ `01-combat.md`「**法宝置换在上层 ≈1.0 分子里占多少份额**」· ④ `06-meta-progression.md`「**付费角色系列的解锁载体与购买流程形态**」。
+- **推翻 1 项（结构层）：`EncounterTighten` 五格 → 四格。** 手牌上限恒 7、**不可被剧本改动**，`MaxHandLimitTighten` / `MinHandLimit` 两常量**取消**（不存在，而非取 0），十常量表 → **八常量表**，手牌上限降为普通全局平衡常量。按根约定「决策可被推翻，以最新用户意图为准」**就地改写 `ADR-0077`**（不新开取代 ADR、不留考古句），`decisions/_index.md` 该行标题同改。连带收口 `plot-manager.md`（删 `HandLimitDelta` 字段与合并算子行）· `future-event-service.md` · `combat-service.md` · `ADR-0081` · `ADR-0183` 的悬空引用。
+- **两处授权订正（只改数字、决定与理由链一字不动）：** `ADR-0247` 的 `I(c)` ≈127/300/480（ch1 占 31%）→ **150/300/480（27%）**；`ADR-0134` 的战斗场数 7/8/8 → **11/11.9/14**。`handoffs/` 与 `answer-logs/` 中的 `127` **一处未改**（会话档案，且在当时口径下可完整复算）。
+- **一次预算重新配平（不是填空）：** 法宝一族份额 ≈0.35 只能从已占满 ≈1.0 的既有三支里割 ⇒ **守住 ≈1.0 天花板、其余三支等比压缩 ×0.65**（神通 ≈0.32 · 法则置换 ≈0.20 · 法则禁用 ≈0.13）。落位**并入既有支、不开第五行**——原「神通置换 + 禁用」行改写为「**轮回级能力损失**」一支内部分列 ⇒ `ADR-0265`「不扩为五支」逐字成立。已接受的代价：法则禁用 0.13 略低于 `ADR-0161` 判为「几乎不可见」的 0.143（用户在评审中已知悉并选定）。
+- **跨库对称落笔（付费角色系列）：** 客户端落解锁载体与购买流程（`CharacterData` 两格 · `PlayerEntitlement.CharacterSeries` · 取池过滤 · **`schemaVersion = 2`** 本库第一次真实 bump · Store 三结果态），后端同批落 SKU 粒度与机械变换、验票写入、`profile-sync` 两张表各加一行（**后端写入字段封闭表成文以来首次扩表**）、兼容矩阵版本行。两侧各一份互相回链的 handoff，`cross-boundary.md` 两侧各记一条对账基线，**两侧无遗留欠账**。
+- **评审中新增的一条机制：付费系列有购买时限（限时销售窗口）。** **不绝版**（窗口关闭后可重上架或转常驻仅失去限时优惠价）· **已购玩家永久可用**（下架的只是购买入口）· 限时的是价格与销售节奏、不是可得性。客户端侧落为内容层属性（零新增下发面），后端侧落 SKU 表一格 + verify 侧拒绝窗口外新购；**窗口不进存档、不进 `PlayerEntitlement`**。
+- **新增 1 条 → `06-meta-progression.md`：** 付费系列「在售窗口」在内容层的具体承载形态（落 `CharacterData` 一格、还是随日后可能建的 `CharacterSeriesData` 给出）。同分片「双灵根批与付费系列的推出时点与主题包装」一条**补上依赖说明**（首批 `SeriesId` slug / 系列名 / 五行构成在它答定前无法定稿）。
+- **`01-combat.md` 的一处悬空指向已修**：「道具的种类目录本身」条末句原写「见下一条」，所指条目本次已移出。
+- **一处以直读裁决的事实矛盾（worker 报告有误，未采信）：** W1 报称 `balance.md:237` 的 `R_event,1` = 67 与 handoff 的 66 矛盾、按 Σ 恒等「应为 66」。**直读 `:238` 后为准**：正文 `R_item,1` 记的是 **33**（不是 worker 引用的 34），`33 + 67 = 100` ⇒ Σ 恒等**成立**，且与当前回代式 `:376` 的 `33.1` 取整一致；handoff 的 66/34 是旧回代值 `33.9` 的取整。**正文无误，一字未改。**
+- **一处用户授权的例外落笔：** `../open-questions.md` `## derive 就绪度` 小节（本属 `/assess-derive-readiness` 独占写入）中，「付费角色系列的后端承接零承载」与「后端库 `cross-boundary.md` 的待承接为空」两句已随本批闭合而过期，经用户点名授权作**纯机械订正**，不重新评估任何就绪度判定。
+- **零 schema 改动来自前三份**；付费系列那份带来本库第一次真实 `schemaVersion` bump（v2）+ 一个 v1 → v2 迁移器 + 一份 golden 快照的待建项。
+- **收尾时用户裁决的两项（本批呈报的未闭合项，同批落笔）：**
+  ① **手牌上限任何编排面都动不了** —— 不止剧本，**事件模板也不能覆写**：`EncounterSpec` 的可空覆写组由**四格减为三格**（`InitialDraw` / `DrawPerTurn` / `EnemyManaLimit`），`HandLimit` 一格删除；`combat-service.md` 的 record 定义与覆写组表、`future-event-service.md` 的物化代入面（代入五格 → **四格**）、`plot-manager.md` 的措辞、`balance.md` 的手牌上限行与「不进覆写组」理由条、`ux/combat-ux.md` 的 `n/7` 呈现（原写「由 `EncounterSpec.HandLimit` 覆写驱动」，该字段已不存在 ⇒ 改为恒取全局常量、呈现侧仍不写死 7）逐处收口。
+  ② **`ADR-0161` 备选段的否决理由改写** —— 「每 7 轮回一次 ⇒ 几乎不可见、等于机制不存在」**不成立并被撤下**：本作是 roguelike，玩家反复开轮回，**小概率事件在深度游玩下必然发生**，可见性不由单轮回概率判定。该备选（合计取 ≈0.83）仍否决，但理由换成「总额是承重表述，压低它会同批压低全部持久支」。`player-power/_index.md` 的「已接受的代价」一段随之改写——法则禁用 0.13 / 神通禁用 0.11 **不再被记为可见性代价**。
+
+## 2026-09-11（`/analyze-new-ideas game` · design-draft-failure-and-punishment · 移出 2 全条 · 新增 0 条 · 推翻 3 项 · 单库）
+
+- **范围：** `inbox/design-draft-failure-and-punishment.md`（`/design-direction-interview` 09-11 专场，十轴定案）→ `handoffs/2026-09-11-failure-and-punishment-identity.md`。逐轴裁决视同用户当面拍板，未重问。
+- **触发了一轮 interview（草稿自陈「张力：无」，与事实不符）。** 轴 6「`EnemyCodex` 写到招式与行为模式级」的后果句「每个敌人须写清会出什么牌」与两处既有承重决策直接相抵：`enemy-codex.md` 的「慷慨度维持『关键卡 3 张、不给样本卡组完整列表』」及其退让阶梯，以及 `ADR-0095` 的**理由承重段**（功法图鉴不列卡表，正为封住「敌人词条 → 功法图鉴」的反查通道）。分两轮问齐 4 题。
+- **推翻 3 项（用户裁决）：** ① 敌人词条**由五项改四项**——「关键卡牌」一格撤销，词条②由「主功法」单引用改为**核心功法引用列表**（多门、不含层数）；② **`ADR-0095` 就地改写、不新增编号**——功法图鉴词条**列出逐层卡表**，反查通道由被封堵改为**设计目标**（它是「同一个敌人第二次遇到就该能打赢」最强的兑现形式），台账行标题与影响文档同改；③ 敌人词条的**一屏纪律让路**——③④ 不设字数上限、总长 150–280 字上限撤销、词条页允许纵向滚动。
+- **未松动的三条（明写防连带推翻）：** 图鉴**战斗中一律不可查** · 词条**不含动态情报** · 词条正文**绝不写等级**（后者是反查界的承担者：层数提升是整组替换，故反查只能停在「这门功法大致长什么样」）。
+- **`EnemyData.KeyCardIds` 字段保留、职能收窄为仅供敌人 AI 的 `KeyCardBias`**（用户裁决取推荐项）；`ADR-0113` / `ADR-0090` 零改动，两处「它是图鉴数据源」的理由句改写。
+- **移出 2 全条 → `../answer-logs/log-failure-and-punishment.md`：** ① **`lossPerMomentum` 的 ch2 / ch3 系数**定为 **5 / 10**、三章三格全为定值（形状锚逐格 9% / 10.0% / 11.3% 通过；走恒定占比而非递进；N = 2、21 格定价表、λ 台账零改动）——`balance.md` 与 `life-span.md` 的待决条同批删除，`deferred-content.md` 的从属项一并移出；② **赋级带 `±2` 与层数散布 `±1 档` 维持不放宽**，依据换挂**可归因性**（遇到超纲敌人而输不属于「你哪步错了」），`01-combat.md` 与 `balance.md` 两处同批删除。
+- **十项方向裁决（视同用户拍板）：** 失败是代价不是学费 · `lossPerMomentum` 恒定占比 · 主要可归因于决策 · ch1 的死就该这么轻（不加软代价） · 角色第一人称终结台词 · `EnemyCodex` 招式与行为模式级 · 进入 ch2/ch3 明示剩余重试 · 赋级带维持 ±2 · 台词射程只在终结 / 三因各一句 / 只给死亡 · 台词以外一律素语。
+- **十一项标准默认（未出题、直接落笔）：** `DefeatLines` 稀疏数组 + `LocalizedText` · 缺项 `PushWarning` + 省略台词位 / 重复 `Reason` `PushError` · 台词不落存档（ViewModel 呈现期对象） · 首批 15 句归内容层 · **轴 7 不新增屏**（落篇章切换面的 `ongoing` 篇章行，三条键与弃置确认共用口径） · 深度加厚不开战斗内查询入口 · 素语不改 `ERR_*` 机械变换规则 · **素语射程限于框架文案**（不覆盖事件正文 / 跨档叙事 / 定性文案 / 敌人台词） · 「全作唯一开口处」精确到**可玩角色侧**（`EnemyData.Lines` 不受影响） · `Discarded` 定性文案仍留空（与台词两格并存） · 台词位无配音 / 无逐字动画 / 无第二次音效。
+- **顺带清理的陈旧副本 8 处**（推翻 ①②③ 的连带）：`terminology.md` 两行（敌人图鉴 / 功法图鉴）+ `EnemyData` 行 · `combat/_index.md` 两处（AI 偏向关键卡的理由句 · 决策段的慷慨度行） · `enemies/common-properties.md` 两处（五项词条 → 四项 · 关键卡校验理由改写并补 `CoreTechniqueIds` 校验） · `future-event-service.md` 两处 · `codex/common-properties.md` 两处（小节标题 · TechniqueCodex 那条） · `ux/screen-flow.md` 三处（词条载体分野 · 战斗前确认页摘要区 · `CodexEntryScreen` 行）。
+- **零结构改动（除一格字段）：** 新增 `CharacterData.DefeatLines` 与 `EnemyData.CoreTechniqueIds` 两格**模板静态字段** ⇒ 零 schema / 零迁移 / 零存档增量 / 零契约 / 后端零配合（不跨库，后端库一字未动）。
+- **`## derive 就绪度` 小节原样未动**（归 `/assess-derive-readiness` 独占写入）。
+
 ## 2026-09-11（`/summarize-open-questions --lib=game` · 全量整理 · `/progress-sync` 波次 3 · 移出 1 部分 · 去重 1 · 合并 1 · 新增 2 · 单库）
 
 - **范围：** 客户端库全量（`vision/` · `systems/**` · `art/**` · `ux/` + 根级三份 + `content/_index.md`，共 76 份主题文档）+ 全部 8 个分片 + `handoffs/`。三个只读采集代理并行：`systems/`（51 份含待决小节）· `vision` / `art` / `ux` / 根级 · ADR 闭合核验（`ADR-0248` / `ADR-0255` ~ `ADR-0268`）。`handoffs/` 无 `raw` / `triaged` 件（唯二命中是 `_TEMPLATE.md` 与 `2026-07-12-example.md`）⇒ 无未消化输入。
@@ -69,53 +137,3 @@
 - **跨库对账：** 客户端 `cross-boundary.md`「待承接」**2 条**（`backend ADR-0051` / `ADR-0052`，均对侧 09-07 定案、本库未落笔）原样保留；波次 1 的 31 份新 ADR 逐份核对**无一产生后端义务**（`ADR-0251` / `ADR-0254` 明写「后端零参与」）⇒ **未在对侧库补登任何条目**。
 - **索引：** 「最近更新」行更新、分片导航表由 9 行减为 8 行、`当前焦点` 的「分片 ①–⑦」改为「①–⑥」、③ 与 ⑤ 的一句话描述随内容变化改写。**`## derive 就绪度` 与 `## 下一阶段` 两节一字未动**（分属 `/assess-derive-readiness` 与 `/write-adr` 独占）。
 - **本日志溢出维护：** 追加本条后超出「只保留最近 10 条」，最早一条（2026-09-07 `/summarize-open-questions game`）原样移入 `update-log-archive.md` 末尾。
-
-## 2026-09-10（`/write-adr game`，范围 `all` · 固化 31 份新 ADR · 候选清单清空）
-
-- **唯一一条登记候选立档：** `ADR-0236` 寿元跌破低位的一次性听觉提示（不循环 / 不常驻 / 不震动，判据 = 全局命线 vs 回合内局部读数）。事实依据 `ux/screen-flow.md:129` 与 `art/soundtracks/_index.md:24`；来源 `handoffs/2026-09-09c-audio-direction-nine-axes.md`。
-- **另逐份核对 6 份未被任何 ADR 引为来源的 handoff**（`2026-09-09` / `09-09b` / `09-09c` / `09-09d` / `09-09e` / `09-09f`），补固化 30 条散落定案 → `ADR-0224` ~ `ADR-0235`、`ADR-0237` ~ `ADR-0254`。按批：美术方向 3 条（UI 制作路径混合 · guide 粒度类目化与例外升格 · 卡框色仙侠意象色不套五行）· 战斗手感性格 9 条（产为主旋律不钉配比 · 高光三通道 · 起始卡组不设统一底盘 · 极限精简受支持 · 拆解不得稀有化 · 五行主战斗动词 · 兜底 AI 镜像玩家基调 · 首玩给简介不标推荐 · ch1 业障低频但沉重）· 战后奖励稀有度与量纲 9 条（九行权重表与 `m(c)` · 每池五档全非空 · 非战斗侧取 `Solid` 表 · `RewardPoolId` 可空与挂池占比 · 九个具名池与厚薄轴 · 条目数矩阵 · `itemPowerRatio` ×1.15 · 维持单闸 · `advantage` 边界不分格）· 回寿护栏 3 条（`R_c` 分账 · 三格编排口径 · 三档绑定与 `Charges = 1`）· 隐藏属性编排 6 条（`BaseReward` 单格 · 三档 `HiddenStatGrade` 阶梯 · 语义编排判据表 · 行程 `Σ|Δ|` · 道心默认叙事 · 两条剧情线形态）。
-- **两条方向本体判定不另立 ADR：** 视觉基调九轴与听觉基调九轴的**本体**沿用 `ADR-0100` 的后果指向（该 ADR 已把美术 / 音频基调的权威指向 `art/visuals/art-direction.md` 与 `art/soundtracks/audio-direction.md`）——`handoffs/2026-09-09c` 对音频侧明写此处置，视觉侧按同一判据对称处理。本次只为两场中**不属于「基调本体」**的三条（制作路径 / guide 粒度 / 卡框色语汇）立档。
-- **一条定案判定不另立 ADR：** 回寿法宝的 **L-0 免费通道取池排除**已由 `/analyze-new-ideas` 直接写进 `ADR-0066` 的「后果」（结构性禁令两条），承「改决定直接改 ADR」的治理原则，本技能不另开编号。
-- **台账：** `decisions/_index.md` 新增 31 行（全部置顶，日期 2026-09-09、按编号降序）；建档前双向对账 **223 文件 ↔ 223 行零缺口**，建档后 **254 ↔ 254**。`open-questions.md`「下一阶段」的 ADR 候选清空（移除 1 条，剩余 0 条）。**`## derive 就绪度` 与其余各节一字未动**（`/write-adr` 不碰它们）。
-- **本日志溢出维护：** 追加本条后超出「只保留最近 10 条」，最早一条（2026-09-07 `/write-adr game`）原样移入 `update-log-archive.md` 末尾。
-- **留给 `/analyze-new-ideas` 或用户的三处台账 / 措辞失真**（本技能不改主题文档与索引正文）：① `open-questions.md:110` 的「derive 就绪度」表中 `ux/onboarding.md` 行仍复述**「首玩局标注推荐项」**，与 `ADR-0234` 及三处权威副本相反（该小节归 `/assess-derive-readiness` 独占，本次未动）；② 篇章乘数的两种叫法并存——`balance.md` 定名「篇章乘数 `m(c)`」，而 `adventure-event/common-properties.md` · `services/combat-service.md` 仍写「篇章位移」；③ `handoffs/2026-09-09b` 的 `distilled-to` 虚列 `systems/balance.md` 与 `systems/adventure-event/combat/_index.md`（两份只追加了 Source 行、无新正文）。
-
-## 2026-09-09（`/batch-analyze-new-ideas game` · 三份 solution-draft · 移出 9 条 · 新增 1 条 · 单库）
-
-- **范围：** `inbox/solution-draft-combat-rarity-and-reward-scale.md`（分片 A）· `solution-draft-lifespan-item-supply-guardrail.md`（分片 C）· `solution-draft-event-reward-and-hidden-stat-orchestration.md`（分片 D）。三份共写 `systems/balance.md` · `systems/services/combat-service.md` · `systems/adventure-event/common-properties.md` · `systems/adventure-event/combat/_index.md` · `content/_index.md` 五份，按写入面分区由 orchestrator 串行落笔。
-- **合并 interview 共 7 题（分两轮问齐），另有 5 项由 orchestrator 直读裁定不占用户轮次。**
-- **本批最实质的一处改向：** 用户对「碾压档奖励」一题选了**放宽档幅**并要求「**每个 Tier 都有一定可能性，只是碾压给更好东西的概率更大点**」。因混合池只按 `RarityTier` 加权 ⇒ 某档抽中概率就是权重表给的数、与该档在池里有几条条目无关，故「每池五档非空」使**篇章维对稀有度的影响归零** ⇒ 补问后裁定**给三张表加一个篇章位移旋钮**（`r_eff = r(Tier) × m(c)`，`m` = 1.00 / 1.15 / 1.30，上界 `r_eff < 1` 落加载期 `PushError`）。这**整表作废**了分片 D 原拟的「九池按档幅上下界分篇章」方案：**池自此只管族成分与具体条目，分布归权重表**。
-- **分片 A（→ `handoffs/2026-09-09d-...`）：** 移出 3 条（`01-combat.md` 的 `RarityTier` 条部分答定、余取池余量三格与功法维分母 · 逐项领取后的奖励厚度重估整条 · 量纲基准三条复核项整条），新增 1 条（九行表与篇章乘数的实测校准）。另删 `balance.md` 的 `itemPowerRatio` 待决条（已答定为 ×1.15、四档折价 0.52/0.62/0.72/0.87）。`RewardPoolId` 明确可空（≈30% Combat 条目挂池、`Finale` 恒挂），池载体定为**逐条编排的具名成员清单、一个条目可属多个池**。
-- **分片 C（→ `handoffs/2026-09-09e-...`）：** 移出 3 条（2 条为部分移出）。`R_c` 拆成事件侧 / 道具侧两格书写口径，Σ 不变 ⇒ λ 与 21 格定价表零改动；代价是回寿事件降为每章 1 次小档。取池侧排除落 `combat-service.md`，且**射程经 interview 扩至开局强制事件的法宝三选一**（推翻草稿「通道 ① 有天然硬上限、不需要闸」——硬上限封的是次数不是量级）。`ADR-0066` 决策句删计数词、后果补一行。
-- **分片 D（→ `handoffs/2026-09-09f-...`）：** 移出 3 条（`03` 两条 + `04` 一条），另改写 `04` 的映射值条去掉阻塞句。**直读裁定「一章行程」= Σ|Δ| 而非净位移**（`balance.md` 那三个数字只在此读法下逐格自洽）⇒ 草稿引入的「净比 η」不存在，收口方向由「扩携带面」改为**缩到 18–20**；煞气反向配额提到 ≈9 条 / 篇章。道心内容池维持字面对称 5:5，但**其所述两条后果经核算不成立**（切磋档与渡劫档是档位默认恒推 `Raise`、不进内容池配比 ⇒ ch1 结构性 +20），改记为默认叙事「修行本身即精进」，**心魔滋生退化为主动选择型剧情线**。
-- **一处已知偏紧被如实记账、不掩盖：** 篇章差异改落权重表后，商店侧「典型档位点数」由 ≈50/70/150 变为 ≈87/92/99（三章趋平），道具侧期望回寿量因此低于分账目标、ch3 缺口最大。收口旋钮三个（占比上限 / 高档位多编排一条 / 下调分账目标）**待择一**，已并入 `01-combat.md` 的道具口径条，归实测校准。
-
-## 2026-09-09（`/analyze-new-ideas game` · design-draft-audio-direction · 移出 2 条 · 新增 0 条 · 推翻 1 项 · 单库）
-
-- **范围：** `inbox/design-draft-audio-direction.md`（`/design-direction-interview` 的产物）。九轴裁决为用户在该场 interview 中亲口拍板 ⇒ **未触发二次 interview**，按定案提炼。它与同日的视觉方向场构成一对：**视觉借三国杀的画风不借温度，听觉借三国杀主题 BGM 的范式不借肃穆。**
-- **移出 2 全条 + 1 收窄：** ①「寿元余量跌破低位时是否伴随音效 / 震动」→ 一次性低调提示音、不循环 / 不常驻 / 不震动（`ux/screen-flow.md` 与 `deferred-content.md` 两处登记同批关闭）；②「音频方向文档的实质内容待写」→ `audio-direction.md` 八节整体成文；③ 由此收窄为「两份方向文档各余格式与预算一格」，仍留在 `deferred-content.md`。逐条见 `../answer-logs/log-audio-direction.md`。
-- **九项方向裁决（视同用户拍板）：** 史诗为骨 + 诡暗为色 · 纯器乐无人声 · **耳机混音基准** · BGM 氛围优先（主题曲最先）· 常规战斗低位压迫 / 爆发只留给 Finale · 篇章越走越空旷孤高 · 古物实材质音效 · 寿元告警一次性提示音 · 生成工具维持不拍板。
-- **推翻 1 项（用户明确确认）：** 混音基准由「手机外放是主要收听场景、低频基本听不见」改为**耳机聆听**。全库仅 `audio-direction.md` 一处副本，**无对应 ADR ⇒ `decisions/` 一字未动**。「静音容错」纪律不在推翻之列。
-- **ADR 候选 +1：** 寿元告警的一次性听觉提示（已登记进索引「下一阶段」，此前为空）。
-- **零结构改动：** 零字段 / 零 schema / 零迁移 / 零内容条目 / 零契约 / 零后端配合（不跨库）。
-- **`## derive 就绪度` 小节原样未动**（归 `/assess-derive-readiness` 独占写入）。
-
-## 2026-09-09（`/analyze-new-ideas game` · design-draft-combat-feel-identity · 移出 0 条 · 新增 0 条 · 推翻 1 项 · 单库）
-
-- **范围：** `inbox/design-draft-combat-feel-identity.md`（`/design-direction-interview` 的产物）。九轴裁决为用户在该场 interview 中亲口拍板 ⇒ **未触发二次 interview**，按定案提炼。本次定的是**量纲之上的性格层**（内容该长成什么样），不是取值 ⇒ **待答清单零移出、零新增**：`01-combat.md` 的「起始卡组的具体内容」「关键字与次类型首批清单」「逐张卡的产 / 削取值」等格照旧待校准，只是各自获得了设计取向。
-- **九项方向裁决（视同用户拍板）：** 基调「产为主旋律、削为反制」**不设配比口径** · 高光三通道（阵法滚雪球 / 触发连锁 / 埋伏兑现）且高费重锤不作首批重心 · **起始卡组不设统一底盘** · 极限精简为被支持的高阶路线 · 反制供给原则「削拆并重、拆解不得稀有化」 · 五行 = 五个主战斗动词（编排口径、无规则后果） · 敌人兜底 AI 镜像玩家基调、拆台流走逐条目 profile · 首玩引导「给简介、不标推荐」 · ch1 业障低频但沉重。
-- **推翻 1 项（用户在该场 interview 中明确确认）：** 「首玩局标注推荐项」→ 改为「只给玩法简介、不标推荐」。该决策在库中有**三处副本**（`ux/onboarding.md` · `ux/screen-flow.md` · `systems/character-profile/_index.md`），三处一并改写；**「不做首局跳过选择的特判」不受影响，原样保留**。**无对应 ADR ⇒ `decisions/` 一字未动。**
-- **四项配套默认（未出题、直接落笔）：** 敌方埋伏对称存在 · 连锁链常态 2–3 步小瀑布 · 角色玩法简介走既有展示字段、不新增数据结构 · 拆解沿用 `RemoveEntryEffect`。
-- **零结构改动：** 零字段 / 零 schema / 零迁移 / 零内容条目 / 零契约 / 零后端配合（不跨库，后端库一字未动）。
-- **`## derive 就绪度` 小节原样未动**（归 `/assess-derive-readiness` 独占写入）。**已知遗留：** 该小节对 `ux/onboarding.md` 的整面描述仍复述「首玩局标注推荐项」，属陈旧副本，待下次全量评估刷新。
-
-## 2026-09-09（`/analyze-new-ideas game` · design-draft-art-direction · 移出 2 全条 + 1 收窄 · 新增 0 条 · 单库）
-
-- **范围：** `inbox/design-draft-art-direction.md`（`/design-direction-interview` 的产物）。九轴裁决为用户在该场 interview 中亲口拍板并授权「全部按推荐定案」⇒ **本次未触发二次 interview**，直接按定案提炼。「张力」区为无 ⇒ **`decisions/` 一字未动、零 ADR 改写**。
-- **移出 2 全条（均在 `deferred-content.md` 的「美术与音频」小节，同时从 `art/visuals/_index.md` 的待决区移除）：** ① **guide 的粒度** → 类目 guide + 条目变量，少数条目可例外升格但须在类目 guide 中登记指针；② **UI 元件是否走 AI 生成** → 混合路径（扁平底子人工 / 矢量、不建 guide；古物点缀素材走 Midjourney）。逐条见 `../answer-logs/log-art-direction.md`。
-- **收窄 1 条：** 「各方向文档的实质内容整体待写」→ 视觉侧七节全部落笔，只余「各类目尺寸格式与图集策略」一格；**音频侧仍整体待写**，条目改写后留在清单。
-- **七项方向裁决（视同用户拍板，落 `art/visuals/art-direction.md`）：** 厚涂写实 + 水墨氛围点缀 · 残酷由氛围承载且不画血腥直给（不预留上调口子）· 色彩三层且全局色板不随境界推移 · 人物写实英气 · 冷光主调 + 灵光点缀 · 卡框色 = 仙侠意象色不套五行 · UI = 暗色扁平 + 古物点缀。各轴被否决的方向按「保留理由、删除坐标」写成正面陈述留在正文，避免日后重提。
-- **四项标准默认（未出题、直接落笔）：** 五色色值与两枚战报符号字形按既定三条机械约束在 guide 编写期定稿（**`01-combat.md` 的取值格照旧保留**，只标明语汇前提已定，`ux/combat-ux.md` 同处同批改写）· 尺寸格式与图集策略留待首批 guide 实测反推 · 参考素材二进制沿既有暂定不动 · 一句话方向陈述按裁决起草。
-- **明确留在清单：** AI 生成资产的商用授权与参考素材来源的合规口径——用户明确排除在本场范围外（属法律 / 发行问题），仍挂 `art/_index.md` 与 `deferred-content.md`，且仍是选工具的前置。
-- **零结构改动：** 零字段 / 零 schema / 零迁移 / 零内容条目 / 零契约 / 零后端配合（不跨库，后端库一字未动）。
-- **`## derive 就绪度` 小节原样未动**（归 `/assess-derive-readiness` 独占写入）。

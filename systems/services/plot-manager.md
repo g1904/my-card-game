@@ -269,7 +269,8 @@
 
   - **为什么是两个而不是一个：** arc 与 node 的**激活面完全不同**——arc 由 `PlotTriggerId` / 篇章边界激活（一次），node 在 arc 存活期间被反复推进（多次）；且 key points 的粒度落在 arc 上，一个类型无法同时当锚点和当步骤。
   - **为什么不是四个（每级一个类型）：** 四级的差别只在**激活范围与并发规则**，字段集合完全相同。四个类型会让「解析一个 arc」需要四条分支，而层级是一个枚举就能表达的东西。
-  - **`CharacterIds` 让「主线是否与角色绑定」两种取向都能承载**（空数组 = 全局主线，填值 = 角色专属），故本形态**不被「角色模板池形态」那条待答项阻塞**——日后定哪一侧都只改内容不改 schema。
+  - **`CharacterIds` 让「主线是否与角色绑定」两种取向都能承载**（空数组 = 全局主线，填值 = 角色专属），故本形态**不被「角色模板池形态」那条待答项阻塞**——日后定哪一侧都只改内容不改 schema。**角色专属线对免费 / 付费两条轨道一视同仁地铺**（剧情不是付费面，权威在 `systems/monetization.md`）；铺给免费角色不额外花一次发版，因为剧本条目可经 overlay 热更。
+  - **`CharacterIds` 悬空 → `PushError`。** 见下方加载期校验表。
   - **两个类型的放量语义相反，判据是「结构身份优先于抽取身份」：**
     - **`PlotArcData` 照常参与 `AllEnabled()` 与 flags 通道**——arc 是**被激活抽取**的（激活是产出侧决策），关一条只让它**不再被新激活**；**已在 key points 里的 arc 照常经 `Get(id)` 解析**（读取侧不过滤），不会因线上关闭而悬空。收益是一条 overlay 热更推上去的坏 arc 可秒关。
     - **`PlotNodeData` 恒启用**，`ContentEnabled == false` → 加载期 `PushError`，与 `HiddenStatBandData` 同款判据：节点是**被 key point 查表定位**的结构，关掉一个中间节点只会在树上造出空洞、让一条正在进行的 arc 卡死。**放量的正确粒度是 arc，不是 node。**
@@ -278,6 +279,12 @@
 - **剧本正文内嵌在节点上（`PlotNodeData.Body`），不复用定性文案条目、不单列文本类型。** 两条理由：① **热更权限相反**——定性文案条目属「被存档引用」类、照旧只改不增，而剧本例外的全部收益就是「新剧情可热更不发版」；若剧本正文寄生其上，overlay 新增一条 arc 时**写不出它的正文**，例外当场失效。② **拆条目的动机在剧本侧不存在**（见上方档位文案一条），拆开只买到一层 `Id` 间接与一处新的悬空可能。
   `LocalizedText` 的既有语义原样适用（`zh` 缺失 → `PushError`；`en` 缺失 → 静默回落 + 覆盖率审计；overlay 改文案 / 补语言键不算新增 `Id`）。
   **连带（承重）：一条新 arc = 若干 `PlotNodeData` + 一个 `PlotArcData`，全部是剧本类型**，不需要新增任何非剧本 `Id` 就能自足——这正是「新增剧本条目不得引用本次 overlay 之外的新 `Id`」能被机械检查且不误伤正常内容编排的前提（闸形态见 `content-service.md`）。
+
+- **节点正文同时是碎片 lore 的唯一载体（承重）。** 世界观细节不向玩家宣讲：**没有设定集页面、没有 lore 图鉴、没有可回看的档案面**，lore 只活在事件描述与 `PlotNodeData.Body` 里，**读过即过、不留存**。玩家读到什么取决于他遭遇了什么。
+  - **调子 = 冷的残缺文献体**：碑文、卷宗、手札残页、旁人记述——叙事性强但情绪冷，**不解释、不总结、不动用第一人称**。剧本正文因此与框架文案的**素语**分属两档：框架文案是纯数据陈述，剧本正文允许语调与暗示，但情绪必须是冷的。全作唯一一处角色用自己的声音说话的地方仍是终结时的三句台词（`vision/pillars.md`）。
+  - **体裁纪律压顶不变**：deck builder 不是 visual novel，「多写几句」与「少写几句」存疑时一律取少。既有的可机械检查纪律（正文 / `BranchLabel` 含属性名、阿拉伯数字、档位序号 → `PushWarning`）原样适用。
+  - **角色之间的故事线交叉纯隐式，游戏从不点破**——不给提示、不给成就、不做任何「你发现了」的确认；成就系统不为 lore 串联开条目。与残卷「不做任何形式的进度可感化」同向。
+  - **写作侧的上游事实源是 `narrative/`**（世界观设定、时间线、人物关系、碎片台账）。它是内部留档、不是玩家可见面：其存在正是为了让两条剧本线不互相矛盾。
 
 - **`PlotModulation` 的字段集合 = PlotManager 权力面的逐条投影，不多一个字段。**
 
@@ -291,11 +298,11 @@
       [Export] public string            EnemyPoolScope { get; set; }  // 一个 PlotArcData.Id：框定该 arc 的专属 EnemyData 池
                                                                       // （对上 PoolScope.PlotArcId），通常填本 arc 自己的 Id
       [Export] public int               LevelBias      { get; set; }  // 带内赋级权重偏移；不改 ±2 带边界
-      [Export] public EncounterTighten  Tighten        { get; set; }  // 可空：拧紧遭遇参数（五格，见下）
+      [Export] public EncounterTighten  Tighten        { get; set; }  // 可空：拧紧遭遇参数（四格，见下）
   }
   ```
 
-  **`EncounterTighten` = 五格带方向约束的增量，不是绝对覆写值。**
+  **`EncounterTighten` = 四格带方向约束的增量，不是绝对覆写值。**
 
   ```csharp
   [GlobalClass]
@@ -305,17 +312,17 @@
       [Export] public int WinMarginDelta   { get; set; } = 0;   // 恒 >= 0：只抬门槛，不降门槛
       [Export] public int InitialDrawDelta { get; set; } = 0;   // 恒 <= 0：只减起手，不加起手
       [Export] public int DrawPerTurnDelta { get; set; } = 0;   // 恒 <= 0：只减每回合抽牌，不加
-      [Export] public int HandLimitDelta   { get; set; } = 0;   // 恒 <= 0：只压手牌上限，不抬
   }
   ```
 
-  三格牌流量的基准 = `EncounterSpec` 的可空覆写组（起手抽牌数 / 每回合抽牌数 / 手牌上限），**字段名以 `systems/services/combat-service.md` 的 `EncounterSpec` 为形状权威**；十个界常量的取值住 `systems/balance.md`。
+  两格牌流量的基准 = `EncounterSpec` 的可空覆写组（起手抽牌数 / 每回合抽牌数），**字段名以 `systems/services/combat-service.md` 的 `EncounterSpec` 为形状权威**；八个界常量的取值住 `systems/balance.md`。
 
   - **取增量而非绝对覆写值：** 一条 arc 在 `Active` 期间对**整批**候选生效，而这批里的 Combat 可能物化成 `Practice`（`TurnLimit 8`）也可能是 `Standard`（`10`）。绝对值意味着内容作者必须**在写 arc 时就知道它会撞上哪一档**——写 `9` 对 `Standard` 是收紧、对 `Practice` 是放宽，还得再补一条「不许放宽」的钳制。增量对三档一致，且**与 `LevelBias` 同一种语言**：那一格之所以是 bias 而非绝对等级，正是因为基准值逐次不同，这里的基准值（档位默认回合数）同理。
   - **方向由符号约束焊死，而不是靠字段名提醒。** `Tighten` 的语义是**单向**的：剧本可以加压，不能放水——放水的正确形态是换一个更宽的 `combatTier`，那是模板侧的编排，剧本够不着。写成带符号 delta + 加载期方向校验，使「只能收紧」成为**内容层根本写不出反例**的形态，是「越权的写法在内容层没有字段可填」那条纪律的一次延伸。
-  - **字段面止于这五格，判据两条连用：** ① 上方「新增一格物化字段时是否跟着加一格」的落面判据；② **该格上必须存在一个全序 + 一个单调难度方向**，否则「更紧」写不出来。`Enemy`（引用）、`Tier`（枚举，序不是难度序）、`FirstSide`（二值且无难度序）连「哪边更紧」都表达不出；`RewardPoolId` / `BaseReward` 落产出侧（剧本改产出的正确形态是 `EventWeights` 抬高另一条内容条目的权重）；疲劳量没有覆写基准可拧（见 `systems/balance.md`）。
+  - **字段面止于这四格，判据两条连用：** ① 上方「新增一格物化字段时是否跟着加一格」的落面判据；② **该格上必须存在一个全序 + 一个单调难度方向**，否则「更紧」写不出来。`Enemy`（引用）、`Tier`（枚举，序不是难度序）、`FirstSide`（二值且无难度序）连「哪边更紧」都表达不出；`RewardPoolId` / `BaseReward` 落产出侧（剧本改产出的正确形态是 `EventWeights` 抬高另一条内容条目的权重）；疲劳量没有覆写基准可拧（见 `systems/balance.md`）。
+  - **手牌上限不在这四格内**，尽管它两条判据都过得了：它恒为 7、是一个普通的全局平衡常量，**任何编排面都改不动**——剧本收紧不了，事件模板也覆写不了（`EncounterSpec` 覆写组内同样没有这一格，见 `systems/services/combat-service.md`）。**撞上限不丢牌**（第 8 张从抽牌堆抬起一半后退回，见 `ux/combat-ux.md`）⇒ 压低它实为一次**条件性的牌流收紧**，与 `InitialDrawDelta` / `DrawPerTurnDelta` 两格直接的牌流量旋钮重叠，而玩家读不出它的来源。**新增一格因此还要多答一问：它是否与既有四格重叠。**
   - **`Tier == Finale` 整档豁免**（跳过整个 `Tighten`，不是错误、不告警）。增量形态下「`WinMargin` 恒 `0` 所以拧不动」**并不自动成立**——`0 + 2 = 2` 是有效果的，恒 `0` 需要被显式保护。落成一条 tier 闸而非逐格例外，是因为一条闸同时挡住三格牌流量对**不可逆终局**的调制：`Finale` 失败即角色终结，把玩家不可见的调制接进不可逆判定，与「隐藏属性影响遭遇是拧参数」的可接受度不在同一档。
-  - **`EncounterTighten` 本身不进 `EncounterSpec`、不落存档。** 它是物化期的一个输入，施加完即消失；落存档的是**施加后的五格定值**。combat-service 只见 `EncounterSpec`，不该知道剧本存在 ⇒ 本机制对存档 schema 零改动、零迁移。
+  - **`EncounterTighten` 本身不进 `EncounterSpec`、不落存档。** 它是物化期的一个输入，施加完即消失；落存档的是**施加后的四格定值**。combat-service 只见 `EncounterSpec`，不该知道剧本存在 ⇒ 本机制对存档 schema 零改动、零迁移。
 
   ```csharp
   [GlobalClass]
@@ -360,15 +367,14 @@
   | `Tighten.WinMarginDelta` | **取 `max`**（最大者 = 门槛抬得最高；恒 `>= 0`） | `0`，恒等元 |
   | `Tighten.InitialDrawDelta` | **取 `min`**（恒 `<= 0`） | `0`，恒等元 |
   | `Tighten.DrawPerTurnDelta` | **取 `min`**（恒 `<= 0`） | `0`，恒等元 |
-  | `Tighten.HandLimitDelta` | **取 `min`**（恒 `<= 0`） | `0`，恒等元 |
-  | `Tighten`（整体） | 全为 `null` → `null`；否则逐字段按上五行合并，`null` 参与者视同全 `0` | null |
+  | `Tighten`（整体） | 全为 `null` → `null`；否则逐字段按上四行合并，`null` 参与者视同全 `0` | null |
 
   - **权重相乘的三条理由：** ① 恒等元是 1 ⇒ 缺省行不需特判（相加时「不修正」要写 0、「翻倍」要写 +100%，两种语义混在同一个数组里，`.tres` 里读不出作者想的是哪一种）；② 相加会让两条 arc 的调制**全有全无地互相湮灭**（arc A 写 `+3`、arc B 写 `-3`，合并后回到基础值，两条线都在「显影」而玩家什么也感知不到），与「排队不丢弃：触发恒定成立，只是延后」正面冲突；③ 与赋级带的「调制修正（乘性）」同构。**正系数下湮灭是连续的而非全有全无**——任一条 arc 单独把某类推高都不会被另一条推成 0。
   - **白名单取并的三条理由：** ① 两条不同剧情线的 `EventWhitelist` 是两组不相交的 `EventId`，**取交为空是常态而非异常**，而空候选池是既定的「坏数据 → `PushError` + 抛」——一次完全正常的内容编排（煞气 arc 与心魔 arc 同时 `Active`）会把游戏打崩；② 取交让一条 arc **静默取消**另一条的强制性，与「触发恒定成立」同一条纪律相抵；③ 可读性的护栏已由 `MaxConcurrentSideArcs = 2` 与 `ExclusiveGroup` 架好，合并算子不需要再承担一次同样的职责。
   - **取并的代价明写（被接受）：** 多条 arc 同时收窄时，每条的强制性被稀释为「本批必出这些线之一」而非「本批只出我这条线」。**要表达独占，正确形态是 `ExclusiveGroup`**（同组至多一条 `Active`），那正是它存在的理由；把独占性塞进白名单合并算子等于制造第二个 `ExclusiveGroup`。
   - **顺带的收益：不存在取交 ⇒ 管线上少一条「白名单收窄后候选池为空」的失败路径**，也不需要发明「空交集则回退取并」的兜底分支。
-  - **`Tighten` 五格取极值而不是相加：** 四条 `Active` arc 各写 `TurnLimitDelta = -1`，相加即 `-4`——`Practice` 的 8 回合掉到 4，把节奏旋钮打穿；对 `DrawPerTurnDelta` 更致命（每回合抽 2 相加两条 `-1` 即归零，牌流量断供），而没有任何一条 arc 的作者意图如此。取极值使**加压幅度的上界 = 单条 arc 写得出的最紧值**，内容评审逐条看得住；这与白名单取并那条「护栏由 `MaxConcurrentSideArcs` 与 `ExclusiveGroup` 架好，合并算子不必再承担一次同样职责」同向。
-  - **五格里四格取 `min`、一格取 `max`，差别只在方向常量而非算子族**：三格牌流量与回合数同属「少 = 更难」，`WinMargin` 是唯一「多 = 更难」的格。五个恒等元一律 `0`，与相乘那两格的 `1.0` 各自成立——不修正的写法在两种语言里都是「不填」，`.tres` 里读不出歧义。
+  - **`Tighten` 四格取极值而不是相加：** 四条 `Active` arc 各写 `TurnLimitDelta = -1`，相加即 `-4`——`Practice` 的 8 回合掉到 4，把节奏旋钮打穿；对 `DrawPerTurnDelta` 更致命（每回合抽 2 相加两条 `-1` 即归零，牌流量断供），而没有任何一条 arc 的作者意图如此。取极值使**加压幅度的上界 = 单条 arc 写得出的最紧值**，内容评审逐条看得住；这与白名单取并那条「护栏由 `MaxConcurrentSideArcs` 与 `ExclusiveGroup` 架好，合并算子不必再承担一次同样职责」同向。
+  - **四格里三格取 `min`、一格取 `max`，差别只在方向常量而非算子族**：两格牌流量与回合数同属「少 = 更难」，`WinMargin` 是唯一「多 = 更难」的格。四个恒等元一律 `0`，与相乘那两格的 `1.0` 各自成立——不修正的写法在两种语言里都是「不填」，`.tres` 里读不出歧义。
   - **`min` / `max` 幂等、可交换、可结合** ⇒ 合并顺序不是需要裁决的量（与「乘法可交换 ⇒ location 与 arc 谁先不必定」同构），且**合并算子与施加算子同构**——先合并再施加与逐条施加取最紧，结果相同。**与 `LevelBias` 互不影响**，两者先后同样不是需要定的量。
   - 这些算子在物化管线里的落位（第几步生效、与 location 修正如何相乘、归一化在哪里发生、`Tighten` 的施加与钳制落在哪一步）见 `future-event-service.md` 的十步管线；**乘法可交换 ⇒ location 与 arc 的先后不是需要定的量。**
 
@@ -482,6 +488,7 @@
   | 从 `EntryNodeId` 出发的可达图**含环** | `PushError` + 环上 `Id` 序列（剧本树是树，环会让单步推进永不终止） |
   | 存在**不可达节点** | `PushWarning` + 逐条列出（多半是编排遗漏，不阻塞） |
   | `Tier == Chapter` 而 `ParentArcId` 为空 / 指向非 `Story` | `PushError` |
+  | `PlotArcData.CharacterIds` 的元素指向不存在的 `CharacterData.Id` | `PushError` + arc `Id` + 悬空值（悬空即该 arc 永不匹配任何角色 ⇒ 静默失效的角色专属线） |
   | `PlotArcData.PlotTriggerId` 与任一 `HiddenStatBandData.PlotTriggerId` 对不上 | `PushError` + 悬空 `PlotTriggerId`（**双向校验**：档位表侧配了触发 id 却无 arc 承接同样报错） |
   | 同一节点混有 `BranchChosen` 边与自动边，或同节点两条 `BranchChosen` 边 `ToNodeId` 相同 | `PushError` |
   | **`BranchLabel` 非空 ⊕ `Condition.Kind == BranchChosen`**（异或成立即违规） | `PushError` + arc `Id` + 节点 `Id` + `ToNodeId` |
@@ -493,9 +500,9 @@
   | `EventTypeWeight.Multiplier <= 0` | `PushError` + arc `Id` + 节点 `Id` + 类型（剧本侧无 Travel 例外） |
   | `EventWeight.Multiplier <= 0` | `PushError` + arc `Id` + 节点 `Id` |
   | `LevelBias` 绝对值超出内容侧配置的上界 | `PushWarning`（带不越界由赋级函数保证，这里只挡明显的编排失误） |
-  | `Tighten` 的 `TurnLimitDelta` / `InitialDrawDelta` / `DrawPerTurnDelta` / `HandLimitDelta` 中任一 `> 0` | `PushError` + arc `Id` + 节点 `Id` + 越界字段名（方向违规，同 `Multiplier <= 0` 那两行的严厉度） |
+  | `Tighten` 的 `TurnLimitDelta` / `InitialDrawDelta` / `DrawPerTurnDelta` 中任一 `> 0` | `PushError` + arc `Id` + 节点 `Id` + 越界字段名（方向违规，同 `Multiplier <= 0` 那两行的严厉度） |
   | `Tighten.WinMarginDelta < 0` | `PushError` + arc `Id` + 节点 `Id`（同上） |
-  | 非空 `Tighten` 但五格皆为 `0` | `PushWarning`（等价于不填，多半是编排遗漏；同 `Body` 与 `Modulation` 同时为空那行） |
+  | 非空 `Tighten` 但四格皆为 `0` | `PushWarning`（等价于不填，多半是编排遗漏；同 `Body` 与 `Modulation` 同时为空那行） |
   | `Tighten` 任一 delta 的绝对值超出该格的内容侧上界常量（见 `systems/balance.md`） | `PushWarning`（同 `LevelBias` 越界那行——硬界由物化期钳制保证，这里只挡明显的编排失误） |
 
 - **`Id` 约定。** 与 `plot.band.faith.2` / `location.wilds.bamboo_sea` 的点分小写同构：arc = `plot.arc.<tier>.<name>`（`plot.arc.story.ashen_lineage`）· node = `plot.node.<arc-name>.<两位序号>`（`plot.node.ashen_lineage.03`）。
@@ -537,7 +544,7 @@
   - **心魔滋生** —— 道心崩坏后被外物趁虚而入：决断开始出错（调制节点，`Tighten` 让遭遇更紧）→ 一个「可以走捷径」的诱惑事件（`EventWhitelist`）→ 心魔具象（boss 节点）。分支 =「与心魔共处」（保留一项带代价的强力收益）vs「斩心魔」（`Faith` `Raise` `Major`）。
   - **两条线都不给干净的好结局**，代价一律如实展示（grimdark 基调见 `vision/pillars.md`）。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-third-hidden-stat.md` · `handoffs/2026-09-09f-event-reward-and-hidden-stat-orchestration.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16-design-audit-adjudication-and-hand-limit.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17e-finale-combat-only-and-hidden-stat-io.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-plot-tree-chapter-packaging.md` · `handoffs/2026-08-22-eventcountlimit-plot-modulation.md` · `handoffs/2026-08-22-combat-defeat-consequences.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-third-hidden-stat.md` · `handoffs/2026-09-09f-event-reward-and-hidden-stat-orchestration.md` · `handoffs/2026-09-12-encounter-tighten-bounds.md`
 
 ## 管理器角色 / API 面（契约）
 > _总则与共享类型见 `systems/architecture.md`「API 契约总则」。**本 manager 纯本地，永不跨进程边界，故全部方法为形态 A**（剧本内容属本地内容层）。_
@@ -572,7 +579,7 @@ Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-23-adv
   - **产出的呈现时点 = `eventEnd` 那一次 `TryApply` 提交之后，落在事件结算面板内。** 这不是取舍而是被既定纪律逼出的唯一位置：落进五步组装之内会在⑤提交前引入一个可退出点 ⇒ 需持久化中间态，与「中间态永不需要持久化」「取消点与存档点永远重合」正面冲突；另设时机（例如每 N 个事件一次）等于给剧本层开第二个出口。**分支呈现在 arc 抵达该节点的同一次结算面板上，不延后一次收口**——延后只会让分支正文与产生它的那个事件脱节。排布与交互细节见 `ux/screen-flow.md`「事件结算面板的剧本段」。
   - **`ChooseBranch` 那一次写入 = 批次层的一次独立即时提交**，与储物袋道具使用同族，**不新增存档点清单条目**（该写入本就既定：经 `ProfileManager` 写入一条 `PlotKeyPointAssignment`）。三条连带纪律逐条核过、不开例外：**不触发 `RefreshAfterEvent`**（成立且必须——重算会消耗 `map` 子流，并开出「用一次分支选择刷新这一批事件」的通道）· **照跑终态判定**（**恒为 no-op**：`PlotKeyPointAssignment` 不动任何资源 element，不可能把任何资源打到 `Min`——与储物袋道具的差别正在于此）· **不计软阻塞闸门**（闸门只数事件级存档点）。push policy 取 `Debounced`（它不是篇章边界 / 轮回结束 / 进入战斗前那三类 `Immediate` 时刻）。
   - **玩家未选完即退出 = arc 停在该节点**，key point 已在 `eventEnd` 那一笔提交，下次收口的结算面板照常再呈现；该等待时刻**不是新的存档点**。
-  - **`ModulateEventOptions` 的输入 = 全部 `Active` arc 的 `PlotModulation` 之并**，逐字段按上方「多条 `Active` arc 的合并算子」表合并（权重相乘 · 白名单非空者取并 · `LevelBias` 相加 · `Tighten` 五格逐格取极值）。
+  - **`ModulateEventOptions` 的输入 = 全部 `Active` arc 的 `PlotModulation` 之并**，逐字段按上方「多条 `Active` arc 的合并算子」表合并（权重相乘 · 白名单非空者取并 · `LevelBias` 相加 · `Tighten` 四格逐格取极值）。
   - **无 `PlotRequest`**（无远端请求，key points 直接来自传入的 `CharacterProfile`）。
 
 **四个方法中的两个投影到服务门面上。** `ModulateEventOptions` / `OnHiddenStatThreshold` 是宿主服务 `ComputeEventOptions` 物化链条**内部**的一环，不被跨服务调用（manager 纪律）；`ChooseBranch` 因需要玩家输入，由 future-event-service 以同名方法转发；`TryResolvePlot` 因呈现侧要拿剧本段渲染结算面板，由 future-event-service 以只读的 `TryGetPlotSegment` 转发（见「事件面」与 `future-event-service.md` API 面）。**投影的是方法、不是类型**：本 manager 仍 `internal sealed`，仍不被跨服务直接调用。
@@ -606,8 +613,10 @@ Source: `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md`
 ## 待决问题
 
 - **`HiddenStatGrade` 的三个映射值留待内容扩充后的统计校准。** 初值 `Minor 2 / Standard 5 / Major 10` 与「每属性每篇章跨档 2–4 次」是**反推验收项，不是死数字**。**档位结构、阈值形态、文案形态、呈现形态均不被它阻塞**——它约束的是标定，不是结构。→ `systems/balance.md`。
+- **角色专属 SideStory 的激活口。** 现有两条 arc 激活通路是 `PlotTriggerId`（隐藏属性跨档）与篇章边界（Story / Chapter arc 各恒一条）；一条「角色专属、不由隐藏属性触发」的 SideStory arc **没有明写的激活口**。角色专属剧情对两条轨道一视同仁地铺是既定取向 ⇒ 这个机制缺口须先补。它是工程推演题、不是取向题。→ 本文档。
+- **`CharacterIds` 的 gating 语义。** 何时比对（激活期一次？每次解析？）、不匹配时是不激活还是惰性——`ChapterScope` / `ExclusiveGroup` 都有明确落位，唯独这一格只有一行字段注释。→ 本文档。
 
-Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-09-06-third-hidden-stat.md`
+Source: `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-09-06-third-hidden-stat.md` · `handoffs/2026-09-12-series-packaging-and-narrative.md`
 
 ## 对应
 提炼至：`.claude/knowledge/systems/plot-manager.md`（引用层，待建）。

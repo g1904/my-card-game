@@ -2,7 +2,7 @@
 
 - **状态：** Accepted
 - **日期：** 2026-09-05
-- **来源：** handoffs/2026-09-05-currency-acquisition-and-pricing.md
+- **来源：** handoffs/2026-09-05-currency-acquisition-and-pricing.md · handoffs/2026-09-12-spirit-stone-budget-and-combat-count.md
 
 ## 背景
 
@@ -27,7 +27,7 @@ Travel 侧另有一处结构性缺口：既有禁令「Travel 条目不得产出
 
 ## 理由
 
-- **它把灵石收入钉在「战斗场数」这个已知且近似恒定的量上**（7 / 8 / 8），而定价表不设篇章维（`decisions/ADR-0133-currency-carries-across-chapters.md`）恰恰要求收入的形状可控。
+- **它把灵石收入钉在「战斗场数」这个已知且近似恒定的量上**（11 / 11.9 / 14，含 Finale），而定价表不设篇章维（`decisions/ADR-0133-currency-carries-across-chapters.md`）恰恰要求收入的形状可控。
 - **逐类型的否决理由各自独立成立：** `Exchange` 是消费点，在消费点发钱等于给定价表打一个不可见的折，两条曲线都失去可反推性；`Explore` 解析为真身、产出随真身走，本身再给一份即双记；`Research` 不给是既有定案。
 - **不改白名单**：改它会连带动仙玉的唯一通道（稀有 AdventureEvent 产出），代价远大于收益。
 - **不引入档位枚举是有依据的例外，不是疏漏。** 既有三处枚举先例（`ExperienceGrade` / `HiddenStatGrade` / `SelectionWeightGrades`）要枚举，是因为同一个数在不同篇章意义不同、必须先归一化；货币恰恰相反——定价表不设篇章维 ⇒「40 灵石」在三章买到的是同一格商品 ⇒ 绝对值本身跨章可比。

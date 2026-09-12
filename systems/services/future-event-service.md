@@ -207,9 +207,10 @@
   ③ 卡组展开      ← 模板的功法引用列表（TechniqueRef）逐门按其 Tier 取该层卡牌，并入游离散牌
                     （层数是模板上的固定值，不以 ② 的等级为输入 ⇒ 展开产物在加载期即唯一确定）
   ④ item / power 持有列表  ← 直接取自模板（不由剧本调制改写）
-  ⑤ 遭遇参数      ← combatTier 代入五格：TurnLimit / WinMargin（Standard 10 / 1；Practice 8 / 0；Finale 12 / 0）
-                    + 三格牌流量 InitialDraw / DrawPerTurn / HandLimit（模板未覆写则取 CombatRulesData 默认值）
-  ⑤b 剧本收紧     ← 全部 Active arc 的 PlotModulation.Tighten 五格合并 → 施加 → 钳制 → 断言
+  ⑤ 遭遇参数      ← combatTier 代入四格：TurnLimit / WinMargin（Standard 10 / 1；Practice 8 / 0；Finale 12 / 0）
+                    + 两格牌流量 InitialDraw / DrawPerTurn（模板未覆写则取 CombatRulesData 默认值）
+                    （手牌上限不在此面内——它恒取 CombatRulesData 的全局常量，模板与剧本都改不动）
+  ⑤b 剧本收紧     ← 全部 Active arc 的 PlotModulation.Tighten 四格合并 → 施加 → 钳制 → 断言
                     （Tier == Finale 整档跳过；只施加一次；与 LevelBias 互不影响）
 
   产出：EnemyInstance（定稿 · immutable · 随 EncounterSpec 嵌在 EventOption.Encounter 上落存档，
@@ -222,22 +223,22 @@
     |------|---------|-----------|
     | **卡组** | **不是旋钮**——按模板的功法引用列表逐门展开、并入游离散牌，物化期不做任何二次改写 | 用「等级越高牌越强」再加一条强度曲线；随赋级改动功法层数；**由剧情线临场改写** |
     | **item / power 列表** | **直接取自模板**（boss 与天劫的「不可被移除的场上特性」写在其专属条目上） | **由剧本调制增删**；突破 `IgnoresProtection` 的配额 |
-    | **遭遇参数** | 按 `combatTier` 代入五格（`TurnLimit` · `VictoryRule` · 三格牌流量），再由剧本的 `Tighten` **单向收紧** | 用它抵消等级带的约束；用剧本**放宽**任一格 |
+    | **遭遇参数** | 按 `combatTier` 代入四格（`TurnLimit` · `VictoryRule` · 两格牌流量），再由剧本的 `Tighten` **单向收紧这四格** | 用它抵消等级带的约束；用剧本**放宽**任一格；**改动手牌上限**（它不在代入面也不在收紧面内） |
 
   - **卡组的定制性归内容层**：一个敌人「用什么牌」完全由它模板上的功法引用列表与散牌决定；天劫这类需要专属牌的条目走 `Pool == Enemy` 的敌方专用功法，物化路径上没有第二条通道。
-  - **`KeyCardIds` 的校验因此上移到加载期**：关键卡必须落在「功法展开产物 ∪ 散牌」这个并集内，违反 → `PushError`。图鉴写的就是玩家实际会遭遇的牌——而图鉴是事前知识的主通道。口径与逐条报错形态见 `systems/enemies/common-properties.md`。
+  - **`KeyCardIds` 的校验因此上移到加载期**：关键卡必须落在「功法展开产物 ∪ 散牌」这个并集内，违反 → `PushError`。AI 的打法重心标注指向一张打不出来的牌即是一条永不生效的编排。口径与逐条报错形态见 `systems/enemies/common-properties.md`。
   - **确定性与存档**：展开不引入随机；产物 `EnemyInstance` **随 `EventOption` 落存档、不重算**（overlay 热更使重算不保证同结果）。
 - **剧情线不可调制敌人模板；剧情线与地点各自可拥有专属敌人模板池（承重）。** 差异化的表达位从「改写模板内容」整体移到「**换一个池子抽**」：
   - 每个 `EnemyData` 带 **`PoolScope`**（通用池 / 某地点专属 / 某 arc 专属）；抽取时按 `EncounterScopes`（遭遇档位作用域，`CombatTier[]`）+ `PoolScope`（地点 / arc，逐维度与门、空维度恒真，arc 一侧传**全部 `Active` arc 的集合**）+ `ChapterScope`（篇章框定，空 = 三章通用，入参是单值 `currentChapter`）叠加，全部在 `AllEnabled()` 之后。**通用条目恒进池，专属条目是叠加而非替代**——池归属的唯一权威在敌人条目一侧，location 条目不持敌人清单（见 `systems/enemies/_index.md`）。
   - 「大限将至」线上的绝境敌人 = **该线专属池里的一条完整 `EnemyData`**（自带更凶的样本卡组与 power），**不是**把通用条目临场改凶。
   - **PlotManager 的权力因此收敛为三项：框定用哪个池 · 偏移带内赋级权重 · 拧紧遭遇参数。它碰不到模板的任何字段。**
     这份权力面在内容侧有一个**逐条投影的承载类型 `PlotModulation`**（六个 `[Export]` 字段，一一对应上述三项加事件层的两项权重）：越权的写法在内容层**根本没有字段可填**——`eventPriority`、模板字段、敌人卡组、item / power 列表都不在其中。类型定义见 `plot-manager.md`。
-  - **好处**：改写幅度天然有界 · 图鉴词条与玩家实际遭遇恒对得上（专属条目有自己的词条）· 可确定性复算。**代价**：内容量上升（每条专属敌人都是一个完整条目，含图鉴五项词条），归内容排期。
+  - **好处**：改写幅度天然有界 · 图鉴词条与玩家实际遭遇恒对得上（专属条目有自己的词条）· 可确定性复算。**代价**：内容量上升（每条专属敌人都是一个完整条目，含图鉴四项词条），归内容排期。
   - **三个框定字段的缺失语义各不相同**：`EncounterScopes` 空数组 → 加载期 `PushError`（`Contains` 恒假 ⇒ 漏填即写了永不进池的死条目）；`PoolScope` **允许为空**（= 通用池），不报错；`ChapterScope` **空数组合法**（过滤写成 `Length == 0 ||`，空即恒真 ⇒ 漏填只是范围偏宽，不是死条目）。`ChapterScope` 的字段级校验权威在 `systems/common-properties.md`，其余逐字段口径见 `systems/enemies/common-properties.md`。
   条目定义见 `systems/enemies/`。
 - **遭遇参数由本服务在物化时从 `AdventureEventData` 代入 `EncounterSpec`。** `TurnLimit` / `VictoryRule` / `RewardPoolId` / `BaseReward` 全部在物化时定稿，**`EnemyData` 完全不携带**——否则同一个敌人条目无法同时用于 Practice 与 Combat。**依据 = 唯一物化点 + 产出即定稿**：消费侧不得回查模板重算，故 `EncounterSpec` 必须自带取值，不能只带一个 `EncounterId` 让 combat-service 回查。**物化时代入也是剧本调制的天然挂点**（PlotManager 可拧紧遭遇参数）。类型形态见 `systems/services/combat-service.md`。
 
-- **剧本收紧的施加侧全在本服务（旋钮 ⑤b）。** 输入 = 全部 `Active` arc 的 `PlotModulation.Tighten` 按逐格算子合并出的一份五格增量（类型形态、方向约束与合并算子见 `systems/services/plot-manager.md`；十个界常量的取值见 `systems/balance.md`——**两处均只回链，本节不复述定义与数字**）。落位固定在**旋钮 ⑤ 之后、`EncounterSpec` 定稿之前**，**整批只施加一次**。
+- **剧本收紧的施加侧全在本服务（旋钮 ⑤b）。** 输入 = 全部 `Active` arc 的 `PlotModulation.Tighten` 按逐格算子合并出的一份四格增量（类型形态、方向约束与合并算子见 `systems/services/plot-manager.md`；八个界常量的取值见 `systems/balance.md`——**两处均只回链，本节不复述定义与数字**）。落位固定在**旋钮 ⑤ 之后、`EncounterSpec` 定稿之前**，**整批只施加一次**。
   - **`Tier == Finale` 整档跳过**（不是错误、不告警），闸的理由见 `plot-manager.md`。
   - **与 `LevelBias` 互不影响** ⇒ 两者的先后不是需要裁决的量。
   - **施加式：每格的 `Clamp` 一侧写硬界常量，另一侧写该格的施加前值本身。**
@@ -248,18 +249,17 @@
     | `WinMargin` | `Clamp(v + WinMarginDelta, v, MaxWinMargin)`（反向格；`v` 恒 `>= 0`） |
     | `InitialDraw` | `Clamp(v + InitialDrawDelta, MinInitialDraw, v)` |
     | `DrawPerTurn` | `Clamp(v + DrawPerTurnDelta, MinDrawPerTurn, v)` |
-    | `HandLimit` | `Clamp(v + HandLimitDelta, MinHandLimit, v)` |
 
     （`v` = 该格的施加前值，即旋钮 ⑤ 代入的档位默认值或模板覆写值。）
 
   - **把施加前值写成 `Clamp` 的一侧，是为了让「永不放宽」不依赖方向校验。** 方向由加载期校验保证（delta 符号越界 → `PushError`），但**加载期校验够不着 overlay 推上来的坏数据**；施加式自带这条边界后，即便一条 `TurnLimitDelta = +3` 绕过校验落到这里，`Clamp` 的上界仍是 `v` ⇒ 结果不高于施加前值。**收紧管线因此在数据层面单调**，与「越权的写法在内容层根本没有字段可填」是同一条纪律在物化侧的延伸。
-  - **三格牌流量在此必须代入定值。** `EncounterSpec` 的三格是可空覆写组（`null` = 取 `CombatRulesData` 默认值），但**一旦本步产生非零收紧，该格不得再留 `null`**——产出即定稿、消费侧不回查模板重算，留 `null` 会让 combat-service 读回未收紧的默认值。
-  - **物化期钳制 5 条，一律削平而非拒绝**（一条 overlay 推上去的坏 `Tighten` 应当被削平，而不是让这一批 eventOptions 产不出来——与「合法池不足 3 条目时显式降级、不静默」同一条纪律：降级但留痕）。任一格被硬界削平 → `PushWarning`，带**全部 `Active` arc 的 `Id`** + 字段名 + want / got。
-  - **`EncounterTighten` 本身不进 `EncounterSpec`、不落存档**：它是本步的一个输入，施加完即消失；落存档的是**施加后的五格定值**。⇒ 本机制对存档 schema 零改动、零迁移。
+  - **两格牌流量在此必须代入定值。** `EncounterSpec` 的那两格是可空覆写组（`null` = 取 `CombatRulesData` 默认值），但**一旦本步产生非零收紧，该格不得再留 `null`**——产出即定稿、消费侧不回查模板重算，留 `null` 会让 combat-service 读回未收紧的默认值。
+  - **物化期钳制 4 条，一律削平而非拒绝**（一条 overlay 推上去的坏 `Tighten` 应当被削平，而不是让这一批 eventOptions 产不出来——与「合法池不足 3 条目时显式降级、不静默」同一条纪律：降级但留痕）。任一格被硬界削平 → `PushWarning`，带**全部 `Active` arc 的 `Id`** + 字段名 + want / got。
+  - **`EncounterTighten` 本身不进 `EncounterSpec`、不落存档**：它是本步的一个输入，施加完即消失；落存档的是**施加后的四格定值**。⇒ 本机制对存档 schema 零改动、零迁移。
   - **物化日志并进 `[FutureEvent-Materialize]`：**
 
     ```
-    [FutureEvent-Materialize] tighten=<turnΔ>/<marginΔ>/<initΔ>/<drawΔ>/<handΔ>
+    [FutureEvent-Materialize] tighten=<turnΔ>/<marginΔ>/<initΔ>/<drawΔ>
     ```
 
     记的是**实际生效的增量**（钳制之后的差值），不是合并出的原始 delta——否则被削平的那一批日志会与存档里的定值对不上。
@@ -330,7 +330,7 @@
 - **Explore 的揭示落在既有 `eventStart` 阶段内，不新增服务方法。** 揭示是 `revealed = option with { IsRevealed = true }` 一次派生（当前批里那份原实例不动，符合「产出即定稿」）；**resolver 按真身的 `eventType` 选取，不按 `EventOption.EventType`**——后者恒为 `Explore`，照它选会把一个战斗真身送进 `GenericEventResolver`。这与下条的组装判据是同一条纪律的两处应用。
 - **通用结算器从 outcome / effect 定义算出的授予一律记 `Source.EventOutcome`。** 授予来源的分野判据是**谁组装出这条 element**，不是事件类型：Research / Explore / Travel 的 outcome 授予、以及 Exchange 中**不走购买流程**的 outcome（对话结果、赠礼）同归此值；走购买流程的那一条走 `Source.ExchangePurchase`，由 combat-service 交出的 `Spoils` 走 `Source.CombatReward`。**推论：Explore 选项按其揭示后的真身归类**——`EventType` 恒为 `Explore` 而真身在 `RevealedEventId`，一个揭示出战斗真身的选项，其战利品出自 combat-service，故不记 `EventOutcome`。见 `systems/common-properties.md`。
 
-Source: `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-09-05-finale-level-config.md` · `handoffs/2026-09-06-ability-loss-frequency-budget.md`
+Source: `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-25c-service-manager-hierarchy-and-content-pipeline.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-27b-service-api-contracts.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-05-level-band-stack-save-and-token-free-deck.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-11-plot-content-localization.md` · `handoffs/2026-08-15c-event-type-collapse-and-batch-shape.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16h-grant-source-assembler-criterion.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17b-research-build-panel-and-deck-elements.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-22-event-generation-weighting-pipeline.md` · `handoffs/2026-08-22-event-outcome-spec-fields.md` · `handoffs/2026-08-22-priority-elevation-criterion.md` · `handoffs/2026-08-22-enemy-pool-chapter-scoping.md` · `handoffs/2026-08-22-band-boundary-config-placement.md` · `handoffs/2026-08-22-encounter-tighten-fields.md` · `handoffs/2026-08-22-hidden-stat-grant-direction.md` · `handoffs/2026-08-25-enemy-deck-from-techniques-and-ai.md` · `handoffs/2026-09-05-finale-level-config.md` · `handoffs/2026-09-06-ability-loss-frequency-budget.md` · `handoffs/2026-09-12-encounter-tighten-bounds.md`
 
 ## 管理器
 
@@ -461,7 +461,7 @@ public sealed record AbilityChangeSlot(       // 定稿 · immutable；物化时
 | 10 | Explore 壳：`OutcomeSpec` 由 `RevealedEventId` 指向的模板物化（见 `systems/adventure-event/explore/_index.md`） |
 | 11 | 两侧 `Elements` 中 `Key ∈ { Faith, Bloodlust }` 时 `BaseValue != 0`（模板校验 8 的物化侧对偶；`Op == Add` 已由断言 8 覆盖） |
 | 12 | 两侧 `Elements` 中 `Key ∈ { Faith, Bloodlust }` 各至多一条（模板校验 7 的物化侧对偶，与断言 4 / 5「成本侧那条的镜像」同款分工） |
-| 13 | `EncounterSpec.Tier == Finale` ⇒ 五格遭遇参数全等于该档默认值（`Tighten` 整档豁免的物化侧对偶） |
+| 13 | `EncounterSpec.Tier == Finale` ⇒ `Tighten` 可及的四格遭遇参数全等于该档默认值（`Tighten` 整档豁免的物化侧对偶） |
 
 **断言 5 是既有禁令的物化侧对偶，在「Explore 产出取真身」的处置下继续成立**——若产出取壳，一个遮罩着回寿 Travel 的秘境就能绕过该禁令。
 

@@ -35,7 +35,8 @@ content/
 |---|---|---|---|:--:|:--:|
 | `card/` | 卡牌 | `CardData` | `systems/character-profile/deck/` | 🟠 字段清单与效果语法已定，阻于 starter deck 内容 | ✗ |
 | `cultivation-technique/` | 功法 | `CultivationTechniqueData` | `systems/character-profile/deck/` | 🟠 header 形态已定（含 `RequiredAffinities` / `MaxCharacterAffinityCount` 两格），阻于卡牌条目 | ✗ |
-| `character/` | 角色（可玩模板） | `CharacterData` | `systems/character-profile/` | 🟠 字段表已成文（`Affinities` 与稀疏境界覆写 `RealmArtworks` 在内），仍阻于功法与神通条目 | ✗ |
+| `character/` | 角色（可玩模板） | `CharacterData` | `systems/character-profile/` | 🟠 字段表已成文（含 `SeriesId` / `Track` 两格、`Affinities` 与稀疏境界覆写 `RealmArtworks`），仍阻于功法与神通条目 | ✓ |
+| `character-series/` | 角色系列 | `CharacterSeriesData` | `systems/character-profile/` | 🟢 字段面已定（`Id` + 名称 + 概述 + 可空 `Artwork`，**无规则字段**）+ 一条悬空校验 | ✗ |
 | `character-power/` | 神通 | `PowerData`（Character 域） | `systems/character-profile/power/` | 🟢 字段清单与效果语法均已定 | ✗ |
 | `character-item/` | 法宝 | `ItemData`（Character 域） | `systems/character-profile/item/` | 🟢 字段清单齐备（含两格使用效果面与配额格）+ 加载期校验 | ✗ |
 | `player-power/` | 法则 | `PowerData`（Player 域） | `systems/player-profile/player-power/` | 🟢 两层共用 `PowerData`，字段清单齐备 + 三条加载期校验 | ✗ |
@@ -93,14 +94,15 @@ content/
 - **「五档非空」不能落加载期硬校验**（池成员随内容铺开逐步补齐），但必须有对账面——否则「每一档都保有可能性」只是一句无人核对的话。
 - **池深度**已由取池不足的三道闸看住，本层不重复造闸。
 
-Source: `handoffs/2026-09-09d-combat-rarity-and-reward-scale.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md` · `handoffs/2026-09-09f-event-reward-and-hidden-stat-orchestration.md` · `handoffs/2026-09-10-item-family-supply-guardrails.md`
+Source: `handoffs/2026-09-09d-combat-rarity-and-reward-scale.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md` · `handoffs/2026-09-09f-event-reward-and-hidden-stat-orchestration.md` · `handoffs/2026-09-10-item-family-supply-guardrails.md` · `handoffs/2026-09-12-series-packaging-and-narrative.md`
 
 ### 依赖链（决定开张顺序 · 承重）
 
 ```
 ability（效果原语）
    └─▶ card ─▶ cultivation-technique ─┬─▶ character
-   └─▶ character-power ───────────────┘
+   └─▶ character-power ───────────────┘      ▲
+character-series（独立，只有名与概述）────────┘  `CharacterData.SeriesId` 悬空 ⇒ `PushError`
    └─▶ character-item / player-power / player-item
               └─▶ achievement-group（两档奖励槽各指定一个专属条目）─▶ achievement
    cultivation-technique ─▶ enemy（套牌 = 功法 Id + 层数，展开为样本卡组；另含游离散牌）

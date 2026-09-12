@@ -1,8 +1,8 @@
-# ADR-0077 — `PlotModulation.Tighten` = 五格带方向约束的增量；对 `Finale` 整档豁免；不进 `EncounterSpec`、不落存档
+# ADR-0077 — `PlotModulation.Tighten` = 四格带方向约束的增量；对 `Finale` 整档豁免；不进 `EncounterSpec`、不落存档
 
 - **状态：** Accepted
 - **日期：** 2026-08-22
-- **来源：** handoffs/2026-08-22-encounter-tighten-fields.md
+- **来源：** handoffs/2026-08-22-encounter-tighten-fields.md · handoffs/2026-09-12-encounter-tighten-bounds.md
 
 ## 背景
 
@@ -10,17 +10,21 @@
 
 ## 决策
 
-`PlotModulation.Tighten` 的类型是 **`EncounterTighten` —— 五格带方向约束的增量，不是绝对覆写值**。「更紧」落成 `min` / `max` 极值算子。
+`PlotModulation.Tighten` 的类型是 **`EncounterTighten` —— 四格带方向约束的增量，不是绝对覆写值**：**回合数 · 胜负门槛 · 起手抽牌数 · 每回合抽牌数**。「更紧」落成 `min` / `max` 极值算子。
+
+**手牌上限不在增量面内**——它恒为 7，是一个普通的全局平衡常量，剧本改不动。
 
 **`Tighten` 对 `Finale` 整档豁免**——剧本要加压 Finale，**只能走敌人侧的两个字段**。
 
 **`EncounterTighten` 本身不进 `EncounterSpec`、不落存档。**
 
-字段面与止于五格的两条判据 → `systems/services/plot-manager.md`；消费侧 → `systems/services/combat-service.md`。
+字段面与止于四格的两条判据 → `systems/services/plot-manager.md`；消费侧 → `systems/services/combat-service.md`。
 
 ## 理由
 
 增量 + 方向约束使剧本**只能加压不能减压**，且加压幅度受格值上限约束——赋级带与数值安全性因此不受剧本影响。极值算子（而非加法）保证多条 arc 同时生效时结果仍在约束内。
+
+手牌上限排除在外：撞上限**不丢牌**（第 8 张从抽牌堆抬起一半后退回），故压低它实为一次**条件性的牌流收紧**，与起手 / 每回合两格直接的牌流量旋钮重叠，而玩家读不出它的来源。难度旋钮因此收在直接的牌流量上。
 
 Finale 豁免：Finale 是篇章的能力检查点（→ `ADR-0065`），它的难度必须由平衡面独占决定；允许剧本加压等于让某些剧本线不可通关。
 
@@ -32,9 +36,11 @@ Finale 豁免：Finale 是篇章的能力检查点（→ `ADR-0065`），它的�
 - **加入 `Enemy` / `Tier` / `FirstSide` 三格** — 否决：无难度全序，「更紧」在这三格上无定义。
 - **加入 `RewardPoolId` / `BaseReward`** — 否决：属产出侧，不是加压。
 - **加入疲劳量** — 否决：无覆写基准（疲劳是全局常量，→ `ADR-0052`）。
+- **加入手牌上限** — 否决：它的加压与两格牌流量重叠，且玩家读不出来源（见上）。
 
 ## 后果
 
-- 五格是封闭的：新增一格必须先回答「更紧在这一格上是什么方向」。
-- 剧本对战斗的全部影响面收敛为这五格 + 敌人侧两个字段。
-- 六个界常量的取值属统计校准面，本 ADR 只定结构。
+- 四格是封闭的：新增一格必须先回答「更紧在这一格上是什么方向」，并说明它不与既有四格重叠。
+- 剧本对战斗的全部影响面收敛为这四格 + 敌人侧两个字段。
+- 剧本失去「压低手牌上限」这一档加难手段，牌流量旋钮为两格。
+- 八个界常量的取值属统计校准面，本 ADR 只定结构。

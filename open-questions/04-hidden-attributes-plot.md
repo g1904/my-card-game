@@ -11,3 +11,5 @@
 > **非境界突破的寿元增长途径**已于 08-17f 答结（存在；三条通道共用 `ChangeElement(LifeSpan, +n)`、只走 outcome 侧、成本侧取值域收紧为非负、数字与 `selectCost` 一律恒精确展示、护栏为三道软闸 + Travel 禁令，零结构增量。权威在 `systems/adventure-event/common-properties.md` 与 `systems/balance.md`；移出记录见 `../answer-logs/log-lifespan-gain-paths.md`）。
 
 - **`HiddenStatGrade` 的三个映射值（08-12d 新增 · 留待内容扩充后的统计校准）。** 初值 `Minor 2 / Standard 5 / Major 10` 与「每属性每篇章跨档 2–4 次」是**反推验收项，不是死数字**（作用面为道心 / 煞气两属性）；校准输入现已齐备——哪些事件推拉、各推哪一档由编排判据表与 Combat 三档阶梯给出，剩下的是内容铺开后的统计校准。**不阻塞任何结构**——它约束的是标定。→ `systems/balance.md`。
+- **角色专属 SideStory 的激活口（09-12 新增 · 工程推演题，不是取向题）。** 现有两条 arc 激活通路是 `PlotTriggerId`（隐藏属性跨档）与篇章边界（Story / Chapter arc 各恒一条）；一条「角色专属、不由隐藏属性触发」的 SideStory arc 没有明写的激活口。角色专属剧情对免费 / 付费两轨道一视同仁地铺已定案 ⇒ 这个缺口须先补。**归一次 `/provide-solution-draft`。** → `systems/services/plot-manager.md`。
+- **`PlotArcData.CharacterIds` 的 gating 语义（09-12 新增）。** 何时比对（激活期一次？每次解析？）、不匹配时是不激活还是惰性——`ChapterScope` / `ExclusiveGroup` 都有明确落位，唯独这一格只有一行字段注释。与上一条同批答。→ `systems/services/plot-manager.md`。

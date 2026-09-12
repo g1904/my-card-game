@@ -68,7 +68,7 @@ public readonly record struct CodexEntry(string Id);
 - **玩家自己习得的那一路**沿用「进入持有列表」的通用口径，搭在 `DeckElements` 的 `LearnTechnique` 那次提交上。
 - **它兑现的是敌我同源这条承诺：** 敌我共用同一套功法条目，**你在敌人身上见过的路数，就是你有机会习得的那一门**。若遭遇只解锁敌人本身、功法要另行习得才记，这条承诺在知识面上就只兑现一半。
 
-## 词条深度：五本能力 / 道具 / 功法类不套用敌人的五项规格
+## 词条深度：能力 / 道具 / 功法类不套用敌人的四项写作规格
 
 **五本的词条 = 该内容条目自身已有的字段 + 一段可选的图鉴专属风味文案**，不新增结构化的多项写作规格。
 
@@ -79,16 +79,17 @@ public readonly record struct CodexEntry(string Id);
 | 稀有度 | `Rarity: RarityTier` | 不新增 |
 | 风味 / 出处传说 | **`CodexFlavor: LocalizedText`**，可选，2–3 句 / 40–80 字；字段为 `null` 即不渲染该段、不告警 | 新增一格 |
 
-- **为什么不照抄敌人的五项规格（承重）。** 敌人词条昂贵（150–280 字 × 五项 + 过「无阿拉伯数字」的审阅）**是因为它要在不给数值的前提下传达路数**，而那条约束的存在理由是不侵蚀越级黑箱。**能力 / 道具 / 功法没有这条约束**——玩家持有它们时，效果与数值本就在储物袋 / 法则面板 / 构筑界面上完整可见。把一条对敌人成立的遮蔽纪律套到自己的东西上，是把内容成本抬高一个量级却换不来任何信息。
+- **为什么不照抄敌人的四项规格（承重）。** 敌人词条昂贵（四项结构化文案、③④ 写到行为模式级、且要过「无阿拉伯数字」的审阅）**是因为它要在不给数值的前提下传达招式与节奏**，而那条约束的存在理由是词条只给行为模式、不给数值曲线。**能力 / 道具没有这条约束**——玩家持有它们时，效果与数值本就在储物袋 / 法则面板上完整可见。把一条对敌人成立的书写纪律套到自己的东西上，是把内容成本抬高一个量级却换不来任何信息。
+  - **功法本是这五本里的一个例外**：它除条目字段 + `CodexFlavor` 外另给一份**由条目现算的逐层卡表**（`ADR-0095`），但仍不套敌人的结构化写作规格——卡表不是手写文案。
 - **推论：「词条正文不含阿拉伯数字」这条口径纪律的适用范围只及 EnemyCodex**，不是全族通则。整族通用的是**「给静态知识，不给动态情报」**——两者不是同一条。不明写这条边界，后来者会把这五本词条也做成结构化文案。
 - **`CodexFlavor` 挂在 `PowerData` / `ItemData` / `CultivationTechniqueData` 的顶层**，一格覆盖这五本（`Player*` 与 `Character*` 共用同一内容类）。挂载面与可选字段的校验口径见 `systems/common-properties.md`；功法侧的字段登记见 `systems/character-profile/deck/_index.md`。**与「展示文案不进图鉴条目」完全一致**：存档侧仍然只有 `Id`。
 - **七本一律不分档解锁**，直接来自「解锁是一次性的全量写入」。这五本的词条本就短，分档在它们身上尤其没有意义。
 - **LocationCodex 只共用上述通用部分**：同一个 `CodexEntry(string Id)`、同一条写入通道、同一套读档校验；其余词条深度仍待答，见 `_index.md`。
   - **连边不是存档态。** `locationCodex` 的每条 `CodexEntry` 只对应**一个去过的地域**（`Id == LocationData.Id`），连边由呈现层从 `LocationMapData` 现算——存档 / 写入通道 / 校验 / schema 版本一格不动，无迁移面、后端零配合。派生式与显影口径见 `_index.md`。
   - **因此本文档的四条既有约束对它逐条成立**：`Id` 是可经 `ContentRegistry` 解析的稳定 `Id`（不用复合键）· 触发是抵达、搭在已有提交上（零新增提交点）· 条目数恒 ≤ location 条目总数，体积护栏与完成度分母口径不破 · `CodexEntry` 不加格，各本形状仍然相同。
-- **TechniqueCodex 同样只共用上述通用部分**：词条 = 功法名 / 描述 / `Rarity` + 可选 `CodexFlavor`，**不含立绘、不列该功法的卡牌清单**；理由与两条解锁路径见 `technique-codex.md`。功法侧无视觉资产这一点在上表的「立绘」一行与 `art/visuals/_index.md` 的资产类目表上同样成立。
+- **TechniqueCodex 在通用部分之外另带一份卡表**：词条 = 功法名 / 描述 / `Rarity` / 属性 / **逐层卡牌清单** + 可选 `CodexFlavor`，**不含立绘**；卡表由呈现层从条目的成员卡现算、不落存档，理由（它是「第二次遇到就该能打赢」的兑现路径）与两条解锁路径见 `technique-codex.md` 与 `decisions/ADR-0095-technique-codex.md`。功法侧无视觉资产这一点在上表的「立绘」一行与 `art/visuals/_index.md` 的资产类目表上同样成立。
 
-Source: `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md`
+Source: `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-28-content-artwork-enemy-lines-and-ai-weight-vector.md` · `handoffs/2026-09-11-failure-and-punishment-identity.md`
 
 ## 对应
 提炼至：`.claude/knowledge/systems/player-profile/codex/common-properties.md`（待建）。

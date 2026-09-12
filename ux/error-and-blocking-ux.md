@@ -160,6 +160,21 @@
   - **它横切所有屏，不挂在任何一个屏下**——挂在某个屏下会让第二个屏的 FR 依赖第一个屏的 FR，凭空造出一条与设计无关的构建顺序。与「`ErrorText` 不放 `src/Core/`、放 UI 层」同一种归位思路：**按「它服务于谁」定位，而不是按「谁先用到它」。**
   - 它是**一切含 UI 文案的 FR 的 `depends-on`**。
 
+### 文案语气：素语 —— 纯数据陈述，不带修辞（横切全部框架文案）
+
+**框架文案一律纯数据陈述**（「寿元 −80。剩余 3 次重试。」），不带修辞、不带情绪、不安慰、不鼓励、不总结教训。
+
+- **它是「失败是代价、不是学费」在文案层的直接落地。** 游戏对玩家的失败不作任何评价，只如实记账；故**结算屏数据行 · 篇章结束屏 · 轮回结束屏的框架行 · 战报 · 全部 `ERR_*` 与四条兜底文案**一律陈述句。**无「再试一次！」、无劝慰、无教训总结**——凡出现这类语气即为文案违规。
+- **承重理由不是省事，是让唯一那一句人声凿得进去。** 全作只有一处可玩角色用自己的声音说话（`CycleEndScreen` 的角色终结台词，见 `screen-flow.md`）；**四周全是冷的，那一句第一人称才有分量**——这正是三国杀阵亡台词的生效机制（周围全是牌面与数字）。多加一层史官腔会把那一句稀释掉，且全库文案量翻倍。
+- **射程 = 框架文案，不覆盖内容层叙事文案（必须写清，否则内容侧会把全部风味一并剥掉）。**
+
+  | 受素语约束 | 不受约束（内容层叙事） |
+  |---|---|
+  | 各 `<PARTITION>_` 分区的 CSV 文案：`CYCLE_` · `COMBAT_` 战报模板句 · `MENU_` · `SYNC_` · `BOOT_` · `ERR_` 与四条兜底 | 事件正文 · 跨档叙事 · 结算屏与结束屏的**定性文案条目** · 敌人台词 `EnemyData.Lines` · 角色终结台词 · 图鉴词条 |
+
+- **它与「给方向不给数字」零冲突。** 那条管的是**给不给数值**，本条管的是**用什么语气说**；两条同时成立即「该给的数字照给、不该给的不给，而无论给什么都不加修辞」。
+- **它不改 `ERR_*` 键的机械变换规则。** 键仍由后端 `code` 机械变换而来、人不得手写（见下方禁令）；本条只约束键**对应的中文措辞怎么写**。
+
 ### 键命名规范：三条 + 一条禁令
 
 规范越长越没人遵守。三条足以覆盖已知的全部情形：
@@ -182,7 +197,7 @@
 | `COMBAT_` | `combat.csv` | CombatScreen、出牌 / 结算面板的框架文案。首批键：战报五条模板句 `COMBAT_LOG_CARD_PLAY` / `_ABILITY_ACTIVATION` / `_ABILITY_TRIGGER` / `_ITEM_USE` / `_FATIGUE`（**与 `CombatFeedKind` 的成员机械对应，不建第二张手写对照表**）· `COMBAT_LOG_TRUNCATED`（截断括注全文）· `COMBAT_LOG_FIZZLED` / `_ALL`（部分 / 全条落空）· `COMBAT_LOG_TURN_HEADER`（展开态回合分组行）· `COMBAT_SATCHEL_EMPTY`（随身抽屉空态一行）· `COMBAT_REWARD_PENDING_REMAINS`（奖励面板主按钮灰态说明）· `COMBAT_REWARD_CONTINUE`（奖励面板主按钮，与结算面板的「继续」分开）。**来源名（卡名 / 异能名 / 道具名）不进翻译键**——它们是内容层 `LocalizedText`，由呈现层作格式参数插入 |
 | `PROFILE_` | `profile.csv` | PlayerProfile / CharacterProfile 面板、图鉴族、成就 |
 | `SETTINGS_` | `settings.csv` | 设置屏（含同步版本 `#N` 的标签）。首批十个键：`SETTINGS_TITLE` · `SETTINGS_SECTION_AUDIO` · `SETTINGS_VOLUME_MASTER` / `_MUSIC` / `_SFX` · `SETTINGS_SECTION_COMBAT` · `SETTINGS_FAST_ANIMATION` · `SETTINGS_SECTION_LANGUAGE` · `SETTINGS_SYNC_REVISION` / `_NONE` |
-| `STORE_` | `store.csv` | 礼包屏：标题、权益条目、再次购买说明、入口不可用说明、购买按钮、**购买处理态与兑现结果态的全部文案**、**购买失败各情形的文案与终态失败面的「请提供此编号联系客服」一行** |
+| `STORE_` | `store.csv` | Store 屏（礼包 + 付费角色系列）：标题、权益条目、再次购买说明、入口不可用说明、购买按钮、**购买处理态与兑现结果态的全部文案**、**购买失败各情形的文案与终态失败面的「请提供此编号联系客服」一行**；付费角色系列一族的 `STORE_SERIES_*`（系列列表 / 系列详情 / 解锁结果态的框架文案）与三条 per-SKU 灰态说明 `STORE_UNAVAILABLE_SERIES_OWNED` / `_PARTIAL` / `_WINDOW`。**系列名与角色名不进翻译键**——它们是内容层 `LocalizedText`，由呈现层作格式参数插入 |
 | `CYCLE_` | `cycle.csv` | **轮回收尾族**：轮回结束屏（三个 `DefeatReason` 变体标题）+ 篇章结束屏（三个 `chapter` 变体标题、解锁行、元婴统计区两行标签）、结果行标签、剩余重试行（含「无限」）、主按钮（**不含定性文案——那是内容层**） |
 
 > **边界必须写在规范里，否则分区表会被误用：分区划的是「界面」，不是「内容域」。** `EVENT_` 装的是选项框的按钮与标题，**事件正文一个字也不进**——正文归内容层（`ux/_index.md` 的四问判据）。这条不写清楚，第一个写事件屏的人就会把正文塞进 `event.csv`。
@@ -201,7 +216,7 @@
 | 情形 | 呈现 | 判据 |
 |---|---|---|
 | **事件选项付不起 `selectCost`** | **不设灰态**；`selectCost` **恒精确展示**，寿元余量亦常驻可见 | 「明知是死路仍然走」是**有意义的玩法决策**，与「打不过也得打」同构——灰掉它等于替玩家做决定。余量与标价恒可见反而**强化**了这个决策的分量：玩家是**知情地**走进死路，而不是蒙着眼（权威见 `systems/adventure-event/common-properties.md`） |
-| **礼包购买入口前置条件表中「置灰档」的行不满足**（待发队列非空 / 可授予池不足 / 有待兑现） | **置灰 + 一行说明，不隐藏** | 玩家点下去只会撞上一个**必然失败的流程**，没有任何决策价值。**表中「不渲染档」的行不适用灰态**（不在主菜单 / 当前平台无可用渠道）——前者入口本就不存在于轮回内，后者在该平台上永不恢复，「暂不可用、会恢复」的灰态语义不成立（表见 `systems/monetization.md`） |
+| **购买入口前置条件表中「置灰档」的行不满足**（待发队列非空 / 可授予池不足 / 有待兑现 / 该系列已拥有 / 该系列有条目被 flags 关掉 / 不在在售窗口内） | **置灰 + 一行说明，不隐藏** | 玩家点下去只会撞上一个**必然失败的流程**，没有任何决策价值。**表中「不渲染档」的行不适用灰态**（不在主菜单 / 当前平台无可用渠道）——前者入口本就不存在于轮回内，后者在该平台上永不恢复，「暂不可用、会恢复」的灰态语义不成立（表见 `systems/monetization.md`）。**在售窗口关闭取灰态而非移除**：窗口会重开（不绝版），正合「暂不可用、会恢复」 |
 | **有一笔购买待兑现时的「开始新轮回」** | **置灰 + 一行说明，不隐藏** | 同上；且此刻的等待是有终点的（一直重试直到发放成功），说明文案须让玩家看见它在推进 |
 | **Exchange 刷新按钮的池前置不满足**（可产出 offer 数 < 1） | **置灰 + 一行说明，不隐藏** | 刷了也必然是空店，没有任何决策价值；且刷新要花灵石 ⇒ 不拦就把失败点留在付费之后。**只拦「必然空店」这一种**——刷出一个商品更少的店是正常方差，不提示、不置灰（判据见 `systems/adventure-event/exchange/_index.md`） |
 | **Exchange 商店买不起**（货币格） | **置灰 + 价格与币种保持可见 + 点按一行说明「差哪一样」**，不隐藏 | 商店里点一件买不起的商品没有任何决策价值。说明由 `ApplyResult.MissingElement` **机械映射到币种**，**不手写第二张表、不新增键**（形态见 `ux/screen-flow.md`「Exchange（交易）屏」） |
@@ -210,10 +225,10 @@
 - **判据一句话：灰态禁令适用于「玩家可能有意选择的失败」，不适用于「必然无结果的操作」。**
 - **另一条边界：暂时不可用 → 置灰并保留触控；已成事实、永不恢复 → 移除控件。** 上表每一行的判据都是「暂时不可用 / 必然无结果，**但仍是一个入口**」，故置灰并给一条说明；而已成事实的处置项（例：战后奖励面板上已领取 / 已跳过那一行的两个按钮）**永远不会再可用、也不再是入口**，没有任何说明可给，留一个灰键只会诱导点击 ⇒ 直接移除控件，另以一枚非文字状态标记表达它的终态（见 `ux/combat-ux.md`）。
 - **不隐藏而是置灰**：隐藏会让玩家以为功能消失且无处解释，而闸 ② 触发时后端已收到 `PushError` 上报——**正在被修的运营事故不该表现为「功能不见了」**。
-- 说明文案走**所属分区**的普通键（礼包入口 → `STORE_UNAVAILABLE_POOL` / `STORE_UNAVAILABLE_SYNC` / `STORE_UNAVAILABLE_PENDING`；主菜单「开始新轮回」→ `MENU_` 分区；Exchange 刷新 → `EVENT_REROLL_UNAVAILABLE_POOL`；Exchange barter 格 → `EVENT_BARTER_UNAVAILABLE_NOT_HELD` / `EVENT_BARTER_UNAVAILABLE_ALREADY_OWNED`），**不占 `ERR_` 前缀**——它们是本地业务拒绝，没有后端 `code`。
+- 说明文案走**所属分区**的普通键（礼包入口 → `STORE_UNAVAILABLE_POOL` / `STORE_UNAVAILABLE_SYNC` / `STORE_UNAVAILABLE_PENDING`；付费角色系列 SKU → `STORE_UNAVAILABLE_SERIES_OWNED` / `STORE_UNAVAILABLE_SERIES_PARTIAL` / `STORE_UNAVAILABLE_SERIES_WINDOW`；主菜单「开始新轮回」→ `MENU_` 分区；Exchange 刷新 → `EVENT_REROLL_UNAVAILABLE_POOL`；Exchange barter 格 → `EVENT_BARTER_UNAVAILABLE_NOT_HELD` / `EVENT_BARTER_UNAVAILABLE_ALREADY_OWNED`），**不占 `ERR_` 前缀**——它们是本地业务拒绝，没有后端 `code`。
   - 两个 barter 键的 `<CONTEXT>` 取 `BARTER`（与 `REROLL` 指刷新按钮同一层级），**不取 `EXCHANGE`**：`EVENT_` 分区已隐含事件界面，再嵌一层事件类型名会让 `EVENT_EXCHANGE_*` 与 `EVENT_REROLL_*` 两种嵌套深度并存。两键只承载框架句，支付物 / 产出物的名称是内容层 `LocalizedText`，由呈现层以格式参数插入。
   - **买不起那一行不需要键**：说明由 `ApplyResult.MissingElement` 机械映射到币种，写第二张文案表就是给同一件事造两个权威。
-- **灰态是视觉降级，不是禁用：灰格必须继续接收触控。** 上表全部灰态项（礼包入口、「开始新轮回」、Exchange 刷新按钮、买不起格、barter 格）一律以降低饱和度 / 透明度表达不可用，**触控接收位与可用态完全一致、触控目标尺寸不缩水**。做成引擎级的 disabled 控件会让「点按给一条说明」这条纪律被静默取消——disabled 控件不发按下信号，症状是「点了没反应」，一种线上不可见的失败。
+- **灰态是视觉降级，不是禁用：灰格必须继续接收触控。** 上表全部灰态项（礼包入口、付费角色系列 SKU、「开始新轮回」、Exchange 刷新按钮、买不起格、barter 格）一律以降低饱和度 / 透明度表达不可用，**触控接收位与可用态完全一致、触控目标尺寸不缩水**。做成引擎级的 disabled 控件会让「点按给一条说明」这条纪律被静默取消——disabled 控件不发按下信号，症状是「点了没反应」，一种线上不可见的失败。
 
 ### 语言开关只有一个：启动期把 locale 归一到封闭二值
 
@@ -374,7 +389,7 @@ public readonly record struct BlockingNoticeSpec(
 - **非模态提示与 toast 级提示不放**——那是高频呈现，加编号是噪音。
 - **纪律：它是诊断展示，不是玩法数据。** ViewModel 只读一次，不进任何玩法路径、不参与判断（与「同步版本 #N」同条纪律）。
 
-Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-05-barter-grayed-state-keys.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-08-combat-ui-elements.md`
+Source: `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-13-translation-key-rollout-and-content-localization.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-08-19-translation-english-placeholder.md` · `handoffs/2026-08-23-refresh-lifetime-cap-client-half.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-05-barter-grayed-state-keys.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-08-combat-ui-elements.md` · `handoffs/2026-09-11-failure-and-punishment-identity.md` · `handoffs/2026-09-12-premium-character-series-unlock.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_

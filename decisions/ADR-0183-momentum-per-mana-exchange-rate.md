@@ -6,7 +6,7 @@
 
 ## 背景
 
-卡牌产 / 削道念此前只有定性描述，没有任何可复算的量纲。缺这把刻度，`EncounterTighten` 的六个界常量、`EnemyManaLimit` 的校验、`RarityTier` 的分布权重、AI 兜底权重与 starter deck 全部无法落笔——它们是同一个未知的五个面。
+卡牌产 / 削道念此前只有定性描述，没有任何可复算的量纲。缺这把刻度，`EncounterTighten` 两格牌流量的四个界常量、`EnemyManaLimit` 的校验、`RarityTier` 的分布权重、AI 兜底权重与 starter deck 全部无法落笔——它们是同一个未知的五个面。
 
 ## 决策
 

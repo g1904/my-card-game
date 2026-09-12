@@ -20,7 +20,8 @@
 - **预算表与跨篇章结转。** 炼气起始 **1000**；抵达筑基 **+1000**、抵达金丹 **+3000**、抵达元婴 **+5000**（元婴为游戏终点，该增量无可消耗预算，仅作最后一次数值更新并存档）。篇章突破时**不清空剩余寿元**：下一篇章的可用预算 = **该篇章增量 + 上一篇章的剩余**。因此「省着花」有**跨篇章回报**，寿元是一条贯穿整个轮回的资源线，而非每章重置的计时器。结转是 ChapterManager 在篇章边界的一项明确职责，见 `systems/services/life-cycle-service.md`。
 - **扣减来源恰两个（承重）。**
   1. **事件成本 `lifeSpanCost`** —— 每完成一个 AdventureEvent 按该事件的 `lifeSpanCost` 扣减（内容侧为正数量值，物化时已取负）。它是 `selectCost` 的唯一 element，**支付先于结算、无条件施加、不因失败退还**。分档是控制篇章时长的主旋钮之一，见 `systems/adventure-event/common-properties.md` 与 `systems/balance.md`。
-  2. **战斗 / 修炼失败的收口扣减** —— 战斗结束时若判负，损失量由「**敌人道念 − 角色道念**」的差值乘以该篇章的 `lossPerMomentum` 系数决定。**第一篇章的系数锁定为 10**，即「落后 8 点 = 掉 80 点」——一次乘 10，玩家在战斗屏上读到道念差即可当场折出寿元代价；后两章由系数吸收 `baseMomentum` 的量纲膨胀（表与形状锚见 `systems/balance.md`）。**不设上限截断**：换算就是全部规则。
+  2. **战斗 / 修炼失败的收口扣减** —— 战斗结束时若判负，损失量由「**敌人道念 − 角色道念**」的差值乘以该篇章的 `lossPerMomentum` 系数决定。**三章系数 = 10 / 5 / 10**（表与形状锚见 `systems/balance.md`）。ch1 的 10 即「落后 8 点 = 掉 80 点」——一次乘 10，玩家在战斗屏上读到道念差即可当场折出寿元代价；后两章由系数吸收 `baseMomentum` 的量纲膨胀。**不设上限截断**：换算就是全部规则。
+  - **走恒定占比，不走递进（承重取向）。** 三个系数由「一次带内最坏落差的失败恒占本章可用预算 8–12%」唯一解出（逐格 9% / 10.0% / 11.3%）⇒ **修为越高、输得绝对值越大，但疼的程度三章一致**。境界提升由此表达为数字量纲的整体上移，而不是难度的层层加码。**非单调的 10 → 5 → 10 不是笔误**，是 ch3 预算跳 3 倍而最坏落差只跳 1.5 倍的算术结果。
   - **这两个来源在同一次收口事务里落到同一个值上。** 一次战斗失败因此**同时**压缩「还能失败几次」与「本章还能做几个事件」——这是被接受的设计取向：一次惨败真的会滚雪球。内容侧的编排必须验证「即使发生 **2 次典型失败**，按标准路线走仍能在预算内升满」——「典型失败」的口径与 N = 2 的反推台账见 `systems/balance.md`「失败容错量 N 的反推台账」，验收项见 `systems/game-progression.md`。
   - **战斗失败的负向扣减由 combat-service 在代码侧组装进 `Spoils`**；内容侧的 `OutcomeSpec` **恒不得**写负向 `LifeSpan`。组装纪律与加载期校验见 `systems/services/profile-service.md`。
 - **战斗过程中不被读写，只在收口时刻被扣（资源纪律 · 承重）。** 战斗内的可读资源是**道念、mana** 两条；寿元既不被消耗也不被读取，胜负由**道念（momentum）**判定（见 `systems/scoring.md`）。
@@ -37,7 +38,7 @@
   - **它不是隐藏属性。** 隐藏属性收敛为**道心 / faith** 与**煞气 / Bloodlust** 两项，归 `systems/services/plot-manager.md`；寿元不在其列。
 - **履历上的寿元曲线。** `PastEventEntry` 带一格 `LifeSpanAfter`（逐事件的结算后余量），使修行历程能画出这条曲线——它现在就是角色的完整生命曲线，回升段与战斗失败的下跌段同图。读取算法见 `systems/character-profile/_index.md`。
 
-Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-09-06-failure-spiral-tolerance.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-09-06-failure-spiral-tolerance.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md` · `handoffs/2026-09-11-failure-and-punishment-identity.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -46,13 +47,14 @@ Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handof
 - **只跟踪单值、无上限字段、无上限截断；境界增授是给它加一笔** → `decisions/ADR-0045-life-span-single-value.md`。
 - **战斗过程中不读写寿元，只在收口时刻扣减** → `decisions/ADR-0081-hidden-stats-outside-combat.md`（隐藏属性侧）与本文件（资源侧）。
 - **道念差 → 寿元损失的换算与 `lossPerMomentum` 逐篇章系数** → `decisions/ADR-0018-momentum-scoring-model.md`。
+- **`lossPerMomentum` = 10 / 5 / 10（三章全为定值），走恒定占比而非递进**：一次带内最坏落差的失败恒占本章可用预算 8–12%（权威表在 `systems/balance.md`）。
 - **寿元明文常驻、恒精确展示，不属于隐藏属性体系** → `decisions/ADR-0016-hidden-stat-band-model.md`。
 - **回复三档的绝对点数：小 50 / 中 100 / 大 200，三章通用、不按篇章分条目**（与 `RarityTier` / 定价一一绑定，见 `systems/character-profile/item/_index.md` 的三档绑定表）；来源分布按 `R_c = R_event,c + R_item,c` 分账（每章事件侧 1 次小档、道具侧由商店购入承担），收支回代见 `systems/balance.md`。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
-- **`lossPerMomentum` 的 ch2 / ch3 系数取值。** ch1 = 10 已锁定；后两章已由形状锚解出候选值 5 / 10（形状锚逐格校验已通过），定案待「典型道念差的实际分布」实测，口径见 `systems/balance.md`。
+- 无。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/life-span.md`（待建）。

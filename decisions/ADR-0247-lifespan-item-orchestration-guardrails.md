@@ -2,7 +2,7 @@
 
 - **状态：** Accepted
 - **日期：** 2026-09-09
-- **来源：** handoffs/2026-09-09e-lifespan-item-supply-guardrail.md · answer-logs/log-lifespan-item-supply-guardrail.md
+- **来源：** handoffs/2026-09-09e-lifespan-item-supply-guardrail.md · answer-logs/log-lifespan-item-supply-guardrail.md · handoffs/2026-09-12-spirit-stone-budget-and-combat-count.md
 
 ## 背景
 
@@ -33,7 +33,7 @@
 
 ## 后果
 
-- **价格闸随篇章自动松开（代价，须明写）**：定价表不设篇章维而 `I(c)` ≈127 / 300 / 480 ⇒ 40 灵石在 ch1 是本章收入的 31%、在 ch3 只有 8%。**定价这一格只在 ch1 是有效闸**；ch2 / ch3 由出现频率与库存深度承接。
+- **价格闸随篇章自动松开（代价，须明写）**：定价表不设篇章维而 `I(c)` ≈150 / 300 / 480 ⇒ 40 灵石在 ch1 是本章收入的 27%、在 ch3 只有 8%。**定价这一格只在 ch1 是有效闸**；ch2 / ch3 由出现频率与库存深度承接。
 - **囤积自然贬值**：一颗 50 点的丹在 ch1 值本章预算的 5%，攒到 ch3 只值 1.6%——「囤到 ch3 一次性解围」被算术自动削弱，正好接住储物袋不设容量上限留下的口子。
 - 三格核对进入 `/audit-content` 的跨类型汇总项，与族占比核对同档处置。
 - 其余道具族的三格口径**尚未答定**，本条只覆盖回寿法宝这一族。

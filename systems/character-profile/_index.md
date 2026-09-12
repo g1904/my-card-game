@@ -11,7 +11,7 @@
   - **每个角色自带一个神通（`CharacterPower`）与两门绑定功法**，且**与角色绑定**——同一个角色的每一局，神通与这两门功法都相同。**推论：跨轮回的熟悉感有了载体**，「这个角色打起来是什么手感」成为玩家可积累的知识。
   - **绑定不等于不可动摇**：那两门功法**同样可被弃置**（见 `deck/_index.md`）——角色给的是**起手形状**，不是永久底盘。
   - **绑定功法的灵根构成与神通的性格取向都逐角色自由定**：两门绑定功法是全本灵根还是含通用、神通是强化本灵根主动词还是提供第二性格，均不设统一口径，按每个角色的设计需要定——与「起始卡组逐角色独立立形」同一口径的延伸；首批压平复杂度的约束仍对实际设计生效。
-  - **角色是具名人物，带专属剧情钩子。** 五角是有名字、有来历的具体人物；背景设定不加字段，走描述文本（`LocalizedText`）与图鉴词条承载；剧本侧可用 `PlotNodeData.CharacterIds` 为特定角色铺专属事件 / 剧情线（后续内容，非首批义务）。
+  - **角色是具名人物，带专属剧情钩子。** 五角是有名字、有来历的具体人物；背景设定不加字段，走描述文本（`LocalizedText`）与图鉴词条承载；剧本侧可用 `PlotArcData.CharacterIds` 为特定角色铺专属事件 / 剧情线（后续内容，非首批义务）。**这份非义务对免费 / 付费两条轨道同等适用——剧情不是付费面**，铺不铺取决于内容排期而非轨道（权威在 `systems/monetization.md`）。角色背景与世界观事实的上游事实源见 `narrative/_index.md`。
   - **每个角色带一个先天灵根 `Affinities`**，它是角色之间除「神通 + 两门绑定功法」之外的第二条辨识轴，唯一的规则后果是功法的**硬性修习准入**（见下方「灵根」段与 `deck/_index.md`）。
   - 角色池的规模、选取机制、是否账号级逐步解锁，见下方「角色模板池的形态」与「`CharacterData` 的字段面」。
 - **`CharacterData` 的字段面（内容条目，`[GlobalClass] partial class CharacterData : Resource`，以 `.tres` 编写）。** 它与 `CharacterProfile` 是两件东西：前者是模板、共享只读单例、静态字段不落存档；后者是某一次轮回的角色状态。
@@ -25,10 +25,13 @@
   | 5 | `PowerId` | `string` | 是 | 绑定的那一个神通，须 `PowerData.Scope == Character` |
   | 6 | `TechniqueIds` | `string[]`（长度恒 2） | 是 | 两门绑定功法；**可被弃置**（弃置的是 `CharacterProfile` 里的那份，模板不变） |
   | 7 | `Affinities` | `Affinity[]` | 是 | 该角色的先天灵根，见下方「灵根」段 |
+  | 8 | `DefeatLines` | `DefeatLine[]` | 是 | **角色终结台词**：三因各一句的第一人称台词，见下方「角色终结台词」段 |
+  | 9 | `SeriesId` | `string` | 是 | 两段式 **`character_series.<snake_case_slug>`**。该角色所属的**角色系列**；同一 `SeriesId` 下的条目数 ∈ {5, 10}，见下方「角色模板池的形态」 |
+  | 10 | `Track` | `CharacterTrack` | 是 | 免费 / 付费轨道，见下方「角色轨道 `CharacterTrack`」段。同一 `SeriesId` 下各条目必须一致 |
 
-  - **明确不带的格：** **`Rarity`**（它在本库的两个消费点是抽取加权与定价档，角色既不进任何授予池也不被定价；加一格会立刻引出「稀有角色抽不到」这条与「无门槛起手」正面冲突的语义）· **`ExclusiveSource`**（该字段只覆盖 `PowerData` / `ItemData`，语义是「不进抽取池」，与角色的取用方式无关）· **解锁条件 / 付费轨道字段首批不落**（首批五角全免费，缺格即免费不产生歧义；付费系列引入时需一格「免费 / 付费」轨道标记并与 `PlayerEntitlement` 对接，具体字段形态、解锁校验与存档 / 契约增量归 `/provide-solution-draft` 推演，见下方「角色模板池的形态」）· **绑定功法的初始层数**（两门绑定功法**恒以第 1 层入组**，与 `LearnTechnique` 的入组层数同款，故不设字段。逐条编排会给角色之间再添一条**纯强度**轴，与「灵根把差异推向能修哪一路、不推向谁更强」相抵；且起始层数的合法上界就是仍待校准的 `MaxTier`，逐条编排此刻只能定结构、定不出取值。见 `deck/_index.md`）。
+  - **明确不带的格：** **`Rarity`**（它在本库的两个消费点是抽取加权与定价档，角色既不进任何授予池也不被定价；加一格会立刻引出「稀有角色抽不到」这条与「无门槛起手」正面冲突的语义）· **`ExclusiveSource`**（该字段只覆盖 `PowerData` / `ItemData`，语义是「不进抽取池」，与角色的取用方式无关）· **玩法进度型解锁条件**（轨道判定的输入只有付费凭证，不引入「通关解锁下一个角色」这类玩法门禁，见下方「角色模板池的形态」）· **绑定功法的初始层数**（两门绑定功法**恒以第 1 层入组**，与 `LearnTechnique` 的入组层数同款，故不设字段。逐条编排会给角色之间再添一条**纯强度**轴，与「灵根把差异推向能修哪一路、不推向谁更强」相抵；且起始层数的合法上界就是仍待校准的 `MaxTier`，逐条编排此刻只能定结构、定不出取值。见 `deck/_index.md`）。
     - **日后若要做成逐条编排，最小路径已知：** `TechniqueIds : string[]` → `BoundTechniques : BoundTechnique[]`（长度恒 2），元素为 `TechniqueId : string` + `InitialTier : int`（默认 `1`，与今天的口径等价）+ 三条加载期校验（`TechniqueId` 解析不到 / `InitialTier < 1` / `InitialTier > 该功法 MaxTier`，均 `PushError` 带 `characterId` 与功法 `Id`）。**仍是零存档增量**（模板静态字段，不 bump `schemaVersion`、无迁移、后端零影响），代价只在 `.tres` 结构与那一行字段表。集合字段名取复数 `BoundTechniques`、元素类型名取单数 `BoundTechnique`（同 `RealmArtworks` / `RealmArtwork`）。**首批不做。**
-  - **静态字段不落存档、不进上行负载。** 存档侧的载体只有 `CharacterProfile.characterDataId` 一格，它早已存在且形态已定 ⇒ **存档 schema 增量为 0、不 bump `schemaVersion`、后端零影响**。
+  - **静态字段不落存档、不进上行负载。** 存档侧的载体只有 `CharacterProfile.characterDataId` 一格，它早已存在且形态已定 ⇒ **存档 schema 增量为 0、不 bump `schemaVersion`、后端零影响**。`SeriesId` / `Track` 同属模板静态字段，同样零存档增量——付费系列引入所需的那一次 bump 由 `PlayerEntitlement` 那一格产生（见 `systems/player-profile/_index.md` 与 `systems/services/profile-schema-versions.md`），与本表无关。
 - **`Artwork`（共有字段 · 类型 `Texture2D`）在本层的投影。** 落在 `CharacterData` 上，是该角色的**基础形象**。
   - **本层合法取值 / 默认值 =** 可空，`null` = 尚未产出、呈现层回落占位资产。
   - **本层消费点：** ViewModel 组装角色形象时作为回落链的第二级（第一级是下方 `RealmArtworks` 的境界覆写），见 `systems/viewmodel.md`。
@@ -49,6 +52,27 @@
 
   - **字段名取复数 `RealmArtworks`、元素类型名取单数 `RealmArtwork`。** 集合字段名与元素类型名不得逐字相同——类内的成员查找会遮蔽同名类型，`new RealmArtwork()` 在 `CharacterData` 内无法解析。同族先例是 `EnemyData.Lines : EnemyLine[]`（`decisions/ADR-0120-content-artwork-and-enemy-lines.md`）。
   - **取稀疏数组，不取按 `Realm` 序号索引的定长四格数组。** 定长形态里「这一档没画」与「这一档就用基础图」不可区分，而两者的正确行为不同（前者该进缺失统计、后者不该）；稀疏数组把它变成干净可判的条件——与可选 `LocalizedText` 字段「缺失 = 子资源本身不存在」（`systems/common-properties.md`）同一种判据风格。
+- **角色终结台词：`DefeatLines`（本类自有字段）。** **全作唯一一处可玩角色用自己的声音说话的地方，就是它终结的那一刻**——每个角色对三种终结原因各备一句第一人称台词（对标三国杀武将阵亡台词：纯文本、无配音、逐角色定制）。呈现落点见 `ux/screen-flow.md` 的 `CycleEndScreen`。
+
+  ```csharp
+  // CharacterData 上的一格。稀疏覆写数组，形态同 RealmArtworks / EnemyData.Lines。
+  [Export] public Godot.Collections.Array<DefeatLine> DefeatLines { get; set; } = new();
+
+  [GlobalClass]
+  public partial class DefeatLine : Resource
+  {
+      [Export] public DefeatReason  Reason { get; set; }   // 三因之一；共享核心枚举
+      [Export] public LocalizedText Text   { get; set; }   // 第一人称一句
+  }
+  ```
+
+  - **射程：只在角色终结时。** 普通战斗失败**零台词**，仍是纯数据结算——一个角色一辈子只说这么一次。**延伸一律不给**：角色选择、突破境界、篇章通关、抵达元婴都不给台词。**稀缺即分量**，这与「输一场只是付账、不值得仪式感」严格一致。
+  - **分句：三因各一句**（`Discarded` / `LifeSpanExhausted` / `FinaleFailed`），首批五角共 15 句。**不写一句通用台词**：三因的情境差别极大（玩家主动放弃 / 大限将至 / 死于天劫），通用句在「主动弃置」时会明显不对劲。
+  - **它是角色辨识度的一条主要来源。** 首批五角刻意压平在同一复杂度档（见下方），辨识度只能从别处来。
+  - **类型写 `LocalizedText`，不写裸 `string`**：裸 `string` 把语言数焊进 C# 类，线上补一句文案就得发版（`systems/common-properties.md`）。
+  - **取稀疏数组，不取按 `DefeatReason` 序号索引的定长数组**（同 `RealmArtworks` 的判据）：`DefeatReason` 日后新增成员时，稀疏形态不需要改数组长度，缺项也是干净可判的条件。
+  - **台词不落存档、不进云端负载。** 结束摘要已含 `DefeatReason`、角色身份有 `characterDataId`，台词由这两者在展示层查表得出——属 ViewModel 的呈现期对象（`systems/viewmodel.md`）。**存档 schema 增量为 0、不 bump `schemaVersion`、后端零影响。**
+  - **逐条句子归内容层**（`content/` 侧的角色条目只填值 + 回链本处），字段的类型与校验语义留在本文件。
   - **它天然是纯加法。** 内容侧可以先只填基础图一张，日后逐境界补一条，零结构改动，完全落在「美术挂点先占位、末段替换」内（`decisions/ADR-0006-development-phase-order.md`、`vision/scope.md`）。**首发不承诺出满四档。**
   - **选取与回落由 ViewModel 单点承担**（境界覆写 → 基础图 → 占位资产；无当前轮回时直接取基础图），落点与承重见 `systems/viewmodel.md`。**境界来源是既有存档字段 `CharacterProfile.realm`** ⇒ **零新增存档字段、不 bump `schemaVersion`、无迁移、后端零配合**。
   - **overlay 语义与共有字段 `Artwork` 逐字同款**：`RealmArtwork` 是同一份 `.tres` 内的子资源，overlay 覆盖该条 `.tres` 时随之被覆盖，**指向必须落在随包基线内已存在的资产**（换的是引用，不是二进制本身）。
@@ -69,12 +93,42 @@
   - **角色是「被选取的产出侧对象」，故配有 `ContentEnabled` 开关。** 判据用现成的那一条——「能被抽取 / 被选取的才配有开关」（`PlotArcData` 与 `LocationData` 的分野即此）。关一个角色只让它**不再被新轮回选中**；已写进 `characterDataId` 的角色照常经 `Get(id)` 解析，**进行中的轮回不因线上关闭而坏档**。这正是「解析不到 → `PushError`」与「线上可秒关一个问题角色」两条不冲突的原因。
   - **可抽取性 = 自身 `ContentEnabled` ∧ 全部绑定条目 `ContentEnabled`。** 它使「绑定条目被关掉」不需要任何运行时特判——取池时多一层过滤即可，与 `AllEnabled()` 的过滤位置完全同构。
   - **首批五角永久免费恒可用——它就是「第一个免费系列」**，系列概念向前覆盖既有五角，不为它们另设例外形态。免费轨道恒无门槛：炼气起手仍无门槛，门禁只落篇章层（`ux/onboarding.md`）与付费轨道的持有判定，免费角色层永不加门。
-  - **后续角色按系列成批推出（承重）：** 一个系列 5 个或 10 个、每批保持五行对称；**一个系列全免费或全付费，绝不单出一个角色**。角色条目带「免费 / 付费」轨道属性，**「一旦免费永不改付费」是单向棘轮**——落为内容纪律 + `/audit-content` 核对项候选，不做运行时机制。双灵根首批（十角）走**免费**轨道。
-    - **付费系列 = 商业化的第三支**（premium bundle、纯外观预留之外），付费买到的是新玩法与新组合、**严格横向不卖强度**；商业化侧的定价（整系列礼包 = 5 个付 4 个单解之价 / 10 个付 8 个单解之价）、强度边界与验收口径的权威在 `systems/monetization.md`。
-    - **解锁载体是真实义务（付费系列引入时兑现）：** `PlayerProfile` 加一个具名集合字段（元素用 `readonly record struct` 包一层，照 `CodexEntry` 的加法窗口纪律）+ 一条取池过滤（`AllEnabled()` ∩（免费轨道 ∪ 已解锁集合））+ 一次 `schemaVersion` bump，**不需要任何新机制**；`CharacterData` 需一格轨道标记。具体字段形态、解锁校验与存档 / 契约增量归 `/provide-solution-draft` 推演，首批一格不落。
+  - **后续角色按系列成批推出（承重）：** 一个系列 5 个或 10 个、每批保持五行对称；**一个系列全免费或全付费，绝不单出一个角色**。系列由 `CharacterData.SeriesId`（两段式 `character_series.<snake_case_slug>`）标识、轨道由 `CharacterData.Track` 给出。双灵根首批（十角）走**免费**轨道。
+    - **`SeriesId` 前缀取 `character_series.`**，与既有主类型前缀词表（`character.` / `character_item.` / `player_item.` / `character_power.` / `player_power.`）不撞车，且为日后真建 `CharacterSeriesData` 内容类型留好引用键。
+    - **系列的名与概述落内容类型 `CharacterSeriesData`：`Id` + `LocalizedText` 名称 + `LocalizedText` 简要概述 + 可空 `Artwork`（商店插图），不带任何规则字段。** 走 `ContentRegistry`、带 `ContentEnabled`，与其余内容类型同构；`Id` 形态即 `SeriesId` 的 `character_series.<snake_case_slug>`，`CharacterData.SeriesId` 原地成为指向它的引用键——`CharacterData` 是模板、不落存档 ⇒ **零存档增量、零迁移、后端零影响**。开张走一次 `/scaffold-content-type`（登记表见 `content/_index.md`）。
+      - **不带规则字段是承重的。** 系列是**叙事单位与记账单位，不是机制单位**：分组没有原则，一个系列对成员角色没有任何规则上的强制要求，故类型上不存在系列加成 / 系列共鸣一类字段。名字取世界观实体（地域、宗门一类），细节不写在条目里而散进轮回内的叙事（`narrative/_index.md`）。
+      - **系列名只当 `STORE_` 翻译键是不够的**——那样系列名只活在商店里，别处（图鉴、角色详情）想提就没有可引用的条目。
+      - **加载期校验 +1：`CharacterData.SeriesId` 指向不存在的 `CharacterSeriesData.Id` → `PushError`** 带双方 `Id`。系列层既有两条（同一 `SeriesId` 下条目数 ∈ {5, 10}、`Track` 必须一致）不变。
+    - **系列轨道是发布后完全不可变的字段：棘轮双向。** `Free → Paid` 与 `Paid → Free` **都是违规**：前者是「一旦免费永不改付费」，后者防的是已付费玩家撞上「我买的现在白送」这类负面公平事件——而本作**没有补偿通道**（补偿要求一条账号级可支配货币，已被明确关死）。代价如实写下：运营因此失去「把老系列免费化拉新」这一手，这是被接受的取向。**两个方向都落为内容纪律 + `/audit-content` 核对项，不做运行时机制**（核对项与基线台账见 `content/character/_index.md`）。
+    - **付费系列 = 商业化的第三支**（premium bundle、纯外观预留之外），付费买到的是新玩法与新组合、**严格横向不卖强度**；商业化侧的定价（整系列礼包 = 5 个付 4 个单解之价 / 10 个付 8 个单解之价，**它是定价锚而非可购商品 —— 商店只上架整系列礼包一种 SKU**）、购买流程、购买时限、强度边界与验收口径的权威在 `systems/monetization.md`。
+    - **解锁载体 = `PlayerEntitlement.CharacterSeries`（元素 `CharacterSeriesEntry`）+ 一条取池过滤 + 一次 `schemaVersion` bump，不需要任何新机制。** 持有集合的元素粒度是**系列 id 而非角色 id**——存角色 id 会迫使后端持一张「SKU → 该系列的 5 / 10 个 `character.<slug>`」的表，那是内容编排知识，抄到边界另一侧即制造第二权威而无发现机制。字段形态与读档校验的权威在 `systems/player-profile/_index.md`，取池过滤在 `systems/services/life-cycle-service.md`，版本行在 `systems/services/profile-schema-versions.md`。
+    - **在售窗口是内容层属性，不是存档字段。** 每个付费系列有一段**在售窗口**（限时销售），它与「有哪些系列在售」同经内容层给出，**零新增下发面**；它**不进存档、不进 `PlayerEntitlement`**——它约束的是「能不能买」，不是「拥有什么」。窗口关闭不绝版（可重新上架，或转常驻仅失去限时优惠价）、**已购玩家永久可用**（下架的只是购买入口）。语义与购买入口的前置条件见 `systems/monetization.md`；后端 SKU 表的上架窗口字段见 `backend-design-documents/operations/purchase-ops.md`。
+    - **推出次序：第一个付费系列 = 单灵根五角进阶批，双灵根免费批排在它之后。** 进阶批 5 个、五行对称、仍是单灵根，**复杂度高于首批**——它正落在「首批刻意压平在同一复杂度档、复杂度由后续系列抬升」的下一格，且不触碰双灵根机制。**双灵根批的免费轨道不变**，只是次序在后。复杂度抬升**不得表达为强度抬升**：进阶批给的是更繁的运营与更深的组合空间，验收口径（每个角色都能以合理体验通关、目标胜率同带）对它一体适用。定价与呈现侧的权威在 `systems/monetization.md`。
     - **玩法进度型解锁仍不做**：轨道判定的输入只有付费凭证，不引入「通关解锁下一个角色」这类玩法门禁；`Achievement` 的奖励形态限定为法则 / 古宝条目、Codex 记的是「见过」而非准入、flags 是运营灰度通道（分桶规则不在客户端、`AllEnabled()` 拒绝接受 `bucketContext`），三条既有边界原样成立。
   - **强度对齐的验收目标（承重）：「每个角色都能以合理体验通关」**，是内容打磨的验收底线、**全体角色（含付费）一体适用**——验收口径不分轨道，付费角色的目标胜率与免费角色同带。ch1 无限重试 + 全池指定下，**角色强度差仍有可能塌缩为「只有一个角色被玩」**；灵根把角色差异从「谁更强」推向「能修哪一路功法」，已部分缓解，但**仍可能存在一个综合最优的属性池**——待实测。**塌缩不是接受终点，而是触发内容向修正的信号**：实测发现某角色明显不可行即调它的功法池，不加新机制；`/audit-content` 与实测口径向此对齐。
   - **首玩局的缓解 = 选择屏给玩法简介，不标推荐项。** 每个角色以一句动词级概括（素材即灵根的主战斗动词）+ 起始功法名承载简介，玩家据此自选；**不设任何「推荐」标记格**——**首批五角刻意压平在同一复杂度档做直白入口，同档无需推荐**；玩法复杂度与组合空间由后续系列（单灵根进阶批与双灵根批）向上展开，五行动词的繁简差在首批内收窄到同档表达。**不做「首局跳过选择」的特判**——特判会造出两条起手路径，而两条路径必然各自漂移。呈现形态见 `ux/onboarding.md` 与 `ux/screen-flow.md`。
+- **角色轨道 `CharacterTrack`：`CharacterData` 上的静态二值分类，决定该角色是否需要付费解锁。**
+
+  ```csharp
+  public enum CharacterTrack
+  {
+      Unspecified = 0,   // 防御性哨兵：唯一作用是让「漏填」可被加载期检出
+      Free        = 1,
+      Paid        = 2,
+  }
+  ```
+
+  - **必须是带哨兵的枚举，不能是 `bool IsPaid`（承重）。** Godot 的 `[Export]` 未填即取 0 ⇒ `bool IsPaid` 的漏填会**静默落进免费轨道**，而轨道发布后不可变 ⇒ 一次漏填不可逆。哨兵枚举把它变成加载期 `PushError`，与 `Affinity.Unspecified = 0` / `Source.Unknown = 0` / `Pool` / `CardType` 的必填纪律逐字同理。
+  - **字段名 `Track` 短、类型名 `CharacterTrack` 带限定**，同 `Rarity : RarityTier`。
+  - **轨道在语义上是系列的属性，但不为此新建内容类型**：两格都落在 `CharacterData` 上，「同系列轨道一致」由加载期校验兑现（见下方校验 #16）。
+  - **`Track == Paid` 的退役口径按档切分：临时关闭可以，永久退役不可以。**
+
+    | 动作 | 对 `Track == Free` | 对 `Track == Paid` |
+    |---|---|---|
+    | **flags 秒关**（临时、可恢复） | 允许（既定运营手段） | **允许**——运营应急不为轨道让路。它是**运营事故不是玩法分支**：该系列的购买入口按前置条件置灰、已购玩家该角色暂不可选、一律上报 |
+    | **基线里置 `ContentEnabled = false`**（永久退役） | 允许（既定退役形态） | **禁止**，落一条加载期 `PushError`（见下方校验 #18） |
+
+    这是「付费内容不会被游戏销毁」（`systems/monetization.md`）在角色轨道上的平移，与内容层「跨发版基线 `Id` 集合单调不减」自洽——`Id` 仍在，只是不许把付费条目的 `ContentEnabled` 永久置假。代价如实写下：运营在付费系列上少了「永久下架一个问题角色」这一手，只能靠改内容修。**它收窄了 `systems/services/content-service.md` 退役表对 `CharacterData` 的口径**，该处已按轨道写明这条例外。
 - **灵根 `Affinity`：角色的先天资质，唯一的规则后果是功法的硬性修习准入。**
 
   ```csharp
@@ -98,7 +152,7 @@
   - **追加成员（雷 / 冰 / 风一类）的成本为零**：`Affinity` 不落存档、不进上行负载 ⇒ 加成员**不 bump `schemaVersion`、无迁移、后端零影响**。今天的不做不构成明天的债。
   - **规则后果只有一处：功法的硬性修习准入**（判定式、单点纯函数、四个取池点的接入位置、`MaxTier` 一律不折减，全部见 `deck/_index.md`「灵根修习准入」）。**灵根此外一格不碰**：不影响 `mana` / `manaLimit` · 道念的产出与削减 · 寿元与 `lifeSpanCost` · 商店价格 · 隐藏属性 · 经验值 · `baseMomentum` · 敌人赋级 · 任何卡牌数值 · 任何战斗内规则。逐条理由：战斗侧那一批根本看不见功法；其余每一项都已有指定的唯一旋钮，往上叠第二个输入正是本库反复否决的「第二条强度曲线」。
   - **风味标注走描述文本**（`LocalizedText`），不另开字段。
-- **`CharacterData` 的加载期校验（十一条，全部带定位上下文）。** 判据 = 「坏数据必须在启动期大声失败」。
+- **`CharacterData` 的加载期校验（十八条，全部带定位上下文）。** 判据 = 「坏数据必须在启动期大声失败」。
 
   | # | 违规 | 处置 |
   |---|---|---|
@@ -113,7 +167,17 @@
   | 9 | `MaxCharacterAffinityCount > 0` 且 `< RequiredAffinities.Length` | `PushError` + 抛，带功法 `Id` 与两个值 —— 要求的属性数已超过允许的灵根总数，该条目对任何角色都不可修 |
   | 10 | 某个在册角色的可修功法条目数（`Pool != Enemy` 且通过准入）低于取池余量阈值 | `PushError` + 抛，带 `characterId` 与实际条数 —— **该角色开不出局** |
   | 11 | 某个在册 `Affinity` 成员没有任何 `Pool != Enemy` 的功法条目 | `PushWarning`，带成员名（该属性尚无内容；若无角色持有它则不阻断） |
+  | 12 | `DefeatLines` 缺某一因、或某条的 `Text` 解析不到 | `PushWarning`，带 `characterId` 与缺失的 `DefeatReason` —— **呈现层省略台词位**。一句缺失不该打崩启动（上面每一条 `PushError` 的对象都是「开不了局」的缺陷），覆盖率由 `/audit-content` 汇总 |
+  | 13 | `DefeatLines` 含重复 `Reason` | `PushError` + 抛，带 `characterId` 与该 `Reason` —— 同一因两句台词无法定义取哪一句 |
+  | 14 | `Track == Unspecified` | `PushError` + 抛，带 `characterId` —— 漏填不可默认为免费（轨道发布后不可变，见上方「角色轨道」） |
+  | 15 | `SeriesId` 为空 / 不符 `character_series.<snake_case_slug>` 形态 | `PushError` + 抛，带 `characterId` |
+  | 16 | 同一 `SeriesId` 下各条目的 `Track` **不一致** | `PushError` + 抛，带 `seriesId` 与两个取值 —— 「整系列全免费或全付费」的机械化 |
+  | 17 | 同一 `SeriesId` 下的条目数 ∉ {5, 10} | `PushError` + 抛，带 `seriesId` 与实际条数 —— 「一个系列 5 个或 10 个」的机械化 |
+  | 18 | `Track == Paid` 且**基线**里 `ContentEnabled == false` | `PushError` + 抛，带 `characterId` 与 `seriesId` —— 付费角色禁止永久退役（见上方「角色轨道」的退役口径表） |
 
+  - **校验 16 / 17 / 18 一律走 `AllIncludingDisabled()`，不走 `AllEnabled()`。** flags 不参与合并后强校验（`systems/services/content-service.md`）；按 `AllEnabled()` 统计会让「线上秒关一个问题角色」把启动打崩，而临时关闭恰恰是允许的动作。
+  - **五行对称不做代码校验。** 5 人系列的五行各一、10 人系列的双灵根十种组合各一是**内容编排口径**（首批「长度恰为 1」已是同款处置），且未来的 10 人系列未必按 C(5,2) 铺。归 `/audit-content` 核对项，与轨道棘轮判给内容纪律是同一条处置。
+  - **不新增「解锁过滤后可选池为空」这条校验。** 校验 1 数的是 `AllEnabled<CharacterData>()`、不含解锁过滤，口径不变；首批五角永久免费恒可用 ⇒ 运行时可选池恒非空。一条永不可达的校验只会误导后来者以为免费轨道可能为空。
   - **校验 10 与 `ADR-0073` 的候选短缺三段处置是两回事**：那条处理的是运行中池被抽空，这条处理的是**内容层面根本就没铺够**。它是运行期硬阻断的唯一落点；内容编排期的提前发现由 `/audit-content` 的对账项承担。
   - **校验 6–9 落在功法与角色两个类型上，但它们成对成立**，故一并登记于此；功法侧两格的字段面权威在 `deck/_index.md`。
 - **CharacterProfile 的完整字段表。** 本表**只有形态列**（字段 / 类型 / 写入通道 / 权威）——字段的语义、取值域与读档校验一律留在权威列所指的文档里，本表只做索引与回链。**写入通道** = 该字段经 `ProfileChangeSpec` 的哪一列写入；`—` = 不经 spec，由 life-cycle-service 在轮回创建 / 篇章边界 / 结算收口时直接赋值。
@@ -180,7 +244,7 @@
   ```
 
   - **`id` 由客户端生成、不向后端申请。** `CharacterProfileDiff` 的键值以下对后端完全不透明，后端从不解析它；向后端申请一个 id 会在轮回开始处插入一次网络往返，而轮回开始是**自动存档点而非阻塞点**。**不用「第 N 个角色」的序号**（要一个账号级计数器 + 一条幂等问题，而角色只增不删却可能并行创建于多篇章，GUID 零协调）；**不用 `characterDataId` 作键**（同一模板可在不同篇章各有一个 ongoing 角色）。它是 diff 的寻址键与全部日志 / 读档校验的定位上下文。
-  - **`characterDataId` 是「同一个角色每一局手感相同」的存档载体**，也是 `PlotNodeData.CharacterIds` 比对的那一格。读档校验：解析不到 → **必需缺失** → `PushError` 带 `characterId` + `characterDataId`（角色模板是结构性内容，解析不到即坏档，不能像 `pastEvent` 那样降级）。
+  - **`characterDataId` 是「同一个角色每一局手感相同」的存档载体**，也是 `PlotArcData.CharacterIds` 比对的那一格。读档校验：解析不到 → **必需缺失** → `PushError` 带 `characterId` + `characterDataId`（角色模板是结构性内容，解析不到即坏档，不能像 `pastEvent` 那样降级）。
   - **`defeatReason` 不设 `None` 哨兵。** `DefeatReason` 是三值封闭枚举（`Discarded` / `LifeSpanExhausted` / `FinaleFailed`），加一个不该出现的成员会让每个消费点都要处理一个多余分支；可空是 C# 表达「这一维只在某状态下有意义」的既有形态。读档校验：`status == Defeated` 且为 null → **可选缺失** → `PushWarning`（履历少一行，不阻断）；`status != Defeated` 且非 null → 不可能态 → `PushWarning` + 按 null 处理。消费方是元进程界面的角色履历与轮回结束屏。
   - **`TechniqueEntry` 取 `readonly record struct`**（字段少、条目个位数、要落存档且进 diff），与 `StatusAssignment` / `DeckChangeElement` 同款；`PastEventEntry` 与 `EventOption` 字段多，才取引用型。
   - **`looseCard` 是裸 `string` 多重集而非 record 列表**：散牌没有任何随实例变化的状态（`CardInstance` 的运行态只存在于战斗内、随 `activeCombat` 走），一个 `Id` 就是全部信息。
@@ -367,7 +431,7 @@
   - **保留理由（防这条被重新提出）：** 把状态机收敛成纯终态图的代价是必须另造一个「境界存档」对象来承载续章，而「篇章继承 = 全部继承、无逐项筛选」意味着该对象的字段面与 `CharacterProfile` **逐格相同**——那是换个名字复制一份第二权威，两份必然漂移。
   - 三层处置、字段三分表、墓碑形态与 snapshot 回收口径见 `systems/services/life-cycle-service.md`「轮回出口的三层处置」；重试模型见 `decisions/ADR-0004-realm-checkpoint-retry-model.md`。
 
-Source: `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-09-06-completed-data-retention.md` · `handoffs/2026-09-09b-combat-feel-identity.md` · `handoffs/2026-09-10-character-series-identity-and-monetization.md`
+Source: `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-08-30-realm-progression-artwork-basis.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09c-past-event-trace-schema.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-16g-travel-mechanics-and-location-carrier.md` · `handoffs/2026-08-16i-plot-data-encoding.md` · `handoffs/2026-08-17-travel-destination-and-status-change-elements.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17g-element-carrier-gaps.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-17j-event-option-derived-persistence.md` · `handoffs/2026-08-19-profile-change-spec-gaps.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-mana-baseline-realm-jump.md` · `handoffs/2026-09-06-completed-data-retention.md` · `handoffs/2026-09-09b-combat-feel-identity.md` · `handoffs/2026-09-10-character-series-identity-and-monetization.md` · `handoffs/2026-09-11-failure-and-punishment-identity.md` · `handoffs/2026-09-12-premium-character-series-unlock.md` · `handoffs/2026-09-12-series-packaging-and-narrative.md`
 
 ## 子系统导航
 
@@ -385,12 +449,15 @@ Source: `handoffs/2026-09-02-bound-technique-initial-tier.md` · `handoffs/2026-
 
 - **子系统结构。** `deck` / `item` / `power` 为**文件夹**——除规则外还要容纳**内容设计**（起始卡组 starter decks、道具设计 item designs、能力条目）；`life-span` / `currency` / `mana` 为**扁平 `.md`**——它们是系统性资源（systematic resource），预期规则足够短，暂以单文件承载。
 - **境界存档 · 篇章重试模型**（CharacterProfile 状态机 `ongoing | defeated | completed`、全部继承、重试上限）→ `decisions/ADR-0004-realm-checkpoint-retry-model.md`（Accepted）。
+- **角色终结台词 `DefeatLines`**：三因各一句第一人称台词、稀疏覆写数组 + `LocalizedText`、只在角色终结时出现（普通战斗失败零台词、无任何延伸场合）；台词不落存档，由 `DefeatReason` + `characterDataId` 在展示层查表得出。
+- **ch1 的死就该这么轻**：ch1 重试 = 新建随机角色、旧角色化为墓碑、snapshot 回收，**不为它加软代价**——ch1 是教学期，轻是有意的设计取向，不是待修的缺陷；grimdark 的重量从 ch2（重试 3）开始、ch3（重试 1）到顶。
 
 ## 待决问题
 > _尚未解决，需要一次 handoff/决策。_
 
 - **全池指定下角色强度差是否仍塌缩为单一最优。** 灵根把差异推向「能修哪一路功法」，但仍可能存在一个综合最优的属性池；ch1 无限重试放大该效应。验收目标与处置基准已定（「每个角色都能以合理体验通关」；塌缩即触发内容向修正），**是否真塌缩待实测**。→ 本文档。
-- **`CharacterData` 付费轨道的字段形态、解锁校验与存档 / 契约增量。** 载体路径已定（`PlayerProfile` 具名集合 + 取池过滤 + 一次 bump），具体形态归 `/provide-solution-draft` 推演；首批一格不落。→ 本文档、`systems/monetization.md`。
+- **首批付费系列的 `SeriesId` 取值、系列名与五行构成。** 结构与次序均已定（`SeriesId` / `Track` 两格、校验、解锁载体、在售窗口、第一个付费系列 = 单灵根五角进阶批），欠的是**取哪个世界观实体**——需先有 `narrative/` 的世界观底稿。→ `narrative/_index.md`、`content/character/_index.md`。
+- **进阶批「复杂度更高」的具体表达**（更繁的运营？更多的条件判断？更长的连锁？）。属内容与数值阶段。→ 本文档、`systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/character-profile/_index.md`（待建）。

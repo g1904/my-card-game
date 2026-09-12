@@ -47,7 +47,7 @@
   - **失去恰三种形态，没有第四种。** 严重度阶梯**本场移除 < 本轮回禁用 < 账号移除（仅置换、需自愿）**逐档落到神通上：本场移除 = 战斗内 `IgnoresProtection` 效果结算（战场条目被移除、本场不再触发、**不写 Profile**）· 禁用 = `AbilityChangeSlot(Op = Disable, AllowDecline = false)` 写 `disabledAbility`（仍在持有列表、灰态可见、不进任何生效面）· 置换型剥夺 = `AbilityChangeSlot(Op = Remove, AllowDecline = true)` + 同 `PairKey` 的 `Grant`（真的移出 `characterPower`，换入同 `(Power, Character)` + 同 `Rarity` 的另一条）。**`DisableDuration` 的三档时长（下一事件 / 本篇章 / 本轮回）与这条严重度阶梯正交**，不要混作一维。
   - **不开「无同意的永久剥夺」**（`Op == Remove` + `AllowDecline == false` + 空 `GainAbilityId`）。它在结构上写得出来，但在轮回级上不产生额外表达力：神通本就随轮回清理，`ThisCycle` 档禁用与永久剥夺在这一局里的可玩后果逐格相同，差别只剩「持有列表里还在不在」与「置换池排不排它」两处次要语义。为这点差别开一条分支，代价是打破 `AbilityChangeSlot` 的 `Op ↔ AllowDecline` **既有约定**（`Remove` ⇒ `true` / `Disable` ⇒ `false`），而拒绝置换零代价正靠这条约定表达。
   - **失去侧无 `SourceCode` 表达，且神通买得到、卖不掉**：`ExchangeSell` / `PackSell` / `ExchangeBarter` 在 `(Power, Character)` 域是规则层封死（神通不进任何交易面），Exchange 的可售族恒为 `CharacterItem` 一族。
-  - **失去事件计入与法则共用的那一份频次预算，不另立一套。** 神通侧的目标份额 **≈ 0.5 次 / 完整轮回**（置换 : 禁用 ≈ 2 : 1）——持久三支中份额最高，理由是它是**轮回级损失**（随轮回清理、`ThisChapter` 档禁用在篇章边界自动恢复）。预算的整体配平口径见 `../../player-profile/player-power/_index.md`。
+  - **失去事件计入与法则共用的那一份频次预算，不另立一套。** 神通侧的目标份额 **≈ 0.32 次 / 完整轮回**（置换 ≈0.21 / 禁用 ≈0.11，比例 ≈ 2 : 1）——它高于法则两支，理由是它是**轮回级损失**（随轮回清理、`ThisChapter` 档禁用在篇章边界自动恢复）；全表频次最高的一格是法宝置换（≈0.28），法宝在「持久度 × 是否经玩家同意」两条轴上比神通更轻。神通与法宝一族同住「轮回级能力损失」那一支，预算的整体配平口径与逐格取值见 `../../player-profile/player-power/_index.md`。
 - **篇章突破随「全部继承」带入，不为它单列规则。** 「读档续章带入上一篇章的全部信息、无逐项筛选」这条条款就是答案——需要论证的是「不带入」而非「带入」；`CurrentLocationId`（跨篇章不清零）与剩余寿元（跨篇章结转）是同一条条款推出的两个先例，神通是第三例。**推论：`disabledAbility` 中 `Duration == ThisChapter` 的条目在篇章边界被剔除 ⇒ 一条在 ch1 被禁用的神通，进入 ch2 时自动恢复生效**，内容侧不需要任何恢复动作。篇章边界的既有职责表不增行、`TeardownCycle()` 不新增清理步骤。→ `systems/services/life-cycle-service.md`、`decisions/ADR-0004-realm-checkpoint-retry-model.md`。
 - **跨载体边界判据：什么该做成一张卡 / 一件法宝 / 一个神通（承重 · 三者共用一张表）。** 按**「这个效果要付什么代价才能生效」**排序，第一条命中即定型：
 
@@ -74,7 +74,7 @@
   | 不编排的通道 | `EventOutcome`（**保留机制、零条目**——一条能在任意事件 outcome 里直接塞一个神通的通道会稀释「build 增长来自打与买」这条分工，且它在物化时就已定稿、玩家看不出是奖励还是白送）；Research 维持「暂不放」（其产出面已收窄为卡组 + `manaLimit` + 隐藏属性推拉，为神通破例要动那条边界） |
   | 恒不产出的事件类 | `Travel`（纯位移事件，不该成为 build 增长面）· `Explore`（揭示的是真身，产出归真身那一类） |
   | 失去形态 | 恰三种（本场移除 / 三档禁用 / 置换），无第四种 |
-  | 失去事件频次 | 计入与法则共用的那一份预算（神通侧份额 ≈ 0.5 次 / 轮回），不另立 |
+  | 失去事件频次 | 计入与法则共用的那一份预算（神通侧份额 ≈ 0.32 次 / 轮回），不另立 |
   | 效果形态禁令 | 不得随对局延长而累积 · 不得产 `LifeSpan`（硬校验）· 不得提供关于敌人 / 未来 / 世界的外部情报（`vision/pillars.md` 的支柱 9；玩家对自己牌堆 / 手牌的便利类不在此限） |
   | 条目数下限 | **≥ 5**（每个在册角色一条专属绑定神通，是下方 `PowerId` 唯一性校验的直接推论） |
 
@@ -88,7 +88,7 @@
 
   **明确不做**「全库 `Scope == Character` 条目数 < 在册角色数 → `PushError`」这条总量前置检查，理由必须留在文档里：它与上方退池那条的处置正面相抵（overlay 关掉一条绑定神通即抛异常打崩启动），且在「每个角色的 `PowerId` 都解析得到」的前提下恒真、永不触发——一条写下来永不响的警报，是「能上线、线上不可见」那一类的镜像。
 
-Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-22-combat-runtime-counter-persistence.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-06-ability-loss-frequency-budget.md` · `handoffs/2026-09-07-combat-scale-baseline.md`
+Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-22-combat-runtime-counter-persistence.md` · `handoffs/2026-08-26d-activate-ability-contract.md` · `handoffs/2026-08-27-capability-flag-and-entitlement.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-06-ability-loss-frequency-budget.md` · `handoffs/2026-09-07-combat-scale-baseline.md` · `handoffs/2026-09-12-treasure-swap-share.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_

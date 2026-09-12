@@ -58,10 +58,12 @@
 - **写入经 `profile-service.ProfileManager`。** 解锁是 `ProfileChangeSpec.CodexElements` 的变更目标，不绕过唯一写入面。
 - **七本共用一条触发内核：接触即记，不要求你从中获益。** 遭遇 / 去过 / 进入持有列表，七行全部搭在一次已经存在的提交上（**零新增提交点**）；初始持有一并入图鉴，商店里见到但没买的不记。逐本触发表与依据见 `common-properties.md`。
 - **给静态知识，不给动态情报。** 这条分层由 EnemyCodex 确立（图鉴说「这个敌人会做哪些事」，不说「它这回合做什么」），对整族适用：图鉴是**场外的知识面**，不是场内的情报面。**「词条正文不含阿拉伯数字」不在整族通用之列**——它是 EnemyCodex 独有的口径纪律，边界见 `common-properties.md`。
+  - **「静态」不等于「浅」（承重）。** EnemyCodex 的 ③④ 写到**招式与行为模式级**、TechniqueCodex 的词条给出**逐层卡表**，两者都仍是静态知识；深度决定的是事前那一侧有多厚，**不是分层本身**。分层要防的只有一件事：词条不得表达「它这一回合做什么」。
 - **图鉴在战斗中一律不可查（承重）。** 七本在战斗界面全部锁死，只在非战斗界面可查阅。**这条纪律买的是两样东西**：其一，把「读敌人的底细」压回**战前准备**这个时段，使备战本身成为一个有仪式感的动作，而不是一个可以在结算间隙随手补做的查询；其二，**首遇的信息差是首遇的风险定价**——第一次撞上一个陌生敌人时，玩家手里就是没有关于他的知识，这份劣势正是「靠试错记忆」这条积累线的入场费。词条本身不含动态情报，因此「战斗内可读」在信息分层上是**可以开的**；不开它是一个正面的体验取向，不是分层的要求。
   - **已解锁敌人的词条在战斗前确认页呈现**（→ `ux/screen-flow.md`）：那是图鉴解锁的**回报时刻**——上一次输给它，这一次进场前就能看到它的路数。
 - **连锁解锁：收录一个敌人即收录他所用的全部功法。** 敌人的构筑面就是功法引用，故「见过这个敌人」与「见过这几门功法」是同一次接触。展开规则见 `common-properties.md`，功法本的词条形态见 `technique-codex.md`。
-- **词条深度按本分野。** EnemyCodex 是五项结构化文案，**五本能力 / 道具 / 功法类**只用内容条目自身已有的字段 + 一段可选的 `CodexFlavor` 风味文案；七本一律不分档解锁。
+- **词条深度按本分野。** EnemyCodex 是**四项**结构化文案（③④ 写到行为模式级、词条页允许纵向滚动）；TechniqueCodex 用条目自身字段 + 一段可选 `CodexFlavor` + **一份由条目现算的逐层卡表**；其余**四本能力 / 道具类**只用条目自身已有的字段 + 可选 `CodexFlavor`。七本一律不分档解锁。
+  - **「敌人词条② → 功法图鉴 → 逐层卡表」的反查通道是设计目标**（兑现「同一个敌人第二次遇到就该能打赢」），不是要堵的泄露；界由「层数不进任何词条」承担。见 `enemy-codex.md` 与 `technique-codex.md`。
 - **浏览形态是一个「图鉴」一等入口下的三层结构**（索引页 → 单本页 → 词条），七本共用同一套排布，**词条载体随上述词条深度分野**。落点与全部排布细节归 `ux/screen-flow.md`「图鉴族的三层浏览结构」，本文件不复述。
 
 ### 为何是一族而不是一个
@@ -69,12 +71,13 @@
 - 七个图鉴形状相同、语义相同、存档形态相同——**差别只在收录对象**。把它们做成一族（共有属性一份、各自一份文档）避免七套并行的解锁 / 计数逻辑。**LocationCodex 与 TechniqueCodex 的加入是这条设计的两次验证**：LocationCodex 只需在清单里加一行；TechniqueCodex 也只需加一行 + 让 `CodexFlavor` 多一个挂载面，两者都没有引入任何新机制、新提交点或新存档形态。
 - **它也给「收集」这条动机一个统一的落点：** 玩得越多，七本图鉴越厚；这与成就的「完成度」是两种不同的满足感（成就衡量做到了什么，图鉴衡量见过什么）。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-09-02-codex-entry-and-browse.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-05b-location-fields-event-count-limit-and-skip-refill-closure.md` · `handoffs/2026-08-06c-skip-channel-removal-priority-two-tier-and-location-codex-edges.md` · `handoffs/2026-08-19-codex-entry-schema.md` · `handoffs/2026-08-22-locationcodex-edge-granularity.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-09-02-codex-entry-and-browse.md` · `handoffs/2026-09-11-failure-and-punishment-identity.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
 - **图鉴共七个，构成一族；账号级、静态文案、存档只记解锁状态**。
+- **词条深度按本分野：EnemyCodex 四项（③④ 行为模式级、允许滚动）· TechniqueCodex 条目字段 + 逐层卡表 · 其余四本条目字段 + 可选 `CodexFlavor`**；「反查敌人卡组」是设计目标，界在「层数不进词条」。
 - **图鉴不与成就 / 奖励挂钩**：收集完成度不发放 PlayerPower / PlayerItem，也不驱动后端的任何发放。**连带：全部 Codex 字段不进透明路径白名单、后端零配合**（见 `systems/services/sync-service.md`）。反向的代价是收集这条动机只靠「看着它变厚」自持——这正是它与成就「完成度」两种满足感的分野。
 - **整族在战斗中不可查阅**；事前知识的呈现时刻是**战斗前确认页**（→ `ux/screen-flow.md`）。
 - **收录一个敌人即连锁收录其套牌所含的全部功法**：展开归 `CodexManager`，零新增提交点、零新增字段。

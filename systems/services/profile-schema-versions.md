@@ -4,7 +4,7 @@
 > 宿主服务是 `sync-service`（`MigrationManager` 在那里）；服务本体的设计见 `systems/services/sync-service.md`。
 > `schemaVersion` 不是 `PlayerProfile` 的字段——它落三处信封，见该文件「JSON 序列化命名策略」。
 
-Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-09-05-schema-ledger-v1-coverage.md` · `handoffs/2026-09-06-completed-data-retention.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md` · `handoffs/2026-09-06-stale-wording-roundup.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md`
+Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-09-05-schema-ledger-v1-coverage.md` · `handoffs/2026-09-06-completed-data-retention.md` · `handoffs/2026-09-06-status-vs-ownership-encoding.md` · `handoffs/2026-09-06-stale-wording-roundup.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md` · `handoffs/2026-09-12-premium-character-series-unlock.md`
 
 ## 意图
 > _设计意图，从 handoffs 中提炼。保持更新。_
@@ -20,6 +20,9 @@ Source: `handoffs/2026-09-03-schema-bump-ledger-authority.md` · `handoffs/2026-
 | `schemaVersion` | 本版纳入的结构改动 | 老档处置口径 | 触碰透明 / 回声路径 | golden 形状快照 | 权威回链 |
 |---|---|---|---|---|---|
 | **1**（首发） | 首发形状，逐条见下方「v1 —— 首发形状」 | **空迁移**（首发形状，无老档） | **有**：首发形状即含透明段，且含两个受回声校验约束的顶层键 `accountInfo` · `entitlement`。逐条 JSON path 的权威在 `backend-design-documents/contracts/profile-sync.md` §5，**本库不复制** | `profile-shape-v1.json`（待建，见下方「`ProfileShapeCheck`」） | 逐条见清单内 |
+| **2** | `PlayerEntitlement` 新增 `characterSeries`（元素 `CharacterSeriesEntry`） | **v1 → v2 迁移器写入空列表**；迁移之后仍缺该格 → 按回声路径的必需缺失处置，两个时点的口径切分见权威列 | **有**：`/entitlement/characterSeries` 是透明路径且由后端写入 ⇒ 受回声约束，命中形态纪律 ⑤ 第三档（两侧同批落笔） | `profile-shape-v2.json`（待建） | `systems/player-profile/_index.md` · `systems/monetization.md` |
+
+**v2 的条件分支（如实写下）：** `ADR-0255` 把付费角色系列定为「后续版本引入」⇒ 预期路径是首发之后，故它是本库的**第一次真实 bump**。**若付费系列改在首发之前落地**，按形态纪律与「v1 —— 首发形状」的口径（首发前的一切改动全部归入 `schemaVersion = 1`），本格并入 v1 清单新增一行，**不产生 bump**、本行整行不存在。两条路径的结构一字不差，只是登记位置不同。
 
 ### v1 —— 首发形状
 

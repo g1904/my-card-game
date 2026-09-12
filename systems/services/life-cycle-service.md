@@ -40,7 +40,7 @@
   - **Achievement：** 玩家**只能查看进度 / 领取奖励**；奖励按**组内加权进度**发放（见 `ux/screen-flow.md`）。
 - **属性模型 = 隐藏。** 借鉴 **Reigns** 的属性模型，但**与 Reigns 相反：属性隐藏、不作可见仪表**，在背后影响 AdventureEvent。隐藏属性（**道心 / faith**、**煞气 / Bloodlust**）落在 `CharacterProfile.Status` 内，随轮回推进被 AdventureEvent 推拉；达阈值驱动 **AdventurePlot（隐藏剧本层）**——见 `systems/services/plot-manager.md`。
 
-Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-09-05-currency-acquisition-and-pricing.md` · `handoffs/2026-09-06-completed-data-retention.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-15b-taxonomy-and-checkpoint-clarifications.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-25-lifespan-service-refactor-and-legacy-cleanup.md` · `handoffs/2026-07-27-content-gating-offline-resilience-and-rng-persistence.md` · `handoffs/2026-07-30b-combat-level-intent-and-decision-point-saves.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-02-momentum-conversion-reward-structure-and-mtg-stack.md` · `handoffs/2026-08-06-ch1-band-widening-cross-realm-crush-and-chapter-retry.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-17h-profile-field-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-22-non-combat-decision-points.md` · `handoffs/2026-08-23g-hidden-stat-combat-boundary-event-backdrop-and-itemized-rewards.md` · `handoffs/2026-09-05-currency-acquisition-and-pricing.md` · `handoffs/2026-09-06-completed-data-retention.md` · `handoffs/2026-09-12-premium-character-series-unlock.md`
 
 ## 管理器
 
@@ -58,7 +58,7 @@ Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handof
 
 | 方法 | 形态 | 完整签名 | 失败语义 |
 |------|------|----------|----------|
-| 可选角色列表 | A | `IReadOnlyList<CharacterData> GetSelectableCharacters()` | 池为空 = 内容缺陷（加载期已 `PushError`）→ 此处返回空列表，由 UI 走阻断态 |
+| 可选角色列表 | A | `IReadOnlyList<CharacterData> GetSelectableCharacters()` | 池为空 = 内容缺陷（加载期已 `PushError`）→ 此处返回空列表，由 UI 走阻断态。**解锁过滤不会把池清空**——首批五角永久免费恒可用 |
 | 开始轮回 | A | `OpResult<CharacterProfile> StartCycle(CycleStartSpec spec)` | 业务失败（该篇章已有 ongoing、重试次数耗尽、`CharacterDataId` 不在可选池内）→ `OpResult` |
 | 推进 | **C** | `Task<AdvanceResult> AdvanceEventAsync(EventOption chosen, CancellationToken ct)` | 业务失败 → `AdvanceResult`，绝不抛 |
 | 篇章通关 | A | `OpResult CompleteChapter()` | 业务失败 → `OpResult` |
@@ -81,7 +81,18 @@ public readonly record struct AdvanceResult(
     CycleStatus  StatusAfter);
 ```
 
-- **开局角色由玩家从全池指定，服务侧只做一次准入校验。** `GetSelectableCharacters()` 是**纯只读查询**——返回可抽取池（可抽取性 = 自身 `ContentEnabled` ∧ 全部绑定条目 `ContentEnabled`，见 `systems/character-profile/_index.md`），**不消耗任何随机、不产生需要保序的状态、不落存档**。`StartCycle` 校验 `spec.CharacterDataId ∈ 可抽取池`，否则 `OpResult.Fail`——这道校验防的是 UI 越权指定一个被 flags 关掉的角色，不能省。
+- **开局角色由玩家从全池指定，服务侧只做一次准入校验。** `GetSelectableCharacters()` 是**纯只读查询**，**不消耗任何随机、不产生需要保序的状态、不落存档**；签名为 `IReadOnlyList<CharacterData> GetSelectableCharacters()`。`StartCycle` 校验 `spec.CharacterDataId ∈ 可选池`，否则 `OpResult.Fail`——这道校验防的是 UI 越权指定一个被 flags 关掉或尚未解锁的角色，不能省。
+
+  ```
+  可选角色 = AllEnabled<CharacterData>()
+             ∩ 全部绑定条目 ContentEnabled == true                                  ← 既有「可抽取性」那一层，原样不动
+             ∩ ( Track == Free ∨ entitlement.CharacterSeries 含该条目的 SeriesId )   ← 付费轨道的解锁过滤
+  ```
+
+  - 可抽取性那一层的权威在 `systems/character-profile/_index.md`；轨道与解锁集合的权威在同文档与 `systems/player-profile/_index.md`。
+  - **解锁过滤落在本服务内、`AllEnabled()` 的返回值之上，绝不落进 `ContentRegistry`。** 写成 `AllEnabled(accountContext)` 一类会让内容层反向依赖存档层——注册表不吃账号上下文，这条已由 flags 分桶那次明确关死（`systems/services/content-service.md`）。
+  - **`StartCycle` 零改动。** 既有守卫「`CharacterDataId` 不在可选池内 → `OpResult`」**原样覆盖**新增的这一层，不新增拦截点、不新增失败语义。
+  - **解锁是一次集合包含判定，完全不涉及 RNG**（下一条的四条子流不变式原样成立）。
   - **角色选取完全不涉及 RNG。** 不新开第五条子流、四条子流（map / combat / shop / reward）不变、`AccountStream` 不动，`StartCycle` 的子流初始化照旧不走 `RngElements` 列——「凡消耗了子流随机的提交必须同批带 `State`」这条不变式一个例外口子都不开。
   - **`CharacterDataId` 只在炼气新角色那一路有意义。** ch2 / ch3 重试与续章走 `SourceCharacterId`（角色继承），该格被忽略；两条路径不合流。
 - **`CycleStartSpec.Seed` 的生成方：`RetryChapter` 内部生成一个新 seed，与首次 `StartCycle` 走同一条生成路径。** 篇章重试 = 换一套完整的新随机流（地图、事件池、商店、奖励、战斗全部不同），故 `attemptIndex` 无事可做、整层删除。见下方「取消语义」与 `systems/common-properties.md`。

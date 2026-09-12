@@ -176,7 +176,7 @@
   - **两种货币在拒绝面内，三条依据：** 商店侧结构上无意义（`CharacterItem` 五档恒收灵石 ⇒ 一件产灵石的法宝是「用灵石买灵石」：产出 < 价格则无人买，≥ 价格则套利，任何定价都落在这两侧之一）；免费通道上它是账外的货币增量（货币账只含战斗 `BaseReward` + 道念差加成 + 事件 outcome 三条口子，而战后奖励一轮回给出 ≈ 18.5 件法宝——≈ 30 候选槽 × 领取率 0.75 × 法宝占比 ≈ 82%，见 `systems/balance.md`「战后奖励的内容编排口径」）；仙玉尤甚——一枚的量级即占一章仙玉收入的两到五成，与「仙玉一格都不落 `CharacterItem` 族」那条结构性关闭同向。
   - **代价明写（被接受）：** 内容侧编排不出经验丹 / 静心符 / 血煞珠 / 碎片袋 / 灵石袋 / 储物锦囊的**道具形态**；同名风味改由战斗 `BaseReward` 与事件 outcome 承载，两处都在账内。
   - **方向可逆，条件记在这里以免重开会：** 要开货币须**同时**补三样——加回白名单一格 · L-0 同构的免费通道排除 · 商店侧「产灵石的法宝不进 `CharacterItem` 库存」排除；要开 `ManaLimit` 须**同时**补三样——`|BaseValue| == 1` 的加载期闸（与事件侧同源那条逐字同构）· `Charges == 1` 强制 · L-0 同构排除。三样缺一，对应那本账即不可复算。
-  - **法宝的其余三格编排口径落别处：** 事件产出侧的期望到手量（通道 ③ 的量）与商店逐族库存深度见 `systems/balance.md`；法宝置换的目标频次同在那里，而**该频次的份额如何计入「失去能力」上层 ≈ 1.0 的合计归本文件侧裁定**（法宝置换写 `CharacterProfile`，故不适用自持口径），四支频次表见 `systems/player-profile/player-power/_index.md`。
+  - **法宝的其余三格编排口径落别处：** 事件产出侧的期望到手量（通道 ③ 的量）与商店逐族库存深度见 `systems/balance.md`；法宝置换的目标频次同在那里（**≈ 0.28 次 / 完整轮回**）。**法宝一族在「失去能力」上层 ≈ 1.0 合计中占 ≈ 0.35**（置换 ≈0.28 / 法宝禁用 ≈0.06 / 古宝禁用 ≈0.01），落在「轮回级能力损失」那一支内——法宝置换写 `CharacterProfile`，故不适用自持口径。逐格取值、配平口径与全序核对见 `systems/player-profile/player-power/_index.md` 的四支频次表，**本文件不复述**。
 
 - **一个道具功能族需要独立的供给护栏，当且仅当它产出的量进入某条已被反推封账的预算线**（λ 反推的寿元账 · 货币账 · 经验账 · 卡组规模口径）。**日后新增效果原语或放宽某一列时照这条核对。**
   - **战斗外三列逐列过一遍：** `Elements` 收到 `{ LifeSpan }` 后只剩回寿一族，其口径已由上方四条通道 + L-0 / L-1 / L-2 / L-3 给全；`CodexElements` 是幂等收录、`Stats` 是纯计数自增，**两族一条都不进任何账** ⇒ 同样不需要三格口径。故「战斗外的族」不止一个，只是其中只有一个进账。
@@ -187,7 +187,7 @@
 
 > 本文件夹为「每类角色道具 / 每份道具设计一个 Markdown」预留结构；具体语义见 `common-properties.md` 与待决问题。
 
-Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12c-identifier-singular-collapse.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md` · `handoffs/2026-09-10-item-family-supply-guardrails.md`
+Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-24-docs-restructure-class-model.md` · `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-03-battlefield-stack-hand-limit-and-power-item-naming.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12c-identifier-singular-collapse.md` · `handoffs/2026-08-12f-cultivation-technique-deck-building.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-08-28-item-use-effect-face-and-carrier-kind.md` · `handoffs/2026-09-09e-lifespan-item-supply-guardrail.md` · `handoffs/2026-09-10-item-family-supply-guardrails.md` · `handoffs/2026-09-12-treasure-swap-share.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
@@ -196,7 +196,6 @@ Source: `handoffs/2026-09-03-character-power-mechanics.md` · `handoffs/2026-08-
 > _尚未解决，需要一次 handoff/决策。_
 
 - **角色级道具的内容目录未设计。** **已定：战斗内形态 = `CardType.Item`、储物袋、`UsableScene` 三档、`ItemData` 字段形态与两格使用效果面、本场配额格、加载期校验、消耗即时写 Profile、以及战斗外效果的第一个具体条目形态（回寿法宝）**（见上）；**载体判据亦已给出**，见 `../power/_index.md` 的跨载体边界判据表。**仍未设计**：道具的种类目录本身。首批已有一族落到条目级取值——回寿法宝三条（见上方三档绑定表），它是**分母之外的一个已知分子**，目录设计时须把这三条与上方的可写 key 白名单一并计入。
-- **法宝置换在「失去能力」上层 ≈ 1.0 合计中占多少份额。** 口径结构已定（它计入上层分子，不自持分母），待定的只有那个份额；定它时须同时看四支频次表的其余三格（见 `systems/player-profile/player-power/_index.md`）。
 
 > **储物袋的 UI 形态**（不进主菜单、纵向滚动网格 + 筛选 chip、战斗内视图称「随身」= 角标 + 底部抽屉），见 `ux/screen-flow.md` 与 `ux/combat-ux.md`。条目数不设上限、可观 ⇒ **筛选 chip 与排序是必要的**，具体排布归 UX 侧。
 

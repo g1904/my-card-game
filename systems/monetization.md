@@ -89,21 +89,26 @@
   | **② 兑现段** | 客户端（后端复算） | 客户端 **pull** 到新序号 → 用 `(PremiumBundle, ordinal)` 掷骰抽 3 条 → 一次 `TryApply` → `Immediate` push；后端以同一 `(AccountSeed, stream, ordinal)` 复算校验 |
 
   - **验票端点的报文、幂等口径与服务端保证的权威在 `backend-design-documents/contracts/purchase.md`**（验票由后端向平台校验、写入只由 verify 承担、渠道回调只作对账；平台收据 id 是幂等键，同一张票重复提交绝不重复 `+1`）。本文件只写客户端这一半，不复述报文。
-  - **购后 pull 失败 ⇒ 阻塞在主菜单重试直到成功**，不允许在未兑现状态下开始新轮回；重试走该契约的收据幂等读，`receiptId` 随待兑现态持久化。**正确性由 `/entitlement` 两字段之差承载，本地待兑现态只是加速补查的优化**——跨启动补入口是「每次启动 pull 后比较 `Grant > Redeemed`」，不依赖本地态是否还在。形态与否决项见 `systems/services/sync-service.md`。
+  - **购后 pull 失败 ⇒ 阻塞在主菜单重试直到成功**，不允许在未兑现状态下开始新轮回；重试走该契约的收据幂等读，`receiptId` 随待兑现态持久化。**这条只适用于存在客户端兑现动作的付费点（当前只有 premium bundle），不是全部付费点的通则**——它的成立前提是「存在未兑现状态，在此状态下开新轮回会让兑现与轮回交错」。没有兑现段的付费点（付费角色系列）不阻塞，见下方第三支。**正确性由 `/entitlement` 两字段之差承载，本地待兑现态只是加速补查的优化**——跨启动补入口是「每次启动 pull 后比较 `Grant > Redeemed`」，不依赖本地态是否还在。形态与否决项见 `systems/services/sync-service.md`。
   - **购后等待期的呈现 = Store 流程内的全屏模态进度态**（进度指示 + 重试 + 退出应用，文案走 `STORE_` 分区），**不是阻塞屏的第四个变体**；兑现完成后同屏切到兑现结果态。判据与形态见 `ux/error-and-blocking-ux.md` 与 `ux/screen-flow.md`。**无硬超时、永不放弃**——「超时后放弃」= 收了钱不给货，玩家最坏体验是「稍后回来」而不是「钱没了」。
 
   - 「谁有权把 `BundleGrantOrdinal` 从 n 推到 n+1」**只能是后端**，否则整套防篡改归零。**否决客户端自行置位 + 后端事后校验**（客户端置位 = 客户端有权发货；事后发现不一致时玩家已拿到东西，回收比不发更糟），**否决兑现也放后端做**（`AccountRng` / `GrantPoolManager` 要在两侧各实现一遍，与既定的「客户端掷、后端复算」分裂成两条路径）。
   - **⚠ 它引入同步模型此前没有的第四种情形：后端主动写入。** 时机纪律与它关闭冲突窗口的机理见 `systems/services/sync-service.md`；本系统侧只承接其结果——**购买入口在轮回内 / 战斗内 / 结算流程内不存在**。
-  - **购买入口的前置条件表（全部满足才可点；闸 ② 并入此表，不新增拦截点）：**
+  - **购买入口的前置条件表（全部满足才可点；闸 ② 并入此表，不新增拦截点）。按作用域分两段：全局段管 Store 入口本身，per-SKU 段管某一个商品能不能买。**
 
-    | # | 条件 | 不满足时 |
-    |---|---|---|
-    | 1 | 当前在主菜单（不在任何轮回内） | 入口不渲染 |
-    | 2 | 待发队列为空（或一次 `FlushPendingAsync` 成功） | 入口置灰 + 「请先完成同步」 |
-    | 3 | `GrantableCount(Power, Player) ≥ 1` 且 `GrantableCount(Item, Player) ≥ 2` | 入口置灰 + 说明 + `PushError` + 上报（既定闸 ②） |
-    | 4 | `BundleGrantOrdinal == BundleRedeemedOrdinal`（无待兑现） | 入口置灰 + 「上一笔购买正在发放」 |
-    | 5 | 当前平台存在可用渠道（运行时探测到可用的商店渠道实现） | 入口不渲染 |
+    | 段 | # | 条件 | 适用 SKU | 不满足时 |
+    |---|---|---|---|---|
+    | **全局**（Store 入口本身） | 1 | 当前在主菜单（不在任何轮回内） | 全部 | 入口不渲染 |
+    | | 2 | 待发队列为空（或一次 `FlushPendingAsync` 成功） | 全部 | 入口置灰 + 「请先完成同步」 |
+    | | 5 | 当前平台存在可用渠道（运行时探测到可用的商店渠道实现） | 全部 | 入口不渲染 |
+    | **per-SKU** | 3 | `GrantableCount(Power, Player) ≥ 1` 且 `GrantableCount(Item, Player) ≥ 2` | **仅 premium bundle** | 该 SKU 置灰 + 说明 + `PushError` + 上报（既定闸 ②） |
+    | | 4 | `BundleGrantOrdinal == BundleRedeemedOrdinal`（无待兑现） | **仅 premium bundle** | 该 SKU 置灰 + 「上一笔购买正在发放」 |
+    | | 6 | 该 `SeriesId` **不在** `entitlement.CharacterSeries` 内 | **仅付费角色系列** | 该 SKU 置灰 + `STORE_UNAVAILABLE_SERIES_OWNED`（「已拥有」）—— 非消耗型商品的通行做法 |
+    | | 7 | 该系列的全部条目当前 `ContentEnabled == true` | **仅付费角色系列** | 该 SKU 置灰 + `STORE_UNAVAILABLE_SERIES_PARTIAL` + 上报 |
+    | | 8 | 当前时刻落在该系列的**在售窗口**内 | **仅付费角色系列** | 该 SKU 置灰 + `STORE_UNAVAILABLE_SERIES_WINDOW`（「本次上架已结束」）—— 窗口会重开，灰态的「暂不可用、会恢复」语义正合 |
 
+    条件 3 / 4 原本就是 premium bundle 兑现形态特有的（空池、水位），分段只是把这一事实写明；**既有五条一条不删、语义一字不改**，新增的只有 6 / 7 / 8 三行与「作用域」这一列。
+    条件 7 是闸 ② 同一条纪律的第二次兑现（把失败点挪到掏钱之前，从「退款争议」降级为「暂不可购买」）。它取**灰态**而非不渲染是对的：flags 秒关是临时运营动作，灰态的既有语义正是「暂不可用、会恢复」。
     条件 4 是不变式 `Grant - Redeemed ≤ 1` 在单设备下的维持者；在待兑现状态下允许再次付款，会把一个待发放问题叠成两个。**它是往这张既有的表里加一行，拦截点数量不变**（表本身就是那个拦截点）。
     条件 5 与条件 1 同形取「不渲染」而非置灰：三渠道全是移动渠道，桌面 / 网页构建上不存在任何可用渠道，而灰态的既有语义是「暂不可用、会恢复」——在这些平台上它**永不恢复**，置灰即对灰态判据的语义污染。云端权威使移动端购得的权益在桌面照常经 pull 生效，玩家无损失；渠道插件缺席的设备（如无 Play 服务的 Android 包）同样命中本条。探测形态见 `systems/services/sync-service.md`，呈现见 `ux/screen-flow.md` 与 `ux/error-and-blocking-ux.md`。
 - **购买流程内的三个显式步骤（写下来是为了防它们被挂在顺手处）。**
@@ -142,10 +147,59 @@
   - **定价：起步单一 SKU、单一价格档**；金额属发行侧，**不落客户端**（价格与货币由平台商店按 SKU 返回，客户端不硬编码任何金额）。多档 SKU 会立刻牵出「哪档给什么」的内容编排，而内容池规模尚未明朗。
   - **连带：闸 ① 的口径改写为「支撑 K 次重复购买」**，余量语义变为「留给第 K+1 次的缓冲」；`K` 与 `GrantPoolMargin` 数值仍待内容规模明朗（见 `systems/balance.md`）。
 - **付费解锁角色系列（第三支 · 后续版本引入）。** 后续新角色可为付费解锁；角色按**系列**成批推出，一个系列 5 个或 10 个、每批保持五行对称，**整系列全免费或全付费，绝不单出一个角色**。
-  - **首批五角永久免费恒可用**（它就是第一个免费系列）；后续角色不全付费——角色条目带「免费 / 付费」轨道属性，**「一旦免费永不改付费」是单向棘轮**（内容纪律 + `/audit-content` 核对项候选）。双灵根首批（十角）走**免费**轨道。
-  - **礼包 = 整系列解锁**：5 个的系列付 4 个单解之价，10 个的系列付 8 个单解之价。
+  - **首批五角永久免费恒可用**（它就是第一个免费系列）；后续角色不全付费——角色条目带「免费 / 付费」轨道属性（`CharacterData.Track`），**轨道在发布后完全不可变：`Free → Paid` 与 `Paid → Free` 都禁止**（内容纪律 + `/audit-content` 核对项，不做运行时机制）。禁反方向的理由是本作**没有补偿通道**：老系列免费化会让已付费玩家撞上「我买的现在白送」，而补偿要求一条账号级可支配货币（已被明确关死）。代价如实写下：运营失去「把老系列免费化拉新」这一手。双灵根首批（十角）走**免费**轨道。
+  - **系列是世界观的切片，不是难度的梯队（承重）。** 一个系列有一个与世界观兼容的**有意境的名称**（地域、宗门一类）与**一段简要概述**；**系列对成员角色没有任何规则上的强制要求**——不存在系列加成 / 系列共鸣，也不存在系列层面的规则字段。五行对称仍是内容编排纪律，它约束的是每批怎么排，不是系列这个实体持有什么。名与概述由内容类型 `CharacterSeriesData` 承载（只放名 / 概述 / 可选商店插图，见 `systems/character-profile/_index.md`）。
+    - **商店的系列详情页讲的是一段世界观概述，不是一组机制卖点。** 按复杂度梯队给系列命名会把难度写进商品名、被读成「贵的那批更强」，正是严格横向要避的观感；按叙事母题分组则没有天然供给上限，出到第六批会开始重复。
+  - **剧情不是付费面：免费与付费角色在叙事待遇上一视同仁（承重）。** 每个角色（无论轨道）都可能带一条专属剧情线，**铺不铺取决于内容排期，而非付费与否**。⇒ **系列详情页不得把「专属剧情」列为付费权益**，与「不展示数值、不标推荐、不写任何『更强』暗示」同一条诚实性纪律。它是「严格横向不卖强度」与「验收口径不分轨道」向内容面的自然延伸，保住「付费买到的是新玩法与新组合」这句话不破功；机制侧零成本（`PlotArcData.CharacterIds` 填值即角色专属、零新增 schema，剧本条目可经 overlay 热更不发版 ⇒ 铺给免费角色不额外花一次发版）。**专属剧情钩子仍是后续内容、非首批义务**——这份非义务对两条轨道同等适用。叙事纪律与世界观事实源见 `narrative/_index.md`。
+  - **推出次序：先付费进阶批、双灵根免费批在后。** 第一个付费系列 = **单灵根五角进阶批**（5 个、五行对称、仍是单灵根，复杂度高于首批），定价锚 = 付 4 个单解之价。它落在「首批刻意压平复杂度、由后续系列抬升」那一格，不触碰双灵根机制。**双灵根批仍走免费轨道**，只是排在付费进阶批之后。
+    - **「复杂度抬升」不得表达为强度抬升。** 进阶批卖的是**更繁的运营与更深的组合空间**，不是更高的胜率；「每个角色都能以合理体验通关、目标胜率同带」对这批角色同样适用。
+    - 首发后的第一次大更新是付费内容，观感上的风险如实记下，由「严格横向不卖强度」与「未拥有角色完全不出现在角色选择屏」两条纪律承接。
+  - **可购商品只有「整系列礼包」一种（承重）。** 5 个的系列付 4 个单解之价，10 个的系列付 8 个单解之价——**这是定价锚（记账单位），不对应任何可购商品**：商店里不存在单个角色的 SKU，玩家看不到也买不到单解。单个角色零售会破坏五行对称，并把「买哪个最强」变成事实上的强度选择。
   - **强度边界：严格横向、不更强（承重）。** 付费角色卖的是新玩法与复杂度（更繁的运营、多灵根组合空间），不卖强度；同样纳入「每个角色都能以合理体验通关」的验收（目标胜率与免费角色同带，验收口径不分轨道）。与「付费的战斗价值主要由古宝承载」的既有分工自洽——角色轨道不为付费提供任何数值优势。
-  - **解锁载体与购买流程的形态待方案推演**（`PlayerProfile` 具名集合 + 取池过滤 + 一次 `schemaVersion` bump 是既知起点；`CharacterData` 需一格轨道标记；SKU 形态、验票写入与封闭表加行等后端承接随该方案同批产生）→ `/provide-solution-draft`。角色池与轨道语义的权威在 `systems/character-profile/_index.md`「角色模板池的形态」。
+  - **解锁载体 = `PlayerEntitlement.CharacterSeries`（元素 `CharacterSeriesEntry(string SeriesId)`）+ 一条取池过滤 + 一次 `schemaVersion` bump，不需要任何新机制。** 持有粒度是**系列 id**（与「只上架整系列礼包」一致）。字段形态与读档校验的权威在 `systems/player-profile/_index.md`，取池过滤在 `systems/services/life-cycle-service.md`，版本行在 `systems/services/profile-schema-versions.md`，`CharacterData` 的 `SeriesId` / `Track` 两格与轨道语义在 `systems/character-profile/_index.md`。
+  - **购买流程走既有两条腿，但兑现段整段不存在（承重）。** 渠道封装层（`StoreChannelManager` 持 `IStoreChannel`、运行时探测 + `UnavailableStoreChannel` 兜底、后端 HTTP 调用走 `IPurchaseBackend`）**原样复用，一格不改**。
+
+    ```
+    主菜单 → Store 屏（既有入口，不新增屏、不新增主菜单入口）
+      → 系列列表（Store 屏的又一个列表 / 结果态）
+      → 系列详情（付款前如实列出本系列全部角色）
+      → 下单（条件步，仅需商户侧下单的渠道）
+      → IStoreChannel 唤起平台内购 → 收据
+      → IPurchaseBackend 验票 → 后端在验票事务内写入 /entitlement/characterSeries
+      → 购后强制 pull
+      → pull 到该 seriesId 出现 ⇒ 全屏模态进度态切「解锁结果态」（列出本次解锁的角色）
+      → Apple 侧 finish()（只能在验票成功或幂等命中之后）
+    ```
+
+    | 段 | premium bundle | 付费角色系列 |
+    |---|---|---|
+    | 购买段 | 平台 SDK + 后端 | **同款，不变** |
+    | **兑现段** | 客户端 pull 到新序号 → `AccountRng` 掷骰抽 3 条 → 一次 `TryApply` → `Immediate` push | **不存在**。授予即后端写入的那一格，pull 下来就是终态 |
+    | 兑现水位 | `BundleRedeemedOrdinal` | **无** |
+    | 空池三道闸 / `GrantPoolMargin` / `K` | 适用 | **一概不适用**（无内容抽取） |
+    | 购后 pull 失败 | 阻塞在主菜单、不允许开始新轮回 | **不阻塞** |
+
+    - ⇒ 客户端在本付费点上**零 `TryApply`、零 `AccountRng`、零水位、零「差值 > 1」异常路径**，与外观族的 `Cosmetic` 先例逐字同构。
+    - **购后不阻塞「开始新轮回」。** 本付费点没有未兑现状态，未到账的最坏后果是「这几个角色暂时选不到」，玩家照常可用免费角色开轮回；阻塞是在惩罚一个不存在的风险。**premium bundle 的那条阻塞纪律一字不改**，只是不外延为通则。
+    - **跨启动补入口 = 两条，都不依赖云端水位：** ① 本地持久化的 `receiptId` + 收据幂等读（与 premium bundle 同一条通道）；② 每次启动的商店初始化时查询平台未完成交易并补验票（未 consume / 未 finish 的交易在下次查询时重新出现，是 Google Play Billing 与 StoreKit 2 的标准形态），它是本地态丢失（卸载重装 / 换设备 / 清缓存）时的最后一道保证。**两条合起来即闭合，无需第三条**——若验票已成功，货已在云端、pull 即到账；若验票未成功，平台收据未被核销、下次启动重新出现。premium bundle 之所以另需云端水位，恰恰因为它有一个客户端侧的、云端看不见的发货动作。
+    - **失败处置沿用既有五情形表**（收据处理中 / 收据无效终态 / 已在另一账号核销 / 渠道未开通 / 报文格式错误），**不新增情形**；只需把「待兑现态」列在本付费点上读作「本地 `receiptId` 待结清态」。**无硬超时、永不放弃**原样适用。
+    - **`IPurchaseBackend` 的三个应答 record（`VerifyAck` / `OrderAck` / `ReceiptStatusAck`）的形状随对侧按 SKU 类别分形同批调整；接口方法签名不变**，`StoreChannelManager` / `IStoreChannel` / `UnavailableStoreChannel` 一格不动。报文形态的权威在 `backend-design-documents/contracts/purchase.md`，本库不复述。
+  - **「有哪些系列在售」由内容层自己给出，零新增下发面。**
+    - **在售系列清单** = 对 `AllIncludingDisabled<CharacterData>()` 按 `SeriesId` 归组，取 `Track == Paid`、不在 `entitlement.CharacterSeries` 内、且落在在售窗口内的那些。**走 `AllIncludingDisabled()` 而非 `AllEnabled()`**：flags 秒关一个角色不应让整个系列从商店里消失（该情形由前置条件 7 置灰承接）。
+    - **`productId` 由 `SeriesId` 经机械变换拼出**，客户端**不硬编码任何 `productId` 字面量、不持任何映射表**；变换规则本身的权威在 `backend-design-documents/contracts/purchase.md`，本库不复述规则文本。
+    - **价格与货币仍由平台商店按 SKU 返回**，客户端不硬编码金额。
+    - ⇒ **零新增端点、零新增下发通道、零新增内容字段**（`SeriesId` 一格两用）。
+  - **购买时限：每个付费系列有一段在售窗口（限时销售）。** 三条语义：
+    - **① 不绝版。** 窗口关闭后系列可**重新上架**（如周年复刻），或**转为常驻商品仅失去限时优惠价**；两种形态均可，由运营按系列择一，设计上不预设。
+    - **② 已购玩家永久可用。** 下架的只是购买入口；已写入 `entitlement.CharacterSeries` 的解锁记录不受任何影响。这与「禁止永久退役付费角色」同向且互为支撑。
+    - **③ 限时的是价格与销售节奏，不是可得性。**
+    - **窗口是内容层属性，与在售清单同一条通道 ⇒ 零新增下发面；它不进存档、不进 `PlayerEntitlement`**——它约束的是「能不能买」，不是「拥有什么」。窗口外的购买入口处置见上方前置条件 8。后端 SKU 表的上架窗口字段与窗口外购买请求的拒绝语义见 `backend-design-documents/operations/purchase-ops.md` 与 `backend-design-documents/contracts/purchase.md`。
+  - **呈现：Store 屏加一个列表 / 结果态，不新增屏、不新增主菜单入口**（与外观族的既定处置逐字同款）。
+    - **系列详情页（付款前）必须列出本系列的全部角色**：复用角色选择屏卡面的同一套构件（形象 + 灵根一行 + 神通名与一行简述 + 两门绑定功法名与各一行简述），**不展示数值、不标推荐、不写任何「更强」暗示**。这是诚实性纪律在本付费点上的兑现。
+    - **解锁结果态** = Store 屏的一个结果态，列出本次解锁的角色。它发生在付款之后、内容已定，不是推销面。
+    - **文案走 `STORE_` 分区的普通键**（`STORE_SERIES_*` · `STORE_UNAVAILABLE_SERIES_OWNED` · `STORE_UNAVAILABLE_SERIES_PARTIAL` · `STORE_UNAVAILABLE_SERIES_WINDOW`），**不占 `ERR_` 前缀**——它们是本地业务拒绝，没有后端 `code`。
+  - **付费角色系列允许的全部呈现穷举为两处：主菜单 Store 入口本身；Store 屏内的系列列表 / 系列详情。** **未拥有的付费角色完全不出现在角色选择屏**——不设卡位、不灰显、不加底部入口。角色选择屏保持「这些都是你能玩的」这一干净语义，也与「不标推荐 / 不展示数值 / 首批刻意压平复杂度」的选择屏基调一致；灰显未拥有项会让玩家把「灰的那几个」读成「更好的那几个」，正是严格横向要避免的观感。**代价如实写下：付费面近乎不可发现**，发现面只剩 Store 屏与版本更新公告，转化依赖玩家主动进入 Store；这是本库「一致地克制」这条推销面取向被接受的结果。**解锁结果态同样不是推销面**（发生在付款之后）。
+  - **跨库承接（不复述，只回链）：** SKU 命名与粒度 · `productId ↔ seriesId` 的机械变换规则 · 验票后写入 `/entitlement/characterSeries` 的报文与幂等 / 事务语义 · `profile-sync` 后端写入字段封闭表与透明字段白名单加行 · 兼容矩阵登记 · 购买域失败 `code` · SKU 表的上架窗口字段 ⇒ `backend-design-documents/contracts/purchase.md` · `contracts/profile-sync.md` · `operations/purchase-ops.md` · `operations/version-matrix.md`。
 - **付费面的边界：五项明确排除 + 纯外观预留方向（负面边界）。** 五项排除对全部三支付费面一体适用；付费解锁角色系列不在排除之列——它是买断式的横向内容扩张，不触碰任何一条排除项的理由（不撤销失败、无随机付费、无消耗货币、无加速、无广告）。
 
   | 排除项 | 理由 |
@@ -186,14 +240,16 @@
   - **通行证 / 赛季：当前不做**——它要求先有赛季结构与持续内容产能，而本作当前没有赛季结构。若将来做，须先答「赛季是什么」，不能反过来。
 - **UX 观感 = 安静的一等入口 + 绝不在失败时刻推销。** 入口位置、三条呈现纪律与灰态判据的权威在 `ux/screen-flow.md` 与 `ux/error-and-blocking-ux.md`；此处只记本系统侧的两条结论：
   - **重试次数耗尽时不提示购买**，两条独立理由——① 那是玩家刚失去一个角色的时刻，此处推销正是「付费才玩得下去」观感的经典成因，且会把 ③ ④ 从「宽松化」在观感上变成「解锁继续游玩」；② **它在结构上本就不可行**（购买只在主菜单发起、待发队列为空，而重试耗尽是轮回内 / 结算流程内的时刻）。
-  - **允许的全部呈现穷举为三处**：主菜单入口本身；礼包详情页内如实列出四项权益（及第二次起的删减说明）；**兑现结果态**（列出本次获得的 1 法则 + 2 古宝）。这句穷举约束的是**推销面**——兑现结果不是推销：它发生在付款之后、内容已定，且「付了钱看不到货」与本文件反复出现的诚实性纪律正面相悖，也是退款争议的常见诱因。
+  - **premium bundle 允许的全部呈现穷举为三处**：主菜单入口本身；礼包详情页内如实列出四项权益（及第二次起的删减说明）；**兑现结果态**（列出本次获得的 1 法则 + 2 古宝）。**付费角色系列的穷举是另一份两处**（主菜单 Store 入口 + Store 屏内的系列列表 / 详情），见上方第三支；两份各自穷举、不合并。这两句穷举约束的是**推销面**——兑现结果不是推销：它发生在付款之后、内容已定，且「付了钱看不到货」与本文件反复出现的诚实性纪律正面相悖，也是退款争议的常见诱因。
 
-Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md` · `handoffs/2026-09-08-combat-portrait-layout.md` · `handoffs/2026-09-10-character-series-identity-and-monetization.md`
+Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and-monetization.md` · `handoffs/2026-08-04b-mtg-loanwords-card-types-and-intent-snapshot.md` · `handoffs/2026-08-06b-asymmetric-ch1-band-consented-power-loss-and-chapter-retry-shape.md` · `handoffs/2026-08-10b-grant-source-and-fragment-source-scoping.md` · `handoffs/2026-08-10c-ability-disable-replacement-and-player-statistics.md` · `handoffs/2026-08-12e-ability-grant-draw-pool.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-16b-cross-library-alignment-and-bridge-ledger.md` · `handoffs/2026-08-16f-elements-modifier-pipeline-opt-in.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-pickmany-shortfall-handling.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-07b-cosmetic-monetization-shape.md` · `handoffs/2026-09-08-combat-portrait-layout.md` · `handoffs/2026-09-10-character-series-identity-and-monetization.md` · `handoffs/2026-09-12-premium-character-series-unlock.md` · `handoffs/2026-09-12-series-packaging-and-narrative.md`
 
 ## 决策(-> ADR)
 > _已定案的决定链接到 decisions/ADR-####。_
 
-- **商业化 = 三支**（premium bundle · 纯外观预留 · 付费解锁角色系列）；**付费解锁角色系列**（系列化轨道、单向棘轮、整系列礼包定价、严格横向不卖强度）已定案，**ADR 候选待 `/write-adr` 立档**。
+- **商业化 = 三支**（premium bundle · 纯外观预留 · 付费解锁角色系列）；**付费解锁角色系列**（系列化轨道、**双向不可变的轨道棘轮**、整系列礼包为唯一 SKU、严格横向不卖强度）已定案，**ADR 候选待 `/write-adr` 立档**。
+- **付费角色系列的解锁载体与购买流程形态**（`PlayerEntitlement.CharacterSeries` 具名集合 · 系列粒度 · 客户端零兑现事务零水位 · 购后不阻塞 · 在售窗口为内容层属性）已定案，**ADR 候选待 `/write-adr` 立档**。
+- **系列的包装面与叙事面**（系列 = 世界观切片、对成员零规则强制、名与概述落 `CharacterSeriesData`；**剧情不是付费面**、叙事待遇不分轨道；推出次序 = 先单灵根五角进阶付费批、双灵根免费批在后）已定案，**ADR 候选待 `/write-adr` 立档**。
 - **premium bundle = MVP 唯一已实施的付费点；重试上限是基线值而非常量**（付费放宽为有意的口径变化，见 `decisions/ADR-0004-realm-checkpoint-retry-model.md`）。**上限的载体形状与选行链路** → `decisions/ADR-0117-chapter-retry-limit-carrier.md`（Accepted：两档表住 `ChapterRetryLimitsData`、按 `HasPremiumBundle` 选行、**不新增任何存档结构**）；**计数落 `CharacterProfile.chapterRetry`** → `decisions/ADR-0101-chapter-retry-counter-carrier.md`（Accepted）。
 - **付费凭证 = `PlayerEntitlement` 的两字段（后端写的授予序号 `BundleGrantOrdinal` + 客户端写的兑现水位 `BundleRedeemedOrdinal`）；序号只由后端推进、兑现由客户端逐一按序演算、只在主菜单发起；可重复购买且 ③ ④ 不叠加；付费面五项明确排除** → `decisions/ADR-0023-premium-entitlement-and-redemption.md`（Accepted）。
 - **平台内购三渠道（Google Play Billing / App Store / 微信支付）纳入 MVP** → `decisions/ADR-0024-in-app-purchase-channels-in-mvp.md`（Accepted）。
@@ -203,9 +259,9 @@ Source: `handoffs/2026-08-01b-abstraction-levels-combat-numbers-codex-family-and
 
 - **`GrantPoolMargin` 的数值与 `K`。** 闸 ① 的口径已改写为「支撑 K 次重复购买 + 留给第 K+1 次的缓冲」，**结构已定、数值待内容规模明朗**。→ `systems/balance.md`。
 - **合规。** 付费与实名 / 防沉迷 / 渠道分成 / 退款的交互归后端与合规侧；客户端不读年龄、不做任何本地拦截，只承接后端 `code` 展示对应 `ERR_*` 文案。→ `backend-design-documents/`。
-- **付费角色系列的解锁载体与购买流程形态。** 字段形态、解锁校验、存档 / 契约增量与后端承接（SKU、验票写入、封闭表加行）归 `/provide-solution-draft` 推演。→ 本文档、`systems/character-profile/_index.md`。
-- **双灵根批与付费系列的推出时点与主题包装。** 未讨论。→ 本文档。
-- **付费角色与专属剧情的关系**（是否附带专属剧情、剧情是否构成付费面一部分）。留给叙事落地专场或商业化后续。→ 本文档、`systems/services/plot-manager.md`。
+- **各系列的具体名字与主题**（第一个付费系列取哪个世界观实体、首批五角共享的是哪一场世界事件）。次序与构成已定，取值属内容阶段，需先有 `narrative/` 的世界观底稿。→ `narrative/_index.md`、`content/character/_index.md`。
+- **双灵根免费批的具体推出时点。** 只定了排在第一个付费系列之后，未定隔几个版本。→ 本文档。
+- **进阶批「复杂度更高」的具体表达**（更繁的运营？更多的条件判断？更长的连锁？）。属内容与数值阶段。→ `systems/character-profile/_index.md`、`systems/balance.md`。
 
 ## 对应
 提炼至：`.claude/knowledge/systems/monetization.md`（待建）。

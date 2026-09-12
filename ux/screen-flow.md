@@ -47,10 +47,16 @@
   | Achievement(成就) | 分组成就;玩家**只能查看进度 / 领取奖励**;奖励按**组内加权进度**发放,分 **60% / 90% 两档一次性奖励**(见下) | `achievement` + `achievementGroup` |
   | **Codex(图鉴)** | 七本图鉴的索引与浏览(见下「图鉴族的三层浏览结构」);**纯标签、无红点 / 角标 / 动效、无门禁**,总完成度不上主菜单 | 七本 Codex 字段 |
   | Settings(设置) | 音量与快速演出(账号级)、语言(设备本地);**外加一行只读的「同步版本 #N」**(见下) | `gameSetting` + 设备本地 `user://cache/device-settings.json` |
-  | **Store(礼包)** | premium bundle 的详情与购买入口;**排在末位、安静呈现**(见下)。同屏另有两个结果态:购买处理中(全屏模态进度)与兑现结果(本次获得的 1 法则 + 2 古宝) | `entitlement` |
+  | **Store(礼包)** | premium bundle 的详情与购买入口;**排在末位、安静呈现**(见下)。同屏另有五个结果态:购买处理中(全屏模态进度)、兑现结果(本次获得的 1 法则 + 2 古宝)、付费角色系列列表、系列详情(付款前列出本系列全部角色)、解锁结果态(列出本次解锁的角色) | `entitlement` |
 
 
 
+- **篇章切换面逐行常驻「本篇章剩余重试次数」(轴 7 的明示,不新增屏)。** 玩家进入 ch2 / ch3 时**如实告知本篇章的剩余重试次数**——「从这里开始不一样了」要主动说出来,不让玩家自己撞上。
+  - **落点是篇章切换面的每个篇章行**,不新开一屏:这是玩家选定起始篇章、按下「开始新轮回」的那一处,也是该面已经在展示「弃置后剩余次数」的同一行。**不新增屏、不新增主菜单入口。**
+  - **取值与轮回结束屏、弃置二段确认同口径**:`ChapterRetryLimitsData[HasPremiumBundle 选行][N] − chapterRetry.ChN`,**不硬编码上限常量**;ch1 上限无限 ⇒ 走**不含次数的另一条键**,不显示一个假的大数;**剩余为 0 时走第三条键**,改说「该篇章将不再可挑战」。三条键与弃置确认那三条**共用同一套措辞口径**、不另发明第四种说法。**零新增存档字段**。
+  - **告知规则不等于威胁,这正是「不评价」的正确形态。** 与全库既有的透明纪律同向(置灰 + 一行说明不隐藏、失败就地内联、购买流付款前如实标注)。**不明示让玩家自己撞上**被否决:它会被读作「游戏藏了规则」而非「游戏残酷」。
+  - **它不是推销面。** 既定纪律禁的是「提示购买」,不禁「告知剩余次数」;**本行绝不出现礼包入口或购买文案**,与轮回结束屏的剩余重试行同一条纪律。
+  - 文案走 `MENU_` 分区 / `menu.csv`(该分区本就覆盖篇章切换),**纯数据陈述、无修辞**;零 hover 通道,信息常驻可见。
 - **篇章切换面上的主动弃置入口(次级动作,不新增屏、不新增主菜单入口)。** 玩家主动终结一个角色的唯一入口落在**「切换篇章」面上、该篇章那一行 `ongoing` 角色旁**;**轮回内不设第二个入口**。判据:弃置在规则上唯一能达成的效果是把一个 `ongoing` 角色变成 `defeated`,从而**释放「每篇章至多一个 `ongoing`」这道闸**——而那道闸恰恰挂在本面的「开始新轮回」上,玩家读到「这一章被占着」的那一处,就该是他解除它的那一处。角色数据本就随轮回结束被处置,弃置不额外省下任何东西。
   - **形态。** 每篇章至多一行 `ongoing` 角色(「每篇章至多一个 `ongoing`」保证了这一点)⇒ 全游戏至多三行,不构成需要滚动或筛选的列表。弃置是这一行上的一个**次级动作**,与该行主动作「继续」并列。**本处只规定弃置键挂在 `ongoing` 行上及其形态**,该行的其余版式(是否显示事件数 / 缩略像 / 寿元)随该面成文时定。
   - **就地二段确认,不新开屏、不新增弹层。** 第一段「放弃」→ 就地在该行内展开第二段(一行后果 + 「确认放弃」),与解绑 / 储物袋售出 / Exchange 兑换 / 账号注销同款,**不发明第三种确认语言**。第二段展开后「确认放弃」不与「继续」重叠落位。
@@ -116,6 +122,11 @@
   - **允许的全部呈现穷举为三处:** 主菜单入口本身;礼包详情页内如实列出四项权益(及第二次起的删减说明——**必须在付款前**标注);兑现结果态。**兑现结果不是推销面**——它发生在付款之后、内容已定,而「付了钱看不到货」正是退款争议的常见诱因。
   - **入口不可用时置灰 + 一行说明,不隐藏**(走 `STORE_UNAVAILABLE_*` 翻译键);前置条件表见 `systems/monetization.md`,灰态判据见 `ux/error-and-blocking-ux.md`。**非商店平台(桌面 / 网页)例外:入口不渲染而非置灰**——三渠道全是移动渠道,「当前平台存在可用渠道」这一前置在桌面 / 网页上永不满足,而灰态语义是「暂不可用、会恢复」;手机购得的权益在桌面照常经 pull 生效,玩家无损失。
   - **兑现结果是 Store 屏的一个结果态,不是新增一屏。** 它发生在 Store 流程内、由同一入口进出,屏清单不变;购买处理态同理。文案走 `STORE_` 分区。
+  - **付费角色系列同样落成 Store 屏的三个结果态,不新增屏、不新增主菜单入口:系列列表 · 系列详情 · 解锁结果态。** 与外观族的既定处置逐字同款（Store 已是一屏多结果态）。
+    - **系列详情页在付款前必须列出本系列的全部角色**,复用角色选择屏卡面的同一套构件(形象 + 灵根一行 + 神通名与一行简述 + 两门绑定功法名与各一行简述);**不展示数值、不标推荐、不写任何「更强」暗示**。这是诚实性纪律在本付费点上的兑现。
+    - **解锁结果态**列出本次解锁的角色。它发生在付款之后、内容已定,不是推销面。
+    - **角色选择屏不变:未拥有的付费角色完全不出现在那里**——不设卡位、不灰显、不加底部入口。选择屏因此保持「这些都是你能玩的」这一干净语义,也不与「不标推荐 / 不展示数值 / 首批刻意压平复杂度」的基调冲突;灰显未拥有项会让玩家把「灰的那几个」读成「更好的那几个」。**代价如实写下:付费面近乎不可发现**,发现面只剩 Store 屏与版本更新公告。
+    - 前置条件(已拥有 / 系列条目被 flags 关掉 / 不在在售窗口内)一律**置灰 + 一行说明**,走 `STORE_UNAVAILABLE_SERIES_*` 键;表见 `systems/monetization.md`,灰态判据见 `ux/error-and-blocking-ux.md`。
   - **待兑现态存续期间(重启后仍未兑现):主菜单可进入,但「开始新轮回」置灰 + 说明「有一笔购买待发放,正在重试」**,顶部常驻同步指示复用既有形态。这是既定灰态判据「入口置灰 + 说明、不隐藏」的一次应用,不新增拦截点。
 
 - **成就发放细化。** 每个类别按**组内加权进度**分**两档一次性奖励**:加权进度达 **60%** 发一次、达 **90%** 再发一次;**两档奖励不同,且都为一次性**——**60% 档发一件古宝、90% 档发一条法则**,每档恰一个成就限定的专属条目(机制与依据见 `systems/player-profile/achievement/_index.md`)。**成就目录 80% 条目可见、20% 为隐藏成就**,达成后才显示;**隐藏成就计入组内进度分母**,故第二档必须碰到约一半隐藏成就。
@@ -281,7 +292,7 @@
   | 载体 | 事件流程内的**一屏全屏**（安全区内）——不进屏幕栈、**无返回路径** |
   | 确认 | 底部一个「进入战斗」主按钮；**不做二次确认** |
   | 常驻标注 | 一行并列双方等级（`我 · 筑基中期 ⟶ 敌 · 筑基后期`），**恒显示** |
-  | 图鉴摘要区 | 该敌人已在 `EnemyCodex` 解锁 → 呈现其词条全文五项 + 功法词条入口；**未解锁则整块不出现** |
+  | 图鉴摘要区 | 该敌人已在 `EnemyCodex` 解锁 → 呈现其词条全文四项 + 每门核心功法的词条入口；**未解锁则整块不出现** |
   | hover | 零 hover 通道，信息常驻可见或长按展开 |
   | 文案 | `res://text/` 翻译键：页面框架文案走 `COMBAT_` 分区，摘要区内图鉴族的项目标签复用 `PROFILE_` 既有键；此路径不产生 `ERR_*` 键。**词条正文不走翻译键**——它是内容层 `LocalizedText`（`ux/_index.md` 的四问判据） |
 
@@ -301,6 +312,7 @@
   | 触发 | `DefeatCharacter(reason, characterId)` 提交完成之后（含既定 `Immediate` flush 与 `TotalCyclesDefeated +1`） |
   | 数据源 | `DefeatCharacter` 内、清理之前组装的**只读值摘要**（值类型 + `Id`，无 `CharacterProfile` 引用），见 `systems/services/life-cycle-service.md` |
   | 结果三行 | 境界 + 篇章 · **本篇章**的事件数（摘要的 `PastEventCount`，由篇章起始 `Seq` 锚点求差得出，取法见 `systems/services/life-cycle-service.md`） · `Status.lifeSpan`（恒精确；`LifeSpanExhausted` 变体上恒为 `0`） |
+  | **角色终结台词** | **结果三行与主按钮之间**的一处呈现位：该角色对本次 `DefeatReason` 的第一人称台词一句。取值 = `CharacterData.DefeatLines` 按 `(characterDataId, DefeatReason)` 查表（两者都在摘要里），**内容层 `LocalizedText`、不进 `cycle.csv`、不落存档**；缺项即**省略本位**、其余版式不动 |
   | 剩余重试 | `RetriesLeft` 照实展示；ch1 上限无限 → 走「无限」键，**不显示一个假的大数** |
   | 商业化 | **零入口、零文字**（承重） |
   | 残卷 | **零呈现**——不给文案 / 暗示 / 进度条 / 百分比（承重） |
@@ -320,6 +332,9 @@
   | `LifeSpanExhausted` | `CYCLE_END_TITLE_LIFESPAN` | 一条（内容侧待写） |
   | `Discarded` | `CYCLE_END_TITLE_DISCARDED` | **留空**——主动弃置是玩家自己的决定，写挽留 / 惋惜文案像在评价玩家的选择 |
 
+  - **台词位是本屏唯一一处有声音的文本（承重）。** 全作只有这一处可玩角色用自己的声音说话——**它凿得进去，正因为四周全是冷的**（数据行、剩余重试行、纯陈述的定性文案）。故：**一次一句、无配音、无打字机 / 逐字动画、无额外音效**（本屏的一次短音效不为它加第二次），台词与数据行之间只用留白分隔、不加引号外的任何装饰。它是既有「三因」的一种表达形式，**不是新增部件**——出路 / 信息行 / 按钮全不变，变体差异仍只在标题键与定性文案两格加上这一句。
+    - **它与 `Discarded` 变体「定性文案留空」并存不矛盾。** 留空的理由是「写挽留 / 惋惜文案像在评价玩家的选择」；台词是**角色自己的声音**，不是游戏对玩家的评价。两格各说各的，`Discarded` 上仍然只有台词、没有定性文案。
+    - **台词只在角色终结时出现。** 普通战斗失败零台词、仍是纯数据结算；角色选择、突破境界、篇章通关（`ChapterEndScreen` 含 ch3 元婴变体）一律不给台词。**稀缺即分量**——一个角色一辈子只说这么一次。射程与字段形态见 `systems/character-profile/_index.md`。
   - **一屏三变体而不是三屏。** 三因走完之后的结构完全相同（`defeated` → 数据清理 → 重试计数已减 → 回主菜单），差别只在这一次为什么结束，那是一句话的差别、不是一条流程的差别。三份等价布局要各自维护、各自适配竖屏与安全区，而差异一旦只靠版式表达，必然漂移成三种不一致的观感。
   - **本屏只承载 `defeated` 三因。** 篇章通关 `completed` 与整轮回通关（元婴界面）**不走本屏**。
   - **借阻塞屏的形态（一屏 + 变体表），不借它的屏。** `BlockingNoticeScreen` 的变体表只收「由已知后端 `code` 触发、且玩家没有任何自愈路径」的终局态；轮回结束不由任何 `code` 触发，它是一次**正常的游戏结果**——共用会让「角色死了」与「存档读不出来」在观感上同级。
@@ -412,7 +427,7 @@
   | 主菜单 `Codex` 入口 | 按钮 | 纯标签，无角标 / 红点 / 动效；无条件可见、无门禁 |
   | `CodexIndexScreen` | 全屏，进屏幕栈，有返回 | 七格网格（窄屏 2 列 / 平板 3 列）+ 每格一条完成度 |
   | `CodexBookScreen` | 全屏，进屏幕栈，有返回 | 顶部本名 + 完成度；纵向滚动网格（窄屏 4 列 / 平板 6 列）；**地域本此处换为一张逐步显影的图** |
-  | `CodexEntryScreen` | 全屏，进屏幕栈，有返回 | **仅敌人本**：词条五项 + 功法词条入口 |
+  | `CodexEntryScreen` | 全屏，进屏幕栈，有返回 | **敌人本**：词条四项 + 每门核心功法的词条入口；**功法本**：条目字段 + 逐层卡表 |
   | 词条 bottom sheet | 半屏抽屉，**不进屏幕栈**，下滑关闭 | 其余各本的词条；亦作为功法词条叠在敌人词条页上。复用「随身」抽屉同款控件 |
 
   - **一个「图鉴」一等入口，不逐本开七个。** 七本的差别只在收录对象，在最显眼的一层把它拆成七个平行入口等于在 UI 上否掉这条抽象，而收益为零（七个入口不比一个入口更快到达任何一本）；且十二行入口会把 Store 推出单手可及区，与「安静、可预期、永远在同一个位置」相抵。**不做一屏七页签**：七个页签在窄屏溢出成可滑动页签条、标签被截断，而页签栏吃掉的纵向空间正是索引页最该放完成度的地方。
@@ -422,10 +437,10 @@
   - **已收录格 = `Artwork` + 名称。** 敌人本的格用 `EnemyData.Artwork`；**只有功法本恒无独立视觉资产**，用统一占位图 + 名称。
   - **未收录 = 灰态占位格，只有一个通用锁形图标：不显示名称、不显示剪影。** 不给名字是因为**首遇的信息差是首遇的风险定价**，给出全部敌人名等于把这份定价从入口处泄掉一半；不做剪影是因为剪影要为每个条目另出一份美术资产。点按灰格给一条「尚未收录」提示（`PROFILE_CODEX_LOCKED`），**触控等价、非 hover**。
   - **图鉴屏留灰格与战斗前确认页「不留灰占位」不冲突，两处判据不同：** 确认页的空槽是**每场战斗重复一次**的提醒，图鉴屏的灰格是**收集面的分母框**（而分母本就已由顶部完成度公开）。
-  - **词条载体按词条深度分野。** 敌人词条 = 五项结构化文案（第⑤项即关键卡三张），150–280 字按「一屏读完不需滚动」写就 ⇒ 给全屏页；其余五本词条只有几行加一段风味文案 ⇒ 半屏 bottom sheet，可下滑关闭。**地域本的词条载体随其词条深度定**（见待决问题）。敌人词条页内词条②渲染出的功法名**可点入功法词条**，以半屏 bottom sheet 叠在词条页上、不离开本页；与战斗前确认页共用同一份渲染，**不另切一套摘要规格**。
+  - **词条载体按词条深度分野。** 敌人词条 = 四项结构化文案，③④ 写到行为模式级、不设字数上限、**允许纵向滚动** ⇒ 给全屏页；功法本除条目字段外另带一份逐层卡表 ⇒ 亦给全屏页；其余四本词条只有几行加一段风味文案 ⇒ 半屏 bottom sheet，可下滑关闭。**地域本的词条载体随其词条深度定**（见待决问题）。敌人词条页内词条②渲染出的**每一个功法名都可点入功法词条**（含其逐层卡表），以全屏页压栈呈现——卡表的体量撑不进半屏 sheet。与战斗前确认页共用同一份渲染，**不另切一套摘要规格**。
   - **图鉴屏内的敌人词条页没有等级页眉。** 词条挂模板、跨轮回持久，同一模板以不同等级出场；图鉴屏没有「本次实例」可标，等级只在战斗前确认页那一行出现。
   - **地域本只有单本页的内容区不套用统一形态**，入口 / 索引格与完成度口径 / 文案分区 / 触控纪律四层全部套用。**它的边缘态显示真实地名是全族唯一例外，不推广到其余六本**——那里地名之外什么都不给，而敌人名 / 功法名一给出去就把首遇的风险定价泄掉。
-  - **翻译键全部落 `PROFILE_` 分区 / `profile.csv`**（`PROFILE_CODEX_TITLE` · `PROFILE_CODEX_BOOK_*` 七本本名 · `PROFILE_CODEX_PROGRESS` · `PROFILE_CODEX_LOCKED` · 词条项目标签 · `PROFILE_CODEX_FLAVOR`），**不新开分区**；敌人词条五项的项目标签与战斗前确认页**共用同一批既有键**。**词条正文 / 条目名 / 风味文案一律不走翻译键**——内容层 `LocalizedText`。此路径不产生 `ERR_*` 键。
+  - **翻译键全部落 `PROFILE_` 分区 / `profile.csv`**（`PROFILE_CODEX_TITLE` · `PROFILE_CODEX_BOOK_*` 七本本名 · `PROFILE_CODEX_PROGRESS` · `PROFILE_CODEX_LOCKED` · 词条项目标签 · `PROFILE_CODEX_FLAVOR`），**不新开分区**；敌人词条四项的项目标签与战斗前确认页**共用同一批既有键**；功法词条的卡表分层标题走同分区新增键。**词条正文 / 条目名 / 风味文案一律不走翻译键**——内容层 `LocalizedText`。此路径不产生 `ERR_*` 键。
   - **触控与安全区**：索引页格、网格格、bottom sheet 的抓取条与返回按钮全部满足最小触控目标下限；返回按钮落顶部左上安全区内并响应系统返回键；bottom sheet 以下滑关闭为主手势，另有点按遮罩关闭作为等价通道；敌人词条页纵向滚动时底部返回 / 功法入口不随之移出视野。**零 hover 通道**。
   - **工程面零增量**：两个 ViewModel（索引 / 单本）随屏出生、随屏消亡，开屏组装一次并缓存至离屏，**不进 `_Process`**；订阅翻译变更即重新组装一次。不新增存档字段 / `ProfileChangeSpec` 列 / 提交点 / 缓存文件，后端零配合。**条目解析不到 → `PushWarning`（带本名 + id）+ 从分子剔除、跳过该格，不阻断本屏**（可选缺失，与 `Frontier` 顶点解析失败同款处置）。
 
@@ -496,7 +511,7 @@
 - **三种终局态共用一个阻塞屏。** 需更新(强更)、被挤下线、存档读取失败三者形态同构,收敛为一个 `BlockingNoticeScreen` + 变体表(全屏 · 无返回 · 主按钮永不是「继续游玩」 · 底部诊断编号可长按复制)。**三个变体不等于三处硬阻塞**——阻塞点仍是既定两处。见 `ux/error-and-blocking-ux.md`。
 - **美术挂点占位。** 循环视频、图标、卡面等 TBA;组合场景时为其保留可轻松替换的挂点,先用占位 / 免费资源。
 
-Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-codex-entry-and-browse.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-03-plot-eventbus-broadcast.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-06-active-discard-entry.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md` · `handoffs/2026-09-08-portrait-option-list.md` · `handoffs/2026-09-09b-combat-feel-identity.md` · `handoffs/2026-09-09c-audio-direction-nine-axes.md` · `handoffs/2026-09-10-player-power-acquisition-and-balance.md`
+Source: `handoffs/2026-09-03-lifespan-cost-table-and-budget-scale.md` · `handoffs/2026-08-30-exchange-barter-support.md` · `handoffs/2026-08-30-character-template-pool.md` · `handoffs/2026-08-30-affinity-and-technique-attributes.md` · `handoffs/2026-08-30-life-lifespan-merge.md` · `handoffs/2026-07-16-ux-flow-login-and-dev-order.md` · `handoffs/2026-07-22-online-cloud-combat-and-meta-clarifications.md` · `handoffs/2026-07-23-adventure-plot-hidden-stats-and-clarifications.md` · `handoffs/2026-07-26-event-priority-skip-semantics-and-hotfix-scope.md` · `handoffs/2026-07-30-claude-engineering-scope-enemy-manager-and-requirement-breakdown.md` · `handoffs/2026-08-01-momentum-scoring-lifespan-tuning-and-failure-payoff.md` · `handoffs/2026-08-06d-combat-open-questions-mass-closure.md` · `handoffs/2026-08-09-sync-revision-cas-and-immediate-flush-nonblocking.md` · `handoffs/2026-08-09d-field-layering-merge-criterion-and-ordinal-naming.md` · `handoffs/2026-08-12-error-copy-and-update-prompts.md` · `handoffs/2026-08-12d-hidden-stat-bands-and-crossing-narrative.md` · `handoffs/2026-08-15b-monetization-entitlement-purchase-shape-and-scope.md` · `handoffs/2026-08-15d-intent-removal-lifespan-cost-visibility-and-design-audit.md` · `handoffs/2026-08-16e-account-identity-client-adoption.md` · `handoffs/2026-08-17c-explore-reveal-mechanics.md` · `handoffs/2026-08-17d-exchange-mechanics-and-transaction-discipline.md` · `handoffs/2026-08-17f-lifespan-restoration-paths.md` · `handoffs/2026-08-19-bundle-grant-ordinal-authority.md` · `handoffs/2026-08-19-game-setting-schema.md` · `handoffs/2026-08-22-finale-failure-is-death.md` · `handoffs/2026-08-25-info-economy-and-codex-expansion.md` · `handoffs/2026-08-25-currency-split-spirit-stone-and-immortal-jade.md` · `handoffs/2026-08-26-storage-pack-two-layer-view-and-combat-holdings.md` · `handoffs/2026-09-02-codex-entry-and-browse.md` · `handoffs/2026-09-02-cycle-end-screen.md` · `handoffs/2026-09-02-plot-branch-choice-ui.md` · `handoffs/2026-09-03-compliance-client-surface.md` · `handoffs/2026-09-03-plot-eventbus-broadcast.md` · `handoffs/2026-09-05-backend-batch-client-obligations.md` · `handoffs/2026-09-05-chapter-end-screen.md` · `handoffs/2026-09-06-iap-channel-integration.md` · `handoffs/2026-09-06-active-discard-entry.md` · `handoffs/2026-09-07c-achievement-schema-collection-and-rewards.md` · `handoffs/2026-09-08-portrait-option-list.md` · `handoffs/2026-09-09b-combat-feel-identity.md` · `handoffs/2026-09-09c-audio-direction-nine-axes.md` · `handoffs/2026-09-10-player-power-acquisition-and-balance.md` · `handoffs/2026-09-11-failure-and-punishment-identity.md` · `handoffs/2026-09-12-premium-character-series-unlock.md`
 
 ## 决策(-> ADR)
 > _已敲定的决定链接到 decisions/ADR-####。_
